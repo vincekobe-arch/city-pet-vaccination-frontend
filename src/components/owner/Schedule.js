@@ -2882,11 +2882,11 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
                             }}
                           >
                             {pet.isRegistered ? (
-                              <div className="d-flex justify-content-between align-items-start">
-                                <div className="flex-grow-1">
+                              <div className="d-flex justify-content-between align-items-center" style={{ flexWrap: 'nowrap', gap: '0.5rem' }}>
+                                <div className="flex-grow-1" style={{ minWidth: 0 }}>
                                   <div className="d-flex align-items-center mb-2">
-                                    <i className="fas fa-check-circle text-success me-2" style={{ fontSize: '1.2rem' }}></i>
-                                    <div>
+                                    <i className="fas fa-check-circle text-success me-2" style={{ fontSize: '1.2rem', flexShrink: 0 }}></i>
+                                    <div style={{ minWidth: 0 }}>
                                       <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
                                       <Badge bg="success" className="ms-2">Registered</Badge>
                                     </div>
@@ -2912,10 +2912,12 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.3rem',
-                                    opacity: registerLoading ? 0.6 : 1
+                                    opacity: registerLoading ? 0.6 : 1,
+                                    flexShrink: 0,
+                                    whiteSpace: 'nowrap'
                                   }}
-                                  onMouseOver={(e) => !registerLoading && (e.target.style.background = '#c82333')}
-                                  onMouseOut={(e) => !registerLoading && (e.target.style.background = '#dc3545')}
+                                  onMouseOver={(e) => !registerLoading && (e.currentTarget.style.background = '#c82333')}
+                                  onMouseOut={(e) => !registerLoading && (e.currentTarget.style.background = '#dc3545')}
                                 >
                                   <i className="fas fa-times"></i>
                                   Cancel
