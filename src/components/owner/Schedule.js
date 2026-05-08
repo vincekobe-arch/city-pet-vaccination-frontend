@@ -1196,6 +1196,20 @@ const getVaccineDetails = (schedule) => {
 
   const filteredSchedules = getFilteredSchedules();
 
+  if (loading) {
+    return (
+      <>
+        <style>{styles}</style>
+        <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="text-center">
+            <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
+            <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Loading schedules...</p>
+          </div>
+        </Container>
+      </>
+    );
+  }
+
   return (
     <>
       <style>{styles}</style>
@@ -1250,7 +1264,16 @@ const getVaccineDetails = (schedule) => {
         </Row>
       )}
 
-      {verifLoading || loading ? null : !isVerified() && ownerProfile ? (
+      {verifLoading ? (
+        <Row>
+          <Col>
+            <div className="text-center py-5">
+              <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
+              <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Checking verification...</p>
+            </div>
+          </Col>
+        </Row>
+      ) : !isVerified() && ownerProfile ? (
         <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
           <Col>
             <Card className="text-center py-5 border-0"

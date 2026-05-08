@@ -311,6 +311,20 @@ setDashboardData({
   const totalPets = dashboardData.pets.length;
 
 
+  if (loading) {
+    return (
+      <>
+        <style>{styles}</style>
+        <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', zoom: '0.75', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="text-center">
+            <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
+            <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Loading dashboard...</p>
+          </div>
+        </Container>
+      </>
+    );
+  }
+
   return (
     <>
       <style>{styles}</style>
@@ -524,7 +538,9 @@ setDashboardData({
                   <table className="mobile-table" style={{
   width: '100%',
   borderCollapse: 'collapse',
-  fontSize: '0.9rem'
+  fontSize: '0.9rem',
+  opacity: loading ? 0.4 : 1,
+  transition: 'opacity 0.3s'
 }}>
                     <thead>
   <tr style={{ 
@@ -682,7 +698,12 @@ setDashboardData({
               </h5>
             </Card.Header>
 <Card.Body className="mobile-card-body" style={{ padding: '2rem', maxHeight: '500px', overflowY: 'auto' }}>
-                {dashboardData.dueVaccinations.length === 0 ? (
+                {loading ? (
+                  <div className="text-center py-5">
+                    <Spinner animation="border" style={{ width: '2.5rem', height: '2.5rem', color: '#ffc107', borderWidth: '3px' }} />
+                    <p style={{ marginTop: '1rem', fontWeight: '600', color: '#999999', fontSize: '0.9rem' }}>Loading reminders...</p>
+                  </div>
+                ) : dashboardData.dueVaccinations.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-check-circle mb-3" style={{ fontSize: '4rem', color: '#28a745' }}></i>
                   <h6 style={{ color: '#28a745', fontWeight: '700', fontSize: '1.1rem' }}>All vaccinations up to date!</h6>
