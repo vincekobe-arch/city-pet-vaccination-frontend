@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost/city-pet-vaccination-api'
-  : 'http://petunity.infinityfree.me/city-pet-vaccination-api';
+  : 'https://petunity.infinityfree.me/city-pet-vaccination-api';
 
 const TOKEN_KEY = 'pet_vaccination_token';
 const USER_KEY = 'pet_vaccination_user';
