@@ -283,14 +283,14 @@ const [showDropdown, setShowDropdown] = useState(null);
     @media (max-width: 768px) {
       .sched-page-title { font-size: 1.5rem !important; }
       .sched-tab-btn {
-        padding: 0.5rem 0.75rem !important;
-        font-size: 0.75rem !important;
+        padding: 0.5rem 0.6rem !important;
+        font-size: 0.72rem !important;
         min-width: unset !important;
         border-radius: 8px !important;
-        gap: 0.3rem !important;
+        gap: 0.25rem !important;
       }
       .sched-tab-btn span:first-of-type { display: none !important; }
-      .sched-tab-count { font-size: 0.7rem !important; }
+      .sched-tab-count { font-size: 0.68rem !important; }
       .sched-card-header { padding: 0.75rem 3rem 0.75rem 0.75rem !important; }
       .sched-card-header h5 { font-size: 0.9rem !important; }
       .sched-card-body { padding: 0.85rem !important; }
@@ -302,6 +302,32 @@ const [showDropdown, setShowDropdown] = useState(null);
         font-size: 0.75rem !important;
         padding: 0.35rem 0.55rem !important;
         min-width: 32px !important;
+      }
+      /* Tab row wraps on mobile */
+      .sched-tab-row {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
+      }
+      /* Filter row stacks on mobile */
+      .sched-filter-row .col-md-4,
+      .sched-filter-row .col-md-8 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+      }
+      .sched-filter-row .col-md-8 {
+        margin-top: 0.5rem !important;
+        text-align: left !important;
+      }
+      /* Modal responsiveness */
+      .modal-body { padding: 1rem !important; }
+      .modal-footer { padding: 0.75rem 1rem !important; }
+      /* Card grid full width on mobile */
+      .sched-card-col {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
       }
     }
   `;
@@ -1276,7 +1302,7 @@ const getVaccineDetails = (schedule) => {
               }}
             >
               {/* Tab Pills */}
-              <div style={{
+              <div className="sched-tab-row" style={{
                 display: 'flex',
                 gap: '0.75rem',
                 flexWrap: 'wrap',
@@ -1632,7 +1658,7 @@ const getVaccineDetails = (schedule) => {
               </div>
 
               <div className="mt-3">
-                <Row className="align-items-center">
+                <Row className="align-items-center sched-filter-row">
                   <Col md={4}>
                     <Form.Group>
                       <Form.Label style={{ fontWeight: '600', color: '#333333', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
@@ -1692,7 +1718,7 @@ const getVaccineDetails = (schedule) => {
                 <>
                 <Row>
                   {filteredSchedules.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((schedule, index) => (
-                    <Col key={`${schedule.type}-${schedule.id}`} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.2 + (index * 0.1)}s backwards` }}>
+                    <Col key={`${schedule.type}-${schedule.id}`} xs={12} lg={6} xl={4} className="mb-4 sched-card-col" style={{ animation: `dropDown 0.4s ease-out ${0.2 + (index * 0.1)}s backwards` }}>
                       <Card 
   key={`${schedule.type}-${schedule.id}`} 
   className="h-100 border-0"
@@ -2166,7 +2192,7 @@ const getVaccineDetails = (schedule) => {
       )}
 
       {/* Details Modal */}
-      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" style={{zoom: '0.75'}}>
+      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" style={{zoom: '0.75'}} centered={window.innerWidth <= 768}>
         <Modal.Header 
           closeButton
           style={{
@@ -2445,7 +2471,7 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Registration Modal */}
-      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" backdrop="static" style={{zoom: '0.75'}}>
+      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" backdrop="static" style={{zoom: '0.75'}} centered={window.innerWidth <= 768}>
         <Modal.Header 
   closeButton
   style={{
@@ -3323,6 +3349,7 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
   show={showCancelConfirm} 
   onHide={() => setShowCancelConfirm(false)}
   centered
+  style={window.innerWidth <= 768 ? {} : { top: '0', alignItems: 'flex-start' }}
 >
   <Modal.Header 
     closeButton
@@ -3400,7 +3427,7 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
   </Modal.Footer>
       </Modal>
     {/* ══════════ VERIFY ACCOUNT MODAL ══════════ */}
-        <Modal show={showVerifyModal} onHide={() => !verifySubmitting && setShowVerifyModal(false)} size="lg" backdrop="static" style={{ zoom:'0.75' }}>
+        <Modal show={showVerifyModal} onHide={() => !verifySubmitting && setShowVerifyModal(false)} size="lg" backdrop="static" style={{ zoom:'0.75' }} centered={window.innerWidth <= 768}>
           <Modal.Header closeButton={!verifySubmitting}
             style={{ background:'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
             <Modal.Title style={{ fontWeight:'800', color:'#333' }}>
