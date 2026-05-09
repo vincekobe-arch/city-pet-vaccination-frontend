@@ -1666,9 +1666,11 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
             display: 'flex',
             alignItems: 'center',
             gap: '0',
-            minWidth: 'max-content',
+            width: '100%',
             padding: '0 0.5rem',
             height: '100%',
+            justifyContent: user?.role === 'pet_owner' ? 'center' : 'flex-start',
+            minWidth: user?.role === 'pet_owner' ? 'unset' : 'max-content',
           }}>
             {links.flatMap((link, idx) => {
               if (link.dropdown) {
