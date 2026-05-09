@@ -2097,7 +2097,7 @@ if (name === 'vaccination_type_id' && value) {
                                           <label htmlFor={`vac-batch-${batch.id}`} style={{ cursor: noStock ? 'not-allowed' : 'pointer', flex: 1, marginBottom: 0 }}>
                                             <span style={{ fontWeight: '700', fontSize: '0.82rem' }}>{batch.batch_no}</span>
                                             {isExpired && (
-                                              <span className="ms-1" style={{ fontSize: '0.68rem', background: '#dc3545', color: '#fff', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>EXPIRED</span>
+                                            {/* expired batches are filtered server-side */}
                                             )}
                                             <span className="ms-2" style={{ fontSize: '0.75rem', color: noStock ? '#dc3545' : batch.available_qty <= 10 ? '#ffc107' : '#28a745', fontWeight: '600' }}>
                                               {batch.available_qty} available
@@ -2416,9 +2416,7 @@ if (name === 'vaccination_type_id' && value) {
                                             />
                                             <label htmlFor={`mic-batch-${batch.id}`} style={{ cursor: noStock ? 'not-allowed' : 'pointer', flex: 1, marginBottom: 0 }}>
                                               <span style={{ fontWeight: '700', fontSize: '0.82rem' }}>{batch.batch_no}</span>
-                                              {isExpired && (
-                                                <span className="ms-1" style={{ fontSize: '0.68rem', background: '#dc3545', color: '#fff', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>EXPIRED</span>
-                                              )}
+                                              {/* expired batches are filtered server-side */}
                                               <span className="ms-2" style={{ fontSize: '0.75rem', color: noStock ? '#dc3545' : batch.available_qty <= 10 ? '#ffc107' : '#28a745', fontWeight: '600' }}>
                                                 {batch.available_qty} available
                                               </span>

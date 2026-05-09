@@ -826,10 +826,12 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
   const filteredVaccinationTypes = vaccinationTypes.filter(vt => {
   const matchesSpecies = filterVaccineSpecies === 'all' || vt.species === filterVaccineSpecies || vt.species === 'all';
   if (!matchesSpecies) return false;
+  // Only show vaccine types that have been added to inventory
   const item = inventory.find(
     i => i.item_type === 'vaccination' && parseInt(i.item_type_id) === parseInt(vt.id)
   );
-  return item && parseInt(item.current_stock) > 0;
+  if (!item) return false;
+  return true;
 });
 
 
@@ -2210,19 +2212,20 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                                             {batches.map(batch => {
                                               const isBatchSelected = scheduleAllocations[batch.id] !== undefined;
                                               const isExpired = batch.expiration_date && new Date(batch.expiration_date) < new Date();
-                                              const availableQty = batch.available_qty;
+if (isExpired) return null;
+const availableQty = batch.available_qty;
 
-                                              return (
-                                                <div
-                                                  key={batch.id}
-                                                  style={{
-                                                    padding: '0.6rem 0.75rem',
-                                                    borderRadius: '6px',
-                                                    border: isBatchSelected ? '2px solid #0d6efd' : '1px solid #dee2e6',
-                                                    background: isBatchSelected ? 'rgba(13,110,253,0.04)' : isExpired ? 'rgba(220,53,69,0.04)' : '#fafafa',
-                                                    opacity: availableQty === 0 && !isBatchSelected ? 0.5 : 1,
-                                                  }}
-                                                >
+return (
+  <div
+    key={batch.id}
+    style={{
+      padding: '0.6rem 0.75rem',
+      borderRadius: '6px',
+      border: isBatchSelected ? '2px solid #0d6efd' : '1px solid #dee2e6',
+      background: isBatchSelected ? 'rgba(13,110,253,0.04)' : '#fafafa',
+      opacity: availableQty === 0 && !isBatchSelected ? 0.5 : 1,
+    }}
+  >
                                                   <div className="d-flex align-items-center gap-2" style={{ flexWrap: 'wrap' }}>
                                                     <Form.Check
                                                       type="checkbox"
@@ -2233,9 +2236,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                                                     />
                                                     <label htmlFor={`batch-${batch.id}-vac-${type.id}`} style={{ cursor: 'pointer', flex: 1, marginBottom: 0 }}>
                                                       <span style={{ fontWeight: '700', fontSize: '0.82rem' }}>{batch.batch_no}</span>
-                                                      {isExpired && (
-                                                        <span className="ms-1" style={{ fontSize: '0.68rem', background: '#dc3545', color: '#fff', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>EXPIRED</span>
-                                                      )}
+                                                      {/* expired batches are filtered server-side */}
                                                       <span className="ms-2" style={{ fontSize: '0.75rem', color: availableQty === 0 ? '#dc3545' : availableQty <= 10 ? '#ffc107' : '#28a745', fontWeight: '600' }}>
                                                         {availableQty} available
                                                       </span>
@@ -2430,18 +2431,19 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                                   {batches.map(batch => {
                                     const isBatchSelected = scheduleAllocations[batch.id] !== undefined;
                                     const isExpired = batch.expiration_date && new Date(batch.expiration_date) < new Date();
-                                    const availableQty = batch.available_qty;
-                                    return (
-                                      <div
-                                        key={batch.id}
-                                        style={{
-                                          padding: '0.6rem 0.75rem',
-                                          borderRadius: '6px',
-                                          border: isBatchSelected ? '2px solid #6c757d' : '1px solid #dee2e6',
-                                          background: isBatchSelected ? 'rgba(108,117,125,0.06)' : isExpired ? 'rgba(220,53,69,0.04)' : '#fafafa',
-                                          opacity: availableQty === 0 && !isBatchSelected ? 0.5 : 1,
-                                        }}
-                                      >
+if (isExpired) return null;
+const availableQty = batch.available_qty;
+return (
+  <div
+    key={batch.id}
+    style={{
+      padding: '0.6rem 0.75rem',
+      borderRadius: '6px',
+      border: isBatchSelected ? '2px solid #6c757d' : '1px solid #dee2e6',
+      background: isBatchSelected ? 'rgba(108,117,125,0.06)' : '#fafafa',
+      opacity: availableQty === 0 && !isBatchSelected ? 0.5 : 1,
+    }}
+  >
                                         <div className="d-flex align-items-center gap-2" style={{ flexWrap: 'wrap' }}>
                                           <Form.Check
                                             type="checkbox"
@@ -2467,9 +2469,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                                           />
                                           <label htmlFor={`microchip-batch-${batch.id}`} style={{ cursor: 'pointer', flex: 1, marginBottom: 0 }}>
                                             <span style={{ fontWeight: '700', fontSize: '0.82rem' }}>{batch.batch_no}</span>
-                                            {isExpired && (
-                                              <span className="ms-1" style={{ fontSize: '0.68rem', background: '#dc3545', color: '#fff', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>EXPIRED</span>
-                                            )}
+                                            {/* expired batches are filtered server-side */}
                                             <span className="ms-2" style={{ fontSize: '0.75rem', color: availableQty === 0 ? '#dc3545' : availableQty <= 10 ? '#ffc107' : '#28a745', fontWeight: '600' }}>
                                               {availableQty} available
                                             </span>
@@ -2644,7 +2644,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
         <Modal.Header 
           closeButton
           style={{

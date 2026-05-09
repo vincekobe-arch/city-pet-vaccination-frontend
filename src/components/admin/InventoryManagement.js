@@ -18,6 +18,7 @@ const SPECIES_COLORS = {
 
 export default function InventoryManagement() {
   const [inventory, setInventory]       = useState([]);
+const [vaccinationTypes, setVaccinationTypes] = useState([]);
 const [loading, setLoading]           = useState(true);
 const [error, setError]               = useState('');
 const [success, setSuccess]           = useState('');
@@ -45,7 +46,7 @@ const [deletingBatchId, setDeletingBatchId] = useState(null);
 
 // Add item modal
 const [showAddModal, setShowAddModal]   = useState(false);
-const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '' });
+const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '', vaccination_type_id: '' });
 const [addLoading, setAddLoading]       = useState(false);
 
 // Edit threshold modal
@@ -63,8 +64,11 @@ const [showViewModal, setShowViewModal] = useState(false);
 const [viewItem, setViewItem]           = useState(null);
 
 // Ellipsis dropdown
-const [showDropdown, setShowDropdown] = useState(null);
-const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [itemToDelete, setItemToDelete]       = useState(null);
+const [deleteLoading, setDeleteLoading]     = useState(false);
+const [showDropdown, setShowDropdown]       = useState(null);
+const [dropdownPos, setDropdownPos]         = useState({ top: 0, left: 0 });
 const dropdownButtonRef = useRef(null);
 const ZOOM = 0.75;
 
@@ -112,7 +116,7 @@ useEffect(() => {
   }
 `;
 
-  useEffect(() => { loadInventory(); }, []);
+  useEffect(() => { loadInventory(); loadVaccinationTypes(); }, []);
 
   useEffect(() => {
     if (inventory.length === 0) return;
@@ -145,6 +149,15 @@ useEffect(() => {
       setLoading(false);
     }
   };
+  const loadVaccinationTypes = async () => {
+  try {
+    const { vaccinationAPI } = await import('../../services/api');
+    const res = await vaccinationAPI.getTypes();
+    setVaccinationTypes(res.data.vaccination_types || []);
+  } catch (err) {
+    console.error('Failed to load vaccination types:', err);
+  }
+};
 
   const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 4000); };
 
@@ -289,23 +302,58 @@ const handleSaveBatch = async () => {
   }
 };
 
-const handleDeleteBatch = async (batchId) => {
-  if (!window.confirm('Delete this batch? Stock will be deducted automatically.')) return;
-  setDeletingBatchId(batchId);
+const [showDeleteBatchModal, setShowDeleteBatchModal] = useState(false);
+const [batchToDelete, setBatchToDelete] = useState(null);
+const [deleteBatchLoading, setDeleteBatchLoading] = useState(false);
+
+const handleDeleteBatch = (batchId) => {
+  const batch = batches.find(b => b.id === batchId);
+  setBatchToDelete(batch);
+  setShowDeleteBatchModal(true);
+};
+
+const handleDeleteBatchConfirm = async () => {
+  if (!batchToDelete) return;
+  setDeleteBatchLoading(true);
   try {
-    await inventoryAPI.deleteBatch(batchId);
+    await inventoryAPI.deleteBatch(batchToDelete.id);
     showSuccess('Batch deleted.');
     const res = await inventoryAPI.getBatches(batchItem.id);
     setBatches(res.data.batches || []);
     loadInventory();
+    setShowDeleteBatchModal(false);
+    setBatchToDelete(null);
   } catch (err) {
     const { message } = handleAPIError(err);
     setError(message);
   } finally {
+    setDeleteBatchLoading(false);
     setDeletingBatchId(null);
   }
 };
 
+const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setShowDeleteModal(true);
+    setShowDropdown(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!itemToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await inventoryAPI.delete(itemToDelete.id);
+      showSuccess(`"${itemToDelete.item_name}" removed from inventory.`);
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+      loadInventory();
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
   // ── Manual set stock ──────────────────────────────────────────────────────
   const handleSetStock = async (item, newStock) => {
     try {
@@ -666,7 +714,7 @@ const handleDeleteBatch = async (batchId) => {
             <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Type <span style={{ color: '#dc3545' }}>*</span></Form.Label>
             <Form.Select value={addForm.item_type} onChange={e => {
   const typeUnitMap = { vaccination: 'doses', medicine: 'mg', microchip: 'pcs', equipment: 'pcs' };
-  setAddForm(f => ({ ...f, item_type: e.target.value, unit: typeUnitMap[e.target.value] || 'pcs' }));
+  setAddForm(f => ({ ...f, item_type: e.target.value, unit: typeUnitMap[e.target.value] || 'pcs', vaccination_type_id: '', item_name: '' }));
 }}
               style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
               <option value="vaccination">Vaccination</option>
@@ -675,6 +723,32 @@ const handleDeleteBatch = async (batchId) => {
 <option value="equipment">Equipment</option>
             </Form.Select>
           </Form.Group>
+          {addForm.item_type === 'vaccination' && (
+            <Form.Group className="mb-3">
+              <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>
+                Vaccination Type <span style={{ color: '#dc3545' }}>*</span>
+              </Form.Label>
+              <Form.Select
+                value={addForm.vaccination_type_id}
+                onChange={e => {
+                  const selected = vaccinationTypes.find(v => v.id === parseInt(e.target.value));
+                  setAddForm(f => ({
+                    ...f,
+                    vaccination_type_id: e.target.value,
+                    item_name: selected ? selected.name : f.item_name,
+                    species: selected ? (selected.species === 'all' ? 'all' : selected.species) : f.species,
+                  }));
+                }}
+                style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}
+              >
+                <option value="">Select vaccination type...</option>
+                {vaccinationTypes.map(vt => (
+                  <option key={vt.id} value={vt.id}>{vt.name} ({vt.species})</option>
+                ))}
+              </Form.Select>
+              <Form.Text className="text-muted">Item name and species will be auto-filled.</Form.Text>
+            </Form.Group>
+          )}
           <Form.Group className="mb-3">
             <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Item Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
             <Form.Control value={addForm.item_name} onChange={e => setAddForm(f => ({ ...f, item_name: e.target.value }))}
@@ -736,10 +810,13 @@ const handleDeleteBatch = async (batchId) => {
                 minimum_stock: parseInt(addForm.minimum_stock),
                 unit: addForm.unit || 'pcs',
                 notes: addForm.notes,
+                ...(addForm.item_type === 'vaccination' && addForm.vaccination_type_id
+                  ? { item_type_id: parseInt(addForm.vaccination_type_id) }
+                  : {}),
               });
               showSuccess(`"${addForm.item_name}" added to inventory.`);
               setShowAddModal(false);
-              setAddForm({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '' });
+              setAddForm({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '', vaccination_type_id: '' });
               loadInventory();
             } catch (err) {
               const { message } = handleAPIError(err);
@@ -1166,6 +1243,15 @@ const handleDeleteBatch = async (batchId) => {
                     <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
                     <span>View Details</span>
                   </button>
+                  <button
+                    onClick={() => handleDeleteClick(item)}
+                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'}
+                    onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
+                  >
+                    <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                    <span>Delete Item</span>
+                  </button>
                 </>
               );
             })()}
@@ -1208,6 +1294,98 @@ const handleDeleteBatch = async (batchId) => {
           <Button onClick={handleEditSave} disabled={editLoading}
             style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
             {editLoading ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : <><i className="fas fa-save me-2" />Save Threshold</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      {/* ── Delete Batch Confirm Modal ── */}
+      <Modal show={showDeleteBatchModal} onHide={() => !deleteBatchLoading && setShowDeleteBatchModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6', borderRadius: '12px 12px 0 0' }}>
+          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
+            <i className="fas fa-exclamation-triangle text-danger me-2" />
+            Confirm Delete Batch
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {batchToDelete && (
+            <>
+              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                Are you sure you want to delete this batch?
+              </p>
+              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #dc3545' }}>
+                <strong style={{ fontSize: '1.1rem' }}>{batchToDelete.batch_no}</strong>
+                <br />
+                <small className="text-muted">
+                  Quantity: {batchToDelete.quantity} {batchItem?.unit}
+                  {batchToDelete.expiration_date && (
+                    <> · Expires: {new Date(batchToDelete.expiration_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                  )}
+                </small>
+              </div>
+              <Alert variant="warning" className="mt-3 mb-0">
+                <i className="fas fa-info-circle me-2" />
+                <strong>Warning:</strong> Stock will be deducted automatically. This action cannot be undone.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowDeleteBatchModal(false)} disabled={deleteBatchLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteBatchConfirm} disabled={deleteBatchLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            {deleteBatchLoading
+              ? <><Spinner size="sm" animation="border" className="me-2" />Deleting...</>
+              : <><i className="fas fa-trash me-2" />Delete Batch</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ── Delete Confirm Modal ── */}
+      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6', borderRadius: '12px 12px 0 0' }}>
+          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
+            <i className="fas fa-exclamation-triangle text-danger me-2" />
+            Confirm Delete
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {itemToDelete && (
+            <>
+              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                Are you sure you want to delete this inventory item?
+              </p>
+              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #dc3545' }}>
+                <div className="mb-2">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.65rem', borderRadius: '20px', background: (TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).bg, color: (TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).color, fontWeight: '700', fontSize: '0.75rem' }}>
+                    <i className={`fas ${(TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).icon}`} />
+                    {(TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).label}
+                  </span>
+                </div>
+                <strong style={{ fontSize: '1.1rem' }}>{itemToDelete.item_name}</strong>
+                <br />
+                <small className="text-muted">
+                  Current stock: {itemToDelete.current_stock} {itemToDelete.unit}
+                </small>
+              </div>
+              <Alert variant="warning" className="mt-3 mb-0">
+                <i className="fas fa-info-circle me-2" />
+                <strong>Warning:</strong> This will permanently remove the item and all its batches. This action cannot be undone.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDeleteConfirm} disabled={deleteLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            {deleteLoading
+              ? <><Spinner size="sm" animation="border" className="me-2" />Deleting...</>
+              : <><i className="fas fa-trash me-2" />Delete Item</>}
           </Button>
         </Modal.Footer>
       </Modal>

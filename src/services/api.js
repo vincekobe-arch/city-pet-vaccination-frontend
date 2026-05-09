@@ -37,14 +37,18 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-  console.error('❌ 401 Unauthorized - Token invalid or expired');
-  const publicPaths = ['/', '/login', '/register'];
-  if (!publicPaths.includes(window.location.pathname)) {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    window.location.href = '/login';
-  }
-}
+      console.error('❌ 401 Unauthorized - Token invalid or expired');
+      const publicPaths = ['/', '/login', '/register'];
+      if (!publicPaths.includes(window.location.pathname)) {
+        const errorCode = error.response?.data?.code;
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        if (errorCode === 'SESSION_INVALIDATED') {
+          alert('You have been logged out because your account was logged in from another device.');
+        }
+        window.location.href = '/login';
+      }
+    }
     return Promise.reject(error);
   }
 );
@@ -272,6 +276,7 @@ export const inventoryAPI = {
   deductBatchStock: (batchId, data) => api.post(`/inventory/batch-deduct/${batchId}`, data),
   getClinicRecordBatchAvailability: (inventoryId) => api.get(`/clinic/inventory/record-batch-availability/${inventoryId}`),
   deductClinicBatchStock: (batchId, data) => api.post(`/clinic/inventory/batch-deduct/${batchId}`, data),
+  delete: (id) => api.delete(`/inventory/delete/${id}`),
 };
 
 
