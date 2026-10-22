@@ -485,7 +485,7 @@ const ClinicDashboard = () => {
               {/* Upcoming Appointments */}
               <Col lg={6} className="mb-4">
                 <Card
-                  className="border-0"
+                  className="border-0 h-100"
                   style={{
                     borderRadius: '20px',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
@@ -501,30 +501,29 @@ const ClinicDashboard = () => {
                       borderRadius: '20px 20px 0 0'
                     }}
                   >
-                    <div className="d-flex justify-content-between align-items-center">
+                    <div className="d-flex align-items-center">
                       <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
                         <i className="fas fa-calendar-alt me-2" style={{ color: '#ffc107' }} />
                         Upcoming Appointments
-                      </h5>
-                      <Badge style={{ background: '#ffc107', color: '#000', fontWeight: '700', fontSize: '0.8rem', padding: '0.35rem 0.75rem', borderRadius: '20px' }}>
                         {(() => {
                           const today = new Date(); today.setHours(0,0,0,0);
-                          const upcoming = [
-                            ...dashboardData.vaccinations
-                              .filter(v => v.next_due_date)
-                              .map(v => ({ ...v, type: 'vaccination' })),
-                            ...dashboardData.dewormings
-                              .filter(d => d.next_due_date)
-                              .map(d => ({ ...d, type: 'deworming' })),
-                          ].filter(r => new Date(r.next_due_date) >= today);
-                          return upcoming.length;
-                        })()} upcoming
-                      </Badge>
+                          const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                          const count = [
+                            ...dashboardData.vaccinations.filter(v => v.next_due_date).map(v => ({ ...v, type: 'vaccination' })),
+                            ...dashboardData.dewormings.filter(d => d.next_due_date).map(d => ({ ...d, type: 'deworming' })),
+                          ].filter(r => {
+                            const d = new Date(r.next_due_date); d.setHours(0,0,0,0);
+                            return d.getTime() === today.getTime() || d.getTime() === tomorrow.getTime();
+                          }).length;
+                          return count > 0 ? <span style={{ fontWeight: '700', color: '#ffc107', marginLeft: '6px' }}>({count})</span> : null;
+                        })()}
+                      </h5>
                     </div>
                   </Card.Header>
-                  <Card.Body className="mobile-card-body" style={{ padding: '1.5rem', height: '420px', overflowY: 'auto' }}>
+                  <Card.Body className="mobile-card-body" style={{ padding: '1.5rem', height: '380px', overflowY: 'auto' }}>
                     {(() => {
                       const today = new Date(); today.setHours(0,0,0,0);
+                      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
                       const upcoming = [
                         ...dashboardData.vaccinations
                           .filter(v => v.next_due_date)
@@ -533,17 +532,19 @@ const ClinicDashboard = () => {
                           .filter(d => d.next_due_date)
                           .map(d => ({ ...d, type: 'deworming', dueDate: new Date(d.next_due_date) })),
                       ]
-                        .filter(r => r.dueDate >= today)
-                        .sort((a, b) => a.dueDate - b.dueDate)
-                        .slice(0, 10);
+                        .filter(r => {
+                          const d = new Date(r.dueDate); d.setHours(0,0,0,0);
+                          return d.getTime() === today.getTime() || d.getTime() === tomorrow.getTime();
+                        })
+                        .sort((a, b) => a.dueDate - b.dueDate);
 
                       if (upcoming.length === 0) {
                         return (
                           <div className="text-center py-5">
                             <i className="fas fa-calendar-check mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }} />
-                            <h6 style={{ color: '#666666', fontWeight: '600' }}>No Upcoming Appointments</h6>
+                            <h6 style={{ color: '#666666', fontWeight: '600' }}>No Appointments Today or Tomorrow</h6>
                             <p className="text-muted small mb-0">
-                              Appointments will appear here when vaccination or deworming records have a future due date.
+                              Appointments due today or tomorrow will appear here.
                             </p>
                           </div>
                         );
@@ -739,7 +740,7 @@ const ClinicDashboard = () => {
                                         fontSize: '0.72rem',
                                         padding: '0.3rem 0.6rem',
                                         borderRadius: '6px',
-                                        color: record.recordType === 'vaccination' ? '#000' : '#fff',
+                                        color: '#fff',
                                         flexShrink: 0,
                                         marginLeft: '8px'
                                       }}

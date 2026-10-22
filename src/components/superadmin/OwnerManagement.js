@@ -179,7 +179,7 @@ const SuperAdminOwnerManagement = () => {
     setVerifError('');
     try {
       await ownerAPI_verify(verifOwner.user_id, status);
-      setVerifSuccess(`Status updated to: ${VERIF_CONFIG[status]?.label}`);
+      setVerifSuccess(`Community status updated to: ${VERIF_CONFIG[status]?.label}`);
       const [ownersRes, petsRes] = await Promise.all([
         ownerAPI.getAll(),
         petAPI.getAll()
@@ -294,13 +294,13 @@ const SuperAdminOwnerManagement = () => {
       <Row className="mb-4">
         {[
           {
-            label: 'Active Owners',
+            label: 'Active Communities',
             count: activeOwners.length,
             img: '/users.png',
             accent: '#0dcaf0',
             accentAlpha: 'rgba(13,202,240,0.12)',
             fallbackIcon: 'fa-users',
-            description: 'Active Communities',
+            description: 'Active Members',
             delay: '0.1s'
           },
           {
@@ -446,7 +446,7 @@ const SuperAdminOwnerManagement = () => {
             onChange={(e) => { setFilterVerif(e.target.value); setCurrentPage(1); }}
             style={{ border: '2px solid #e9ecef', borderRadius: '8px', fontWeight: '500', height: '100%' }}
           >
-            <option value="all">All Verification Statuses</option>
+            <option value="all">All</option>
             <option value="not_verified">Not Verified</option>
             <option value="pending">Pending Review</option>
             <option value="semi_verified">Semi Verified</option>
@@ -459,7 +459,7 @@ const SuperAdminOwnerManagement = () => {
             onChange={(e) => { setFilterActive(e.target.value); setCurrentPage(1); }}
             style={{ border: '2px solid #e9ecef', borderRadius: '8px', fontWeight: '500', height: '100%' }}
           >
-            <option value="all">All Account Statuses</option>
+            <option value="all">All</option>
             <option value="1">Active</option>
             <option value="0">Inactive</option>
           </Form.Select>
@@ -495,7 +495,7 @@ const SuperAdminOwnerManagement = () => {
               {loading ? (
                 <div className="text-center py-5">
                   <Spinner animation="border" variant="primary" />
-                  <p className="mt-3 text-muted">Loading owners...</p>
+                  <p className="mt-3 text-muted">Loading communities...</p>
                 </div>
               ) : filteredOwners.length === 0 ? (
                 <div className="text-center py-5">
@@ -510,7 +510,7 @@ const SuperAdminOwnerManagement = () => {
                   <Table hover className="mobile-table-wrap" style={{ marginBottom: 0, tableLayout: 'fixed', width: '100%' }}>
                     <thead style={{ background: '#f8f9fa' }}>
                       <tr>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Owner Information</th>
+                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Name</th>
                         <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Contact Details</th>
                         <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Address</th>
                         <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Total Pets</th>
@@ -548,46 +548,32 @@ const SuperAdminOwnerManagement = () => {
                                   }}
                                 >
                                   <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <div>
-                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                        <strong style={{ fontSize: '1rem', color: '#333' }}>{displayFirstName} {displayLastName}</strong>
-                                        {(() => {
-                                          const vs = owner.verification_status;
-                                          if (!vs || vs === 'not_verified') return null;
-                                          const cfg = {
-                                            pending:        { icon: 'fa-hourglass-half', color: '#fd7e14' },
-                                            semi_verified:  { icon: 'fa-shield-alt',     color: '#0d6efd' },
-                                            fully_verified: { icon: 'fa-check-circle',   color: '#198754' },
-                                          }[vs];
-                                          if (!cfg) return null;
-                                          return (
-                                            <i
-                                              className={`fas ${cfg.icon}`}
-                                              title={vs.replace('_', ' ')}
-                                              style={{ fontSize: '0.75rem', color: cfg.color, flexShrink: 0 }}
-                                            />
-                                          );
-                                        })()}
-                                      </div>
-                                      <br />
-                                      <small className="text-muted" style={{ fontWeight: '500' }}>
-                                        <i className="fas fa-user me-1"></i>
-                                        {owner.username}
-                                      </small>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                      <strong style={{ fontSize: '1rem', color: '#333' }}>{displayFirstName}</strong>
+                                      {(() => {
+                                        const vs = owner.verification_status;
+                                        if (!vs || vs === 'not_verified') return null;
+                                        const cfg = {
+                                          pending:        { icon: 'fa-hourglass-half', color: '#fd7e14' },
+                                          semi_verified:  { icon: 'fa-shield-alt',     color: '#0d6efd' },
+                                          fully_verified: { icon: 'fa-check-circle',   color: '#198754' },
+                                        }[vs];
+                                        if (!cfg) return null;
+                                        return (
+                                          <i
+                                            className={`fas ${cfg.icon}`}
+                                            title={vs.replace('_', ' ')}
+                                            style={{ fontSize: '0.75rem', color: cfg.color, flexShrink: 0 }}
+                                          />
+                                        );
+                                      })()}
                                     </div>
                                   </td>
                                   <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <div>
-                                      <small style={{ fontWeight: '500', color: '#555' }}>
-                                        <i className="fas fa-envelope me-1"></i>
-                                        {owner.email}
-                                      </small>
-                                      <br />
-                                      <small style={{ fontWeight: '500', color: '#555' }}>
-                                        <i className="fas fa-phone me-1"></i>
-                                        {displayPhone || 'N/A'}
-                                      </small>
-                                    </div>
+                                    <small style={{ fontWeight: '500', color: '#555' }}>
+                                      <i className="fas fa-phone me-1"></i>
+                                      {displayPhone || 'N/A'}
+                                    </small>
                                   </td>
                                   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
                                     <small style={{ fontWeight: '500', color: '#555' }}>{owner.address || 'Not provided'}</small>
@@ -818,7 +804,7 @@ const SuperAdminOwnerManagement = () => {
         </Row>
       )}
 
-      {/* View Owner Details Modal */}
+      {/* View Community Details Modal */}
       <Modal 
         show={showViewModal} 
         onHide={() => setShowViewModal(false)} 
@@ -827,7 +813,7 @@ const SuperAdminOwnerManagement = () => {
         <Modal.Header closeButton>
           <Modal.Title className="mobile-modal-title">
             <i className="fas fa-user me-2"></i>
-            Owner Details
+            Community Details
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="mobile-modal-body" style={{ padding: '1rem', maxHeight: '75vh', overflowY: 'auto' }}>
@@ -838,7 +824,7 @@ const SuperAdminOwnerManagement = () => {
                 <Card.Header>
                   <h6 className="mb-0">
                     <i className="fas fa-user-circle me-2"></i>
-                    Personal Information
+                    Community Information
                   </h6>
                 </Card.Header>
                 <Card.Body style={{ padding: '0.75rem' }}>
@@ -900,7 +886,7 @@ const SuperAdminOwnerManagement = () => {
               ) : ownerPets.length === 0 ? (
                 <Alert variant="info">
                   <i className="fas fa-info-circle me-2"></i>
-                  This owner hasn't registered any pets yet.
+                  This member hasn't registered any pets yet.
                 </Alert>
               ) : (
                 <>
@@ -1031,7 +1017,7 @@ const SuperAdminOwnerManagement = () => {
                     onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
                   >
                     <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span>View Details</span>
+                    <span>View Community</span>
                   </button>
                   {owner.verification_status !== 'not_verified' && (
                     <button
@@ -1041,7 +1027,7 @@ const SuperAdminOwnerManagement = () => {
                       onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
                     >
                       <i className="fas fa-id-card" style={{ fontSize: '1rem', width: '18px', textAlign: 'center', color: '#0d6efd' }} />
-                      <span>View Verification</span>
+                      <span>View ID Verification</span>
                     </button>
                   )}
                 </>
@@ -1057,7 +1043,7 @@ const SuperAdminOwnerManagement = () => {
         <Modal.Header closeButton={!verifLoading} style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
           <Modal.Title className="mobile-verif-title" style={{ fontWeight: '800', color: '#333', fontSize: '1.05rem' }}>
             <i className="fas fa-id-card me-2" style={{ color: '#ffc107' }} />
-            Verification Request — {verifOwner.po_first_name || verifOwner.first_name} {verifOwner.po_last_name || verifOwner.last_name}
+            Community Verification — {verifOwner.po_first_name || verifOwner.first_name} {verifOwner.po_last_name || verifOwner.last_name}
             <span style={{ marginLeft: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.75rem', borderRadius: '999px', background: (VERIF_CONFIG[verifOwner.verification_status]?.color || '#999') + '18', border: `1.5px solid ${(VERIF_CONFIG[verifOwner.verification_status]?.color || '#999')}40`, fontSize: '0.75rem', fontWeight: '700', color: VERIF_CONFIG[verifOwner.verification_status]?.color || '#999' }}>
               <i className={`fas ${VERIF_CONFIG[verifOwner.verification_status]?.icon || 'fa-circle'}`} style={{ fontSize: '0.7rem' }} />
               {VERIF_CONFIG[verifOwner.verification_status]?.label}
@@ -1306,7 +1292,7 @@ const SuperAdminOwnerManagement = () => {
                 </Button>
               </div>
               <small style={{ color: '#888', marginTop: '0.75rem', display: 'block', fontSize: '0.78rem' }}>
-                <i className="fas fa-info-circle me-1" />Declining will reset the owner's verification status and erase their submitted request.
+                <i className="fas fa-info-circle me-1" />Declining will reset the member's verification status and erase their submitted request.
               </small>
             </div>
           )}

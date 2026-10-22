@@ -14,8 +14,8 @@ const Loading = ({ message = 'Loading...' }) => {
   ];
 
   useEffect(() => {
-  const duration = 3000;
-  const interval = 30;
+  const duration = 1500;
+  const interval = 20;
   const increment = (100 / duration) * interval;
 
   const timer = setInterval(() => {
@@ -56,15 +56,6 @@ const Loading = ({ message = 'Loading...' }) => {
         @keyframes earFlap {
           0%, 100% { transform: rotate(-10deg); }
           50%       { transform: rotate(10deg); }
-        }
-        @keyframes legFront {
-          0%, 100% { transform: rotate(-25deg); }
-          50%       { transform: rotate(25deg); }
-        }
-        @keyframes legBack {
-          0%        { transform: rotate(20deg); }
-          50%       { transform: rotate(-30deg); }
-          100%      { transform: rotate(20deg); }
         }
         @keyframes slideRight {
           0%   { transform: translateX(-80px); }
@@ -151,31 +142,31 @@ const Loading = ({ message = 'Loading...' }) => {
             transition: 'left 0.12s linear'
           }}>
             <svg width="64" height="48" viewBox="0 0 64 48" fill="none">
-              <g style={{ transformOrigin: '7px 19px', animation: 'tailWag 0.28s ease-in-out infinite' }}>
+              <g style={{ transformOrigin: '7px 19px', animation: 'tailWag 0.14s ease-in-out infinite' }}>
                 <path d="M7 19 Q1 12 5 5" stroke="#d97706" strokeWidth="3.2" strokeLinecap="round" fill="none"/>
                 <circle cx="5" cy="5" r="2" fill="#fbbf24"/>
               </g>
-              <g style={{ transformOrigin: '32px 24px', animation: 'bodyBob 0.28s ease-in-out infinite' }}>
-                <g style={{ transformOrigin: '20px 30px', animation: 'legB1 0.28s ease-in-out infinite' }}>
+              <g style={{ transformOrigin: '32px 24px', animation: 'bodyBob 0.14s ease-in-out infinite' }}>
+                <g style={{ transformOrigin: '20px 30px', animation: 'legB1 0.14s ease-in-out infinite' }}>
                   <rect x="17" y="30" width="4.5" height="12" rx="2.2" fill="#d97706"/>
                   <rect x="14.5" y="40" width="8" height="3.5" rx="1.8" fill="#b45309"/>
                 </g>
-                <g style={{ transformOrigin: '26px 30px', animation: 'legB2 0.28s ease-in-out infinite' }}>
+                <g style={{ transformOrigin: '26px 30px', animation: 'legB2 0.14s ease-in-out infinite' }}>
                   <rect x="23" y="30" width="4.5" height="12" rx="2.2" fill="#d97706"/>
                   <rect x="20.5" y="40" width="8" height="3.5" rx="1.8" fill="#b45309"/>
                 </g>
                 <ellipse cx="32" cy="24" rx="16.5" ry="11" fill="#fbbf24"/>
                 <ellipse cx="30" cy="28" rx="7" ry="4.5" fill="#fde68a"/>
-                <g style={{ transformOrigin: '42px 28px', animation: 'legF1 0.28s ease-in-out infinite' }}>
+                <g style={{ transformOrigin: '42px 28px', animation: 'legF1 0.14s ease-in-out infinite' }}>
                   <rect x="39" y="28" width="4.5" height="12" rx="2.2" fill="#d97706"/>
                   <rect x="36.5" y="38" width="8" height="3.5" rx="1.8" fill="#b45309"/>
                 </g>
-                <g style={{ transformOrigin: '48px 28px', animation: 'legF2 0.28s ease-in-out infinite' }}>
+                <g style={{ transformOrigin: '48px 28px', animation: 'legF2 0.14s ease-in-out infinite' }}>
                   <rect x="45" y="28" width="4.5" height="12" rx="2.2" fill="#d97706"/>
                   <rect x="42.5" y="38" width="8" height="3.5" rx="1.8" fill="#b45309"/>
                 </g>
                 <circle cx="49" cy="14" r="12" fill="#fbbf24"/>
-                <g style={{ transformOrigin: '44px 9px', animation: 'earFlap 0.28s ease-in-out infinite' }}>
+                <g style={{ transformOrigin: '44px 9px', animation: 'earFlap 0.14s ease-in-out infinite' }}>
                   <ellipse cx="43" cy="7" rx="5.5" ry="7.5" fill="#d97706" transform="rotate(-12 43 7)"/>
                 </g>
                 <g style={{ transformOrigin: '52px 12px', animation: 'blink 3.2s ease-in-out infinite' }}>

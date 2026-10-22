@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table, InputGroup } from 'react-bootstrap';
-import { scheduleAPI, barangayAPI, vaccinationAPI, dewormingAPI, inventoryAPI, handleAPIError } from '../../services/api';
+import api, { scheduleAPI, barangayAPI, vaccinationAPI, dewormingAPI, inventoryAPI, handleAPIError } from '../../services/api';
 import { getUser } from '../../utils/auth';
 
 const Schedule = () => {
   const [schedules, setSchedules] = useState([]);
   const [barangays, setBarangays] = useState([]);
   const [vaccinationTypes, setVaccinationTypes] = useState([]);
+  const [vaccinationInventory, setVaccinationInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -24,6 +25,8 @@ const Schedule = () => {
   const [scheduleAllocations, setScheduleAllocations] = useState({});
   const [loadingBatchAvailability, setLoadingBatchAvailability] = useState(false);
 
+
+const [showConfirmScheduleModal, setShowConfirmScheduleModal] = useState(false);
   
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState(null);
@@ -152,7 +155,7 @@ useEffect(() => {
     const microchipSchedules = (microchipRes.data.schedules || []).map(s => ({ ...s, type: 'microchip' }));
     
     const allSchedules = [...vaccinationSchedules, ...seminarSchedules, ...sterilizationSchedules, ...otherSchedules, ...microchipSchedules].sort((a, b) =>
-      new Date(b.scheduled_date) - new Date(a.scheduled_date)
+      new Date(a.scheduled_date) - new Date(b.scheduled_date)
     );
     
     setSchedules(allSchedules);
@@ -186,7 +189,9 @@ useEffect(() => {
     try {
       setLoadingInventory(true);
       const response = await inventoryAPI.getAll();
-      setInventory(response.data.inventory || []);
+      const all = response.data.inventory || [];
+      setInventory(all);
+      setVaccinationInventory(all.filter(i => i.item_type === 'vaccination' && parseInt(i.current_stock) > 0));
     } catch (err) {
       console.error('Error loading inventory:', err);
     } finally {
@@ -195,19 +200,13 @@ useEffect(() => {
   };
 
   // Helper: get stock for a vaccination type from inventory
-  const getVaccineStock = (typeId) => {
-  const vaccine = vaccinationTypes.find(v => v.id === parseInt(typeId));
-  if (!vaccine) return null;
-  const item = inventory.find(
-    i => i.item_type === 'vaccination' && parseInt(i.item_type_id) === parseInt(typeId)
-  );
+  const getVaccineStock = (inventoryId) => {
+  const item = inventory.find(i => i.id === parseInt(inventoryId));
   return item ? parseInt(item.current_stock) : null;
 };
 
-const getInventoryItemForVaccine = (typeId) => {
-  return inventory.find(
-    i => i.item_type === 'vaccination' && parseInt(i.item_type_id) === parseInt(typeId)
-  ) || null;
+const getInventoryItemForVaccine = (inventoryId) => {
+  return inventory.find(i => i.id === parseInt(inventoryId)) || null;
 };
 
 const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
@@ -303,12 +302,12 @@ const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
   
   setFormData({
     schedule_type: schedule.type,
-    barangay_id: String(schedule.barangay_id || ''),
+    barangay_id: schedule.barangay_id ? String(schedule.barangay_id) : (schedule.custom_place ? 'other' : ''),
     title: schedule.title || '',
     description: schedule.description || '',
     scheduled_date: schedule.scheduled_date || '',
-    start_time: schedule.start_time || '',
-    end_time: schedule.end_time || '',
+    start_time: schedule.start_time ? schedule.start_time.substring(0, 5) : '',
+end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
     venue: schedule.venue || '',
     max_capacity: schedule.max_capacity || '',
     speaker: schedule.speaker || '',
@@ -318,6 +317,7 @@ const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
     sterilization_species: sterilSpecies,
     other_pet_types: otherPetTypes,
     other_event_type: schedule.other_event_type || '',
+    custom_place: schedule.custom_place || '',
     status: schedule.status || 'scheduled'
   });
     } else {
@@ -338,6 +338,7 @@ const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
         sterilization_species: [],
         other_pet_types: [],
         other_event_type: '',
+        custom_place: '',
         status: 'scheduled'
       });
     }
@@ -345,6 +346,36 @@ const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
     if (mode === 'edit' && schedule?.type === 'microchip') {
       const microchipInvItem = inventory.find(i => i.item_type === 'microchip');
       if (microchipInvItem) loadBatchAvailability(microchipInvItem.id, schedule.id);
+    }
+
+    if (mode === 'edit' && schedule?.type === 'vaccination' && schedule.vaccine_shot_limits) {
+      try {
+        const limits = typeof schedule.vaccine_shot_limits === 'string'
+          ? JSON.parse(schedule.vaccine_shot_limits)
+          : schedule.vaccine_shot_limits;
+
+        const batchPromises = Object.keys(limits).map(inventoryId =>
+          api.get(`/inventory/batch-availability/${inventoryId}?exclude_schedule=${schedule.id}`)
+            .then(res => ({ inventoryId: parseInt(inventoryId), batches: res.data.batches || [] }))
+            .catch(() => ({ inventoryId: parseInt(inventoryId), batches: [] }))
+        );
+
+        const allocPromise = inventoryAPI.getScheduleAllocations(schedule.id)
+          .then(res => res.data.allocations || [])
+          .catch(() => []);
+
+        Promise.all([Promise.all(batchPromises), allocPromise]).then(([batchResults, existing]) => {
+          const newBatchAllocations = {};
+          batchResults.forEach(({ inventoryId, batches }) => {
+            newBatchAllocations[inventoryId] = batches;
+          });
+          setBatchAllocations(newBatchAllocations);
+
+          const allocs = {};
+          existing.forEach(a => { allocs[a.batch_id] = a.allocated_qty; });
+          setScheduleAllocations(allocs);
+        });
+      } catch (e) {}
     }
 
     setShowModal(true);
@@ -401,22 +432,17 @@ const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
       const newVaccinationTypes = { ...prev.vaccination_types };
       if (newVaccinationTypes[typeId] !== undefined && shotLimit === '') {
         delete newVaccinationTypes[typeId];
-        // Clear batch selections for this vaccine
-        const invItem = getInventoryItemForVaccine(typeId);
-        if (invItem) {
-          setScheduleAllocations(sa => {
-            const next = { ...sa };
-            const batches = batchAllocations[invItem.id] || [];
-            batches.forEach(b => delete next[b.id]);
-            return next;
-          });
-        }
+        setScheduleAllocations(sa => {
+          const next = { ...sa };
+          const batches = batchAllocations[parseInt(typeId)] || [];
+          batches.forEach(b => delete next[b.id]);
+          return next;
+        });
       } else {
         newVaccinationTypes[typeId] = shotLimit || '';
-        // Load batch availability for this vaccine
-        const invItem = getInventoryItemForVaccine(typeId);
-        if (invItem) {
-          loadBatchAvailability(invItem.id, selectedSchedule?.id || null);
+        const invId = parseInt(typeId);
+        if (!batchAllocations[invId] || batchAllocations[invId].length === 0) {
+          loadBatchAvailability(invId, selectedSchedule?.id || null);
         }
       }
       return { ...prev, vaccination_types: newVaccinationTypes };
@@ -607,7 +633,8 @@ const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
       }
 
       const dataToSubmit = {
-        barangay_id: parseInt(formData.barangay_id),
+        barangay_id: (formData.barangay_id === 'other' || !formData.barangay_id) ? null : parseInt(formData.barangay_id),
+        custom_place: formData.barangay_id === 'other' ? formData.custom_place : null,
         title: formData.title,
         description: formData.description,
         scheduled_date: formData.scheduled_date,
@@ -750,7 +777,8 @@ const loadBatchAvailability = async (inventoryId, scheduleId = null) => {
     return labels[type] || type;
   };
 
-  const getBarangayName = (barangayId) => {
+  const getBarangayName = (barangayId, customPlace) => {
+    if (barangayId === null && customPlace) return customPlace;
     const barangay = barangays.find(b => b.id === barangayId);
     return barangay ? barangay.name : 'Unknown';
   };
@@ -823,15 +851,9 @@ const endIdx = startIdx + itemsPerPage;
 const paginatedSchedules = displaySchedules.slice(startIdx, endIdx);
 const emptyRows = itemsPerPage - paginatedSchedules.length;
 
-  const filteredVaccinationTypes = vaccinationTypes.filter(vt => {
-  const matchesSpecies = filterVaccineSpecies === 'all' || vt.species === filterVaccineSpecies || vt.species === 'all';
-  if (!matchesSpecies) return false;
-  // Only show vaccine types that have been added to inventory
-  const item = inventory.find(
-    i => i.item_type === 'vaccination' && parseInt(i.item_type_id) === parseInt(vt.id)
-  );
-  if (!item) return false;
-  return true;
+  const filteredVaccinationTypes = vaccinationInventory.filter(item => {
+  const matchesSpecies = filterVaccineSpecies === 'all' || item.species === filterVaccineSpecies || item.species === 'all';
+  return matchesSpecies;
 });
 
 
@@ -861,37 +883,24 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
   
 
   const getVaccineDetails = (schedule) => {
-  console.log('🔍 Getting vaccine details for schedule:', schedule);
-  console.log('📊 Current vaccine registration counts:', vaccineRegistrationCounts);
-  
   if (!schedule.vaccine_shot_limits) return [];
-  
   try {
-    const limits = typeof schedule.vaccine_shot_limits === 'string' 
-      ? JSON.parse(schedule.vaccine_shot_limits) 
+    const limits = typeof schedule.vaccine_shot_limits === 'string'
+      ? JSON.parse(schedule.vaccine_shot_limits)
       : schedule.vaccine_shot_limits;
-    
-    console.log('💉 Vaccine shot limits:', limits);
-    
-    const details = Object.entries(limits).map(([vaccineId, limit]) => {
-      const vaccine = vaccinationTypes.find(vt => vt.id === parseInt(vaccineId));
+    return Object.entries(limits).map(([vaccineId, limit]) => {
+      // Look up by inventory id first
+      const invItem = inventory.find(i => i.id === parseInt(vaccineId));
       const registered = vaccineRegistrationCounts[vaccineId] || 0;
-      
-      console.log(`  - Vaccine ID ${vaccineId}: ${registered} / ${limit} (${vaccine?.name})`);
-      
       return {
         id: vaccineId,
-        name: vaccine?.name || 'Unknown',
-        species: vaccine?.species || 'unknown',
+        name: invItem?.item_name || invItem?.name || `Vaccine #${vaccineId}`,
+        species: invItem?.species || 'all',
         limit: parseInt(limit || 0),
         registered: registered
       };
     });
-    
-    console.log('✅ Final vaccine details:', details);
-    return details;
   } catch (e) {
-    console.error('❌ Error in getVaccineDetails:', e);
     return [];
   }
 };
@@ -1125,12 +1134,12 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
     fontWeight: '500'
   }}
 >
-  <option value="all">All Events</option>
-  <option value="vaccination">Vaccination Only</option>
-  <option value="seminar">Seminar Only</option>
-  <option value="sterilization">Sterilization Only</option>
-  <option value="other">Other Only</option>
-  <option value="microchip">Microchip Only</option>
+  <option value="all">All</option>
+  <option value="vaccination">Vaccination</option>
+  <option value="seminar">Seminar</option>
+  <option value="sterilization">Sterilization</option>
+  <option value="other">Other</option>
+  <option value="microchip">Microchip</option>
 </Form.Select>
         </Col>
         <Col md={3}>
@@ -1143,7 +1152,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
               fontWeight: '500'
             }}
           >
-            <option value="all">All Barangays</option>
+            <option value="all">All</option>
             {barangays.map(barangay => (
               <option key={barangay.id} value={barangay.id}>
                 {barangay.name}
@@ -1162,7 +1171,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
             }}
           >
             <option value="upcoming">Upcoming</option>
-            <option value="all">All Status</option>
+            <option value="all">All</option>
             <option value="ongoing">Ongoing</option>
             <option value="completed">Completed</option>
           </Form.Select>
@@ -1234,7 +1243,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
               ) : displaySchedules.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-calendar-times text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                  <h5 style={{ color: '#666666', fontWeight: '600' }}>No Schedules Found</h5>
+                  <h5 style={{ color: '#666666', fontWeight: '600' }}>No Events Found</h5>
                   <p className="text-muted">
                     {searchTerm || filterType !== 'all' || filterBarangay !== 'all' 
                       ? 'Try adjusting your filters' 
@@ -1248,7 +1257,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                       <tr>
                         <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '10%' }}>Type</th>
                         <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Event Details</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Barangay</th>
+                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Location</th>
                         <th className="mobile-hide-datetime" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Date & Time</th>
                         <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Venue</th>
                         <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '10%' }}>Capacity</th>
@@ -1310,7 +1319,6 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       <strong style={{ color: '#333' }}>{schedule.current_registrations || 0}</strong>
       <small className="text-muted">/{getTotalVaccineShots(schedule)}</small>
       <br />
-      <small className="text-muted" style={{ fontSize: '0.7rem' }}>slots</small>
     </div>
   ) : schedule.max_capacity ? (
                               <div>
@@ -1599,8 +1607,8 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
               </Row>
               <Row className="mb-3">
                 <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Barangay</strong>
-                  <p className="mb-0">{getBarangayName(selectedSchedule.barangay_id)}</p>
+                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Place</strong>
+                  <p className="mb-0">{getBarangayName(selectedSchedule.barangay_id, selectedSchedule.custom_place)}</p>
                 </Col>
                 <Col md={6}>
                   <strong style={{ fontSize: '0.9rem', color: '#666' }}>Venue</strong>
@@ -1912,14 +1920,18 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       <Col md={12}>
         <Form.Group className="mb-3">
           <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-            Barangay <span style={{ color: '#dc3545' }}>*</span>
+            Location <span style={{ color: '#dc3545' }}>*</span>
           </Form.Label>
-<Form.Select name="barangay_id" value={formData.barangay_id} onChange={handleChange} required style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}>            
-  <option value="" disabled>Select barangay</option>
-            {barangays.map(barangay => (
-              <option key={barangay.id} value={barangay.id}>{barangay.name}</option>
-            ))}
-          </Form.Select>
+<Form.Select name="barangay_id" value={formData.barangay_id === 'other' ? 'other' : formData.barangay_id} onChange={(e) => { if (e.target.value === 'other') { setFormData({...formData, barangay_id: 'other', custom_place: ''}); } else { handleChange(e); } }} required style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}>
+  <option value="" disabled>Select place</option>
+  {barangays.map(barangay => (
+    <option key={barangay.id} value={barangay.id}>{barangay.name}</option>
+  ))}
+  <option value="other">Other</option>
+</Form.Select>
+{formData.barangay_id === 'other' && (
+  <Form.Control type="text" name="custom_place" value={formData.custom_place || ''} onChange={handleChange} placeholder="Enter specific place..." required style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', marginTop: '0.5rem' }} />
+)}
         </Form.Group>
       </Col>
     </Row>
@@ -2006,6 +2018,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                         <option value="">Select start time</option>
                         {Array.from({ length: 18 }, (_, i) => {
                           const totalMins = 8 * 60 + i * 30;
+                          if (totalMins >= 16 * 60) return null;
                           const h = Math.floor(totalMins / 60);
                           const m = totalMins % 60;
                           const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -2025,6 +2038,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                         <option value="">Select end time</option>
                         {Array.from({ length: 19 }, (_, i) => {
                           const totalMins = 8 * 60 + (i + 1) * 30;
+                          if (totalMins > 17 * 60) return null;
                           const h = Math.floor(totalMins / 60);
                           const m = totalMins % 60;
                           const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -2070,23 +2084,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                   )}
                 </Row>
 
-                {modalMode === 'edit' && (
-                  <Row>
-                    <Col md={12}>
-                      <Form.Group className="mb-3">
-                        <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                          Status <span style={{ color: '#dc3545' }}>*</span>
-                        </Form.Label>
-                        <Form.Select name="status" value={formData.status} onChange={handleChange} required style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}>
-                          <option value="scheduled">Scheduled</option>
-                          <option value="ongoing">Ongoing</option>
-                          <option value="completed">Completed</option>
-                          <option value="cancelled">Cancelled</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                )}
+                
 
                 {/* Vaccination Pet Types Filter */}
                 {formData.schedule_type === 'vaccination' && (
@@ -2100,7 +2098,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                             fontWeight: '500'
                           }}
                         >
-                          <option value="all">All (Dog, Cat, Rabbit)</option>
+                          <option value="all">All (Dog & Cat)</option>
                           <option value="dog">Dog</option>
                           <option value="cat">Cat</option>
                           </Form.Select>
@@ -2132,13 +2130,13 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                           }}
                         >
                           {filteredVaccinationTypes.length === 0 ? (
-                            <p className="text-muted mb-0">No vaccination types available</p>
+                            <p className="text-muted mb-0">No vaccination items available in inventory</p>
                           ) : (
                             filteredVaccinationTypes.map(type => {
-                            const invItem = getInventoryItemForVaccine(type.id);
-                            const stock = invItem ? parseInt(invItem.current_stock) : null;
+                            const invItem = type;
+                            const stock = parseInt(type.current_stock);
                             const isChecked = formData.vaccination_types[type.id] !== undefined;
-                            const batches = invItem ? (batchAllocations[invItem.id] || []) : [];
+                            const batches = batchAllocations[type.id] || [];
                             const totalAllocated = batches.reduce((sum, b) => sum + (scheduleAllocations[b.id] || 0), 0);
 
                             return (
@@ -2168,9 +2166,9 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                                   />
                                   <div style={{ flex: 1 }}>
                                     <label htmlFor={`vac-type-${type.id}`} style={{ cursor: 'pointer', marginBottom: '0.5rem', display: 'block' }}>
-                                      <strong>{type.name}</strong>
+                                      <strong>{type.item_name || type.name || '—'}</strong>
                                       <span className="ms-2" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', background: '#6c757d', color: '#fff', borderRadius: '4px' }}>
-                                        {type.species.toUpperCase()}
+                                        {(type.species || 'all').toUpperCase()}
                                       </span>
                                       {stock !== null && (
                                         <span className="ms-2" style={{
@@ -2602,7 +2600,7 @@ return (
               Cancel
             </Button>
             <Button 
-  type="submit" 
+  type="button"
   className="border-0"
   disabled={
     formLoading || 
@@ -2613,6 +2611,14 @@ return (
     )) ||
     (formData.schedule_type === 'sterilization' && formData.sterilization_species.length === 0)
   }
+  onClick={(e) => {
+    e.preventDefault();
+    if (modalMode === 'edit') {
+      handleSubmit({ preventDefault: () => {} });
+      return;
+    }
+    setShowConfirmScheduleModal(true);
+  }}
   style={{
     background: formLoading ? '#6c757d' : '#000000',
     color: '#ffffff',
@@ -2621,24 +2627,24 @@ return (
     fontWeight: '600'
   }}
   onMouseOver={(e) => {
-    if (!formLoading) e.target.style.background = '#333333';
+    if (!formLoading) e.currentTarget.style.background = '#333333';
   }}
   onMouseOut={(e) => {
-    if (!formLoading) e.target.style.background = '#000000';
+    if (!formLoading) e.currentTarget.style.background = '#000000';
   }}
 >
-              {formLoading ? (
-                <>
-                  <Spinner size="sm" animation="border" className="me-2" />
-                  {modalMode === 'edit' ? 'Updating...' : 'Creating...'}
-                </>
-              ) : (
-                <>
-                  <i className={`fas fa-${modalMode === 'edit' ? 'save' : 'plus'} me-2`}></i>
-                  {modalMode === 'edit' ? 'Update Schedule' : 'Create Schedule'}
-                </>
-              )}
-            </Button>
+  {formLoading ? (
+    <>
+      <Spinner size="sm" animation="border" className="me-2" />
+      {modalMode === 'edit' ? 'Updating...' : 'Creating...'}
+    </>
+  ) : (
+    <>
+      <i className={`fas fa-${modalMode === 'edit' ? 'save' : 'eye'} me-2`}></i>
+      {modalMode === 'edit' ? 'Update Schedule' : 'Review & Confirm'}
+    </>
+  )}
+</Button>
           </Modal.Footer>
         </Form>
       </Modal>
@@ -2775,7 +2781,7 @@ return (
                       onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
                     >
                       <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                      <span>Edit Schedule</span>
+                      <span>Edit Event</span>
                     </button>
 
                     <button
@@ -2785,7 +2791,7 @@ return (
                       onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
                     >
                       <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                      <span>Delete Schedule</span>
+                      <span>Delete Event</span>
                     </button>
                   </>
                 )}
@@ -2795,6 +2801,122 @@ return (
         </div>
       </>
     )}
+    {/* ── Review & Confirm Schedule Modal ── */}
+<Modal show={showConfirmScheduleModal} onHide={() => setShowConfirmScheduleModal(false)} centered style={{ zoom: '0.75' }}>
+  <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
+    <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
+      <i className="fas fa-clipboard-check me-2" style={{ color: '#ffc107' }} />
+      Review Event Before Saving
+    </Modal.Title>
+  </Modal.Header>
+  <Modal.Body style={{ padding: '2rem' }}>
+    <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+      Please review the event details before creating.
+    </p>
+
+    {/* Event Type Banner */}
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '0.75rem',
+      background: formData.schedule_type === 'vaccination' ? 'rgba(255,193,7,0.1)'
+        : formData.schedule_type === 'seminar' ? 'rgba(111,66,193,0.1)'
+        : formData.schedule_type === 'sterilization' ? 'rgba(40,167,69,0.1)'
+        : formData.schedule_type === 'microchip' ? 'rgba(108,117,125,0.1)'
+        : 'rgba(52,58,64,0.1)',
+      border: `1.5px solid ${
+        formData.schedule_type === 'vaccination' ? 'rgba(255,193,7,0.3)'
+        : formData.schedule_type === 'seminar' ? 'rgba(111,66,193,0.3)'
+        : formData.schedule_type === 'sterilization' ? 'rgba(40,167,69,0.3)'
+        : formData.schedule_type === 'microchip' ? 'rgba(108,117,125,0.3)'
+        : 'rgba(52,58,64,0.3)'}`,
+      borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1rem'
+    }}>
+      <img
+        src={
+          formData.schedule_type === 'vaccination' ? '/vaccine.png'
+          : formData.schedule_type === 'seminar' ? '/seminar.png'
+          : formData.schedule_type === 'sterilization' ? '/sterilization.png'
+          : formData.schedule_type === 'microchip' ? '/microchip.png'
+          : '/other.png'
+        }
+        alt={formData.schedule_type}
+        style={{ width: '36px', height: '36px', objectFit: 'contain' }}
+        onError={e => e.target.style.display = 'none'}
+      />
+      <div>
+        <div style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', marginBottom: '2px' }}>Event Type</div>
+        <div style={{ fontWeight: '700', color: '#333' }}>
+          {formData.schedule_type === 'other' ? (formData.other_event_type || 'Other') : getScheduleTypeLabel(formData.schedule_type)}
+        </div>
+      </div>
+    </div>
+
+    {/* Details */}
+    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', border: '1px solid #e9ecef' }}>
+      {[
+        { icon: 'fa-map-marker-alt', label: 'Place', value: formData.barangay_id === 'other' ? (formData.custom_place || '—') : (barangays.find(b => String(b.id) === String(formData.barangay_id))?.name || '—') },
+        { icon: 'fa-tag', label: 'Title', value: formData.title || '—' },
+        { icon: 'fa-align-left', label: 'Description', value: formData.description || 'Not specified' },
+        { icon: 'fa-calendar', label: 'Date', value: formData.scheduled_date ? new Date(formData.scheduled_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
+        { icon: 'fa-clock', label: 'Time', value: formData.start_time && formData.end_time ? `${formData.start_time} – ${formData.end_time}` : '—' },
+        { icon: 'fa-building', label: 'Venue', value: formData.venue || '—' },
+        ...(formData.schedule_type === 'seminar' ? [
+          { icon: 'fa-user-tie', label: 'Speaker', value: formData.speaker || 'Not specified' },
+          { icon: 'fa-users', label: 'Max Capacity', value: formData.max_capacity || '—' },
+        ] : []),
+        ...(formData.schedule_type === 'sterilization' ? [
+          { icon: 'fa-paw', label: 'Pet Types', value: formData.sterilization_species.length > 0 ? formData.sterilization_species.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : '—' },
+          { icon: 'fa-users', label: 'Max Capacity', value: formData.max_capacity || '—' },
+        ] : []),
+        ...(formData.schedule_type === 'microchip' ? [
+          { icon: 'fa-paw', label: 'Pet Types', value: formData.pet_types_allowed.length > 0 ? formData.pet_types_allowed.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : '—' },
+          { icon: 'fa-users', label: 'Max Capacity (from batches)', value: formData.max_capacity || '—' },
+        ] : []),
+        ...(formData.schedule_type === 'other' ? [
+          { icon: 'fa-paw', label: 'Pet Types', value: formData.other_pet_types.length > 0 ? formData.other_pet_types.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : 'Not pet-specific' },
+          { icon: 'fa-users', label: 'Max Capacity', value: formData.max_capacity || '—' },
+        ] : []),
+        ...(formData.schedule_type === 'vaccination' ? [
+          { icon: 'fa-syringe', label: 'Vaccines & Shots', value: Object.keys(formData.vaccination_types).length > 0
+            ? Object.entries(formData.vaccination_types).map(([id, limit]) => {
+                const inv = inventory.find(i => String(i.id) === String(id));
+                return `${inv?.item_name || `Vaccine #${id}`}: ${limit} shots`;
+              }).join(' | ')
+            : '—'
+          },
+        ] : []),
+      ].map((item, i, arr) => (
+        <div key={i} style={{ display: 'flex', gap: '0.75rem', paddingBottom: i < arr.length - 1 ? '0.75rem' : 0, marginBottom: i < arr.length - 1 ? '0.75rem' : 0, borderBottom: i < arr.length - 1 ? '1px solid #e9ecef' : 'none' }}>
+          <div style={{ width: '28px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2px' }}>
+            <i className={`fas ${item.icon}`} style={{ color: '#ffc107', fontSize: '0.8rem' }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>{item.label}</div>
+            <div style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem', wordBreak: 'break-word' }}>{item.value}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </Modal.Body>
+  <Modal.Footer style={{ padding: '1.25rem 2rem', gap: '0.75rem' }}>
+    <Button variant="secondary" onClick={() => setShowConfirmScheduleModal(false)} disabled={formLoading}
+      style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+      <i className="fas fa-arrow-left me-2" />Back to Edit
+    </Button>
+    <Button disabled={formLoading} className="border-0"
+      onClick={async () => {
+        setShowConfirmScheduleModal(false);
+        await handleSubmit({ preventDefault: () => {} });
+      }}
+      style={{ background: formLoading ? '#6c757d' : '#000000', color: '#ffffff', borderRadius: '10px', padding: '0.75rem 1.75rem', fontWeight: '700', transition: 'all 0.3s' }}
+      onMouseOver={e => { if (!formLoading) e.currentTarget.style.background = '#333'; }}
+      onMouseOut={e => { if (!formLoading) e.currentTarget.style.background = '#000'; }}
+    >
+      {formLoading
+        ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</>
+        : <><i className="fas fa-save me-2" />Confirm & Create</>}
+    </Button>
+  </Modal.Footer>
+</Modal>
     </>
   );
 };

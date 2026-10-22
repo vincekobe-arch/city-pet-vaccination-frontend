@@ -478,205 +478,40 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
         </Row>
       )}
 
-      {/* Statistics Cards - 3 boxes with modern design */}
-      <Row className="mb-4">
-        <Col md={6} lg={4} className="mb-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
-          <Card 
-            className="text-center h-100 border-0" 
-            style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0fff0 100%)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px rgba(25, 135, 84, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-            }}
-          >
-            <Card.Body style={{ padding: '2rem 1.5rem' }}>
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div style={{ textAlign: 'left' }}>
-                  <p className="text-muted mb-1" style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Barangay Admin</p>
-                  <h2 className="mb-0" style={{ fontWeight: '700', color: '#333333', fontSize: '2.5rem' }}>
-                    {dashboardData.statistics.total_officials}
-                  </h2>
+      {/* Statistics Cards */}
+      <Row className="mb-4" style={{ flexWrap: 'nowrap', margin: '0 -6px' }}>
+        {[
+          { label: 'Barangay Admins', count: dashboardData.statistics.total_officials, img: '/users.png', accent: '#198754', accentAlpha: 'rgba(25,135,84,0.12)', fallbackIcon: 'fa-user-tie', description: 'Total Administrators', delay: '0.1s' },
+          { label: 'Pet Owners', count: dashboardData.statistics.total_pet_owners, img: '/users.png', accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users', description: 'Total Owners', delay: '0.2s' },
+          { label: 'Total Pets', count: dashboardData.statistics.total_pets, img: '/paw.png', accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)', fallbackIcon: 'fa-paw', description: 'Registered Pets', delay: '0.3s' },
+        ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => (
+          <div key={label} style={{ flex: '1 1 0', padding: '0 6px', minWidth: 0, animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+            <Card
+              className="border-0 h-100"
+              style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${accentAlpha}`; e.currentTarget.style.borderColor = accent; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#f0f0f0'; }}
+            >
+              <div style={{ height: '3px', background: accent, borderRadius: '16px 16px 0 0' }} />
+              <Card.Body style={{ padding: '1.5rem', background: 'transparent' }}>
+                <div className="d-flex align-items-center justify-content-between">
+                  <div>
+                    <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
+                    <h2 style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{count}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
+                      <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>{description}</span>
+                    </div>
+                  </div>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: accentAlpha, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <img src={img} alt={label} style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                    <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
+                  </div>
                 </div>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '15px',
-                  background: 'rgba(25, 135, 84, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <img 
-                    src="/users.png" 
-                    alt="Barangay Admin"
-                    style={{ width: '35px', height: '35px', objectFit: 'contain' }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <i 
-                    className="fas fa-user-tie" 
-                    style={{ fontSize: '1.8rem', color: '#198754', display: 'none' }}
-                  ></i>
-                </div>
-              </div>
-              <div style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                background: 'rgba(25, 135, 84, 0.08)'
-              }}>
-                <small style={{ color: '#198754', fontWeight: '500' }}>
-                  <i className="fas fa-user-tie me-1"></i>
-                  Total Administrators
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={6} lg={4} className="mb-3" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
-          <Card 
-            className="text-center h-100 border-0" 
-            style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px rgba(13, 202, 240, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-            }}
-          >
-            <Card.Body style={{ padding: '2rem 1.5rem' }}>
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div style={{ textAlign: 'left' }}>
-                  <p className="text-muted mb-1" style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Pet Owners</p>
-                  <h2 className="mb-0" style={{ fontWeight: '700', color: '#333333', fontSize: '2.5rem' }}>
-                    {dashboardData.statistics.total_pet_owners}
-                  </h2>
-                </div>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '15px',
-                  background: 'rgba(13, 202, 240, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <img 
-                    src="/users.png" 
-                    alt="Pet Owners"
-                    style={{ width: '35px', height: '35px', objectFit: 'contain' }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <i 
-                    className="fas fa-users" 
-                    style={{ fontSize: '1.8rem', color: '#0dcaf0', display: 'none' }}
-                  ></i>
-                </div>
-              </div>
-              <div style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                background: 'rgba(13, 202, 240, 0.08)'
-              }}>
-                <small style={{ color: '#0dcaf0', fontWeight: '500' }}>
-                  <i className="fas fa-users me-1"></i>
-                  Total Owners
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={6} lg={4} className="mb-3" style={{ animation: 'dropDown 0.4s ease-out 0.3s backwards' }}>
-          <Card 
-            className="text-center h-100 border-0" 
-            style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #ffffff 0%, #fff9f0 100%)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px rgba(255, 193, 7, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-            }}
-          >
-            <Card.Body style={{ padding: '2rem 1.5rem' }}>
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div style={{ textAlign: 'left' }}>
-                  <p className="text-muted mb-1" style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Total Pets</p>
-                  <h2 className="mb-0" style={{ fontWeight: '700', color: '#333333', fontSize: '2.5rem' }}>
-                    {dashboardData.statistics.total_pets}
-                  </h2>
-                </div>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '15px',
-                  background: 'rgba(255, 193, 7, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <img 
-                    src="/paw.png" 
-                    alt="Registered Pets"
-                    style={{ width: '35px', height: '35px', objectFit: 'contain' }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <i 
-                    className="fas fa-paw" 
-                    style={{ fontSize: '1.8rem', color: '#ffc107', display: 'none' }}
-                  ></i>
-                </div>
-              </div>
-              <div style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                background: 'rgba(255, 193, 7, 0.08)'
-              }}>
-                <small style={{ color: '#333333', fontWeight: '500' }}>
-                  <i className="fas fa-chart-line me-1" style={{ color: '#ffc107' }}></i>
-                  Registered Pets
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
+              </Card.Body>
+            </Card>
+          </div>
+        ))}
       </Row>
 
       <Row style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>

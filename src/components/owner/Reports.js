@@ -3,23 +3,13 @@ import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, 
 import { barangayAPI, handleAPIError } from '../../services/api';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
-import { getAllProvinces, getAllRegions, getMunicipalitiesByProvince, getBarangaysByMunicipality } from '@aivangogh/ph-address';
+import VerifyAccountModal from '../owner/VerifyAccountModal';
+
 
 // ─── Owner API ────────────────────────────────────────────────────────────────
 const ownerAPI = {
   getByUserId: (userId) => api.get(`/owners/user/${userId}`),
-  update:      (id, data) => api.put(`/owners/${id}`, data),
-  submitId:    (userId, formData) => api.post(`/owners/${userId}/submit-id`, formData, {
-    headers: { 'Content-Type': 'application/json' }
-  }),
 };
-
-const VALID_ID_TYPES = [
-  "Muntinlupa Care Card", "Philippine Passport", "Driver's License", "SSS ID", "GSIS ID",
-  "PhilHealth ID", "Pag-IBIG ID", "Voter's ID", "Postal ID",
-  "National ID (PhilSys)", "PRC ID", "Senior Citizen ID", "PWD ID",
-  "Barangay ID", "Company ID", "School ID", "Other"
-];
 
 const VERIFICATION_CONFIG = {
   not_verified:  { label: 'Not Verified',   color: '#dc3545', icon: 'fa-times-circle' },
@@ -124,12 +114,32 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
     }
 
     const muntinlupaPolygonCoords = [
-      [14.4700,121.0200],[14.4650,121.0500],[14.4550,121.0700],[14.4400,121.0800],
-      [14.4200,121.0750],[14.4000,121.0700],[14.3800,121.0600],[14.3600,121.0450],
-      [14.3550,121.0250],[14.3650,121.0050],[14.3850,120.9980],[14.4050,120.9950],
-      [14.4300,121.0000],[14.4550,121.0050],[14.4700,121.0200],
+      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
     ];
     const isInsideMuntinlupa = (lat, lng) => {
+      if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
       let inside = false;
       for (let i = 0, j = muntinlupaPolygonCoords.length - 1; i < muntinlupaPolygonCoords.length; j = i++) {
         const xi = muntinlupaPolygonCoords[i][0], yi = muntinlupaPolygonCoords[i][1];
@@ -143,21 +153,28 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
     if (!readOnly) {
       map.on('click', (e) => {
         const { lat: clickLat, lng: clickLng } = e.latlng;
-        if (!isInsideMuntinlupa(clickLat, clickLng)) return;
-        if (markerRef.current) {
-          markerRef.current.setLatLng([clickLat, clickLng]);
-        } else {
-          markerRef.current = window.L.marker([clickLat, clickLng]).addTo(map);
+        let pinLat = clickLat;
+        let pinLng = clickLng;
+        if (!isInsideMuntinlupa(clickLat, clickLng)) {
+          // Snap to nearest polygon point
+          let minDist = Infinity;
+          muntinlupaPolygonCoords.forEach(([pLat, pLng]) => {
+            const dist = Math.pow(clickLat - pLat, 2) + Math.pow(clickLng - pLng, 2);
+            if (dist < minDist) { minDist = dist; pinLat = pLat; pinLng = pLng; }
+          });
         }
-        onLocationSelect && onLocationSelect(clickLat, clickLng);
-        // Reverse geocode to get address and detect barangay
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${clickLat}&lon=${clickLng}&zoom=17&addressdetails=1`)
+        if (markerRef.current) {
+          markerRef.current.setLatLng([pinLat, pinLng]);
+        } else {
+          markerRef.current = window.L.marker([pinLat, pinLng]).addTo(map);
+        }
+        onLocationSelect && onLocationSelect(pinLat, pinLng);
+        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pinLat}&lon=${pinLng}&zoom=17&addressdetails=1`)
           .then(r => r.json())
           .then(data => {
             const plusCode = data.extratags?.['ref:Global'] || data.extratags?.plus_code || null;
             const display  = plusCode ? `${plusCode} ${data.address?.city || 'Muntinlupa'}, ${data.address?.state || 'Metro Manila'}` : (data.display_name || '');
-            onAddressResolve && onAddressResolve(display, plusCode, clickLat, clickLng);
-            // Auto-detect barangay from address parts
+            onAddressResolve && onAddressResolve(display, plusCode, pinLat, pinLng);
             const suburb   = (data.address?.suburb   || '').toLowerCase();
             const village  = (data.address?.village  || '').toLowerCase();
             const quarter  = (data.address?.quarter  || '').toLowerCase();
@@ -166,14 +183,34 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
             onBarangayDetect && onBarangayDetect(addrStr);
           })
           .catch(() => {});
+        
       });
     }
 
     const boundary = [
-      [14.4700,121.0200],[14.4650,121.0500],[14.4550,121.0700],[14.4400,121.0800],
-      [14.4200,121.0750],[14.4000,121.0700],[14.3800,121.0600],[14.3600,121.0450],
-      [14.3550,121.0250],[14.3650,121.0050],[14.3850,120.9980],[14.4050,120.9950],
-      [14.4300,121.0000],[14.4550,121.0050],[14.4700,121.0200],
+      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
     ];
     window.L.polygon(boundary, {
       color: '#ffc107', weight: 2.5, opacity: 0.8,
@@ -258,12 +295,32 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
                 (pos) => {
                   const { latitude, longitude } = pos.coords;
                   const muntinlupaPolygonCoords = [
-                    [14.4700,121.0200],[14.4650,121.0500],[14.4550,121.0700],[14.4400,121.0800],
-                    [14.4200,121.0750],[14.4000,121.0700],[14.3800,121.0600],[14.3600,121.0450],
-                    [14.3550,121.0250],[14.3650,121.0050],[14.3850,120.9980],[14.4050,120.9950],
-                    [14.4300,121.0000],[14.4550,121.0050],[14.4700,121.0200],
+                    [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
                   ];
                   const isInsideMuntinlupa = (lat, lng) => {
+                    if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
                     let inside = false;
                     for (let i = 0, j = muntinlupaPolygonCoords.length - 1; i < muntinlupaPolygonCoords.length; j = i++) {
                       const xi = muntinlupaPolygonCoords[i][0], yi = muntinlupaPolygonCoords[i][1];
@@ -327,6 +384,14 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
   );
 };
 
+const WaveDots = ({ color = '#000000' }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '1rem' }}>
+    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0s' }} />
+    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.15s' }} />
+    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
+  </span>
+);
+
 const Reports = () => {
   const [reports, setReports] = useState([]);
   const [barangays, setBarangays] = useState([]);
@@ -360,42 +425,16 @@ const Reports = () => {
   });
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [locationError, setLocationError] = useState('');
+  
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState(null);
+const [lightboxZoom, setLightboxZoom] = useState(1);
 
   // Verification states
   const [ownerProfile, setOwnerProfile]           = useState(null);
   const [verifLoading, setVerifLoading]           = useState(true);
   const [showVerifyModal, setShowVerifyModal]     = useState(false);
   const [showVerifyGate, setShowVerifyGate]       = useState(false);
-  const [verifyStep, setVerifyStep]               = useState(1); // 1=profile, 2=id upload
-  const [verifySubmitting, setVerifySubmitting]   = useState(false);
-  const [verifyError, setVerifyError]             = useState('');
-  const [verifySuccess, setVerifySuccess]         = useState('');
-
-  // Profile form (editable fields, no email, no password)
-  const [profileForm, setProfileForm] = useState({
-    first_name: '', middle_name: '', last_name: '',
-    birthdate: '', gender: '', phone: '',
-  });
-  const [profileFieldErrors, setProfileFieldErrors] = useState({});
-
-  // ID submission form
-  const [idForm, setIdForm] = useState({
-    valid_id_type: '', address: '',
-    house_no: '', street: '', province: '', city: '', barangay: '',
-  });
-
-  // PH Address dropdown data
-  const [provinces, setProvinces]   = useState([]);
-  const [cities, setCities]         = useState([]);
-  const [barangayList, setBarangayList] = useState([]);
-  const [idFrontFile, setIdFrontFile]   = useState(null);
-  const [idBackFile, setIdBackFile]     = useState(null);
-  const [selfieFile, setSelfieFile]     = useState(null);
-  const [idFrontPreview, setIdFrontPreview] = useState('');
-  const [idBackPreview, setIdBackPreview]   = useState('');
-  const [selfiePreview, setSelfiePreview]   = useState('');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -409,6 +448,10 @@ const Reports = () => {
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
+    }
+    @keyframes waveDots {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
     }
     @media (max-width: 768px) {
       .mobile-page-title { font-size: 1.5rem !important; }
@@ -449,14 +492,7 @@ const Reports = () => {
     loadReports();
     loadBarangays();
     loadOwnerProfile();
-    const ncr = getAllRegions().find(r => r.name.includes('National Capital'));
-    const metroManila = ncr ? { name: 'Metro Manila', psgcCode: ncr.psgcCode, regionCode: ncr.psgcCode } : null;
-    const allProvinces = getAllProvinces();
-    const sorted = [
-      ...(metroManila ? [metroManila] : []),
-      ...allProvinces.sort((a, b) => a.name.localeCompare(b.name)),
-    ];
-    setProvinces(sorted);
+    
   }, []);
 
   const loadOwnerProfile = async () => {
@@ -467,14 +503,6 @@ const Reports = () => {
       const res  = await ownerAPI.getByUserId(user.id);
       const owner = res.data.owner;
       setOwnerProfile(owner);
-      setProfileForm({
-        first_name:  owner.first_name  || '',
-        middle_name: owner.middle_name || '',
-        last_name:   owner.last_name   || '',
-        birthdate:   owner.birthdate   || '',
-        gender:      owner.gender      || '',
-        phone:       owner.phone       || '',
-      });
     } catch (err) {
       console.error('Failed to load owner profile:', err);
     } finally {
@@ -573,6 +601,7 @@ const Reports = () => {
     if (!formData.phone_number.trim()) { setSubmitError('Please enter a contact number.'); setSubmitLoading(false); return; }
     if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); setSubmitLoading(false); return; }
     if (!formLat || !formLng) { setSubmitError('Please pin a location on the map before submitting.'); setSubmitLoading(false); return; }
+    if (imageFiles.length === 0) { setSubmitError('Please attach at least one photo.'); setSubmitLoading(false); return; }
 
     try {
       const fd = new FormData();
@@ -631,153 +660,8 @@ const Reports = () => {
     handleOpenSubmitModal();
   };
 
-  const handleProfileFormChange = (e) => {
-    const { name, value } = e.target;
-    setProfileForm(prev => ({ ...prev, [name]: value }));
-    if (verifyError) setVerifyError('');
-
-    if (['first_name', 'middle_name', 'last_name'].includes(name)) {
-      if (value && !/^[a-zA-Z.\s-]*$/.test(value)) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Only letters, dots, spaces, and hyphens allowed' }));
-      } else if (value && value.startsWith(' ')) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a space' }));
-      } else if (value && value.startsWith('-')) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a hyphen' }));
-      } else if (value && /\s{2,}/.test(value)) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot contain multiple consecutive spaces' }));
-      } else if (value && /--/.test(value)) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot contain consecutive hyphens' }));
-      } else {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: '' }));
-      }
-    }
-
-    if (name === 'phone') {
-      setProfileFieldErrors(prev => ({ ...prev, phone: value && !/^09\d{9}$/.test(value) ? 'Phone must be 11 digits starting with 09' : '' }));
-    }
-  };
-
-  const handleIdFormChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === 'province') {
-      const muns = getMunicipalitiesByProvince(value);
-      setCities(muns);
-      setBarangayList([]);
-      setIdForm(prev => ({ ...prev, province: value, provinceName: provinces.find(p => p.psgcCode === value)?.name || '', city: '', cityName: '', barangay: '', address: '' }));
-    } else if (name === 'city') {
-      const brgys = getBarangaysByMunicipality(value);
-      setBarangayList(brgys);
-      setIdForm(prev => ({ ...prev, city: value, cityName: cities.find(c => c.psgcCode === value)?.name || '', barangay: '', address: '' }));
-    } else {
-      setIdForm(prev => {
-        const updated = { ...prev, [name]: value };
-        // Auto-build the full address string whenever any part changes
-        const parts = [
-          updated.house_no,
-          updated.street,
-          updated.barangay,
-          updated.cityName || updated.city,
-          updated.provinceName || updated.province,
-        ].filter(Boolean);
-        updated.address = parts.join(', ');
-        return updated;
-      });
-    }
-
-    if (verifyError) setVerifyError('');
-  };
-
-  const handleFileChange = (e, setter, previewSetter) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setter(file);
-    previewSetter(URL.createObjectURL(file));
-  };
-
   const handleOpenVerifyModal = () => {
-    setVerifyStep(1);
-    setVerifyError('');
-    setVerifySuccess('');
-    setProfileFieldErrors({});
-    setIdForm({ valid_id_type: '', address: '', house_no: '', street: '', province: '', city: '', barangay: '' });
-    setCities([]);
-    setBarangayList([]);
-    setIdFrontFile(null); setIdBackFile(null); setSelfieFile(null);
-    setIdFrontPreview(''); setIdBackPreview(''); setSelfiePreview('');
     setShowVerifyModal(true);
-  };
-
-  const handleVerifyStep1Next = async () => {
-    if (!profileForm.first_name.trim() || !profileForm.last_name.trim()) {
-      setVerifyError('First name and last name are required.'); return;
-    }
-    if (!profileForm.phone.trim() || !/^09\d{9}$/.test(profileForm.phone)) {
-      setVerifyError('Enter a valid 11-digit phone number starting with 09.'); return;
-    }
-    const hasFieldErrors = profileFieldErrors.first_name || profileFieldErrors.middle_name || profileFieldErrors.last_name || profileFieldErrors.phone;
-    if (hasFieldErrors) { setVerifyError('Please fix the errors in the form before continuing.'); return; }
-    setVerifyError('');
-    try {
-      setVerifySubmitting(true);
-      const user = getUser();
-      const userId = user?.id || user?.user_id;
-      console.log('user object:', user);
-      console.log('userId being used:', userId);
-      const response = await ownerAPI.update(userId, profileForm);
-      console.log('update response:', response);
-      setVerifyStep(2);
-    } catch (err) {
-      console.error('update error full:', err);
-      console.error('update error response:', err.response?.data);
-      console.error('update error status:', err.response?.status);
-      setVerifyError(err.response?.data?.error || 'Failed to save profile. Please try again.');
-    } finally {
-      setVerifySubmitting(false);
-    }
-  };
-
-  const handleVerifySubmit = async () => {
-    if (!idForm.province)               { setVerifyError('Please select a province.');             return; }
-    if (!idForm.city)                   { setVerifyError('Please select a city / municipality.');  return; }
-    if (!idForm.barangay)               { setVerifyError('Please select a barangay.');             return; }
-    if (!idForm.address.trim())         { setVerifyError('Please complete your address.');         return; }
-    if (!idForm.valid_id_type)          { setVerifyError('Please select a valid ID type.');        return; }
-    if (!idFrontFile)                   { setVerifyError('Please upload the front of your ID.');   return; }
-
-    try {
-      setVerifySubmitting(true);
-      setVerifyError('');
-      const user = getUser();
-
-      // Convert files to base64 for JSON submission
-      const toBase64 = (file) => new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result);
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-
-      const frontB64  = await toBase64(idFrontFile);
-      const backB64   = idBackFile  ? await toBase64(idBackFile)  : null;
-      const selfieB64 = selfieFile  ? await toBase64(selfieFile)  : null;
-
-      await ownerAPI.submitId(user.id, {
-        valid_id_type:  idForm.valid_id_type,
-        valid_id_front: frontB64,
-        valid_id_back:  backB64,
-        selfie_with_id: selfieB64,
-        address:        idForm.address,
-      });
-
-      setVerifySuccess('Your ID has been submitted successfully! Our team will review it shortly.');
-      await loadOwnerProfile();
-      setTimeout(() => { setShowVerifyModal(false); setVerifySuccess(''); }, 3000);
-    } catch (err) {
-      setVerifyError('Failed to submit ID. Please try again.');
-    } finally {
-      setVerifySubmitting(false);
-    }
   };
 
   const formatDate = (dateStr) => {
@@ -795,12 +679,7 @@ const Reports = () => {
   const paginatedReports = reports.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const totalPages = Math.ceil(reports.length / itemsPerPage);
 
-  // Shared input styles for the verify modal
-  const labelStyle = { fontWeight:'600', color:'#1a1a1a', fontSize:'0.875rem', marginBottom:'0.4rem', display:'flex', alignItems:'center' };
-  const editInputStyle = { borderRadius:'10px', padding:'0.65rem 0.9rem', border:'2px solid #dee2e6', background:'#f8f9fa', color:'#1a1a1a', fontWeight:'500', fontSize:'0.9rem', transition:'all 0.2s' };
-  const readonlyInputStyle = { ...editInputStyle, background:'#e9ecef', color:'#6c757d', cursor:'not-allowed' };
-
-  const Req = () => <span style={{ color:'#ef4444', marginLeft:'2px' }}>*</span>;
+  
   
   return (
     <>
@@ -1376,7 +1255,7 @@ const Reports = () => {
                           setFormData(prev => ({ ...prev, barangay_id: String(match.id) }));
                         }
                       }}
-                      onError={(msg) => setLocationError(msg)}
+                      onError={null}
                     />
                     {formLat && formLng && (
                       <div style={{ marginTop:'0.5rem', padding:'0.5rem 0.75rem', background:'rgba(25,135,84,0.08)', borderRadius:'8px', border:'1px solid rgba(25,135,84,0.2)', fontSize:'0.82rem', color:'#198754' }}>
@@ -1397,9 +1276,8 @@ const Reports = () => {
                 <Col md={12}>
                   <Form.Group className="mb-2">
                     <Form.Label style={{ fontWeight:'600', color:'#333333' }}>
-                      <i className="fas fa-camera me-2" style={{ color:'#ffc107' }}></i>
-                      Attach Photos
-                      <span style={{ fontWeight:'400', color:'#888', fontSize:'0.8rem', marginLeft:'0.5rem' }}>(optional, max 3)</span>
+                      Attach Photos <span style={{ color: '#dc3545' }}>*</span>
+                      <span style={{ fontWeight:'400', color:'#888', fontSize:'0.8rem', marginLeft:'0.5rem' }}>(max 3)</span>
                     </Form.Label>
                     <Form.Control
                       type="file"
@@ -1444,45 +1322,20 @@ const Reports = () => {
                   if (!formData.phone_number.trim()) { setSubmitError('Please enter a contact number.');   return; }
                   if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); return; }
                   if (!formLat || !formLng)          { setSubmitError('Please pin a location on the map before submitting.'); return; }
+                  if (imageFiles.length === 0)        { setSubmitError('Please attach at least one photo.'); return; }
                   setSubmitError('');
                   setShowConfirmModal(true);
                 }}                style={{ background: submitLoading ? '#6c757d' : '#ffc107', color: '#000000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', boxShadow: submitLoading ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)', transition: 'all 0.3s' }}
                 onMouseOver={(e) => { if (!submitLoading) { e.target.style.background = '#ffb300'; e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)'; } }}
                 onMouseOut={(e) => { if (!submitLoading) { e.target.style.background = '#ffc107'; e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)'; } }}
               >
-                {submitLoading ? (<><Spinner size="sm" animation="border" className="me-2" />Submitting...</>) : (<><i className="fas fa-paper-plane me-2"></i>Submit Report</>)}
+                {submitLoading ? (<WaveDots />) : (<><i className="fas fa-paper-plane me-2"></i>Submit Report</>)}
               </Button>
             </Modal.Footer>
           </Form>
         </Modal>
 
-        {/* ======================== LOCATION ERROR MODAL ======================== */}
-        <Modal show={!!locationError} onHide={() => setLocationError('')} centered style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
-          <Modal.Header closeButton style={{ background: '#fff3f3', borderBottom: '2px solid #dc3545' }}>
-            <Modal.Title style={{ fontWeight: '700', color: '#dc3545', fontSize: '1rem' }}>
-              <i className="fas fa-map-marker-alt me-2"></i>
-              Location Outside Muntinlupa
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
-            <p style={{ color: '#333', fontWeight: '600', fontSize: '1rem', marginBottom: '0.5rem' }}>
-              Cannot Pin Location
-            </p>
-            <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: 0 }}>
-              {locationError}
-            </p>
-          </Modal.Body>
-          <Modal.Footer style={{ justifyContent: 'center', borderTop: '1px solid #f0f0f0' }}>
-            <Button
-              onClick={() => setLocationError('')}
-              className="border-0"
-              style={{ background: '#dc3545', color: '#fff', borderRadius: '8px', padding: '0.65rem 2rem', fontWeight: '700' }}
-            >
-              Got it
-            </Button>
-          </Modal.Footer>
-        </Modal>
+        
 
         {/* ======================== VIEW DETAILS MODAL ======================== */}
         <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" centered={window.innerWidth <= 768} style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
@@ -1587,29 +1440,106 @@ const Reports = () => {
                     </Card>
                   )}
                   {/* Images */}
-                  {selectedReport.images && selectedReport.images.length > 0 && (
-                    <Card className="border-0 mt-3" style={{ borderRadius:'15px', boxShadow:'0 2px 10px rgba(0,0,0,0.08)' }}>
-                      <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'15px 15px 0 0' }}>
-                        <h6 className="mb-0" style={{ fontWeight:'700', color:'#333333' }}>
-                          <i className="fas fa-images me-2" style={{ color:'#ffc107' }}></i>
-                          Attached Photos
-                        </h6>
-                      </Card.Header>
-                      <Card.Body>
-                        <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap' }}>
-                          {selectedReport.images.map((img, i) => (
-                            <a key={i} href={img} target="_blank" rel="noreferrer">
-                              <img src={img} alt={`report-img-${i}`}
-                                style={{ width:'85px', height:'85px', objectFit:'cover', borderRadius:'10px', border:'2px solid #dee2e6', cursor:'pointer', transition:'transform 0.2s' }}
-                                onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-                                onMouseOut={(e)  => e.target.style.transform = 'scale(1)'}
-                              />
-                            </a>
-                          ))}
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  )}
+                  {selectedReport.images && selectedReport.images.length > 0 && (() => {
+                    const API_BASE = (window.location.hostname === 'localhost'
+                      ? 'http://localhost/city-pet-vaccination-api'
+                      : 'https://city-pet-vaccination-api.onrender.com').replace(/\/+$/, '');
+                    const getImgUrl = (img) => {
+                      if (!img) return '';
+                      if (img.startsWith('http')) return img;
+                      return `${API_BASE}/${img.replace(/^\/+/, '')}`;
+                    };
+                    return (
+                      <>
+                        {/* Lightbox overlay — uses React state so it actually renders */}
+                        {lightboxImg && (
+  <div
+    onClick={() => setLightboxImg(null)}
+    onWheel={e => {
+      e.preventDefault();
+      setLightboxZoom(z => Math.min(Math.max(z - e.deltaY * 0.001, 0.5), 5));
+    }}
+    style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.92)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem', cursor:'zoom-in' }}
+  >
+    <img
+      src={lightboxImg}
+      alt="Full view"
+      style={{ maxWidth:'90vw', maxHeight:'90vh', objectFit:'contain', borderRadius:'12px', boxShadow:'0 8px 40px rgba(0,0,0,0.6)', transform:`scale(${lightboxZoom})`, transformOrigin:'center center', transition:'transform 0.1s ease' }}
+      onClick={e => e.stopPropagation()}
+    />
+    <button
+      onClick={() => { setLightboxImg(null); setLightboxZoom(1); }}
+      style={{ position:'absolute', top:'1.5rem', right:'1.5rem', background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)', borderRadius:'50%', width:'44px', height:'44px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'1.2rem', backdropFilter:'blur(4px)' }}
+    >
+      <i className="fas fa-times" />
+    </button>
+    {/* Arrow navigation */}
+    {selectedReport.images.length > 1 && (() => {
+      const currentIdx = selectedReport.images.findIndex(img => getImgUrl(img) === lightboxImg);
+      const prev = selectedReport.images[(currentIdx - 1 + selectedReport.images.length) % selectedReport.images.length];
+      const next = selectedReport.images[(currentIdx + 1) % selectedReport.images.length];
+      return (
+        <>
+          <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(prev)); setLightboxZoom(1); }}
+            style={{ position:'absolute', left:'1rem', top:'50%', transform:'translateY(-50%)', background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)', borderRadius:'50%', width:'44px', height:'44px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'1rem', backdropFilter:'blur(4px)' }}>
+            <i className="fas fa-chevron-left" />
+          </button>
+          <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(next)); setLightboxZoom(1); }}
+            style={{ position:'absolute', right:'4rem', top:'50%', transform:'translateY(-50%)', background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)', borderRadius:'50%', width:'44px', height:'44px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'1rem', backdropFilter:'blur(4px)' }}>
+            <i className="fas fa-chevron-right" />
+          </button>
+          <div style={{ position:'absolute', bottom:'1.25rem', left:'50%', transform:'translateX(-50%)', color:'rgba(255,255,255,0.7)', fontSize:'0.8rem', fontWeight:'600' }}>
+            {currentIdx + 1} / {selectedReport.images.length}
+          </div>
+        </>
+      );
+    })()}
+  </div>
+)}
+                        <Card className="border-0 mt-3" style={{ borderRadius:'15px', boxShadow:'0 2px 10px rgba(0,0,0,0.08)' }}>
+                          <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'15px 15px 0 0' }}>
+                            <h6 className="mb-0" style={{ fontWeight:'700', color:'#333333' }}>
+                              <i className="fas fa-images me-2" style={{ color:'#ffc107' }}></i>
+                              Attached Photos ({selectedReport.images.length})
+                            </h6>
+                          </Card.Header>
+                          <Card.Body>
+                            <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap' }}>
+                              {selectedReport.images.map((img, i) => {
+                                const src = getImgUrl(img);
+                                return (
+                                  <div
+                                    key={i}
+                                    onClick={() => setLightboxImg(src)}
+                                    style={{ position:'relative', cursor:'pointer', borderRadius:'10px', overflow:'hidden', width:'90px', height:'90px', border:'2px solid #dee2e6', transition:'all 0.2s', flexShrink:0 }}
+                                    onMouseOver={e => { e.currentTarget.style.borderColor='#ffc107'; e.currentTarget.style.transform='scale(1.05)'; e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'; }}
+                                    onMouseOut={e  => { e.currentTarget.style.borderColor='#dee2e6'; e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.boxShadow='none'; }}
+                                  >
+                                    <img
+                                      src={src}
+                                      alt={`report-img-${i}`}
+                                      style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
+                                      onError={e => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.style.background = '#f8f9fa';
+                                        e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><i class="fas fa-image" style="color:#ccc;font-size:1.4rem"></i><small style="color:#aaa;font-size:0.6rem">No preview</small></div>';
+                                      }}
+                                    />
+                                    {/* Zoom overlay */}
+                                    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0)', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}
+                                      onMouseOver={e => e.currentTarget.style.background='rgba(0,0,0,0.3)'}
+                                      onMouseOut={e  => e.currentTarget.style.background='rgba(0,0,0,0)'}>
+                                      <i className="fas fa-search-plus" style={{ color:'rgba(255,255,255,0)', fontSize:'1.2rem', transition:'color 0.2s', pointerEvents:'none' }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </>
+                    );
+                  })()}
 
                   {/* Map pin in view mode */}
                   {selectedReport.latitude && selectedReport.longitude && (
@@ -1689,7 +1619,7 @@ const Reports = () => {
             </Button>
             <Button variant="danger" onClick={confirmDeleteReport} disabled={deleteLoading}
               style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-              {deleteLoading ? (<><Spinner size="sm" animation="border" className="me-2" />Withdrawing...</>) : (<><i className="fas fa-trash me-2"></i>Withdraw Report</>)}
+              {deleteLoading ? (<WaveDots color="#ffffff" />) : (<><i className="fas fa-trash me-2"></i>Withdraw Report</>)}
             </Button>
           </Modal.Footer>
         </Modal>
@@ -1732,306 +1662,21 @@ const Reports = () => {
           </Modal.Body>
         </Modal>
 
-        {/* ══════════ VERIFY ACCOUNT MODAL ══════════ */}
-        <Modal show={showVerifyModal} onHide={() => !verifySubmitting && setShowVerifyModal(false)} size="lg" backdrop="static" centered={window.innerWidth <= 768} style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
-          <Modal.Header closeButton={!verifySubmitting}
-            style={{ background:'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
-            <Modal.Title style={{ fontWeight:'800', color:'#333' }}>
-              <i className="fas fa-id-card me-2" style={{ color:'#ffc107' }} />
-              {verifyStep === 1 ? 'Step 1 of 2 — Confirm Your Profile' : 'Step 2 of 2 — Upload Valid ID'}
-            </Modal.Title>
-          </Modal.Header>
+        <VerifyAccountModal
+        show={showVerifyModal}
+        onHide={() => setShowVerifyModal(false)}
+        ownerProfile={ownerProfile}
+        profileForm={{
+          first_name:  ownerProfile?.first_name  || '',
+          middle_name: ownerProfile?.middle_name || '',
+          last_name:   ownerProfile?.last_name   || '',
+          birthdate:   ownerProfile?.birthdate   || '',
+          gender:      ownerProfile?.gender      || '',
+          phone:       ownerProfile?.phone       || '',
+        }}
+        onVerified={(updatedOwner) => setOwnerProfile(updatedOwner)}
+      />
 
-          <Modal.Body style={{ padding:'2rem', maxHeight:'72vh', overflowY:'auto' }}>
-
-            {/* Step progress bar */}
-            <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1.75rem' }}>
-              {[1,2].map(s => (
-                <div key={s} style={{ flex:1, height:'6px', borderRadius:'999px', background: verifyStep >= s ? '#ffc107' : '#e9ecef', transition:'background 0.4s' }} />
-              ))}
-            </div>
-
-            {verifyError && (
-              <Alert variant="danger" className="mb-3" style={{ borderRadius:'12px', border:'2px solid rgba(220,53,69,0.25)', background:'rgba(220,53,69,0.07)', color:'#1a1a1a', fontSize:'0.875rem' }}>
-                <i className="fas fa-exclamation-circle me-2" style={{ color:'#dc3545' }} />{verifyError}
-              </Alert>
-            )}
-            {verifySuccess && (
-              <Alert variant="success" className="mb-3" style={{ borderRadius:'12px', border:'2px solid rgba(25,135,84,0.25)', background:'rgba(25,135,84,0.07)', color:'#1a1a1a', fontSize:'0.875rem' }}>
-                <i className="fas fa-check-circle me-2" style={{ color:'#198754' }} />{verifySuccess}
-              </Alert>
-            )}
-
-            {/* ── STEP 1: Profile Info ── */}
-            {verifyStep === 1 && (
-              <>
-                <div style={{ background:'rgba(255,193,7,0.06)', border:'1.5px dashed #ffc107', borderRadius:'12px', padding:'0.85rem 1rem', marginBottom:'1.5rem', fontSize:'0.85rem', color:'#666' }}>
-                  <i className="fas fa-info-circle me-2" style={{ color:'#ffc107' }} />
-                  Review and update your personal information below. <strong style={{ color:'#1a1a1a' }}>Email cannot be changed.</strong>
-                </div>
-
-                {/* Email — read only */}
-                <Form.Group className="mb-3">
-                  <Form.Label style={labelStyle}><i className="fas fa-envelope me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Email Address</Form.Label>
-                  <Form.Control type="email" value={ownerProfile?.email || ''} readOnly
-                    style={{ ...readonlyInputStyle }} />
-                  <small style={{ color:'#9ca3af', fontSize:'0.8rem' }}><i className="fas fa-lock me-1" />Email cannot be changed</small>
-                </Form.Group>
-
-                <Row>
-                  <Col md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />First Name <Req /></Form.Label>
-                      <Form.Control type="text" name="first_name" value={profileForm.first_name} onChange={handleProfileFormChange} onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onBlur={(e) => { if (e.target.value.endsWith('-')) setProfileFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); }} placeholder="First name" disabled={verifySubmitting} style={{ ...editInputStyle, border: profileFieldErrors.first_name ? '2px solid #ef4444' : editInputStyle.border }} />
-                        {profileFieldErrors.first_name && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.first_name}</small>}
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group className="mb-3">
-                        <Form.Label style={labelStyle}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Middle Name</Form.Label>
-                        <Form.Control type="text" name="middle_name" value={profileForm.middle_name} onChange={handleProfileFormChange} onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onBlur={(e) => { if (e.target.value.endsWith('-')) setProfileFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); }} placeholder="Optional" disabled={verifySubmitting} style={{ ...editInputStyle, border: profileFieldErrors.middle_name ? '2px solid #ef4444' : editInputStyle.border }} />
-                        {profileFieldErrors.middle_name && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.middle_name}</small>}
-                      </Form.Group>
-                    </Col>
-                    <Col md={4}>
-                      <Form.Group className="mb-3">
-                        <Form.Label style={labelStyle}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Last Name <Req /></Form.Label>
-                        <Form.Control type="text" name="last_name" value={profileForm.last_name} onChange={handleProfileFormChange} onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onBlur={(e) => { if (e.target.value.endsWith('-')) setProfileFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); }} placeholder="Last name" disabled={verifySubmitting} style={{ ...editInputStyle, border: profileFieldErrors.last_name ? '2px solid #ef4444' : editInputStyle.border }} />
-                        {profileFieldErrors.last_name && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.last_name}</small>}
-                    </Form.Group>
-                  </Col>
-                </Row>
-
-                <Row>
-                  <Col md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}><i className="fas fa-calendar me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Birthdate <Req /></Form.Label>
-                      <Form.Control type="date" name="birthdate" value={profileForm.birthdate} onChange={handleProfileFormChange}
-                        max={new Date().toISOString().split('T')[0]} disabled={verifySubmitting}
-                        style={{ ...editInputStyle, colorScheme:'light' }} />
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}><i className="fas fa-venus-mars me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Gender <Req /></Form.Label>
-                      <Form.Select name="gender" value={profileForm.gender} onChange={handleProfileFormChange}
-                        disabled={verifySubmitting} style={editInputStyle}>
-                        <option value="">Select Gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}><i className="fas fa-phone me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Phone Number <Req /></Form.Label>
-                      <Form.Control type="tel" name="phone" value={profileForm.phone} onChange={handleProfileFormChange} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }} placeholder="09123456789" disabled={verifySubmitting} style={{ ...editInputStyle, border: profileFieldErrors.phone ? '2px solid #ef4444' : (profileForm.phone && /^09\d{9}$/.test(profileForm.phone)) ? '2px solid #10b981' : editInputStyle.border }} />
-                        {profileFieldErrors.phone && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.phone}</small>}
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </>
-            )}
-
-            {/* ── STEP 2: ID Upload ── */}
-            {verifyStep === 2 && (
-              <>
-                <div style={{ background:'rgba(255,193,7,0.06)', border:'1.5px dashed #ffc107', borderRadius:'12px', padding:'0.85rem 1rem', marginBottom:'1.5rem', fontSize:'0.85rem', color:'#666' }}>
-                  <i className="fas fa-id-card me-2" style={{ color:'#ffc107' }} />
-                  Upload a clear photo of your government-issued ID. Your address will be recorded here and used for verification.
-                </div>
-
-                {/* Address — structured fields */}
-                <div style={{ background:'#f8f9fa', borderRadius:'12px', padding:'1rem 1.1rem', marginBottom:'1rem', border:'1.5px solid #e9ecef' }}>
-                  <div style={{ ...labelStyle, marginBottom:'0.75rem', color:'#ffc107' }}>
-                    <i className="fas fa-map-marker-alt me-2" style={{ fontSize:'0.8rem' }} />Complete Address <Req />
-                  </div>
-
-                  {/* Row 1: Province + City */}
-                  <Row className="mb-2">
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label style={{ ...labelStyle, fontSize:'0.8rem' }}>Province <Req /></Form.Label>
-                        <Form.Select
-                          name="province" value={idForm.province}
-                          onChange={handleIdFormChange} disabled={verifySubmitting}
-                          style={{ ...editInputStyle, fontSize:'0.85rem' }}>
-                          <option value="">Select Province</option>
-                          {provinces.map(p => (
-                            <option key={p.psgcCode} value={p.psgcCode}>{p.name}</option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={6}>
-                      <Form.Group>
-                        <Form.Label style={{ ...labelStyle, fontSize:'0.8rem' }}>City / Municipality <Req /></Form.Label>
-                        <Form.Select
-                          name="city" value={idForm.city}
-                          onChange={handleIdFormChange}
-                          disabled={verifySubmitting || !idForm.province}
-                          style={{ ...editInputStyle, fontSize:'0.85rem', opacity: !idForm.province ? 0.6 : 1 }}>
-                          <option value="">Select City / Municipality</option>
-                          {cities.map(c => (
-                            <option key={c.psgcCode} value={c.psgcCode}>{c.name}</option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  {/* Row 2: Barangay */}
-                  <Row className="mb-2">
-                    <Col md={12}>
-                      <Form.Group>
-                        <Form.Label style={{ ...labelStyle, fontSize:'0.8rem' }}>Barangay <Req /></Form.Label>
-                        <Form.Select
-                          name="barangay" value={idForm.barangay}
-                          onChange={handleIdFormChange}
-                          disabled={verifySubmitting || !idForm.city}
-                          style={{ ...editInputStyle, fontSize:'0.85rem', opacity: !idForm.city ? 0.6 : 1 }}>
-                          <option value="">Select Barangay</option>
-                          {barangayList.map(b => (
-                            <option key={b.psgcCode} value={b.name}>{b.name}</option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  {/* Row 3: House No. + Street — shown only after barangay is selected */}
-                  {idForm.barangay && (
-                    <Row className="mb-2">
-                      <Col md={4}>
-                        <Form.Group>
-                          <Form.Label style={{ ...labelStyle, fontSize:'0.8rem' }}>House / Unit No.</Form.Label>
-                          <Form.Control
-                            type="text" name="house_no" value={idForm.house_no}
-                            onChange={handleIdFormChange} placeholder="e.g. 12B"
-                            disabled={verifySubmitting} style={{ ...editInputStyle, fontSize:'0.85rem' }} />
-                        </Form.Group>
-                      </Col>
-                      <Col md={8}>
-                        <Form.Group>
-                          <Form.Label style={{ ...labelStyle, fontSize:'0.8rem' }}>Street / Purok / Sitio</Form.Label>
-                          <Form.Control
-                            type="text" name="street" value={idForm.street}
-                            onChange={handleIdFormChange} placeholder="e.g. Rizal St., Purok 3"
-                            disabled={verifySubmitting} style={{ ...editInputStyle, fontSize:'0.85rem' }} />
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                  )}
-
-                  {/* Preview of compiled address */}
-                  {idForm.address && (
-                    <div style={{ marginTop:'0.75rem', padding:'0.5rem 0.75rem', background:'rgba(255,193,7,0.08)', borderRadius:'8px', border:'1px solid rgba(255,193,7,0.25)', fontSize:'0.8rem', color:'#555' }}>
-                      <i className="fas fa-check-circle me-1" style={{ color:'#ffc107' }} />
-                      <strong style={{ color:'#333' }}>Full address: </strong>{idForm.address}
-                    </div>
-                  )}
-                </div>
-
-                {/* ID Type */}
-                <Form.Group className="mb-3">
-                  <Form.Label style={labelStyle}><i className="fas fa-id-badge me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />ID Type <Req /></Form.Label>
-                  <Form.Select name="valid_id_type" value={idForm.valid_id_type} onChange={handleIdFormChange}
-                    disabled={verifySubmitting} style={editInputStyle}>
-                    <option value="">Select ID Type</option>
-                    {VALID_ID_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </Form.Select>
-                </Form.Group>
-
-                {/* ID Photos */}
-                <Row>
-                  <Col md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}><i className="fas fa-camera me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />ID Front <Req /></Form.Label>
-                      <label style={{ display:'block', cursor: verifySubmitting ? 'not-allowed' : 'pointer' }}>
-                        <div style={{ border:'2px dashed #dee2e6', borderRadius:'12px', padding:'1rem', textAlign:'center', background:'#f8f9fa', transition:'all 0.2s', minHeight:'120px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}
-                          onMouseOver={e => { if (!verifySubmitting) e.currentTarget.style.borderColor='#ffc107'; }}
-                          onMouseOut={e  => e.currentTarget.style.borderColor='#dee2e6'}>
-                          {idFrontPreview
-                            ? <img src={idFrontPreview} alt="ID Front" style={{ width:'100%', maxHeight:'100px', objectFit:'contain', borderRadius:'8px' }} />
-                            : <><i className="fas fa-upload" style={{ fontSize:'1.5rem', color:'#ffc107', marginBottom:'0.5rem' }} /><small style={{ color:'#888', fontSize:'0.78rem' }}>Click to upload</small></>}
-                        </div>
-                        <input type="file" accept="image/*" style={{ display:'none' }} disabled={verifySubmitting}
-                          onChange={e => handleFileChange(e, setIdFrontFile, setIdFrontPreview)} />
-                      </label>
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}><i className="fas fa-camera me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />ID Back <span style={{ color:'#9ca3af', fontWeight:400 }}>(optional)</span></Form.Label>
-                      <label style={{ display:'block', cursor: verifySubmitting ? 'not-allowed' : 'pointer' }}>
-                        <div style={{ border:'2px dashed #dee2e6', borderRadius:'12px', padding:'1rem', textAlign:'center', background:'#f8f9fa', transition:'all 0.2s', minHeight:'120px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}
-                          onMouseOver={e => { if (!verifySubmitting) e.currentTarget.style.borderColor='#ffc107'; }}
-                          onMouseOut={e  => e.currentTarget.style.borderColor='#dee2e6'}>
-                          {idBackPreview
-                            ? <img src={idBackPreview} alt="ID Back" style={{ width:'100%', maxHeight:'100px', objectFit:'contain', borderRadius:'8px' }} />
-                            : <><i className="fas fa-upload" style={{ fontSize:'1.5rem', color:'#ccc', marginBottom:'0.5rem' }} /><small style={{ color:'#888', fontSize:'0.78rem' }}>Click to upload</small></>}
-                        </div>
-                        <input type="file" accept="image/*" style={{ display:'none' }} disabled={verifySubmitting}
-                          onChange={e => handleFileChange(e, setIdBackFile, setIdBackPreview)} />
-                      </label>
-                    </Form.Group>
-                  </Col>
-                  <Col md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}><i className="fas fa-selfie me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Selfie with ID <span style={{ color:'#9ca3af', fontWeight:400 }}>(optional)</span></Form.Label>
-                      <label style={{ display:'block', cursor: verifySubmitting ? 'not-allowed' : 'pointer' }}>
-                        <div style={{ border:'2px dashed #dee2e6', borderRadius:'12px', padding:'1rem', textAlign:'center', background:'#f8f9fa', transition:'all 0.2s', minHeight:'120px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center' }}
-                          onMouseOver={e => { if (!verifySubmitting) e.currentTarget.style.borderColor='#ffc107'; }}
-                          onMouseOut={e  => e.currentTarget.style.borderColor='#dee2e6'}>
-                          {selfiePreview
-                            ? <img src={selfiePreview} alt="Selfie" style={{ width:'100%', maxHeight:'100px', objectFit:'contain', borderRadius:'8px' }} />
-                            : <><i className="fas fa-user-circle" style={{ fontSize:'1.5rem', color:'#ccc', marginBottom:'0.5rem' }} /><small style={{ color:'#888', fontSize:'0.78rem' }}>Click to upload</small></>}
-                        </div>
-                        <input type="file" accept="image/*" style={{ display:'none' }} disabled={verifySubmitting}
-                          onChange={e => handleFileChange(e, setSelfieFile, setSelfiePreview)} />
-                      </label>
-                    </Form.Group>
-                  </Col>
-                </Row>
-              </>
-            )}
-          </Modal.Body>
-
-          <Modal.Footer style={{ padding:'1.25rem 2rem', borderTop:'1px solid #e9ecef' }}>
-            {verifyStep === 1 ? (
-              <>
-                <Button variant="secondary" onClick={() => setShowVerifyModal(false)} disabled={verifySubmitting}
-                  style={{ borderRadius:'10px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>
-                  Cancel
-                </Button>
-                <Button onClick={handleVerifyStep1Next} disabled={verifySubmitting} className="border-0"
-                  style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', color:'#000', borderRadius:'10px', padding:'0.75rem 1.75rem', fontWeight:'700', boxShadow:'0 4px 14px rgba(255,193,7,0.4)', transition:'all 0.3s' }}
-                  onMouseOver={e => e.currentTarget.style.boxShadow='0 6px 20px rgba(255,193,7,0.6)'}
-                  onMouseOut={e  => e.currentTarget.style.boxShadow='0 4px 14px rgba(255,193,7,0.4)'}>
-                  {verifySubmitting
-                    ? <><Spinner as="span" animation="border" size="sm" className="me-2" />Saving…</>
-                    : <>Next — Upload ID <i className="fas fa-arrow-right ms-2" /></>}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="secondary" onClick={() => setVerifyStep(1)} disabled={verifySubmitting}
-                  style={{ borderRadius:'10px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>
-                  <i className="fas fa-arrow-left me-2" />Back
-                </Button>
-                <Button onClick={handleVerifySubmit} disabled={verifySubmitting} className="border-0"
-                  style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', color:'#000', borderRadius:'10px', padding:'0.75rem 1.75rem', fontWeight:'700', boxShadow:'0 4px 14px rgba(255,193,7,0.4)', transition:'all 0.3s' }}
-                  onMouseOver={e => e.currentTarget.style.boxShadow='0 6px 20px rgba(255,193,7,0.6)'}
-                  onMouseOut={e  => e.currentTarget.style.boxShadow='0 4px 14px rgba(255,193,7,0.4)'}>
-                  {verifySubmitting
-                    ? <><Spinner as="span" animation="border" size="sm" className="me-2" />Submitting…</>
-                    : <><i className="fas fa-paper-plane me-2" />Submit for Verification</>}
-                </Button>
-              </>
-            )}
-          </Modal.Footer>
-        </Modal>
 {/* ======================== CONFIRM SUBMIT MODAL ======================== */}
 <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
   <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
@@ -2096,7 +1741,7 @@ const Reports = () => {
       onMouseOut={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(255,193,7,0.4)'}
     >
       {submitLoading
-        ? <><Spinner size="sm" animation="border" className="me-2" />Submitting...</>
+        ? <WaveDots />
         : <><i className="fas fa-paper-plane me-2" />Confirm & Submit</>}
     </Button>
   </Modal.Footer>

@@ -88,56 +88,94 @@ const EditProfile = ({ darkMode }) => {
     if (name === 'phone') {
       setFieldErrors(prev => ({ ...prev, phone: value && !/^09\d{9}$/.test(value) ? 'Phone must be 11 digits starting with 09' : '' }));
     }
+
+    if (['first_name', 'middle_name', 'last_name'].includes(name)) {
+      if (value && !/^[a-zA-Z.\s-]*$/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, [name]: 'Only letters, dots, spaces, and hyphens allowed' }));
+      } else if (value && value.startsWith(' ')) {
+        setFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a space' }));
+      } else if (value && value.startsWith('-')) {
+        setFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a hyphen' }));
+      } else if (value && /\s{2,}/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, [name]: 'Cannot contain multiple consecutive spaces' }));
+      } else if (value && /--/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, [name]: 'Cannot contain consecutive hyphens' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, [name]: '' }));
+      }
+    }
   };
 
   const toggleShow = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (loading) return;
+  e.preventDefault();
+  if (loading) return;
 
-    // Validate
+  // Validate profile fields (pet owner only, not locked)
+  if (!isClinic && !isAdmin && !isVerificationLocked) {
+    if (!formData.first_name.trim()) { setFieldErrors(p => ({ ...p, first_name: 'First name is required' })); return; }
+    if (!formData.last_name.trim()) { setFieldErrors(p => ({ ...p, last_name: 'Last name is required' })); return; }
+    if (formData.phone && !/^09\d{9}$/.test(formData.phone)) { setFieldErrors(p => ({ ...p, phone: 'Phone must be 11 digits starting with 09' })); return; }
+  }
+
+  const changingPassword = !!(formData.new_password || formData.current_password);
+  if (changingPassword) {
+    if (!formData.current_password) { setFieldErrors(p => ({ ...p, current_password: 'Current password is required' })); return; }
+    if (!formData.new_password) { setFieldErrors(p => ({ ...p, new_password: 'New password is required' })); return; }
+    const errs = validatePassword(formData.new_password);
+    if (errs.length > 0) { setError('New password does not meet requirements.'); return; }
+    if (formData.new_password !== formData.confirm_password) { setFieldErrors(p => ({ ...p, confirm_password: 'Passwords do not match' })); return; }
+  }
+
+  // For admin/clinic with no password change, nothing to submit
+  if ((isAdmin || isClinic) && !changingPassword) {
+    setError('Please fill in the password fields to save changes.');
+    return;
+  }
+
+  setLoading(true);
+  setError('');
+  setSuccess('');
+
+  try {
+    const payload = {};
+
+    // Profile fields — pet owner only (not locked, not admin, not clinic)
     if (!isClinic && !isAdmin && !isVerificationLocked) {
-  if (!formData.first_name.trim()) { setFieldErrors(p => ({ ...p, first_name: 'First name is required' })); return; }
-  if (!formData.last_name.trim()) { setFieldErrors(p => ({ ...p, last_name: 'Last name is required' })); return; }
-  if (formData.phone && !/^09\d{9}$/.test(formData.phone)) { setFieldErrors(p => ({ ...p, phone: 'Phone must be 11 digits starting with 09' })); return; }
-}
+      payload.first_name  = formData.first_name;
+      payload.middle_name = formData.middle_name;
+      payload.last_name   = formData.last_name;
+      payload.phone       = formData.phone;
+    }
 
-    const changingPassword = formData.new_password || formData.current_password;
+    // Password fields — all roles
     if (changingPassword) {
-      if (!formData.current_password) { setFieldErrors(p => ({ ...p, current_password: 'Current password is required' })); return; }
-      if (!formData.new_password) { setFieldErrors(p => ({ ...p, new_password: 'New password is required' })); return; }
-      const errs = validatePassword(formData.new_password);
-      if (errs.length > 0) { setError('New password does not meet requirements.'); return; }
-      if (formData.new_password !== formData.confirm_password) { setFieldErrors(p => ({ ...p, confirm_password: 'Passwords do not match' })); return; }
+      payload.current_password = formData.current_password;
+      payload.password         = formData.new_password;
     }
 
-    setLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      const payload = {};
-      if (changingPassword) {
-        payload.current_password = formData.current_password;
-        payload.password = formData.new_password;
-      }
-
-      const endpoint = isClinic
-        ? `/users/${user.id}/change-password`
-        : `/owners/${user.id}`;
-
-      await api.put(endpoint, payload);
-
-      setSuccess('Profile updated successfully!');
-      setFormData(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
-      setPasswordErrors([]);
-    } catch (err) {
-      setError(err.response?.data?.error || 'Update failed. Please try again.');
-    } finally {
-      setLoading(false);
+    // Endpoint per role
+    let endpoint;
+    if (isClinic) {
+      endpoint = `/clinics/change-password`;
+    } else if (isAdmin) {
+      endpoint = `/officials/change-password`;
+    } else {
+      endpoint = `/owners/${user.id}`;
     }
-  };
+
+    await api.put(endpoint, payload);
+
+    setSuccess('Changes saved successfully!');
+    setFormData(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
+    setPasswordErrors([]);
+  } catch (err) {
+    setError(err.response?.data?.error || 'Update failed. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const bg = darkMode ? '#0d0d0d' : '#f5f5f5';
   const cardBg = darkMode ? '#111111' : '#ffffff';
@@ -364,8 +402,10 @@ const EditProfile = ({ darkMode }) => {
                       </Form.Label>
                       <Form.Control
                         type="text" name="first_name" value={formData.first_name}
-                        onChange={handleChange} onFocus={() => setFocusedField('first_name')} onBlur={() => setFocusedField(null)}
-placeholder="First name" disabled={loading || profileFieldsDisabled} style={inputStyle('first_name')}
+                        onChange={handleChange} onFocus={() => setFocusedField('first_name')}
+                        onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+                        onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); }}
+placeholder="First name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('first_name')}
                       />
                       <FieldError msg={fieldErrors.first_name} />
                     </Form.Group>
@@ -378,9 +418,12 @@ placeholder="First name" disabled={loading || profileFieldsDisabled} style={inpu
                       </Form.Label>
                       <Form.Control
                         type="text" name="middle_name" value={formData.middle_name}
-                        onChange={handleChange} onFocus={() => setFocusedField('middle_name')} onBlur={() => setFocusedField(null)}
-placeholder="Optional" disabled={loading || profileFieldsDisabled} style={inputStyle('middle_name')}
+                        onChange={handleChange} onFocus={() => setFocusedField('middle_name')}
+                        onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+                        onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); }}
+placeholder="Optional" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('middle_name')}
                       />
+                    <FieldError msg={fieldErrors.middle_name} />
                     </Form.Group>
                   </Col>
                   <Col xs={12} md={4}>
@@ -391,8 +434,10 @@ placeholder="Optional" disabled={loading || profileFieldsDisabled} style={inputS
                       </Form.Label>
                       <Form.Control
                         type="text" name="last_name" value={formData.last_name}
-                        onChange={handleChange} onFocus={() => setFocusedField('last_name')} onBlur={() => setFocusedField(null)}
-placeholder="Last name" disabled={loading || profileFieldsDisabled} style={inputStyle('last_name')}
+                        onChange={handleChange} onFocus={() => setFocusedField('last_name')}
+                        onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+                        onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); }}
+placeholder="Last name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('last_name')}
                       />
                       <FieldError msg={fieldErrors.last_name} />
                     </Form.Group>
@@ -407,7 +452,8 @@ placeholder="Last name" disabled={loading || profileFieldsDisabled} style={input
                   <Form.Control
                     type="tel" name="phone" value={formData.phone}
                     onChange={handleChange} onFocus={() => setFocusedField('phone')} onBlur={() => setFocusedField(null)}
-placeholder="09123456789" disabled={loading || profileFieldsDisabled}
+placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength={11}
+                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
                     style={{
                       ...inputStyle('phone'),
                       border: fieldErrors.phone
@@ -459,7 +505,7 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled}
                   type={showPasswords.current ? 'text' : 'password'}
                   name="current_password" value={formData.current_password}
                   onChange={handleChange} onFocus={() => setFocusedField('current_password')} onBlur={() => setFocusedField(null)}
-                  placeholder="Enter current password" disabled={loading}
+                  placeholder="Enter current password" disabled={loading} maxLength={64}
                   style={{ ...inputStyle('current_password'), paddingRight: '44px' }}
                 />
                 <EyeBtn field="current" />
@@ -479,7 +525,7 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled}
                       type={showPasswords.new ? 'text' : 'password'}
                       name="new_password" value={formData.new_password}
                       onChange={handleChange} onFocus={() => setFocusedField('new_password')} onBlur={() => setFocusedField(null)}
-                      placeholder="New password" disabled={loading}
+                      placeholder="New password" disabled={loading} maxLength={64}
                       style={{ ...inputStyle('new_password'), paddingRight: '44px' }}
                     />
                     <EyeBtn field="new" />
@@ -498,7 +544,7 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled}
                       type={showPasswords.confirm ? 'text' : 'password'}
                       name="confirm_password" value={formData.confirm_password}
                       onChange={handleChange} onFocus={() => setFocusedField('confirm_password')} onBlur={() => setFocusedField(null)}
-                      placeholder="Repeat new password" disabled={loading}
+                      placeholder="Repeat new password" disabled={loading} maxLength={64}
                       style={{
                         ...inputStyle('confirm_password'),
                         paddingRight: '44px',

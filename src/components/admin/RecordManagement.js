@@ -19,9 +19,16 @@
     const [selectedMicrochipBatch, setSelectedMicrochipBatch] = useState(null);
     const [loadingBatches, setLoadingBatches] = useState(false);
     const [inventoryItems, setInventoryItems] = useState([]); // full inventory
+    const inventoryItemsRef = useRef([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const [showPetSearchModal, setShowPetSearchModal] = useState(false);
+const [petSearchTerm, setPetSearchTerm] = useState('');
+
+const [showConfirmRecordModal, setShowConfirmRecordModal] = useState(false);
+const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
     
     const [showModal, setShowModal] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
@@ -37,6 +44,9 @@ const ZOOM = 0.75;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+const [showRestoreModal, setShowRestoreModal] = useState(false);
+const [recordToRestore, setRecordToRestore] = useState(null);
+const [restoreLoading, setRestoreLoading] = useState(false);
     // QR code
     const [qrDataURL, setQrDataURL] = useState('');
     const [qrLoading, setQrLoading] = useState(false);
@@ -45,7 +55,8 @@ const ZOOM = 0.75;
     const [filterRecordType, setFilterRecordType] = useState('all');
     const [filterSpecies, setFilterSpecies] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    
+    const [filterStatus, setFilterStatus] = useState('active'); // 'active' | 'trash'
+const [filterClinic, setFilterClinic] = useState('city_vet');    
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
@@ -108,6 +119,7 @@ const ZOOM = 0.75;
       pet_id: '',
       pet_registration_input: '',
       vaccination_type_id: '',
+      _inventory_vaccine_id: '',
       vaccination_date: new Date().toISOString().split('T')[0],
       vaccination_next_due_date: '',
       deworming_type_id: '',
@@ -133,10 +145,22 @@ const ZOOM = 0.75;
       loadVaccinationTypes();
       loadDewormingTypes();
       loadInventoryVaccines();
-    }, []);
+    }, [filterStatus]);
     useEffect(() => {
   setCurrentPage(1);
-}, [activeTab, filterSpecies, searchTerm]);
+}, [activeTab, filterSpecies, searchTerm, filterStatus, filterClinic]);
+
+// Force batch display to sync when batches load for edit mode
+useEffect(() => {
+  if (modalMode === 'edit' && formData.vaccination_type_id && !loadingBatches) {
+    const key = formData._inventory_vaccine_id || formData.vaccination_type_id;
+    const batches = vaccineBatches[key] || vaccineBatches[parseInt(key)];
+    if (batches && batches.length > 0 && selectedVaccineBatch === null) {
+      // Batches loaded but none pre-selected (record had no batch_id) — leave unselected
+      // This just forces a re-render to show the batches
+    }
+  }
+}, [vaccineBatches, formData.vaccination_type_id, loadingBatches]);
 
 useEffect(() => {
   if (showDropdown === null) return;
@@ -152,11 +176,12 @@ useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
+        const trashParam = filterStatus === 'trash' ? '?trash=1' : '';
         const [vaccinationsRes, dewormingsRes, sterilizationsRes, microchipsRes, petsRes] = await Promise.all([
-          vaccinationAPI.getAll(),
-          dewormingAPI.getAll(),
-          sterilizationAPI.getAll(),
-          microchipAPI.getAll(),
+          vaccinationAPI.getAll(trashParam),
+          dewormingAPI.getAll(trashParam),
+          sterilizationAPI.getAll(trashParam),
+          microchipAPI.getAll(trashParam),
           petAPI.getAll()
         ]);
         console.log('Vaccinations Response:', vaccinationsRes.data);
@@ -204,6 +229,7 @@ useEffect(() => {
         const response = await inventoryAPI.getAll();
         const allInventory = response.data.inventory || [];
         setInventoryItems(allInventory);
+        inventoryItemsRef.current = allInventory;
         // Store inventory ids for vaccination items with stock > 0
         const vaccineInventory = allInventory
           .filter(i => i.item_type === 'vaccination' && parseInt(i.current_stock) > 0)
@@ -214,31 +240,50 @@ useEffect(() => {
       }
     };
 
-    const loadVaccineBatches = async (inventoryId) => {
-      // inventoryId is now inventory.id directly
+    const loadVaccineBatches = async (inventoryId, currentBatchId = null) => {
       const { inventoryAPI } = await import('../../services/api');
       setLoadingBatches(true);
       try {
-        const res = await inventoryAPI.getRecordBatchAvailability(inventoryId);
-        setVaccineBatches(prev => ({ ...prev, [inventoryId]: res.data.batches || [] }));
+        const params = currentBatchId ? `?current_batch_id=${currentBatchId}` : '';
+        const res = await inventoryAPI.getRecordBatchAvailability(inventoryId, params);
+        const batches = res.data.batches || [];
+        // Store under both number and string keys to avoid lookup mismatches
+        const key = String(inventoryId);
+        setVaccineBatches(prev => ({ ...prev, [key]: batches }));
+        if (currentBatchId) {
+          const found = batches.find(b => parseInt(b.id) === parseInt(currentBatchId));
+          if (found) setSelectedVaccineBatch(parseInt(found.id));
+          else if (batches.length > 0) setSelectedVaccineBatch(parseInt(batches[0].id));
+        }
+        return batches;
       } catch (err) {
         console.error('Failed to load vaccine batches:', err);
-        setVaccineBatches(prev => ({ ...prev, [inventoryId]: [] }));
+        setVaccineBatches(prev => ({ ...prev, [String(inventoryId)]: [] }));
+        return [];
       } finally {
         setLoadingBatches(false);
       }
     };
 
-    const loadMicrochipBatches = async () => {
+    const loadMicrochipBatches = async (currentBatchId = null) => {
       const { inventoryAPI } = await import('../../services/api');
       const invItem = inventoryItems.find(i => i.item_type === 'microchip');
-      if (!invItem) return;
+      if (!invItem) return [];
       setLoadingBatches(true);
       try {
-        const res = await inventoryAPI.getRecordBatchAvailability(invItem.id);
-        setMicrochipBatches(res.data.batches || []);
+        const params = currentBatchId ? `?current_batch_id=${currentBatchId}` : '';
+        const res = await inventoryAPI.getRecordBatchAvailability(invItem.id, params);
+        const batches = res.data.batches || [];
+        setMicrochipBatches(batches);
+        if (currentBatchId) {
+          const found = batches.find(b => parseInt(b.id) === parseInt(currentBatchId));
+          if (found) setSelectedMicrochipBatch(parseInt(found.id));
+          else if (batches.length > 0) setSelectedMicrochipBatch(parseInt(batches[0].id));
+        }
+        return batches;
       } catch (err) {
         console.error('Failed to load microchip batches:', err);
+        return [];
       } finally {
         setLoadingBatches(false);
       }
@@ -275,8 +320,12 @@ useEffect(() => {
 
     const handleOpenEditModal = (record, type) => {
       setModalMode('edit');
-      setEditingRecord({ ...record, recordType: type });
+      setEditingRecord({ ...record, recordType: type, _originalBatchId: record.batch_id ? parseInt(record.batch_id) : null });
       setShowDropdown(null);
+      setSelectedVaccineBatch(null);
+      setSelectedMicrochipBatch(null);
+      setVaccineBatches({});
+      setMicrochipBatches([]);
 
       const emptyBase = {
         record_type: type,
@@ -302,14 +351,27 @@ useEffect(() => {
       };
 
       if (type === 'vaccination') {
+        const items = inventoryItemsRef.current.length > 0 ? inventoryItemsRef.current : inventoryItems;
+        const preInvItem = record.inventory_id
+          ? items.find(i => parseInt(i.id) === parseInt(record.inventory_id))
+          : record.vaccination_type_id
+            ? items.find(i => parseInt(i.item_type_id) === parseInt(record.vaccination_type_id))
+            : null;
+        const resolvedInvId = preInvItem ? String(preInvItem.id) : '';
+        // Set formData with resolved ID immediately — do NOT set empty first
         setFormData({ ...emptyBase,
-          vaccination_type_id: String(record.vaccination_type_id || ''),
+          vaccination_type_id: resolvedInvId,
+          _inventory_vaccine_id: resolvedInvId,
           vaccination_date: record.vaccination_date?.split('T')[0] || '',
           vaccination_next_due_date: record.next_due_date?.split('T')[0] || '',
           veterinarian_name: record.veterinarian_name || '',
           weight: record.weight || '',
           notes: record.notes || ''
         });
+        // Load batches immediately using the resolved ID — no async fetch needed
+        if (preInvItem) {
+          loadVaccineBatches(parseInt(preInvItem.id), record.batch_id ? parseInt(record.batch_id) : null);
+        }
       } else if (type === 'deworming') {
         setFormData({ ...emptyBase,
           deworming_type_id: String(record.deworming_type_id || ''),
@@ -340,12 +402,8 @@ useEffect(() => {
       }
 
       setShowModal(true);
-      if (type === 'vaccination' && record.vaccination_type_id) {
-        const invItem = inventoryItems.find(i => parseInt(i.item_type_id) === parseInt(record.vaccination_type_id));
-        if (invItem) {
-          setFormData(prev => ({ ...prev, vaccination_type_id: String(invItem.id) }));
-          loadVaccineBatches(parseInt(invItem.id));
-        }
+      if (type === 'microchip' && record.microchip_number && !record.microchip_number.startsWith('QR-')) {
+        loadMicrochipBatches(record.batch_id ? parseInt(record.batch_id) : null);
       }
       setError('');
     };
@@ -402,20 +460,35 @@ useEffect(() => {
     if (!recordToDelete) return;
     setDeleteLoading(true);
     try {
-      if (recordToDelete.recordType === 'vaccination') {
-        await vaccinationAPI.delete(recordToDelete.id);
-      } else if (recordToDelete.recordType === 'deworming') {
-        await dewormingAPI.delete(recordToDelete.id);
-      } else if (recordToDelete.recordType === 'sterilization') {
-        await sterilizationAPI.delete(recordToDelete.id);
-      } else if (recordToDelete.recordType === 'microchip') {
-        await microchipAPI.delete(recordToDelete.id);
+      if (filterStatus === 'trash') {
+        // Permanent delete
+        if (recordToDelete.recordType === 'vaccination') {
+          await vaccinationAPI.forceDelete(recordToDelete.id);
+        } else if (recordToDelete.recordType === 'deworming') {
+          await dewormingAPI.forceDelete(recordToDelete.id);
+        } else if (recordToDelete.recordType === 'sterilization') {
+          await sterilizationAPI.forceDelete(recordToDelete.id);
+        } else if (recordToDelete.recordType === 'microchip') {
+          await microchipAPI.forceDelete(recordToDelete.id);
+        }
+        setSuccess('Record permanently deleted.');
+      } else {
+        // Soft delete (move to trash)
+        if (recordToDelete.recordType === 'vaccination') {
+          await vaccinationAPI.delete(recordToDelete.id);
+        } else if (recordToDelete.recordType === 'deworming') {
+          await dewormingAPI.delete(recordToDelete.id);
+        } else if (recordToDelete.recordType === 'sterilization') {
+          await sterilizationAPI.delete(recordToDelete.id);
+        } else if (recordToDelete.recordType === 'microchip') {
+          await microchipAPI.delete(recordToDelete.id);
+        }
+        setSuccess('Record moved to trash. It will be automatically removed after 30 days.');
       }
-      setSuccess('Record deleted successfully!');
       setShowDeleteModal(false);
       setRecordToDelete(null);
       loadData();
-      setTimeout(() => setSuccess(''), 5000);
+      setTimeout(() => setSuccess(''), 6000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -475,18 +548,32 @@ useEffect(() => {
       return; // Stop here, don't set the pet
     }
     
-    setFormData(prev => ({
-      ...prev,
-      pet_id: matchingPet.id.toString(),
-      weight: matchingPet.weight || '',
-      // Auto-set procedure type based on gender for sterilization
-      procedure_type: formData.record_type === 'sterilization' 
-        ? (matchingPet.gender === 'female' ? 'spay' : 'neuter')
-        : prev.procedure_type
-    }));
-    
-    // Clear any previous error
-    setError('');
+    // Get current pet to detect species change
+const currentPet = pets.find(p => p.id === parseInt(formData.pet_id));
+const speciesChanged = currentPet && currentPet.species !== matchingPet.species;
+
+setFormData(prev => ({
+  ...prev,
+  pet_id: matchingPet.id.toString(),
+  weight: matchingPet.weight || '',
+  procedure_type: formData.record_type === 'sterilization' 
+    ? (matchingPet.gender === 'female' ? 'spay' : 'neuter')
+    : prev.procedure_type,
+  // Reset vaccine/deworming selection if species changed
+  ...(speciesChanged && {
+    vaccination_type_id: '',
+    _inventory_vaccine_id: '',
+    deworming_type_id: '',
+  })
+}));
+
+if (speciesChanged) {
+  setSelectedVaccineBatch(null);
+  setVaccineBatches({});
+}
+
+// Clear any previous error
+setError('');
   } else {
     setFormData(prev => ({
       ...prev,
@@ -514,10 +601,12 @@ useEffect(() => {
       if (error) setError('');
       if (success) setSuccess('');
 
-      // Load batches when vaccination type (inventory id) is selected
-if (name === 'vaccination_type_id' && value) {
+      if (name === 'vaccination_type_id' && value) {
   setSelectedVaccineBatch(null);
+  // value is always inventory.id now in both create and edit mode
+  setFormData(prev => ({ ...prev, [name]: value, _inventory_vaccine_id: String(value) }));
   loadVaccineBatches(parseInt(value));
+  return;
 }
     };
 
@@ -550,7 +639,10 @@ if (name === 'vaccination_type_id' && value) {
             }
             const editInvItem = inventoryItems.find(i => parseInt(i.id) === parseInt(formData.vaccination_type_id));
             await vaccinationAPI.update(editingRecord.id, {
-              vaccination_type_id: editInvItem?.item_type_id || formData.vaccination_type_id,
+              pet_id: parseInt(formData.pet_id),
+              vaccination_type_id: editInvItem?.item_type_id || null,
+              inventory_id: editInvItem?.id || null,
+              batch_id: selectedVaccineBatch ? parseInt(selectedVaccineBatch) : null,
               vaccination_date: formData.vaccination_date,
               next_due_date: formData.vaccination_next_due_date || null,
               veterinarian_name: formData.veterinarian_name || null,
@@ -566,6 +658,7 @@ if (name === 'vaccination_type_id' && value) {
               if (nd < today) { setError('Next due date cannot be in the past'); setFormLoading(false); return; }
             }
             await dewormingAPI.update(editingRecord.id, {
+              pet_id: parseInt(formData.pet_id),
               deworming_type_id: formData.deworming_type_id,
               deworming_date: formData.deworming_date,
               next_due_date: formData.deworming_next_due_date || null,
@@ -576,12 +669,18 @@ if (name === 'vaccination_type_id' && value) {
             });
           } else if (type === 'sterilization') {
             await sterilizationAPI.update(editingRecord.id, {
+              pet_id: parseInt(formData.pet_id),
               sterilization_date: formData.sterilization_date,
               veterinarian_name: formData.veterinarian_name || null,
               weight: formData.weight ? parseFloat(formData.weight) : null
             });
           } else if (type === 'microchip') {
+            const oldMicBatchId = editingRecord._originalBatchId ?? (editingRecord.batch_id ? parseInt(editingRecord.batch_id) : null);
+            const newMicBatchId = selectedMicrochipBatch ? parseInt(selectedMicrochipBatch) : null;
+            const micBatchChanged = oldMicBatchId !== newMicBatchId;
             await microchipAPI.update(editingRecord.id, {
+              pet_id: parseInt(formData.pet_id),
+              batch_id: newMicBatchId,
               implant_date: formData.implant_date,
               implant_site: formData.implant_site || null,
               microchip_brand: formData.microchip_brand || null,
@@ -589,6 +688,20 @@ if (name === 'vaccination_type_id' && value) {
               weight: formData.weight ? parseFloat(formData.weight) : null,
               notes: formData.notes || null
             });
+
+            if (micBatchChanged) {
+              const { inventoryAPI } = await import('../../services/api');
+              if (oldMicBatchId) {
+                try {
+                  await inventoryAPI.restoreBatchStock(oldMicBatchId, { quantity: 1 });
+                } catch (e) { console.error('Failed to restore old microchip batch stock:', e); }
+              }
+              if (newMicBatchId) {
+                try {
+                  await inventoryAPI.deductBatchStock(newMicBatchId, { quantity: 1 });
+                } catch (e) { console.error('Failed to deduct new microchip batch stock:', e); }
+              }
+            }
           }
 
           setSuccess('Record updated successfully!');
@@ -778,7 +891,48 @@ if (name === 'vaccination_type_id' && value) {
       }
     };
 
-    const getSelectedPet = () => {
+    const handleRestoreClick = (record, type) => {
+  setRecordToRestore({ ...record, recordType: type });
+  setShowRestoreModal(true);
+  setShowDropdown(null);
+};
+
+const handleRestoreConfirm = async () => {
+  if (!recordToRestore) return;
+  setRestoreLoading(true);
+  try {
+    if (recordToRestore.recordType === 'vaccination') {
+      await vaccinationAPI.restore(recordToRestore.id);
+    } else if (recordToRestore.recordType === 'deworming') {
+      await dewormingAPI.restore(recordToRestore.id);
+    } else if (recordToRestore.recordType === 'sterilization') {
+      await sterilizationAPI.restore(recordToRestore.id);
+    } else if (recordToRestore.recordType === 'microchip') {
+      await microchipAPI.restore(recordToRestore.id);
+    }
+    setSuccess('Record restored successfully!');
+    setShowRestoreModal(false);
+    setRecordToRestore(null);
+    loadData();
+    setTimeout(() => setSuccess(''), 5000);
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setRestoreLoading(false);
+  }
+};
+
+const getDaysRemaining = (deletedAt) => {
+  if (!deletedAt) return null;
+  const deleted = new Date(deletedAt);
+  const expiry = new Date(deleted.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const diff = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+  return diff > 0 ? diff : 0;
+};
+
+const getSelectedPet = () => {
       return pets.find(p => p.id === parseInt(formData.pet_id));
     };
 
@@ -790,16 +944,18 @@ if (name === 'vaccination_type_id' && value) {
   // Both create and edit: show inventory items with stock > 0, filtered by species
   // In edit mode, also include the currently selected inventory item even if stock is 0
   return inventoryItems.filter(i => {
-    if (i.item_type !== 'vaccination') return false;
-    const speciesMatch = !i.species || i.species === 'all' || i.species === 'both' || i.species === selectedPet.species;
-    if (!speciesMatch) return false;
-    // Always include the currently assigned item (by item_type_id match) in edit mode
-    if (modalMode === 'edit' && editingRecord) {
-      const isCurrentType = parseInt(i.item_type_id) === parseInt(editingRecord.vaccination_type_id);
-      if (isCurrentType) return true;
-    }
-    return parseInt(i.current_stock) > 0;
-  });
+  if (i.item_type !== 'vaccination') return false;
+  const speciesMatch = !i.species || i.species === 'all' || i.species === 'both' || i.species === selectedPet.species;
+  if (!speciesMatch) return false;
+  if (modalMode === 'edit' && editingRecord) {
+    const isCurrentByTypeId = editingRecord.vaccination_type_id && parseInt(i.item_type_id) === parseInt(editingRecord.vaccination_type_id);
+    const isCurrentByInvId = editingRecord.inventory_id && parseInt(i.id) === parseInt(editingRecord.inventory_id);
+    // Always include the currently selected item in the dropdown even if stock is 0
+    const isCurrentlySelected = formData.vaccination_type_id && parseInt(i.id) === parseInt(formData.vaccination_type_id);
+    if (isCurrentByTypeId || isCurrentByInvId || isCurrentlySelected) return true;
+  }
+  return parseInt(i.current_stock) > 0;
+});
 } else if (formData.record_type === 'deworming') {
         return dewormingTypes.filter(dt =>
           dt.species === 'all' || dt.species === selectedPet.species
@@ -819,25 +975,26 @@ if (name === 'vaccination_type_id' && value) {
     };
 
     // Filter functions
-    // Filter functions
-    const getFilteredRecords = (records, type) => {
-      return records.filter(record => {
-        // Use the species field that comes from the pet join in the database
-        const petSpecies = record.species || record.pet_species;
-        const matchesSpecies = filterSpecies === 'all' || petSpecies === filterSpecies;
-        const matchesSearch = 
-          record.pet_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record.registration_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record.veterinarian_name?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        return matchesSpecies && matchesSearch;
-      });
-    };
+    const getFilteredRecords = (records) => {
+  return records.filter(record => {
+    const petSpecies = record.species || record.pet_species;
+    const matchesSpecies = filterSpecies === 'all' || petSpecies === filterSpecies;
+    const matchesSearch = 
+      record.pet_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.registration_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.veterinarian_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'trash' ? !!record.deleted_at : !record.deleted_at;
+    const recordedBy = record.recorded_by || record.clinic_name || 'City Vet Muntinlupa';
+    const isCityVet = recordedBy === 'City Vet Muntinlupa';
+    const matchesClinic = filterClinic === 'all' || (filterClinic === 'city_vet' ? isCityVet : !isCityVet);
+    return matchesSpecies && matchesSearch && matchesStatus && matchesClinic;
+  });
+};
 
-    const filteredVaccinations = getFilteredRecords(vaccinations, 'vaccination');
-    const filteredDewormings = getFilteredRecords(dewormings, 'deworming');
-    const filteredSterilizations = getFilteredRecords(sterilizations, 'sterilization');
-    const filteredMicrochips = getFilteredRecords(microchips, 'microchip');
+    const filteredVaccinations = getFilteredRecords(vaccinations);
+    const filteredDewormings = getFilteredRecords(dewormings);
+    const filteredSterilizations = getFilteredRecords(sterilizations);
+    const filteredMicrochips = getFilteredRecords(microchips);
     
     // Combine all records for "all" tab
     const allRecords = [
@@ -1055,67 +1212,78 @@ if (name === 'vaccination_type_id' && value) {
       </Row>
 
         {/* Filters */}
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-          <Col xs={12} md={6} className="mb-2 mb-md-0">
-            <InputGroup style={{ borderRadius: '12px', overflow: 'hidden' }}>
+        <Row className="mb-4 g-2" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
+          <Col xs={12} md={4}>
+            <InputGroup style={{ borderRadius: '12px', overflow: 'hidden', height: '46px' }}>
               <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
                 <i className="fas fa-search"></i>
               </InputGroup.Text>
               <Form.Control
                 type="text"
-                placeholder="Search by pet name, registration number, or veterinarian..."
+                placeholder="Search by pet name, reg. number, or veterinarian..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ 
-                  border: '2px solid #e9ecef', 
-                  borderLeft: 'none',
-                  borderRight: searchTerm ? 'none' : '2px solid #e9ecef'
-                }}
+                style={{ border: '2px solid #e9ecef', borderLeft: 'none', borderRight: searchTerm ? 'none' : '2px solid #e9ecef', height: '46px' }}
               />
               {searchTerm && (
-                <Button 
-                  variant="outline-secondary" 
-                  onClick={() => setSearchTerm('')}
-                  style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}
-                >
+                <Button variant="outline-secondary" onClick={() => setSearchTerm('')} style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}>
                   <i className="fas fa-times"></i>
                 </Button>
               )}
             </InputGroup>
           </Col>
-          <Col xs={6} md={3} className="mb-2 mb-md-0">
-            <Form.Select
-              value={filterSpecies}
-              onChange={(e) => setFilterSpecies(e.target.value)}
-              style={{ 
-                borderRadius: '12px', 
-                border: '2px solid #e9ecef',
-                fontWeight: '500'
-              }}
-            >
-              <option value="all">All Species</option>
+          <Col xs={6} md={2}>
+            <Form.Select value={filterSpecies} onChange={(e) => setFilterSpecies(e.target.value)}
+              style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
+              <option value="all">All</option>
               <option value="dog">Dogs</option>
               <option value="cat">Cats</option>
             </Form.Select>
           </Col>
-          <Col xs={6} md={3}>
-            <Form.Select
-              value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value)}
-              style={{ 
-                borderRadius: '12px', 
-                border: '2px solid #e9ecef',
-                fontWeight: '500'
-              }}
-            >
-              <option value="all">All Records ({vaccinations.length + sterilizations.length + microchips.length})</option>
+          <Col xs={6} md={2}>
+            <Form.Select value={activeTab} onChange={(e) => setActiveTab(e.target.value)}
+              style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
+              <option value="all">All ({vaccinations.length + sterilizations.length + microchips.length})</option>
               <option value="vaccination">Vaccination ({filteredVaccinations.length})</option>
               <option value="sterilization">Sterilization ({filteredSterilizations.length})</option>
               <option value="microchip">Microchip ({filteredMicrochips.length})</option>
             </Form.Select>
           </Col>
+          <Col xs={6} md={2}>
+            <Form.Select value={filterClinic} onChange={(e) => { setFilterClinic(e.target.value); setCurrentPage(1); }}
+              style={{ borderRadius: '12px', border: `2px solid ${filterClinic !== 'all' ? '#4361ee' : '#e9ecef'}`, fontWeight: '500', height: '46px', color: filterClinic !== 'all' ? '#4361ee' : 'inherit', background: filterClinic !== 'all' ? 'rgba(67,97,238,0.04)' : '#ffffff' }}>
+              <option value="all">All</option>
+              <option value="city_vet">City Vet Muntinlupa</option>
+              <option value="private">Private Clinics</option>
+            </Form.Select>
+          </Col>
+          <Col xs={6} md={2}>
+            <div style={{ position: 'relative' }}>
+              <Form.Select
+                value={filterStatus}
+                onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                style={{
+                  borderRadius: '12px',
+                  border: `2px solid ${filterStatus === 'trash' ? '#dc3545' : '#e9ecef'}`,
+                  fontWeight: '500',
+                  height: '46px',
+                  color: filterStatus === 'trash' ? '#dc3545' : 'inherit',
+                  background: filterStatus === 'trash' ? 'rgba(220,53,69,0.04)' : '#ffffff',
+                  appearance: 'none',
+                  paddingRight: '2.5rem'
+                }}
+              >
+                <option value="active">Active</option>
+                <option value="trash">Trash</option>
+              </Form.Select>
+              <i className="fas fa-chevron-down" style={{
+                position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)',
+                pointerEvents: 'none', fontSize: '0.75rem',
+                color: filterStatus === 'trash' ? '#dc3545' : '#6c757d'
+              }} />
+            </div>
+          </Col>
         </Row>
-
         {/* Records Table */}
         <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
           <Col>
@@ -1223,6 +1391,7 @@ if (name === 'vaccination_type_id' && value) {
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
 <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Record Details</th>
 <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
+{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
                                 </tr>
                               </thead>
@@ -1276,6 +1445,15 @@ if (name === 'vaccination_type_id' && value) {
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
+{filterStatus === 'trash' && (
+  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
+        <i className="fas fa-clock me-1"></i>{d}d left
+      </span>
+    ); })()}
+  </td>
+)}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <button
     ref={showDropdown === `vac-${record.id}` ? dropdownButtonRef : null}
@@ -1349,6 +1527,15 @@ if (name === 'vaccination_type_id' && value) {
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
+{filterStatus === 'trash' && (
+  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
+        <i className="fas fa-clock me-1"></i>{d}d left
+      </span>
+    ); })()}
+  </td>
+)}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <button
     ref={showDropdown === `dew-${record.id}` ? dropdownButtonRef : null}
@@ -1403,6 +1590,15 @@ if (name === 'vaccination_type_id' && value) {
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
+{filterStatus === 'trash' && (
+  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
+        <i className="fas fa-clock me-1"></i>{d}d left
+      </span>
+    ); })()}
+  </td>
+)}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <button
     ref={showDropdown === `ster-${record.id}` ? dropdownButtonRef : null}
@@ -1453,6 +1649,15 @@ if (name === 'vaccination_type_id' && value) {
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
+{filterStatus === 'trash' && (
+  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
+        <i className="fas fa-clock me-1"></i>{d}d left
+      </span>
+    ); })()}
+  </td>
+)}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <button
     ref={showDropdown === `mic-${record.id}` ? dropdownButtonRef : null}
@@ -1514,6 +1719,7 @@ if (name === 'vaccination_type_id' && value) {
                                   <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Vaccine Type</th>
                                   <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Next Due</th>
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
+{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
                                 </tr>
                               </thead>
@@ -1558,6 +1764,15 @@ if (name === 'vaccination_type_id' && value) {
     {vaccination.recorded_by || vaccination.clinic_name || 'City Vet Muntinlupa'}
   </span>
 </td>
+{filterStatus === 'trash' && (
+  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+    {(() => { const d = getDaysRemaining(vaccination.deleted_at); return (
+      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
+        <i className="fas fa-clock me-1"></i>{d}d left
+      </span>
+    ); })()}
+  </td>
+)}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <button
     ref={showDropdown === `vac-tab-${vaccination.id}` ? dropdownButtonRef : null}
@@ -1617,6 +1832,7 @@ if (name === 'vaccination_type_id' && value) {
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Procedure Type</th>
 <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
+{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
   </tr>
   </thead>
@@ -1649,6 +1865,15 @@ if (name === 'vaccination_type_id' && value) {
     {sterilization.clinic_name || 'City Vet Muntinlupa'}
   </span>
 </td>
+{filterStatus === 'trash' && (
+  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+    {(() => { const d = getDaysRemaining(sterilization.deleted_at); return (
+      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
+        <i className="fas fa-clock me-1"></i>{d}d left
+      </span>
+    ); })()}
+  </td>
+)}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <button
     ref={showDropdown === `ster-tab-${sterilization.id}` ? dropdownButtonRef : null}
@@ -1705,6 +1930,7 @@ if (name === 'vaccination_type_id' && value) {
 <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Brand</th>
 <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Implant Site</th>
 <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
+{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
 <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
                                 </tr>
                               </thead>
@@ -1734,6 +1960,15 @@ if (name === 'vaccination_type_id' && value) {
     {microchip.clinic_name || 'City Vet Muntinlupa'}
   </span>
 </td>
+{filterStatus === 'trash' && (
+  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+    {(() => { const d = getDaysRemaining(microchip.deleted_at); return (
+      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
+        <i className="fas fa-clock me-1"></i>{d}d left
+      </span>
+    ); })()}
+  </td>
+)}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <button
     ref={showDropdown === `mic-tab-${microchip.id}` ? dropdownButtonRef : null}
@@ -1951,76 +2186,231 @@ if (name === 'vaccination_type_id' && value) {
               {formData.record_type && (
                 <>
                   {/* Pet Registration Number */}
-                  <Row>
-                    <Col md={12}>
-                      <Form.Group className="mb-3">
-                        <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                          Pet Registration Number <span style={{ color: '#dc3545' }}>*</span>
-                        </Form.Label>
-                        <InputGroup>
-                          <InputGroup.Text 
-                            style={{ 
-                              fontFamily: 'monospace',
-                              fontSize: '1.1rem',
-                              fontWeight: 'bold',
-                              backgroundColor: '#e9ecef',
-                              border: '2px solid #ced4da'
-                            }}
-                          >
-                            PET-
-                          </InputGroup.Text>
-                          <Form.Control
-                            type="text"
-                            value={formData.pet_registration_input}
-                            onChange={handleRegistrationNumberChange}
-                            placeholder="202510-0001"
-                            required
-                            maxLength={11}
-                            readOnly={modalMode === 'edit'}
-                            style={{
-                              fontFamily: 'monospace',
-                              fontSize: '1.1rem',
-                              letterSpacing: '0.5px',
-                              border: '2px solid #ced4da',
-                              borderLeft: 'none',
-                              backgroundColor: modalMode === 'edit' ? '#f8f9fa' : '#ffffff'
-                            }}
-                          />
-                        </InputGroup>
-                        <Form.Text className="text-muted d-block" style={{ fontFamily: 'monospace' }}>
-                          Format: YYYYMM-XXXX (Example: 202510-0001)
-                        </Form.Text>
-                        {modalMode === 'edit' ? (
-                          <Alert variant="info" className="mt-2 mb-0 py-2">
-                            <i className="fas fa-info-circle me-2"></i>
-                            <strong>{editingRecord?.pet_name}</strong>
-                          </Alert>
-                        ) : formData.pet_registration_input && formData.pet_registration_input.length > 0 && (
-                          <>
-                            {getSelectedPet() ? (
-                              <Alert variant="success" className="mt-2 mb-0 py-2">
-                                <i className="fas fa-check-circle me-2"></i>
-                                <strong>Pet Found:</strong> {getSelectedPet().name}
-                                <br />
-                                <small>
-                                  Species: <span className="text-capitalize">{getSelectedPet().species}</span> | 
-                                  Breed: {getSelectedPet().breed || 'Mixed'} | 
-                                  Owner: {getSelectedPet().owner_name}
-                                </small>
-                              </Alert>
-                            ) : (
-                              formData.pet_registration_input.length >= 7 && (
-                                <Alert variant="danger" className="mt-2 mb-0 py-2">
-                                  <i className="fas fa-times-circle me-2"></i>
-                                  Pet registration number not found.
-                                </Alert>
-                              )
-                            )}
-                          </>
-                        )}
-                      </Form.Group>
-                    </Col>
-                  </Row>
+<Row>
+  <Col md={12}>
+    <Form.Group className="mb-3">
+      <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
+        Pet Registration Number <span style={{ color: '#dc3545' }}>*</span>
+      </Form.Label>
+      <InputGroup>
+        <InputGroup.Text
+          style={{
+            fontFamily: 'monospace',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            backgroundColor: '#e9ecef',
+            border: '2px solid #ced4da'
+          }}
+        >
+          PET-
+        </InputGroup.Text>
+        <Form.Control
+          type="text"
+          value={formData.pet_registration_input}
+          onChange={handleRegistrationNumberChange}
+          placeholder="202510-0001"
+          required
+          maxLength={11}
+          readOnly={false}
+          style={{
+            fontFamily: 'monospace',
+            fontSize: '1.1rem',
+            letterSpacing: '0.5px',
+            border: '2px solid #ced4da',
+            borderLeft: 'none',
+            borderRight: 'none',
+            backgroundColor: '#ffffff',
+            flex: 1
+          }}
+        />
+        {(
+          <Button
+            type="button"
+            onClick={() => setShowPetSearchModal(true)}
+            style={{
+              background: '#4361ee',
+              border: '2px solid #4361ee',
+              color: '#fff',
+              fontWeight: '600',
+              borderRadius: '0 8px 8px 0',
+              padding: '0 1.1rem',
+              fontSize: '0.9rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              whiteSpace: 'nowrap'
+            }}
+            onMouseOver={e => e.currentTarget.style.background = '#3451d1'}
+            onMouseOut={e => e.currentTarget.style.background = '#4361ee'}
+          >
+            <i className="fas fa-search"></i> Search Pet
+          </Button>
+        )}
+      </InputGroup>
+      <Form.Text className="text-muted d-block" style={{ fontFamily: 'monospace' }}>
+        Format: YYYYMM-XXXX (Example: 202510-0001) — or use Search Pet
+      </Form.Text>
+      {formData.pet_registration_input && formData.pet_registration_input.length > 0 && (
+        <>
+          {getSelectedPet() ? (
+            <Alert variant="success" className="mt-2 mb-0 py-2">
+              <i className="fas fa-check-circle me-2"></i>
+              <strong>Pet Found:</strong> {getSelectedPet().name}
+              <br />
+              <small>
+                Species: <span className="text-capitalize">{getSelectedPet().species}</span> |
+                Breed: {getSelectedPet().breed || 'Mixed'} |
+                Owner: {getSelectedPet().owner_name}
+              </small>
+            </Alert>
+          ) : (
+            formData.pet_registration_input.length >= 7 && (
+              <Alert variant="danger" className="mt-2 mb-0 py-2">
+                <i className="fas fa-times-circle me-2"></i>
+                Pet registration number not found.
+              </Alert>
+            )
+          )}
+        </>
+      )}
+    </Form.Group>
+  </Col>
+</Row>
+
+{/* ── Pet Search Modal ── */}
+<Modal
+  show={showPetSearchModal}
+  onHide={() => { setShowPetSearchModal(false); setPetSearchTerm(''); }}
+  centered
+  size="md"
+  style={{ zoom: '0.75' }}
+>
+  <Modal.Header
+    closeButton
+    style={{ background: '#f0f4ff', borderBottom: '2px solid #4361ee' }}
+  >
+    <Modal.Title style={{ fontWeight: '700', fontSize: '1rem' }}>
+      <i className="fas fa-search me-2" style={{ color: '#4361ee' }}></i>
+      Search Pet
+    </Modal.Title>
+  </Modal.Header>
+  <Modal.Body style={{ padding: '1.5rem' }}>
+    <InputGroup className="mb-3">
+      <InputGroup.Text style={{ background: '#f0f4ff', border: '2px solid #4361ee', borderRight: 'none' }}>
+        <i className="fas fa-search" style={{ color: '#4361ee' }}></i>
+      </InputGroup.Text>
+      <Form.Control
+        autoFocus
+        type="text"
+        placeholder="Search by pet name, owner name, or breed..."
+        value={petSearchTerm}
+        onChange={e => setPetSearchTerm(e.target.value)}
+        style={{ border: '2px solid #4361ee', borderLeft: 'none', fontSize: '0.95rem' }}
+      />
+      {petSearchTerm && (
+        <Button variant="outline-secondary" onClick={() => setPetSearchTerm('')}
+          style={{ border: '2px solid #4361ee', borderLeft: 'none' }}>
+          <i className="fas fa-times"></i>
+        </Button>
+      )}
+    </InputGroup>
+
+    <div style={{ maxHeight: '340px', overflowY: 'auto' }}>
+      {petSearchTerm.trim() === '' ? (
+        <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: '#bbb' }}>
+          <i className="fas fa-paw" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}></i>
+          <div style={{ fontSize: '0.9rem' }}>Start typing to search for a pet</div>
+        </div>
+      ) : (() => {
+        const term = petSearchTerm.trim().toLowerCase();
+        const matches = pets.filter(p =>
+          (p.name && p.name.toLowerCase().includes(term)) ||
+          (p.owner_name && p.owner_name.toLowerCase().includes(term)) ||
+          (p.breed && p.breed.toLowerCase().includes(term)) ||
+          (p.registration_number && p.registration_number.toLowerCase().includes(term))
+        );
+        if (matches.length === 0) {
+          return (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#bbb' }}>
+              <i className="fas fa-search" style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}></i>
+              <div style={{ fontSize: '0.88rem' }}>No pets found matching your search</div>
+            </div>
+          );
+        }
+        return matches.map(p => (
+          <div
+            key={p.id}
+            onClick={() => {
+              // Strip "PET-" prefix and fill the input
+              const raw = (p.registration_number || '').replace('PET-', '');
+              // Reuse the existing handler by simulating an event
+              handleRegistrationNumberChange({ target: { value: raw } });
+              setShowPetSearchModal(false);
+              setPetSearchTerm('');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.85rem',
+              padding: '0.85rem 1rem',
+              borderRadius: '10px',
+              border: '1.5px solid #e9ecef',
+              marginBottom: '0.6rem',
+              cursor: 'pointer',
+              background: '#ffffff',
+              transition: 'all 0.18s'
+            }}
+            onMouseOver={e => {
+              e.currentTarget.style.background = '#f0f4ff';
+              e.currentTarget.style.borderColor = '#4361ee';
+            }}
+            onMouseOut={e => {
+              e.currentTarget.style.background = '#ffffff';
+              e.currentTarget.style.borderColor = '#e9ecef';
+            }}
+          >
+            {/* Avatar */}
+<div style={{
+  width: '44px', height: '44px', borderRadius: '10px',
+  background: p.species === 'cat' ? 'rgba(255,193,7,0.15)' : 'rgba(67,97,238,0.08)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  overflow: 'hidden'
+}}>
+  <img
+    src={p.photo_url || (p.species === 'cat' ? '/cat.png' : '/dog.png')}
+    alt={p.species}
+    style={{ width: '36px', height: '36px', objectFit: p.photo_url ? 'cover' : 'contain', borderRadius: p.photo_url ? '8px' : '0' }}
+    onError={(e) => { e.target.src = p.species === 'cat' ? '/cat.png' : '/dog.png'; }}
+  />
+</div>
+            {/* Info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: '700', fontSize: '0.97rem', color: '#222', marginBottom: '0.1rem' }}>
+                {p.name}
+                <span style={{
+                  marginLeft: '0.5rem', fontSize: '0.72rem', fontWeight: '600',
+                  padding: '0.1rem 0.5rem', borderRadius: '20px',
+                  background: p.species === 'cat' ? 'rgba(255,193,7,0.15)' : 'rgba(67,97,238,0.1)',
+                  color: p.species === 'cat' ? '#b8860b' : '#4361ee',
+                  textTransform: 'capitalize'
+                }}>{p.species}</span>
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#888', marginBottom: '0.1rem' }}>
+                <i className="fas fa-user me-1"></i>{p.owner_name || 'Unknown owner'}
+                {p.breed && <> &nbsp;·&nbsp; <i className="fas fa-paw me-1"></i>{p.breed}</>}
+              </div>
+              <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#4361ee', fontWeight: '600' }}>
+                {p.registration_number}
+              </div>
+            </div>
+            {/* Arrow */}
+            <i className="fas fa-chevron-right" style={{ color: '#ccc', fontSize: '0.8rem' }} />
+          </div>
+        ));
+      })()}
+    </div>
+  </Modal.Body>
+</Modal>
 
                   {/* Vaccination Fields */}
                   {formData.record_type === 'vaccination' && (
@@ -2041,7 +2431,7 @@ if (name === 'vaccination_type_id' && value) {
                             >
                               <option value="">Choose vaccine type...</option>
                               {getFilteredTypes().map(invItem => (
-  <option key={invItem.id} value={modalMode === 'edit' ? invItem.item_type_id : invItem.id}>
+  <option key={invItem.id} value={invItem.id}>
     {invItem.item_name} ({!invItem.species || invItem.species === 'all' || invItem.species === 'both' ? 'All pets' : invItem.species})
     {modalMode === 'edit' && parseInt(invItem.current_stock) === 0 ? ' (current)' : ''}
   </option>
@@ -2063,14 +2453,14 @@ if (name === 'vaccination_type_id' && value) {
                                 <div style={{ fontSize: '0.82rem', color: '#aaa', padding: '0.5rem' }}>
                                   <i className="fas fa-spinner fa-spin me-1" /> Loading batches...
                                 </div>
-                              ) : (vaccineBatches[parseInt(formData.vaccination_type_id)] || vaccineBatches[formData.vaccination_type_id] || []).length === 0 ? (
+                              ) : (vaccineBatches[String(formData._inventory_vaccine_id || formData.vaccination_type_id)] || []).length === 0 ? (
 
                                 <div style={{ fontSize: '0.82rem', color: '#dc3545', padding: '0.6rem 0.75rem', background: '#fff5f5', borderRadius: '8px', border: '1px solid #f5c6cb' }}>
                                   <i className="fas fa-exclamation-triangle me-1" /> No available batches for this vaccine.
                                 </div>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                  {(vaccineBatches[parseInt(formData.vaccination_type_id)] || vaccineBatches[formData.vaccination_type_id] || []).map(batch => {
+                                  {(vaccineBatches[String(formData._inventory_vaccine_id || formData.vaccination_type_id)] || []).map(batch => {
                                     const isExpired = batch.expiration_date && new Date(batch.expiration_date) < new Date();
                                     const isSelected = selectedVaccineBatch === batch.id;
                                     const noStock = batch.available_qty <= 0;
@@ -2091,14 +2481,12 @@ if (name === 'vaccination_type_id' && value) {
                                             id={`vac-batch-${batch.id}`}
                                             name="vaccine_batch_select"
                                             checked={isSelected}
-                                            disabled={noStock}
+                                            disabled={noStock || isExpired}
                                             onChange={() => setSelectedVaccineBatch(batch.id)}
                                           />
-                                          <label htmlFor={`vac-batch-${batch.id}`} style={{ cursor: noStock ? 'not-allowed' : 'pointer', flex: 1, marginBottom: 0 }}>
+                                          <label htmlFor={`vac-batch-${batch.id}`} style={{ cursor: (noStock || isExpired) ? 'not-allowed' : 'pointer', flex: 1, marginBottom: 0 }}>
                                             <span style={{ fontWeight: '700', fontSize: '0.82rem' }}>{batch.batch_no}</span>
-                                            {isExpired && (
-                                            {/* expired batches are filtered server-side */}
-                                            )}
+                                            {isExpired && <span className="ms-1" style={{ fontSize: '0.68rem', background: '#dc3545', color: '#fff', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>EXPIRED</span>}
                                             <span className="ms-2" style={{ fontSize: '0.75rem', color: noStock ? '#dc3545' : batch.available_qty <= 10 ? '#ffc107' : '#28a745', fontWeight: '600' }}>
                                               {batch.available_qty} available
                                             </span>
@@ -2153,7 +2541,7 @@ if (name === 'vaccination_type_id' && value) {
                               name="vaccination_next_due_date"
                               value={formData.vaccination_next_due_date}
                               onChange={handleChange}
-                              min={formData.vaccination_date}
+                              min={(() => { const d = new Date(formData.vaccination_date); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}
                               style={{
                                 borderRadius: '8px',
                                 padding: '0.75rem',
@@ -2229,7 +2617,7 @@ if (name === 'vaccination_type_id' && value) {
                               name="deworming_next_due_date"
                               value={formData.deworming_next_due_date}
                               onChange={handleChange}
-                              min={formData.deworming_date}
+                              min={(() => { const d = new Date(formData.deworming_date); d.setDate(d.getDate() + 1); return d.toISOString().split('T')[0]; })()}
                               style={{
                                 borderRadius: '8px',
                                 padding: '0.75rem',
@@ -2501,11 +2889,11 @@ if (name === 'vaccination_type_id' && value) {
     <Col md={6}>
       <Form.Group className="mb-3">
         <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-          Veterinarian Name
-        </Form.Label>
-        <Form.Control
-          type="text"
-          name="veterinarian_name"
+          Veterinarian Name <span style={{ color: '#ef4444' }}>*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="veterinarian_name"
           value={formData.veterinarian_name}
           onChange={handleChange}
           placeholder="Dr. Juan Dela Cruz"
@@ -2589,7 +2977,20 @@ if (name === 'vaccination_type_id' && value) {
                 Cancel
               </Button>
               <Button 
-                type="submit" 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (!formData.record_type) return;
+                  if (modalMode === 'create' && !getSelectedPet()) return;
+                  if (formData.record_type === 'microchip' && !formData.microchip_subtype) return;
+                  if (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && !formData.microchip_number) return;
+                  if (modalMode === 'edit') {
+                    // Edit mode: go straight to save
+                    handleSubmit({ preventDefault: () => {} });
+                    return;
+                  }
+                  setShowConfirmRecordModal(true);
+                }}
                 disabled={
                   formLoading ||
                   !formData.record_type ||
@@ -2597,7 +2998,8 @@ if (name === 'vaccination_type_id' && value) {
                   (formData.record_type === 'microchip' && !formData.microchip_subtype) ||
                   (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && !formData.microchip_number) ||
                   (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && modalMode === 'create' && !selectedMicrochipBatch) ||
-                  (formData.record_type === 'vaccination' && modalMode === 'create' && formData.vaccination_type_id && !selectedVaccineBatch)
+                  (formData.record_type === 'vaccination' && modalMode === 'create' && formData.vaccination_type_id && !selectedVaccineBatch) ||
+                  !formData.veterinarian_name.trim()
                 }
                 className="border-0"
                 style={{
@@ -2607,8 +3009,8 @@ if (name === 'vaccination_type_id' && value) {
                   padding: '0.75rem 1.5rem',
                   fontWeight: '600'
                 }}
-                onMouseOver={(e) => { if (!formLoading) e.target.style.background = '#333333'; }}
-                onMouseOut={(e) => { if (!formLoading) e.target.style.background = '#000000'; }}
+                onMouseOver={(e) => { if (!formLoading) e.currentTarget.style.background = '#333333'; }}
+                onMouseOut={(e) => { if (!formLoading) e.currentTarget.style.background = '#000000'; }}
               >
                 {formLoading ? (
                   <>
@@ -2617,7 +3019,7 @@ if (name === 'vaccination_type_id' && value) {
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-save me-2"></i>
+                    <i className={`fas ${modalMode === 'edit' ? 'fa-save' : 'fa-eye'} me-2`}></i>
                     {modalMode === 'edit' ? 'Save Changes' : `Add ${formData.record_type ? getRecordTypeLabel(formData.record_type) : ''} Record`}
                   </>
                 )}
@@ -2903,27 +3305,78 @@ if (name === 'vaccination_type_id' && value) {
             </Button>
           </Modal.Footer>
         </Modal>
-      {/* Delete Confirmation Modal */}
+      {/* Restore Confirmation Modal */}
+<Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
+  <Modal.Header closeButton style={{ background: '#f0fff4', borderBottom: '2px solid #28a745' }}>
+    <Modal.Title style={{ fontWeight: '700' }}>
+      <i className="fas fa-undo text-success me-2"></i>Restore Record
+    </Modal.Title>
+  </Modal.Header>
+  <Modal.Body style={{ padding: '2rem' }}>
+    {recordToRestore && (
+      <>
+        <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
+          Are you sure you want to restore this record? It will be moved back to active records.
+        </p>
+        <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
+          <div className="mb-2">
+            <span style={{ fontWeight: '500', color: '#555' }}>
+              {recordToRestore.recordType === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
+              {recordToRestore.recordType === 'deworming' && <><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>Deworming</>}
+              {recordToRestore.recordType === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
+              {recordToRestore.recordType === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</>}
+            </span>
+          </div>
+          <strong style={{ fontSize: '1.1rem' }}>{recordToRestore.pet_name}</strong><br />
+          <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToRestore.registration_number}</small>
+          {(() => { const d = getDaysRemaining(recordToRestore.deleted_at); return d !== null && (
+            <div className="mt-2">
+              <span style={{ fontSize: '0.82rem', fontWeight: '600', color: d <= 7 ? '#dc3545' : '#fd7e14' }}>
+                <i className="fas fa-clock me-1"></i>{d} day{d !== 1 ? 's' : ''} remaining before permanent deletion
+              </span>
+            </div>
+          ); })()}
+        </div>
+        <Alert variant="success" className="mt-3 mb-0">
+          <i className="fas fa-check-circle me-2"></i>
+          <strong>Notice:</strong> This record will be fully restored and visible in active records.
+        </Alert>
+      </>
+    )}
+  </Modal.Body>
+  <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+    <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}
+      style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
+    <Button variant="success" onClick={handleRestoreConfirm} disabled={restoreLoading}
+      style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+      {restoreLoading ? <><Spinner size="sm" animation="border" className="me-2" />Restoring...</> : <><i className="fas fa-undo me-2"></i>Restore Record</>}
+    </Button>
+  </Modal.Footer>
+</Modal>
+
+{/* Delete Confirmation Modal */}
         <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
-          <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+          <Modal.Header closeButton style={{ background: filterStatus === 'trash' ? '#fff5f5' : '#f8f9fa', borderBottom: `2px solid ${filterStatus === 'trash' ? '#dc3545' : '#dee2e6'}` }}>
             <Modal.Title style={{ fontWeight: '700' }}>
-              <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-              Confirm Delete
+              <i className={`fas ${filterStatus === 'trash' ? 'fa-trash-alt' : 'fa-trash'} text-danger me-2`}></i>
+              {filterStatus === 'trash' ? 'Permanently Delete Record' : 'Move to Trash'}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body style={{ padding: '2rem' }}>
           {recordToDelete && (
               <>
-                <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                  Are you sure you want to delete this record?
+                <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
+                  {filterStatus === 'trash'
+                    ? 'Are you sure you want to permanently delete this record? This cannot be undone.'
+                    : 'This record will be moved to trash and can be recovered within 30 days.'}
                 </p>
-                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #dc3545' }}>
+                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: `4px solid ${filterStatus === 'trash' ? '#dc3545' : '#ffc107'}` }}>
                   <div className="mb-2">
                     <span style={{ fontWeight: '500', color: '#555' }}>
                       {recordToDelete.recordType === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
                       {recordToDelete.recordType === 'deworming' && <><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>Deworming</>}
                       {recordToDelete.recordType === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-                    {recordToDelete.recordType === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</>}
+                      {recordToDelete.recordType === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</>}
                     </span>
                   </div>
                   <strong style={{ fontSize: '1.1rem' }}>{recordToDelete.pet_name}</strong>
@@ -2934,10 +3387,19 @@ if (name === 'vaccination_type_id' && value) {
                     {recordToDelete.veterinarian_name && <> • Dr. {recordToDelete.veterinarian_name}</>}
                   </small>
                 </div>
-                <Alert variant="warning" className="mt-3 mb-0">
-                  <i className="fas fa-info-circle me-2"></i>
-                  <strong>Warning:</strong> This action cannot be undone.
-                </Alert>
+                {filterStatus === 'trash' ? (
+                  <Alert variant="danger" className="mt-3 mb-0">
+                    <i className="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This action is permanent and cannot be undone.
+                  </Alert>
+                ) : (
+                  <div className="mt-3 mb-0 d-flex align-items-start gap-2 p-3" style={{ background: 'rgba(255,193,7,0.08)', borderRadius: '10px', border: '1px solid rgba(255,193,7,0.3)' }}>
+                    <i className="fas fa-clock mt-1" style={{ color: '#ffc107', flexShrink: 0 }}></i>
+                    <div style={{ fontSize: '0.88rem', color: '#666' }}>
+                      <strong style={{ color: '#333' }}>Moved to Trash</strong> — This record will be recoverable for <strong>30 days</strong>, after which it will be automatically and permanently deleted.
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </Modal.Body>
@@ -2949,15 +3411,121 @@ if (name === 'vaccination_type_id' && value) {
             <Button variant="danger" onClick={handleDeleteConfirm} disabled={deleteLoading}
               style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
               {deleteLoading ? (
-                <><Spinner size="sm" animation="border" className="me-2" />Deleting...</>
+                <><Spinner size="sm" animation="border" className="me-2" />Processing...</>
+              ) : filterStatus === 'trash' ? (
+                <><i className="fas fa-trash-alt me-2"></i>Permanently Delete</>
               ) : (
-                <><i className="fas fa-trash me-2"></i>Delete Record</>
+                <><i className="fas fa-trash me-2"></i>Move to Trash</>
               )}
             </Button>
           </Modal.Footer>
         </Modal>
 
       </Container>
+
+      {/* ── Review & Confirm Record Modal ── */}
+      <Modal show={showConfirmRecordModal} onHide={() => setShowConfirmRecordModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
+          <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
+            <i className="fas fa-clipboard-check me-2" style={{ color: '#ffc107' }} />
+            Review Record Before Saving
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+            Please review the record details before adding.
+          </p>
+
+          {/* Record Type Banner */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '0.75rem',
+            background: formData.record_type === 'vaccination' ? 'rgba(255,193,7,0.1)'
+              : formData.record_type === 'deworming' ? 'rgba(23,162,184,0.1)'
+              : formData.record_type === 'sterilization' ? 'rgba(40,167,69,0.1)'
+              : 'rgba(67,97,238,0.1)',
+            border: `1.5px solid ${
+              formData.record_type === 'vaccination' ? 'rgba(255,193,7,0.3)'
+              : formData.record_type === 'deworming' ? 'rgba(23,162,184,0.3)'
+              : formData.record_type === 'sterilization' ? 'rgba(40,167,69,0.3)'
+              : 'rgba(67,97,238,0.3)'}`,
+            borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1rem'
+          }}>
+            <img
+              src={formData.record_type === 'vaccination' ? '/vaccine.png' : formData.record_type === 'deworming' ? '/deworm.png' : formData.record_type === 'sterilization' ? '/sterilization.png' : '/microchip.png'}
+              alt={formData.record_type}
+              style={{ width: '36px', height: '36px', objectFit: 'contain' }}
+              onError={e => e.target.style.display = 'none'}
+            />
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', marginBottom: '2px' }}>Record Type</div>
+              <div style={{ fontWeight: '700', color: '#333' }}>{getRecordTypeLabel(formData.record_type)}</div>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', border: '1px solid #e9ecef' }}>
+            {[
+              { icon: 'fa-paw', label: 'Pet', value: getSelectedPet() ? `${getSelectedPet().name} (${getSelectedPet().registration_number})` : '—' },
+              ...(formData.record_type === 'vaccination' ? [
+                { icon: 'fa-syringe', label: 'Vaccine', value: (() => { const f = inventoryItems.find(i => String(i.id) === String(formData.vaccination_type_id)); return f ? f.item_name : '—'; })() },
+                { icon: 'fa-calendar', label: 'Vaccination Date', value: formData.vaccination_date || '—' },
+                { icon: 'fa-calendar-check', label: 'Next Due Date', value: formData.vaccination_next_due_date || 'Not set' },
+              ] : []),
+              ...(formData.record_type === 'deworming' ? [
+                { icon: 'fa-pills', label: 'Deworming Type', value: (() => { const f = dewormingTypes.find(d => String(d.id) === String(formData.deworming_type_id)); return f ? f.name : '—'; })() },
+                { icon: 'fa-calendar', label: 'Deworming Date', value: formData.deworming_date || '—' },
+                { icon: 'fa-calendar-check', label: 'Next Due Date', value: formData.deworming_next_due_date || 'Not set' },
+                { icon: 'fa-prescription-bottle', label: 'Dosage', value: formData.dosage || 'Not specified' },
+              ] : []),
+              ...(formData.record_type === 'sterilization' ? [
+                { icon: 'fa-cut', label: 'Procedure', value: getSelectedPet() ? (getSelectedPet().gender === 'female' ? 'Spay (Female)' : 'Neuter (Male)') : '—' },
+                { icon: 'fa-calendar', label: 'Sterilization Date', value: formData.sterilization_date || '—' },
+              ] : []),
+              ...(formData.record_type === 'microchip' ? [
+                { icon: 'fa-tag', label: 'Type', value: formData.microchip_subtype === 'qr' ? 'QR Code (Auto-generated)' : 'Physical Microchip' },
+                ...(formData.microchip_subtype === 'microchip' ? [{ icon: 'fa-microchip', label: 'Microchip No.', value: formData.microchip_number || '—' }] : []),
+                { icon: 'fa-calendar', label: 'Implant Date', value: formData.implant_date || '—' },
+                ...(formData.microchip_subtype === 'microchip' ? [
+                  { icon: 'fa-map-marker-alt', label: 'Implant Site', value: formData.implant_site || 'Not specified' },
+                  { icon: 'fa-tag', label: 'Brand', value: formData.microchip_brand || 'Not specified' },
+                ] : []),
+              ] : []),
+              { icon: 'fa-user-md', label: 'Veterinarian', value: formData.veterinarian_name || 'Not specified' },
+              { icon: 'fa-weight', label: 'Weight', value: formData.weight ? `${formData.weight} kg` : 'Not specified' },
+              ...(formData.notes ? [{ icon: 'fa-sticky-note', label: 'Notes', value: formData.notes }] : []),
+            ].map((item, i, arr) => (
+              <div key={i} style={{ display: 'flex', gap: '0.75rem', paddingBottom: i < arr.length - 1 ? '0.75rem' : 0, marginBottom: i < arr.length - 1 ? '0.75rem' : 0, borderBottom: i < arr.length - 1 ? '1px solid #e9ecef' : 'none' }}>
+                <div style={{ width: '28px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2px' }}>
+                  <i className={`fas ${item.icon}`} style={{ color: '#ffc107', fontSize: '0.8rem' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>{item.label}</div>
+                  <div style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem', wordBreak: 'break-word', fontFamily: item.label === 'Microchip No.' ? 'monospace' : 'inherit' }}>{item.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem', gap: '0.75rem' }}>
+          <Button variant="secondary" onClick={() => setShowConfirmRecordModal(false)} disabled={formLoading}
+            style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            <i className="fas fa-arrow-left me-2" />Back to Edit
+          </Button>
+          <Button disabled={formLoading} className="border-0"
+            onClick={async () => {
+              setShowConfirmRecordModal(false);
+              await handleSubmit({ preventDefault: () => {} });
+            }}
+            style={{ background: formLoading ? '#6c757d' : '#000000', color: '#ffffff', borderRadius: '10px', padding: '0.75rem 1.75rem', fontWeight: '700', transition: 'all 0.3s' }}
+            onMouseOver={e => { if (!formLoading) e.currentTarget.style.background = '#333'; }}
+            onMouseOut={e => { if (!formLoading) e.currentTarget.style.background = '#000'; }}
+          >
+            {formLoading
+              ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</>
+              : <><i className="fas fa-save me-2" />Confirm</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* ── Ellipsis Dropdown Portal ── */}
       {showDropdown !== null && (
@@ -2988,9 +3556,12 @@ if (name === 'vaccination_type_id' && value) {
   <button onClick={() => handleOpenEditModal(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
 )}
                   {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
+  <button onClick={() => handleDeleteClick(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
 )}
-                </>);
+{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
+  <button onClick={() => handleRestoreClick(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
+)}
+              </>);
               }
               if (id.startsWith('vac-tab-')) {
                 const record = vaccinations.find(r => `vac-tab-${r.id}` === id);
@@ -3014,7 +3585,10 @@ if (name === 'vaccination_type_id' && value) {
   <button onClick={() => handleOpenEditModal(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
 )}
                   {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
+  <button onClick={() => handleDeleteClick(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
+)}
+{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
+  <button onClick={() => handleRestoreClick(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
 )}
                 </>);
               }
@@ -3040,7 +3614,10 @@ if (name === 'vaccination_type_id' && value) {
   <button onClick={() => handleOpenEditModal(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
 )}
                   {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
+  <button onClick={() => handleDeleteClick(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
+)}
+{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
+  <button onClick={() => handleRestoreClick(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
 )}
                 </>);
               }
@@ -3066,7 +3643,10 @@ if (name === 'vaccination_type_id' && value) {
   <button onClick={() => handleOpenEditModal(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
 )}
                   {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
+  <button onClick={() => handleDeleteClick(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
+)}
+{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
+  <button onClick={() => handleRestoreClick(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
 )}
                 </>);
               }

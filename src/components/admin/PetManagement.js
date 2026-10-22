@@ -461,7 +461,7 @@ const itemsPerPage = 5;
               color: darkMode ? '#f0f0f0' : '#333333'
             }}
           >
-            <option value="all">All Species</option>
+            <option value="all">All</option>
             <option value="dog">Dogs</option>
             <option value="cat">Cats</option>
             
@@ -479,9 +479,9 @@ const itemsPerPage = 5;
               color: darkMode ? '#f0f0f0' : '#333333'
             }}
           >
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
-            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="all">All</option>
           </Form.Select>
         </Col>
       </Row>

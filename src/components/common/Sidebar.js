@@ -3,10 +3,9 @@ import { Navbar as BootstrapNavbar, Nav, Container, Modal, Button, Form, Row, Co
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
-import { getAllProvinces, getAllRegions, getMunicipalitiesByProvince, getBarangaysByMunicipality } from '@aivangogh/ph-address';
+import VerifyAccountModal from '../owner/VerifyAccountModal';
 
-const SCAN_SUCCESS_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU' +
-  'lvT18A'; // placeholder
+
 
 const ownerAPI = {
   getByUserId: (userId) => api.get(`/owners/user/${userId}`),
@@ -16,12 +15,7 @@ const ownerAPI = {
   }),
 };
 
-const VALID_ID_TYPES = [
-  "Muntinlupa Care Card", "Philippine Passport", "Driver's License", "SSS ID", "GSIS ID",
-  "PhilHealth ID", "Pag-IBIG ID", "Voter's ID", "Postal ID",
-  "National ID (PhilSys)", "PRC ID", "Senior Citizen ID", "PWD ID",
-  "Barangay ID", "Company ID", "School ID", "Other"
-];
+
 
 const VERIFICATION_CONFIG = {
   not_verified:   { label: 'Not Verified',   color: '#dc3545', icon: 'fa-times-circle' },
@@ -45,10 +39,11 @@ const streamRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [petsDropdownOpen, setPetsDropdownOpen] = useState(false);
   const [usersDropdownOpen, setUsersDropdownOpen] = useState(false);
-  const [showSignOut, setShowSignOut] = useState(false);
+  
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [dropdownClosing, setDropdownClosing] = useState(false);
   const dropdownOpenRef = useRef(false);
+  
 
   const closeDropdown = () => {
     if (!dropdownOpenRef.current) return;
@@ -72,7 +67,7 @@ const streamRef = useRef(null);
       window.removeEventListener('closeProfileDropdown', handleCloseDropdown);
     };
   }, []);
-  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  
   const [sidebarAnim, setSidebarAnim] = useState('');
   const [mobileNavAnim, setMobileNavAnim] = useState('');
   const [mobileTopAnim, setMobileTopAnim] = useState('');
@@ -90,40 +85,17 @@ const streamRef = useRef(null);
       return () => clearTimeout(t);
     }
   }, [location.pathname]);
-  const [editProfileForm, setEditProfileForm] = useState({
-    first_name: '', middle_name: '', last_name: '', phone: '',
-    current_password: '', new_password: '', confirm_password: ''
-  });
-  const [editProfileLoading, setEditProfileLoading] = useState(false);
-  const [editProfileError, setEditProfileError] = useState('');
-  const [editProfileSuccess, setEditProfileSuccess] = useState('');
+  
 
   // Verification
-  const [ownerProfile, setOwnerProfile]         = useState(null);
+  const [ownerProfile, setOwnerProfile]           = useState(null);
+  const [showVerifyModal, setShowVerifyModal]     = useState(false);
   const [pendingVerifCount, setPendingVerifCount] = useState(0);
-const [expiredBatchCount, setExpiredBatchCount] = useState(0);
-const [pendingReportCount, setPendingReportCount] = useState(0);
-  const [showVerifyModal, setShowVerifyModal]   = useState(false);
-  const [verifyStep, setVerifyStep]             = useState(1);
-  const [verifySubmitting, setVerifySubmitting] = useState(false);
-  const [verifyError, setVerifyError]           = useState('');
-  const [verifySuccess, setVerifySuccess]       = useState('');
+  const [expiredBatchCount, setExpiredBatchCount] = useState(0);
+  const [pendingReportCount, setPendingReportCount] = useState(0);
   const [profileForm, setProfileForm] = useState({
     first_name: '', middle_name: '', last_name: '', birthdate: '', gender: '', phone: '',
   });
-  const [idForm, setIdForm] = useState({
-    valid_id_type: '', address: '', house_no: '', street: '', province: '', city: '', barangay: '',
-  });
-  const [provinces, setProvinces]       = useState([]);
-  const [cities, setCities]             = useState([]);
-  const [barangayList, setBarangayList] = useState([]);
-  const [idFrontFile, setIdFrontFile]       = useState(null);
-  const [idBackFile, setIdBackFile]         = useState(null);
-  const [selfieFile, setSelfieFile]         = useState(null);
-  const [idFrontPreview, setIdFrontPreview] = useState('');
-  const [idBackPreview, setIdBackPreview]   = useState('');
-  const [selfiePreview, setSelfiePreview]   = useState('');
-  const [profileFieldErrors, setProfileFieldErrors] = useState({});
 
   useEffect(() => {
     if (!showScannerModal || scanResult) return;
@@ -356,6 +328,23 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
       }).catch(() => {});
     }
 
+    if (user?.role === 'private_clinic') {
+      api.get('/clinic/inventory').then(res => {
+        const items = res.data.inventory || [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        Promise.all(items.map(item =>
+          api.get(`/clinic/inventory/batches/${item.id}`).then(r => r.data.batches || []).catch(() => [])
+        )).then(allBatches => {
+          const flat = allBatches.flat();
+          const expired = flat.filter(b =>
+            b.expiration_date && new Date(b.expiration_date) < today && parseInt(b.quantity) > 0
+          ).length;
+          setExpiredBatchCount(expired);
+        });
+      }).catch(() => {});
+    }
+
     if (user?.role === 'pet_owner') {
       ownerAPI.getByUserId(user.id).then(res => {
         const owner = res.data.owner;
@@ -369,13 +358,7 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
           phone:       owner.phone       || '',
         });
       }).catch(() => {});
-      const ncr = getAllRegions().find(r => r.name.includes('National Capital'));
-      const metroManila = ncr ? { name: 'Metro Manila', psgcCode: ncr.psgcCode, regionCode: ncr.psgcCode } : null;
-      const sorted = [
-        ...(metroManila ? [metroManila] : []),
-        ...getAllProvinces().sort((a, b) => a.name.localeCompare(b.name)),
-      ];
-      setProvinces(sorted);
+      
     }
   }, [user]);
 
@@ -412,7 +395,7 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
         background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(245,245,245,0.98) 100%)',
         boxShadow: '0 8px 32px rgba(0,0,0,0.1), 0 2px 8px rgba(255,193,7,0.08)',
         padding: '0.75rem 0', backdropFilter: 'blur(20px) saturate(180%)',
-        minHeight: '75px', zoom: '0.75', borderBottom: '1px solid rgba(0,0,0,0.08)',
+        minHeight: '75px', zoom: '0.85', borderBottom: '1px solid rgba(0,0,0,0.08)',
       }}>
         <Container fluid style={{ paddingLeft: '2rem', paddingRight: '2rem' }}>
           <BootstrapNavbar.Brand as={Link} to="/"
@@ -525,7 +508,7 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
     { label: 'Dashboard', icon: 'fa-home', to: '/clinic/dashboard' },
     { label: 'Records', icon: 'fa-clipboard-list', to: '/clinic/records' },
     { label: 'Reports', icon: 'fa-flag', to: '/clinic/reports' },
-    { label: 'Inventory', icon: 'fa-boxes', to: '/clinic/inventory' },
+    { label: 'Inventory', icon: 'fa-boxes', to: '/clinic/inventory', badge: expiredBatchCount },
   ];
       default:
         return [];
@@ -543,117 +526,6 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
   const role = user ? roleConfig[user.role] : null;
 
   // ─── Verification handlers ───────────────────────────────────────────────
-
-  const handleOpenVerifyModal = () => {
-    setVerifyStep(1);
-    setVerifyError('');
-    setVerifySuccess('');
-    setProfileFieldErrors({});
-    setIdForm({ valid_id_type: '', address: '', house_no: '', street: '', province: '', city: '', barangay: '' });
-    setCities([]);
-    setBarangayList([]);
-    setIdFrontFile(null); setIdBackFile(null); setSelfieFile(null);
-    setIdFrontPreview(''); setIdBackPreview(''); setSelfiePreview('');
-    setShowVerifyModal(true);
-  };
-
-  const handleProfileFormChange = (e) => {
-    const { name, value } = e.target;
-    setProfileForm(prev => ({ ...prev, [name]: value }));
-    if (verifyError) setVerifyError('');
-
-    if (['first_name', 'middle_name', 'last_name'].includes(name)) {
-      if (value && !/^[a-zA-Z.\s-]*$/.test(value)) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Only letters, dots, spaces, and hyphens allowed' }));
-      } else if (value && value.startsWith(' ')) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a space' }));
-      } else if (value && value.startsWith('-')) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a hyphen' }));
-      } else if (value && /\s{2,}/.test(value)) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot contain multiple consecutive spaces' }));
-      } else if (value && /--/.test(value)) {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: 'Cannot contain consecutive hyphens' }));
-      } else {
-        setProfileFieldErrors(prev => ({ ...prev, [name]: '' }));
-      }
-    }
-
-    if (name === 'phone') {
-      setProfileFieldErrors(prev => ({ ...prev, phone: value && !/^09\d{9}$/.test(value) ? 'Phone must be 11 digits starting with 09' : '' }));
-    }
-  };
-
-  const handleIdFormChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'province') {
-      setCities(getMunicipalitiesByProvince(value));
-      setBarangayList([]);
-      setIdForm(prev => ({ ...prev, province: value, provinceName: provinces.find(p => p.psgcCode === value)?.name || '', city: '', cityName: '', barangay: '', address: '' }));
-    } else if (name === 'city') {
-      setBarangayList(getBarangaysByMunicipality(value));
-      setIdForm(prev => ({ ...prev, city: value, cityName: cities.find(c => c.psgcCode === value)?.name || '', barangay: '', address: '' }));
-    } else {
-      setIdForm(prev => {
-        const updated = { ...prev, [name]: value };
-        const parts = [updated.house_no, updated.street, updated.barangay, updated.cityName || updated.city, updated.provinceName || updated.province].filter(Boolean);
-        updated.address = parts.join(', ');
-        return updated;
-      });
-    }
-    if (verifyError) setVerifyError('');
-  };
-
-  const handleFileChange = (e, setter, previewSetter) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setter(file);
-    previewSetter(URL.createObjectURL(file));
-  };
-
-  const handleVerifyStep1Next = async () => {
-    if (!profileForm.first_name.trim() || !profileForm.last_name.trim()) { setVerifyError('First name and last name are required.'); return; }
-    if (!profileForm.phone.trim() || !/^09\d{9}$/.test(profileForm.phone)) { setVerifyError('Enter a valid 11-digit phone number starting with 09.'); return; }
-    const hasNameErrors = profileFieldErrors.first_name || profileFieldErrors.middle_name || profileFieldErrors.last_name || profileFieldErrors.phone;
-    if (hasNameErrors) { setVerifyError('Please fix the errors in the form before continuing.'); return; }
-    setVerifyError('');
-    try {
-      setVerifySubmitting(true);
-      const u = getUser();
-      await ownerAPI.update(u?.id || u?.user_id, profileForm);
-      setVerifyStep(2);
-    } catch (err) {
-      setVerifyError(err.response?.data?.error || 'Failed to save profile. Please try again.');
-    } finally {
-      setVerifySubmitting(false);
-    }
-  };
-
-  const handleVerifySubmit = async () => {
-    if (!idForm.province)       { setVerifyError('Please select a province.');            return; }
-    if (!idForm.city)           { setVerifyError('Please select a city / municipality.'); return; }
-    if (!idForm.barangay)       { setVerifyError('Please select a barangay.');            return; }
-    if (!idForm.address.trim()) { setVerifyError('Please complete your address.');        return; }
-    if (!idForm.valid_id_type)  { setVerifyError('Please select a valid ID type.');       return; }
-    if (!idFrontFile)           { setVerifyError('Please upload the front of your ID.');  return; }
-    try {
-      setVerifySubmitting(true);
-      setVerifyError('');
-      const u = getUser();
-      const toBase64 = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
-      const frontB64  = await toBase64(idFrontFile);
-      const backB64   = idBackFile  ? await toBase64(idBackFile)  : null;
-      const selfieB64 = selfieFile  ? await toBase64(selfieFile)  : null;
-      await ownerAPI.submitId(u.id, { valid_id_type: idForm.valid_id_type, valid_id_front: frontB64, valid_id_back: backB64, selfie_with_id: selfieB64, address: idForm.address });
-      setVerifySuccess('Your ID has been submitted! Our team will review it shortly.');
-      const res = await ownerAPI.getByUserId(u.id);
-      setOwnerProfile(res.data.owner);
-      setTimeout(() => { setShowVerifyModal(false); setVerifySuccess(''); }, 3000);
-    } catch (err) {
-      setVerifyError('Failed to submit ID. Please try again.');
-    } finally {
-      setVerifySubmitting(false);
-    }
-  };
 
   // ─── Shared link renderer ────────────────────────────────────────────────
   const renderLink = (link, idx) => {
@@ -1012,7 +884,7 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
           .sidebar-desktop { display: none !important; }
           .sidebar-spacer  { display: none !important; }
           .sidebar-bottom-bar { display: flex !important; }
-          .top-navbar-bar { left: 0 !important; top: 0 !important; height: 56px !important; padding-right: 0.75rem !important; gap: 0.4rem !important; }
+          .top-navbar-bar { left: 0 !important; top: 0 !important; height: 64px !important; padding-right: 0.75rem !important; gap: 0.4rem !important; }
           .flex-grow-1 main, main.flex-grow-1 { padding-bottom: 64px !important; }
           .sidebar-mobile-toggle { display: none !important; }
           .navbar-toggler { display: none !important; }
@@ -1166,7 +1038,7 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
           top: 0,
           left: sidebarWidth,
           right: 0,
-          height: '56px',
+          height: '64px',
           background: darkMode ? 'rgba(13,13,13,0.95)' : 'rgba(255,255,255,0.95)',
           borderBottom: `1px solid ${border}`,
           backdropFilter: 'blur(12px)',
@@ -1416,7 +1288,11 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
 
 </div>
                 {(() => {
-                  const rc = { super_admin: { name: 'Super Admin', color: '#ef4444' }, barangay_official: { name: user.office_role || 'Barangay Admin', color: '#ffc107' }, pet_owner: { name: 'Community', color: '#22c55e' }, private_clinic: { name: 'Private Clinic', color: '#22c55e' } };
+                  if (user.role === 'pet_owner' && ownerProfile) {
+                    const cfg = VERIFICATION_CONFIG[ownerProfile.verification_status] || VERIFICATION_CONFIG.not_verified;
+                    return <div style={{ fontSize: '0.65rem', fontWeight: '600', color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.3px' }}><i className={`fas ${cfg.icon} me-1`} style={{ fontSize: '0.55rem' }} />{cfg.label}</div>;
+                  }
+                  const rc = {  barangay_official: { name: user.office_role || 'Barangay Admin', color: '#ffc107' }, private_clinic: { name: 'Private Clinic', color: '#22c55e' } };
                   const r = rc[user.role];
                   return r ? <div style={{ fontSize: '0.65rem', fontWeight: '600', color: r.color, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{r.name}</div> : null;
                 })()}
@@ -1461,7 +1337,7 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
 </div>
                     <div style={{ fontSize: '0.7rem', color: subTextColor, marginTop: '0.15rem' }}>{user.email}</div>
 {(() => {
-  const rc = { super_admin: { name: 'Super Admin', color: '#ef4444' }, barangay_official: { name: user.office_role || 'Barangay Admin', color: '#ffc107' }, pet_owner: { name: 'Community', color: '#22c55e' }, private_clinic: { name: 'Private Clinic', color: '#22c55e' } };
+  const rc = { super_admin: { name: 'Super Admin', color: '#ef4444' }, barangay_official: { name: user.office_role || 'Barangay Admin', color: '#ffc107' }, private_clinic: { name: 'Private Clinic', color: '#22c55e' } };
   const r = rc[user.role];
   return r ? (
     <div style={{ marginTop: '0.3rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: r.color + '18', border: `1px solid ${r.color}44`, borderRadius: '50px', padding: '0.15rem 0.6rem' }}>
@@ -1483,66 +1359,6 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
                     })()}
                   </div>
 
-                  {/* Dark mode toggle inside dropdown */}
-                  <div
-                    onClick={() => { const n = !darkMode; setDarkMode(n); localStorage.setItem('darkMode', n); }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      padding: '0.6rem 0.75rem',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s',
-                      marginBottom: '0.2rem',
-                    }}
-                    onMouseOver={e => e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
-                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <i
-                      className={`fas ${darkMode ? 'fa-moon' : 'fa-sun'}`}
-                      style={{ fontSize: '0.78rem', color: darkMode ? '#a0c4ff' : '#ffc107', width: '16px', textAlign: 'center' }}
-                    />
-                    <span style={{ fontSize: '0.8rem', fontWeight: '600', color: textColor, flex: 1 }}>
-                      {darkMode ? 'Dark Mode' : 'Light Mode'}
-                    </span>
-                    {/* Animated toggle */}
-                    <div style={{
-                      width: '36px',
-                      height: '20px',
-                      borderRadius: '999px',
-                      background: darkMode ? '#4361ee' : '#e0e0e0',
-                      position: 'relative',
-                      flexShrink: 0,
-                      transition: 'background 0.3s ease',
-                      border: `1px solid ${darkMode ? '#3451d1' : '#ccc'}`,
-                    }}>
-                      <div style={{
-                        position: 'absolute',
-                        top: '2px',
-                        left: darkMode ? '18px' : '2px',
-                        width: '14px',
-                        height: '14px',
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        transition: 'left 0.3s cubic-bezier(0.4,0,0.2,1)',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <i
-                          className={`fas ${darkMode ? 'fa-moon' : 'fa-sun'}`}
-                          style={{
-                            fontSize: '0.4rem',
-                            color: darkMode ? '#4361ee' : '#ffc107',
-                            pointerEvents: 'none',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div style={{ height: '1px', background: border, margin: '0.2rem 0' }} />
 
                   {/* Verify Account button for pet_owner */}
@@ -1550,7 +1366,7 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
                     const canVerify = ownerProfile.verification_status === 'not_verified' || ownerProfile.verification_status === 'semi_verified';
                     return canVerify ? (
                       <button
-                        onClick={() => { closeDropdown(); handleOpenVerifyModal(); }}
+                        onClick={() => { closeDropdown(); setShowVerifyModal(true); }}
                         style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'transparent', border: 'none', borderRadius: '8px', color: '#ffc107', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background 0.2s', marginBottom: '0.2rem' }}
                         onMouseOver={e => e.currentTarget.style.background = 'rgba(255,193,7,0.08)'}
                         onMouseOut={e => e.currentTarget.style.background = 'transparent'}
@@ -1765,155 +1581,6 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
         </div>
       )}
 
-      {/* ── Verification Modal ── */}
-      {user?.role === 'pet_owner' && (
-        <Modal show={showVerifyModal} onHide={() => !verifySubmitting && setShowVerifyModal(false)} size="lg" backdrop="static" style={{ zoom:'0.75', zIndex: 99999 }}>
-          <Modal.Header closeButton={!verifySubmitting} style={{ background:'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
-            <Modal.Title style={{ fontWeight:'800', color:'#333' }}>
-              <i className="fas fa-id-card me-2" style={{ color:'#ffc107' }} />
-              {verifyStep === 1 ? 'Step 1 of 2 — Confirm Your Profile' : 'Step 2 of 2 — Upload Valid ID'}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding:'2rem', maxHeight:'72vh', overflowY:'auto' }}>
-            <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1.75rem' }}>
-              {[1,2].map(s => (
-                <div key={s} style={{ flex:1, height:'6px', borderRadius:'999px', background: verifyStep >= s ? '#ffc107' : '#e9ecef', transition:'background 0.4s' }} />
-              ))}
-            </div>
-            {verifyError && (
-              <Alert variant="danger" className="mb-3" style={{ borderRadius:'12px', border:'2px solid rgba(220,53,69,0.25)', background:'rgba(220,53,69,0.07)', color:'#1a1a1a', fontSize:'0.875rem' }}>
-                <i className="fas fa-exclamation-circle me-2" style={{ color:'#dc3545' }} />{verifyError}
-              </Alert>
-            )}
-            {verifySuccess && (
-              <Alert variant="success" className="mb-3" style={{ borderRadius:'12px', border:'2px solid rgba(25,135,84,0.25)', background:'rgba(25,135,84,0.07)', color:'#1a1a1a', fontSize:'0.875rem' }}>
-                <i className="fas fa-check-circle me-2" style={{ color:'#198754' }} />{verifySuccess}
-              </Alert>
-            )}
-
-            {/* Step 1 */}
-            {verifyStep === 1 && (() => {
-              const ls = { fontWeight:'600', color:'#1a1a1a', fontSize:'0.875rem', marginBottom:'0.4rem', display:'flex', alignItems:'center' };
-              const es = { borderRadius:'10px', padding:'0.65rem 0.9rem', border:'2px solid #dee2e6', background:'#f8f9fa', color:'#1a1a1a', fontWeight:'500', fontSize:'0.9rem', transition:'all 0.2s' };
-              const Req = () => <span style={{ color:'#ef4444', marginLeft:'2px' }}>*</span>;
-              return (
-                <>
-                  <div style={{ background:'rgba(255,193,7,0.06)', border:'1.5px dashed #ffc107', borderRadius:'12px', padding:'0.85rem 1rem', marginBottom:'1.5rem', fontSize:'0.85rem', color:'#666' }}>
-                    <i className="fas fa-info-circle me-2" style={{ color:'#ffc107' }} />
-                    Review and update your personal information. <strong style={{ color:'#1a1a1a' }}>Email cannot be changed.</strong>
-                  </div>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={ls}><i className="fas fa-envelope me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Email Address</Form.Label>
-                    <Form.Control type="email" value={ownerProfile?.email || ''} readOnly style={{ ...es, background:'#e9ecef', color:'#6c757d', cursor:'not-allowed' }} />
-                    <small style={{ color:'#9ca3af', fontSize:'0.8rem' }}><i className="fas fa-lock me-1" />Email cannot be changed</small>
-                  </Form.Group>
-                  <Row>
-                    <Col md={4}><Form.Group className="mb-3"><Form.Label style={ls}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />First Name <Req /></Form.Label><Form.Control type="text" name="first_name" value={profileForm.first_name} onChange={handleProfileFormChange} onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onBlur={(e) => { if (e.target.value.endsWith('-')) setProfileFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); }} placeholder="First name" disabled={verifySubmitting} style={{ ...es, border: profileFieldErrors.first_name ? '2px solid #ef4444' : es.border }} />{profileFieldErrors.first_name && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.first_name}</small>}</Form.Group></Col>
-                    <Col md={4}><Form.Group className="mb-3"><Form.Label style={ls}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Middle Name</Form.Label><Form.Control type="text" name="middle_name" value={profileForm.middle_name} onChange={handleProfileFormChange} onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onBlur={(e) => { if (e.target.value.endsWith('-')) setProfileFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); }} placeholder="Optional" disabled={verifySubmitting} style={{ ...es, border: profileFieldErrors.middle_name ? '2px solid #ef4444' : es.border }} />{profileFieldErrors.middle_name && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.middle_name}</small>}</Form.Group></Col>
-                    <Col md={4}><Form.Group className="mb-3"><Form.Label style={ls}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Last Name <Req /></Form.Label><Form.Control type="text" name="last_name" value={profileForm.last_name} onChange={handleProfileFormChange} onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onBlur={(e) => { if (e.target.value.endsWith('-')) setProfileFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); }} placeholder="Last name" disabled={verifySubmitting} style={{ ...es, border: profileFieldErrors.last_name ? '2px solid #ef4444' : es.border }} />{profileFieldErrors.last_name && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.last_name}</small>}</Form.Group></Col>
-                  </Row>
-                  <Row>
-                    <Col md={4}><Form.Group className="mb-3"><Form.Label style={ls}><i className="fas fa-calendar me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Birthdate <Req /></Form.Label><Form.Control type="date" name="birthdate" value={profileForm.birthdate} onChange={handleProfileFormChange} max={new Date().toISOString().split('T')[0]} disabled={verifySubmitting} style={{ ...es, colorScheme:'light' }} /></Form.Group></Col>
-                    <Col md={4}><Form.Group className="mb-3"><Form.Label style={ls}><i className="fas fa-venus-mars me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Gender <Req /></Form.Label><Form.Select name="gender" value={profileForm.gender} onChange={handleProfileFormChange} disabled={verifySubmitting} style={es}><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></Form.Select></Form.Group></Col>
-                    <Col md={4}><Form.Group className="mb-3"><Form.Label style={ls}><i className="fas fa-phone me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Phone Number <Req /></Form.Label><Form.Control type="tel" name="phone" value={profileForm.phone} onChange={handleProfileFormChange} onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }} placeholder="09123456789" disabled={verifySubmitting} style={{ ...es, border: profileFieldErrors.phone ? '2px solid #ef4444' : (profileForm.phone && /^09\d{9}$/.test(profileForm.phone)) ? '2px solid #10b981' : es.border }} />{profileFieldErrors.phone && <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}><i className="fas fa-times-circle me-1" />{profileFieldErrors.phone}</small>}</Form.Group></Col>
-                  </Row>
-                </>
-              );
-            })()}
-
-            {/* Step 2 */}
-            {verifyStep === 2 && (() => {
-              const ls = { fontWeight:'600', color:'#1a1a1a', fontSize:'0.875rem', marginBottom:'0.4rem', display:'flex', alignItems:'center' };
-              const es = { borderRadius:'10px', padding:'0.65rem 0.9rem', border:'2px solid #dee2e6', background:'#f8f9fa', color:'#1a1a1a', fontWeight:'500', fontSize:'0.9rem', transition:'all 0.2s' };
-              const Req = () => <span style={{ color:'#ef4444', marginLeft:'2px' }}>*</span>;
-              return (
-                <>
-                  <div style={{ background:'rgba(255,193,7,0.06)', border:'1.5px dashed #ffc107', borderRadius:'12px', padding:'0.85rem 1rem', marginBottom:'1.5rem', fontSize:'0.85rem', color:'#666' }}>
-                    <i className="fas fa-id-card me-2" style={{ color:'#ffc107' }} />
-                    Upload a clear photo of your government-issued ID. Your address will be recorded for verification.
-                  </div>
-                  {/* Address */}
-                  <div style={{ background:'#f8f9fa', borderRadius:'12px', padding:'1rem 1.1rem', marginBottom:'1rem', border:'1.5px solid #e9ecef' }}>
-                    <div style={{ ...ls, marginBottom:'0.75rem', color:'#ffc107' }}><i className="fas fa-map-marker-alt me-2" style={{ fontSize:'0.8rem' }} />Complete Address <Req /></div>
-                    <Row className="mb-2">
-                      <Col md={6}><Form.Group><Form.Label style={{ ...ls, fontSize:'0.8rem' }}>Province <Req /></Form.Label><Form.Select name="province" value={idForm.province} onChange={handleIdFormChange} disabled={verifySubmitting} style={{ ...es, fontSize:'0.85rem' }}><option value="">Select Province</option>{provinces.map(p => <option key={p.psgcCode} value={p.psgcCode}>{p.name}</option>)}</Form.Select></Form.Group></Col>
-                      <Col md={6}><Form.Group><Form.Label style={{ ...ls, fontSize:'0.8rem' }}>City / Municipality <Req /></Form.Label><Form.Select name="city" value={idForm.city} onChange={handleIdFormChange} disabled={verifySubmitting || !idForm.province} style={{ ...es, fontSize:'0.85rem', opacity: !idForm.province ? 0.6 : 1 }}><option value="">Select City / Municipality</option>{cities.map(c => <option key={c.psgcCode} value={c.psgcCode}>{c.name}</option>)}</Form.Select></Form.Group></Col>
-                    </Row>
-                    <Row className="mb-2">
-                      <Col md={12}><Form.Group><Form.Label style={{ ...ls, fontSize:'0.8rem' }}>Barangay <Req /></Form.Label><Form.Select name="barangay" value={idForm.barangay} onChange={handleIdFormChange} disabled={verifySubmitting || !idForm.city} style={{ ...es, fontSize:'0.85rem', opacity: !idForm.city ? 0.6 : 1 }}><option value="">Select Barangay</option>{barangayList.map(b => <option key={b.psgcCode} value={b.name}>{b.name}</option>)}</Form.Select></Form.Group></Col>
-                    </Row>
-                    {idForm.barangay && (
-                      <Row className="mb-2">
-                        <Col md={4}><Form.Group><Form.Label style={{ ...ls, fontSize:'0.8rem' }}>House / Unit No.</Form.Label><Form.Control type="text" name="house_no" value={idForm.house_no} onChange={handleIdFormChange} placeholder="e.g. 12B" disabled={verifySubmitting} style={{ ...es, fontSize:'0.85rem' }} /></Form.Group></Col>
-                        <Col md={8}><Form.Group><Form.Label style={{ ...ls, fontSize:'0.8rem' }}>Street / Purok / Sitio</Form.Label><Form.Control type="text" name="street" value={idForm.street} onChange={handleIdFormChange} placeholder="e.g. Rizal St., Purok 3" disabled={verifySubmitting} style={{ ...es, fontSize:'0.85rem' }} /></Form.Group></Col>
-                      </Row>
-                    )}
-                    {idForm.address && (
-                      <div style={{ marginTop:'0.75rem', padding:'0.5rem 0.75rem', background:'rgba(255,193,7,0.08)', borderRadius:'8px', border:'1px solid rgba(255,193,7,0.25)', fontSize:'0.8rem', color:'#555' }}>
-                        <i className="fas fa-check-circle me-1" style={{ color:'#ffc107' }} /><strong style={{ color:'#333' }}>Full address: </strong>{idForm.address}
-                      </div>
-                    )}
-                  </div>
-                  {/* ID Type */}
-                  <Form.Group className="mb-3">
-                    <Form.Label style={ls}><i className="fas fa-id-badge me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />ID Type <Req /></Form.Label>
-                    <Form.Select name="valid_id_type" value={idForm.valid_id_type} onChange={handleIdFormChange} disabled={verifySubmitting} style={es}>
-                      <option value="">Select ID Type</option>
-                      {VALID_ID_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </Form.Select>
-                  </Form.Group>
-                  {/* Photos */}
-                  <Row>
-                    {[
-                      { label: 'ID Front', req: true,  file: idFrontFile, preview: idFrontPreview, setter: setIdFrontFile, previewSetter: setIdFrontPreview, icon: 'fa-upload', iconColor: '#ffc107' },
-                      { label: 'ID Back',  req: false, file: idBackFile,  preview: idBackPreview,  setter: setIdBackFile,  previewSetter: setIdBackPreview,  icon: 'fa-upload', iconColor: '#ccc' },
-                      { label: 'Selfie with ID', req: false, file: selfieFile, preview: selfiePreview, setter: setSelfieFile, previewSetter: setSelfiePreview, icon: 'fa-user-circle', iconColor: '#ccc' },
-                    ].map(({ label, req, preview, setter, previewSetter, icon, iconColor }) => (
-                      <Col md={4} key={label}>
-                        <Form.Group className="mb-3">
-                          <Form.Label style={ls}><i className="fas fa-camera me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />{label} {req ? <Req /> : <span style={{ color:'#9ca3af', fontWeight:400, marginLeft:'2px' }}>(optional)</span>}</Form.Label>
-                          <label style={{ display:'block', cursor: verifySubmitting ? 'not-allowed' : 'pointer' }}>
-                            <div style={{ border:'2px dashed #dee2e6', borderRadius:'12px', padding:'1rem', textAlign:'center', background:'#f8f9fa', minHeight:'120px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}
-                              onMouseOver={e => { if (!verifySubmitting) e.currentTarget.style.borderColor='#ffc107'; }}
-                              onMouseOut={e  => e.currentTarget.style.borderColor='#dee2e6'}>
-                              {preview ? <img src={preview} alt={label} style={{ width:'100%', maxHeight:'100px', objectFit:'contain', borderRadius:'8px' }} /> : <><i className={`fas ${icon}`} style={{ fontSize:'1.5rem', color: iconColor, marginBottom:'0.5rem' }} /><small style={{ color:'#888', fontSize:'0.78rem' }}>Click to upload</small></>}
-                            </div>
-                            <input type="file" accept="image/*" style={{ display:'none' }} disabled={verifySubmitting} onChange={e => handleFileChange(e, setter, previewSetter)} />
-                          </label>
-                        </Form.Group>
-                      </Col>
-                    ))}
-                  </Row>
-                </>
-              );
-            })()}
-          </Modal.Body>
-          <Modal.Footer style={{ padding:'1.25rem 2rem', borderTop:'1px solid #e9ecef' }}>
-            {verifyStep === 1 ? (
-              <>
-                <Button variant="secondary" onClick={() => setShowVerifyModal(false)} disabled={verifySubmitting} style={{ borderRadius:'10px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>Cancel</Button>
-                <Button onClick={handleVerifyStep1Next} disabled={verifySubmitting} className="border-0"
-                  style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', color:'#000', borderRadius:'10px', padding:'0.75rem 1.75rem', fontWeight:'700', boxShadow:'0 4px 14px rgba(255,193,7,0.4)' }}
-                  onMouseOver={e => e.currentTarget.style.boxShadow='0 6px 20px rgba(255,193,7,0.6)'}
-                  onMouseOut={e  => e.currentTarget.style.boxShadow='0 4px 14px rgba(255,193,7,0.4)'}>
-                  {verifySubmitting ? <><Spinner as="span" animation="border" size="sm" className="me-2" />Saving…</> : <>Next — Upload ID <i className="fas fa-arrow-right ms-2" /></>}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="secondary" onClick={() => setVerifyStep(1)} disabled={verifySubmitting} style={{ borderRadius:'10px', padding:'0.75rem 1.5rem', fontWeight:'600' }}><i className="fas fa-arrow-left me-2" />Back</Button>
-                <Button onClick={handleVerifySubmit} disabled={verifySubmitting} className="border-0"
-                  style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', color:'#000', borderRadius:'10px', padding:'0.75rem 1.75rem', fontWeight:'700', boxShadow:'0 4px 14px rgba(255,193,7,0.4)' }}
-                  onMouseOver={e => e.currentTarget.style.boxShadow='0 6px 20px rgba(255,193,7,0.6)'}
-                  onMouseOut={e  => e.currentTarget.style.boxShadow='0 4px 14px rgba(255,193,7,0.4)'}>
-                  {verifySubmitting ? <><Spinner as="span" animation="border" size="sm" className="me-2" />Submitting…</> : <><i className="fas fa-paper-plane me-2" />Submit for Verification</>}
-                </Button>
-              </>
-            )}
-          </Modal.Footer>
-        </Modal>
-      )}
-
       {/* ── Logout Modal ── */}
       <Modal
         show={showLogoutModal}
@@ -1953,6 +1620,15 @@ const [pendingReportCount, setPendingReportCount] = useState(0);
           </div>
         </Modal.Body>
       </Modal>
+
+      {/* ── Verify Account Modal ── */}
+      <VerifyAccountModal
+        show={showVerifyModal}
+        onHide={() => setShowVerifyModal(false)}
+        ownerProfile={ownerProfile}
+        profileForm={profileForm}
+        onVerified={(updatedOwner) => setOwnerProfile(updatedOwner)}
+      />
     </>
   );
 };

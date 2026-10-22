@@ -97,6 +97,8 @@ const ZOOM = 0.75;
 
   const [adminNotes,    setAdminNotes]    = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
+const [lightboxImg, setLightboxImg] = useState(null);
+const [lightboxZoom, setLightboxZoom] = useState(1);
 
   // Generate report modal
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -265,10 +267,29 @@ const location = useLocation();
       maxZoom: 22, maxNativeZoom: 19,
     }).addTo(map);
     const poly = [
-      [14.4700,121.0200],[14.4650,121.0500],[14.4550,121.0700],[14.4400,121.0800],
-      [14.4200,121.0750],[14.4000,121.0700],[14.3800,121.0600],[14.3600,121.0450],
-      [14.3550,121.0250],[14.3650,121.0050],[14.3850,120.9980],[14.4050,120.9950],
-      [14.4300,121.0000],[14.4550,121.0050],[14.4700,121.0200],
+      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+      [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+      [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+      [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+      [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+      [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+      [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+      [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+      [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+      [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+      [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+      [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+      [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+      [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+      [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+      [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+      [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+      [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+      [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+      [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+      [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+      [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+      [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
     ];
     const isInside = (lat, lng) => {
       let inside = false;
@@ -304,7 +325,7 @@ const location = useLocation();
   }, [showGenerateModal, leafletLoaded, barangays]);
 
   const handleOpenGenerateModal = () => {
-    setGenerateForm({ report_type: 'rabies_case', barangay_id: '', address: '', phone_number: '', description: '', auto_status: 'suspected_rabies' });
+    setGenerateForm({ report_type: 'rabies_case', barangay_id: '', address: '', phone_number: '', reporter_name: '', description: '', auto_status: 'suspected_rabies' });
     setGenerateLat(null); setGenerateLng(null);
     setGenerateError('');
     setGeneratePhoneError('');
@@ -314,7 +335,8 @@ const location = useLocation();
   const handleGenerateSubmit = async () => {
     if (!generateForm.barangay_id)         { setGenerateError('Please select a barangay by pinning a location on the map.'); return; }
     if (!generateForm.address.trim())      { setGenerateError('Address is required.');        return; }
-    if (!generateForm.phone_number.trim()) { setGenerateError('Contact number is required.'); return; }
+    if (!generateForm.reporter_name?.trim()) { setGenerateError('Reporter name is required.'); return; }
+if (!generateForm.phone_number.trim()) { setGenerateError('Contact number is required.'); return; }
     if (!/^09\d{9}$/.test(generateForm.phone_number)) { setGenerateError('Contact number must be 11 digits starting with 09.'); return; }
     if (!generateLat || !generateLng)      { setGenerateError('Please pin a location on the map.'); return; }
     setGenerateLoading(true);
@@ -324,7 +346,8 @@ const location = useLocation();
       fd.append('barangay_id',  generateForm.barangay_id);
       fd.append('address',      generateForm.address);
       fd.append('phone_number', generateForm.phone_number);
-      fd.append('description',  generateForm.description);
+      fd.append('reporter_name', generateForm.reporter_name);
+fd.append('description',  generateForm.description);
       fd.append('auto_status',  generateForm.auto_status);
       fd.append('latitude',     generateLat);
       fd.append('longitude',    generateLng);
@@ -345,10 +368,13 @@ const location = useLocation();
   const q = searchTerm.toLowerCase();
   const matchSearch   = !q || (r.reporter_name || '').toLowerCase().includes(q) || (r.report_number || '').toLowerCase().includes(q) || (r.address || '').toLowerCase().includes(q);
   const matchType     = filterType     === 'all' || r.report_type === filterType;
-  const matchStatus   = filterStatus   === 'all' || r.status      === filterStatus;
-  const matchBarangay = filterBarangay === 'all' || String(r.barangay_id) === filterBarangay;
-  const matchSource   = filterSource   === 'all' || (filterSource === 'community' ? !parseInt(r.reported_by_clinic) : parseInt(r.reported_by_clinic));
-  const matchArchive  = filterStatus === 'declined' || r.status !== 'declined';
+const matchStatus   = filterStatus === 'all' ||
+  (filterStatus === 'ongoing'
+    ? ['ongoing', 'suspected_rabies', 'positive_rabies'].includes(r.status)
+    : r.status === filterStatus);
+const matchBarangay = filterBarangay === 'all' || String(r.barangay_id) === filterBarangay;
+const matchSource   = filterSource   === 'all' || (filterSource === 'community' ? !parseInt(r.reported_by_clinic) : parseInt(r.reported_by_clinic));
+const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus) || !['declined', 'resolved'].includes(r.status);
   return matchSearch && matchType && matchStatus && matchBarangay && matchSource && matchArchive;
 });
 
@@ -549,24 +575,24 @@ const location = useLocation();
           </Col>
           <Col xs={6} md>
             <Form.Select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-              style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
-              <option value="all">All Statuses</option>
-              {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
-                <option key={val} value={val}>{cfg.label}</option>
-              ))}
-            </Form.Select>
+  style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
+  <option value="all">All</option>
+  <option value="pending">Pending</option>
+  <option value="ongoing">Ongoing</option>
+  <option value="declined">Declined</option>
+</Form.Select>
           </Col>
           <Col xs={6} md>
             <Form.Select value={filterBarangay} onChange={e => { setFilterBarangay(e.target.value); setCurrentPage(1); }}
               style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
-              <option value="all">All Barangays</option>
+              <option value="all">All</option>
               {barangays.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </Form.Select>
           </Col>
           <Col xs={6} md>
             <Form.Select value={filterSource} onChange={e => { setFilterSource(e.target.value); setCurrentPage(1); }}
               style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
-              <option value="all">All Sources</option>
+              <option value="all">All</option>
               <option value="community">Community</option>
               <option value="clinic">Private Clinic</option>
             </Form.Select>
@@ -790,7 +816,7 @@ const location = useLocation();
                             ['Address',     selectedReport.address || 'N/A'],
                             ['Contact No.', selectedReport.phone_number || 'N/A'],
                             ['Reporter',    selectedReport.reporter_name || 'N/A'],
-                            ['Email',       selectedReport.reporter_email || 'N/A'],
+                            
                             ['Submitted',   formatDate(selectedReport.created_at)],
                           ].map(([label, val]) => (
                             <tr key={label}>
@@ -831,6 +857,105 @@ const location = useLocation();
                       </Card.Body>
                     </Card>
                   )}
+
+                  {selectedReport.images && selectedReport.images.length > 0 && (() => {
+  const API_BASE = (window.location.hostname === 'localhost'
+    ? 'http://localhost/city-pet-vaccination-api'
+    : 'https://city-pet-vaccination-api.onrender.com').replace(/\/+$/, '');
+  const getImgUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('http')) return img;
+    return `${API_BASE}/${img.replace(/^\/+/, '')}`;
+  };
+  return (
+    <>
+      {lightboxImg && (
+  <div
+    onClick={() => setLightboxImg(null)}
+    onWheel={e => {
+      e.preventDefault();
+      setLightboxZoom(z => Math.min(Math.max(z - e.deltaY * 0.001, 0.5), 5));
+    }}
+    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zoom: `${1 / 0.75}`, cursor: 'zoom-in' }}
+  >
+    <img
+      src={lightboxImg}
+      alt="Full view"
+      style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', transform: `scale(${lightboxZoom})`, transformOrigin: 'center center', transition: 'transform 0.1s ease' }}
+      onClick={e => e.stopPropagation()}
+    />
+          <button
+            onClick={() => setLightboxImg(null)}
+            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1.2rem', backdropFilter: 'blur(4px)' }}
+          >
+            <i className="fas fa-times" />
+          </button>
+          {selectedReport.images.length > 1 && (() => {
+            const currentIdx = selectedReport.images.findIndex(img => getImgUrl(img) === lightboxImg);
+            const prev = selectedReport.images[(currentIdx - 1 + selectedReport.images.length) % selectedReport.images.length];
+            const next = selectedReport.images[(currentIdx + 1) % selectedReport.images.length];
+            return (
+              <>
+                <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(prev)); }}
+                  style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1rem', backdropFilter: 'blur(4px)' }}>
+                  <i className="fas fa-chevron-left" />
+                </button>
+                <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(next)); }}
+                  style={{ position: 'absolute', right: '4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1rem', backdropFilter: 'blur(4px)' }}>
+                  <i className="fas fa-chevron-right" />
+                </button>
+                <div style={{ position: 'absolute', bottom: '1.25rem', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: '600' }}>
+                  {currentIdx + 1} / {selectedReport.images.length}
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+      <Card className="border-0 mb-3" style={{ borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
+        <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px 14px 0 0' }}>
+          <h6 className="mb-0" style={{ fontWeight: '700', color: '#333' }}>
+            <i className="fas fa-images me-2" style={{ color: '#ffc107' }} />Attached Photos ({selectedReport.images.length})
+          </h6>
+        </Card.Header>
+        <Card.Body>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {selectedReport.images.map((img, i) => {
+              const src = getImgUrl(img);
+              return (
+                <div
+                  key={i}
+                  onClick={() => setLightboxImg(src)}
+                  style={{ position: 'relative', cursor: 'pointer', borderRadius: '10px', overflow: 'hidden', width: '85px', height: '85px', border: '2px solid #dee2e6', transition: 'all 0.2s', flexShrink: 0 }}
+                  onMouseOver={e => { e.currentTarget.style.borderColor = '#ffc107'; e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)'; }}
+                  onMouseOut={e  => { e.currentTarget.style.borderColor = '#dee2e6'; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  <img
+                    src={src}
+                    alt={`report-img-${i}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={e => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.style.background = '#f8f9fa';
+                      e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><i class="fas fa-image" style="color:#ccc;font-size:1.4rem"></i><small style="color:#aaa;font-size:0.6rem">No preview</small></div>';
+                    }}
+                  />
+                  <div
+                    style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.3)'}
+                    onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0)'}
+                  >
+                    <i className="fas fa-search-plus" style={{ color: 'rgba(255,255,255,0)', fontSize: '1.2rem', transition: 'color 0.2s', pointerEvents: 'none' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card.Body>
+      </Card>
+    </>
+  );
+})()}
 
                   {getActionButtons(selectedReport).length > 0 && (
                     <Card className="border-0" style={{ borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
@@ -954,11 +1079,12 @@ const location = useLocation();
             <Col md={6}>
               <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Contact Number <span style={{ color: '#dc3545' }}>*</span></Form.Label>
               <Form.Control type="text" placeholder="09XXXXXXXXX" value={generateForm.phone_number}
-                onChange={e => {
-                  const val = e.target.value;
-                  setGenerateForm(f => ({ ...f, phone_number: val }));
-                  setGeneratePhoneError(val && !/^09\d{9}$/.test(val) ? 'Phone must be 11 digits starting with 09' : '');
-                }}
+  maxLength={11}
+  onChange={e => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+    setGenerateForm(f => ({ ...f, phone_number: val }));
+    setGeneratePhoneError(val && !/^09\d{9}$/.test(val) ? 'Phone must be 11 digits starting with 09' : '');
+  }}
                 style={{
                   borderRadius: '8px', padding: '0.7rem',
                   border: generatePhoneError
@@ -976,7 +1102,14 @@ const location = useLocation();
           </Row>
 
           <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Address <span style={{ color: '#dc3545' }}>*</span></Form.Label>
+  <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Reporter Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
+  <Form.Control type="text" placeholder="Full name of the reporter..." value={generateForm.reporter_name}
+    onChange={e => setGenerateForm(f => ({ ...f, reporter_name: e.target.value }))}
+    style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem' }} />
+</Form.Group>
+
+<Form.Group className="mb-3">
+  <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Address <span style={{ color: '#dc3545' }}>*</span></Form.Label>
             <Form.Control type="text" placeholder="House no., Street, Purok / Sitio..." value={generateForm.address}
               onChange={e => setGenerateForm(f => ({ ...f, address: e.target.value }))}
               style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem' }} />

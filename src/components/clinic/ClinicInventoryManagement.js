@@ -38,10 +38,11 @@ const handleAPIError = (res) => ({ message: res?.error || res?.message || 'An er
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
-  vaccination: { label: 'Vaccination', color: '#ffc107', bg: 'rgba(255,193,7,0.12)',   icon: 'fa-syringe' },
-  deworming:   { label: 'Deworming',   color: '#20c997', bg: 'rgba(32,201,151,0.12)',  icon: 'fa-pills'   },
-  medicine:    { label: 'Medicine',    color: '#e83e8c', bg: 'rgba(232,62,140,0.12)',  icon: 'fa-pills'   },
-  equipment:   { label: 'Equipment',   color: '#6c757d', bg: 'rgba(108,117,125,0.12)', icon: 'fa-toolbox' },
+  vaccination: { label: 'Vaccination', color: '#ffc107', bg: 'rgba(255,193,7,0.12)',   icon: 'fa-syringe'   },
+  deworming:   { label: 'Deworming',   color: '#20c997', bg: 'rgba(32,201,151,0.12)',  icon: 'fa-pills'     },
+  medicine:    { label: 'Medicine',    color: '#e83e8c', bg: 'rgba(232,62,140,0.12)',  icon: 'fa-pills'     },
+  microchip:   { label: 'Microchip',   color: '#6c757d', bg: 'rgba(108,117,125,0.12)', icon: 'fa-microchip' },
+  equipment:   { label: 'Equipment',   color: '#0d6efd', bg: 'rgba(13,110,253,0.12)',  icon: 'fa-toolbox'   },
 };
 
 const SPECIES_COLORS = {
@@ -60,7 +61,7 @@ const getStockStatus = (item) => {
   return               { label: 'In Stock',     color: '#28a745', bg: 'rgba(40,167,69,0.1)',  icon: 'fa-check-circle'        };
 };
 
-const TYPE_ORDER = { vaccination: 0, deworming: 1, medicine: 2, equipment: 3 };
+const TYPE_ORDER = { vaccination: 3, deworming: 1, medicine: 2, microchip: 0, equipment: 4 };
 
 const ITEMS_PER_PAGE = 8;
 const ZOOM = 0.75;
@@ -454,6 +455,7 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
 <option value="vaccination">Vaccination</option>
 <option value="deworming">Deworming</option>
 <option value="medicine">Medicine</option>
+<option value="microchip">Microchip</option>
 <option value="equipment">Equipment</option>
             </Form.Select>
           </Col>
@@ -659,12 +661,15 @@ onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentT
           <Form.Group className="mb-3">
             <Form.Label style={labelStyle}>Type <Req /></Form.Label>
             <Form.Select value={addForm.item_type} onChange={e => {
-  const typeUnitMap = { vaccination: 'doses', deworming: 'tablets', medicine: 'mg', equipment: 'pcs' };
+  const typeUnitMap = { vaccination: 'doses', deworming: 'tablets', medicine: 'mg', microchip: 'pcs', equipment: 'pcs' };
   setAddForm(f => ({ ...f, item_type: e.target.value, unit: typeUnitMap[e.target.value] || 'pcs' }));
 }} style={selectStyle}>
   <option value="vaccination">Vaccination</option>
   <option value="deworming">Deworming</option>
   <option value="medicine">Medicine</option>
+  {!inventory.some(i => i.item_type === 'microchip') && (
+    <option value="microchip">Microchip</option>
+  )}
   <option value="equipment">Equipment</option>
 </Form.Select>
           </Form.Group>
@@ -677,11 +682,9 @@ onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentT
             <Col xs={6}>
               <Form.Label style={labelStyle}>Species</Form.Label>
               <Form.Select value={addForm.species} onChange={e => setAddForm(f => ({ ...f, species: e.target.value }))} style={selectStyle}>
+                <option value="all">All</option>
                 <option value="dog">Dog</option>
                 <option value="cat">Cat</option>
-                <option value="rabbit">Rabbit</option>
-                <option value="both">Both (Dog & Cat)</option>
-                <option value="all">All</option>
               </Form.Select>
             </Col>
             <Col xs={6}>
@@ -762,7 +765,7 @@ onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentT
                     onChange={e => setRestockQty(e.target.value)} placeholder={`qty in ${restockItem.unit}`} style={inputStyle} />
                 </Col>
               </Row>
-              {!['equipment'].includes(restockItem?.item_type) && (
+              {!['microchip', 'equipment'].includes(restockItem?.item_type) && (
   <Form.Group className="mb-3">
     <Form.Label style={labelStyle}>Expiration Date</Form.Label>
     <Form.Control type="date" value={restockExpDate} onChange={e => setRestockExpDate(e.target.value)} style={inputStyle} />
@@ -1006,10 +1009,12 @@ onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentT
                   <DropdownBtn color="#333" hoverBg="#f8f9fa" onClick={() => { setViewItem(item); setShowViewModal(true); setShowDropdown(null); }} borderTop>
                     <img src="/view.png" alt="" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />View Details
                   </DropdownBtn>
-                  <DropdownBtn color="#dc3545" hoverBg="#fff5f5" onClick={() => handleDeleteItem(item)} borderTop>
-                    <i className="fas fa-trash" style={{ width: '18px', color: '#dc3545' }} />
-                    {deletingItemId === item.id ? 'Deleting…' : 'Delete Item'}
-                  </DropdownBtn>
+                  {item.item_type !== 'microchip' && (
+                    <DropdownBtn color="#dc3545" hoverBg="#fff5f5" onClick={() => handleDeleteItem(item)} borderTop>
+                      <i className="fas fa-trash" style={{ width: '18px', color: '#dc3545' }} />
+                      {deletingItemId === item.id ? 'Deleting…' : 'Delete Item'}
+                    </DropdownBtn>
+                  )}
                 </>
               );
             })()}

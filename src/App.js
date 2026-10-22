@@ -99,7 +99,7 @@ function SidebarLayout({ user, onLogout, darkMode, setDarkMode, handleLogin }) {
           window.dispatchEvent(new CustomEvent('closeProfileDropdown'));
         }}
       >
-        <div style={{ height: '56px', flexShrink: 0 }} />
+        <div style={{ height: '64px', flexShrink: 0 }} />
         <MainContent user={user} handleLogin={handleLogin} darkMode={darkMode} />
       </div>
     </div>
@@ -209,7 +209,7 @@ function App() {
 
   const handleLogin = (userData) => {
     setIsLoggingIn(true);
-    setTimeout(() => { setUser(userData); setIsLoggingIn(false); }, 3000);
+    setTimeout(() => { setUser(userData); setIsLoggingIn(false); }, 1500);
   };
 
   const handleLogout = () => { removeAuth(); setUser(null); };

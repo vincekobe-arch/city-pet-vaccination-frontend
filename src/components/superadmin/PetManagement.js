@@ -917,10 +917,7 @@ const itemsPerPage = 5;
                           <td style={{ width: '140px', fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Owner:</td>
                           <td style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{getOwnerName(selectedPet)}</td>
                         </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Color:</td>
-                          <td style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{selectedPet.color || 'Not specified'}</td>
-                        </tr>
+                    
                         <tr>
                           <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Weight:</td>
                           <td>

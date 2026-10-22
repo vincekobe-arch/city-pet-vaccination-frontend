@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert, Spinner, Badge, Modal, Button } from 'react-bootstrap';
+import VerifyAccountModal from './VerifyAccountModal'; // adjust the path to where your VerifyAccountModal.jsx lives
 import { petAPI, vaccinationAPI, scheduleAPI, vetCardAPI, handleAPIError } from '../../services/api';
 
 const OwnerDashboard = () => {
@@ -118,6 +119,10 @@ const OwnerDashboard = () => {
   
 
   const [ownerVerificationStatus, setOwnerVerificationStatus] = useState(null);
+  const [ownerProfile, setOwnerProfile]                     = useState(null);
+  const [verifyProfileForm, setVerifyProfileForm]           = useState(null);
+  const [showVerifyPrompt, setShowVerifyPrompt]             = useState(false);
+  const [showVerifyModal, setShowVerifyModal]               = useState(false);
 
   const isVerified = () => {
     return ['fully_verified', 'semi_verified'].includes(ownerVerificationStatus);
@@ -130,7 +135,25 @@ const OwnerDashboard = () => {
       if (!user?.id) return;
       const api = (await import('../../services/api')).default;
       const res = await api.get(`/owners/user/${user.id}`);
-      setOwnerVerificationStatus(res.data.owner?.verification_status || 'not_verified');
+      const owner  = res.data.owner;
+      const status = owner?.verification_status || 'not_verified';
+      setOwnerVerificationStatus(status);
+      setOwnerProfile(owner || null);
+      // Built once and kept in state so the modal doesn't reset the form on every render
+      setVerifyProfileForm({
+        first_name:  owner?.first_name  || '',
+        middle_name: owner?.middle_name || '',
+        last_name:   owner?.last_name   || '',
+        birthdate:   (owner?.birthdate || '').toString().slice(0, 10),
+        gender:      owner?.gender      || '',
+        phone:       owner?.phone       || '',
+      });
+
+      // Only right after registration, and only if still unverified
+      if (sessionStorage.getItem('showVerifyPrompt') === '1') {
+        sessionStorage.removeItem('showVerifyPrompt');
+        if (status === 'not_verified') setShowVerifyPrompt(true);
+      }
     } catch (err) {
       console.warn('Could not load verification status:', err);
     }
@@ -803,6 +826,61 @@ setDashboardData({
         </Col>
       </Row>
     </Container>
+
+    {/* ── Verify prompt (shown once after registration) ── */}
+    <Modal show={showVerifyPrompt && !loading} onHide={() => setShowVerifyPrompt(false)} centered backdrop="static" style={{ zoom:'0.75', zIndex:99998 }}>
+      <Modal.Body style={{ padding:'2.5rem 2.25rem 2rem', textAlign:'center', borderRadius:'20px', background:'linear-gradient(180deg,#fffdf5 0%,#ffffff 45%)', border:'1px solid rgba(255,193,7,0.25)' }}>
+        <div style={{ width:'84px', height:'84px', borderRadius:'50%', background:'rgba(255,193,7,0.14)', border:'3px solid rgba(255,193,7,0.35)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.4rem', boxShadow:'0 8px 24px rgba(255,193,7,0.22)' }}>
+          <i className="fas fa-shield-alt" style={{ fontSize:'2.1rem', color:'#ffc107' }} />
+        </div>
+
+        <h4 style={{ fontWeight:'800', color:'#1a1a1a', marginBottom:'0.5rem' }}>Welcome! Verify Your Account</h4>
+        <p style={{ color:'#6c757d', fontSize:'0.92rem', lineHeight:1.6, marginBottom:'1.5rem' }}>
+          Your account was created successfully. Verify your identity now to unlock all features.
+        </p>
+
+        <div style={{ textAlign:'left', background:'#f8f9fa', border:'1px solid #e9ecef', borderRadius:'14px', padding:'1rem 1.15rem', marginBottom:'1.75rem' }}>
+          {[
+            { icon:'fa-calendar-check', text:'View and register for vaccination and other events' },
+            { icon:'fa-paw',            text:'Manage your pets and their health records' },
+            { icon:'fa-id-card',        text:'Takes only a few minutes with a valid government ID' },
+          ].map(item => (
+            <div key={item.text} style={{ display:'flex', alignItems:'center', gap:'0.75rem', fontSize:'0.86rem', color:'#333', padding:'0.35rem 0' }}>
+              <i className={`fas ${item.icon}`} style={{ color:'#ffc107', width:'18px', textAlign:'center' }} />
+              <span>{item.text}</span>
+            </div>
+          ))}
+        </div>
+
+        <Button
+          onClick={() => { setShowVerifyPrompt(false); setShowVerifyModal(true); }}
+          className="border-0 w-100"
+          style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', color:'#000', borderRadius:'12px', padding:'0.85rem 1.5rem', fontWeight:'700', fontSize:'1rem', boxShadow:'0 6px 20px rgba(255,193,7,0.4)' }}>
+          <i className="fas fa-check-circle me-2" />Verify Now
+        </Button>
+
+        {/* Highlighted clickable label, not a button */}
+        <div style={{ marginTop:'1.25rem' }}>
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={() => setShowVerifyPrompt(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setShowVerifyPrompt(false); }}
+            style={{ background:'rgba(255,193,7,0.22)', color:'#7a5800', fontWeight:'700', fontSize:'0.88rem', padding:'0.2rem 0.6rem', borderRadius:'6px', cursor:'pointer', textDecoration:'underline', textUnderlineOffset:'3px' }}>
+            Skip for now
+          </span>
+        </div>
+      </Modal.Body>
+    </Modal>
+
+    {/* ── Verification modal (opens immediately from "Verify Now") ── */}
+    <VerifyAccountModal
+      show={showVerifyModal}
+      onHide={() => setShowVerifyModal(false)}
+      ownerProfile={ownerProfile}
+      profileForm={verifyProfileForm}
+      onVerified={(owner) => setOwnerVerificationStatus(owner?.verification_status || 'pending')}
+    />
     </>
   );
 };

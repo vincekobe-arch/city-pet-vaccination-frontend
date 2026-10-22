@@ -84,7 +84,7 @@ const itemsPerPage = 5;
       first_name: '',
       middle_name: '',
       last_name: '',
-      age: '',
+      birthdate: '',
       gender: '',
       phone: '',
       office_role: '',
@@ -127,6 +127,17 @@ const itemsPerPage = 5;
       }
     }
 
+     if (name === 'birthdate') {
+      if (value) {
+        const birth = new Date(value);
+        const minAge = new Date();
+        minAge.setFullYear(minAge.getFullYear() - 18);
+        setFieldErrors(prev => ({ ...prev, birthdate: birth > minAge ? 'Admin must be at least 18 years old' : '' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, birthdate: '' }));
+      }
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
     if (formError) setFormError('');
   };
@@ -140,8 +151,15 @@ const itemsPerPage = 5;
       setFormError('Last name is required');
       return false;
     }
-    if (!formData.age || formData.age < 18 || formData.age > 100) {
-      setFormError('Please enter a valid age (18-100)');
+    if (!formData.birthdate) {
+      setFormError('Birthdate is required');
+      return false;
+    }
+    const birthDate = new Date(formData.birthdate);
+    const minAge = new Date();
+    minAge.setFullYear(minAge.getFullYear() - 18);
+    if (birthDate > minAge) {
+      setFormError('Admin must be at least 18 years old');
       return false;
     }
     
@@ -184,7 +202,7 @@ const itemsPerPage = 5;
       first_name: official.first_name,
       middle_name: official.middle_name || '',
       last_name: official.last_name,
-      age: official.age || '',
+      birthdate: official.birthdate || '',
       gender: official.gender || '',
       phone: official.phone || '',
       office_role: isCustomRole ? 'Other' : (official.office_role || ''),
@@ -220,7 +238,6 @@ const itemsPerPage = 5;
         email: email,
         password: 'admin123',
         address: '',
-        appointment_date: new Date().toISOString().split('T')[0],
         license_number: '',
         specialization: '',
         is_primary_contact: false,
@@ -251,11 +268,11 @@ const itemsPerPage = 5;
     setFormError('');
 
     try {
-      const updateData = {
+       const updateData = {
         first_name: formData.first_name,
         middle_name: formData.middle_name,
         last_name: formData.last_name,
-        age: formData.age,
+        birthdate: formData.birthdate,
         gender: formData.gender,
         phone: formData.phone,
         office_role: formData.office_role === 'Other' ? (formData.office_role_custom || 'Other') : formData.office_role
@@ -429,204 +446,39 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
       )}
 
       {/* Statistics */}
-      <Row className="mb-4">
-        <Col md={6} lg={4} className="mb-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
-          <Card 
-            className="text-center h-100 border-0" 
-            style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0fff4 100%)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px rgba(25, 135, 84, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-            }}
-          >
-            <Card.Body style={{ padding: '2rem 1.5rem' }}>
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div style={{ textAlign: 'left' }}>
-                  <p className="text-muted mb-1" style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Active Admin</p>
-                  <h2 className="mb-0" style={{ fontWeight: '700', color: '#333333', fontSize: '2.5rem' }}>
-                    {activeOfficials.length}
-                  </h2>
+      <Row className="mb-4" style={{ flexWrap: 'nowrap', margin: '0 -6px' }}>
+        {[
+          { label: 'Active Admin', count: activeOfficials.length, img: '/active.png', accent: '#198754', accentAlpha: 'rgba(25,135,84,0.12)', fallbackIcon: 'fa-user-check', description: 'Currently Active', delay: '0.1s' },
+          { label: 'Inactive Admin', count: inactiveOfficials.length, img: '/inactive.png', accent: '#dc3545', accentAlpha: 'rgba(220,53,69,0.12)', fallbackIcon: 'fa-user-slash', description: 'Deactivated', delay: '0.2s' },
+          { label: 'Average', count: averagePerBarangay, img: '/average.png', accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-calculator', description: 'Average admins', delay: '0.3s' },
+        ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => (
+          <div key={label} style={{ flex: '1 1 0', padding: '0 6px', minWidth: 0, animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+            <Card
+              className="border-0 h-100"
+              style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${accentAlpha}`; e.currentTarget.style.borderColor = accent; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#f0f0f0'; }}
+            >
+              <div style={{ height: '3px', background: accent, borderRadius: '16px 16px 0 0' }} />
+              <Card.Body style={{ padding: '1.5rem', background: 'transparent' }}>
+                <div className="d-flex align-items-center justify-content-between">
+                  <div>
+                    <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
+                    <h2 style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{count}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
+                      <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>{description}</span>
+                    </div>
+                  </div>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: accentAlpha, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <img src={img} alt={label} style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                    <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
+                  </div>
                 </div>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '15px',
-                  background: 'rgba(25, 135, 84, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <img 
-                    src="/active.png" 
-                    alt="Active Officials"
-                    style={{ width: '35px', height: '35px', objectFit: 'contain' }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <i 
-                    className="fas fa-user-check" 
-                    style={{ fontSize: '1.8rem', color: '#198754', display: 'none' }}
-                  ></i>
-                </div>
-              </div>
-              <div style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                background: 'rgba(25, 135, 84, 0.08)'
-              }}>
-                <small style={{ color: '#198754', fontWeight: '500' }}>
-                  <i className="fas fa-user-check me-1"></i>
-                  Currently Active
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={6} lg={4} className="mb-3" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
-          <Card 
-            className="text-center h-100 border-0" 
-            style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #ffffff 0%, #fff5f5 100%)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px rgba(220, 53, 69, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-            }}
-          >
-            <Card.Body style={{ padding: '2rem 1.5rem' }}>
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div style={{ textAlign: 'left' }}>
-                  <p className="text-muted mb-1" style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Inactive Admin</p>
-                  <h2 className="mb-0" style={{ fontWeight: '700', color: '#333333', fontSize: '2.5rem' }}>
-                    {inactiveOfficials.length}
-                  </h2>
-                </div>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '15px',
-                  background: 'rgba(220, 53, 69, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <img 
-                    src="/inactive.png" 
-                    alt="Inactive Officials"
-                    style={{ width: '35px', height: '35px', objectFit: 'contain' }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <i 
-                    className="fas fa-user-slash" 
-                    style={{ fontSize: '1.8rem', color: '#dc3545', display: 'none' }}
-                  ></i>
-                </div>
-              </div>
-              <div style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                background: 'rgba(220, 53, 69, 0.08)'
-              }}>
-                <small style={{ color: '#dc3545', fontWeight: '500' }}>
-                  <i className="fas fa-user-slash me-1"></i>
-                  Deactivated
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={6} lg={4} className="mb-3" style={{ animation: 'dropDown 0.4s ease-out 0.3s backwards' }}>
-          <Card 
-            className="text-center h-100 border-0" 
-            style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              transition: 'all 0.3s ease',
-              cursor: 'pointer',
-              overflow: 'hidden',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px rgba(13, 202, 240, 0.2)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-            }}
-          >
-            <Card.Body style={{ padding: '2rem 1.5rem' }}>
-              <div className="d-flex justify-content-between align-items-start mb-3">
-                <div style={{ textAlign: 'left' }}>
-                  <p className="text-muted mb-1" style={{ fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Average</p>
-                  <h2 className="mb-0" style={{ fontWeight: '700', color: '#333333', fontSize: '2.5rem' }}>
-                    {averagePerBarangay}
-                  </h2>
-                </div>
-                <div style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '15px',
-                  background: 'rgba(13, 202, 240, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <img 
-                    src="/average.png" 
-                    alt="Average"
-                    style={{ width: '35px', height: '35px', objectFit: 'contain' }}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                  <i 
-                    className="fas fa-calculator" 
-                    style={{ fontSize: '1.8rem', color: '#0dcaf0', display: 'none' }}
-                  ></i>
-                </div>
-              </div>
-              <div style={{
-                padding: '0.5rem',
-                borderRadius: '8px',
-                background: 'rgba(13, 202, 240, 0.08)'
-              }}>
-                <small style={{ color: '#0dcaf0', fontWeight: '500' }}>
-                  <i className="fas fa-calculator me-1"></i>
-                  Average admins
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
+              </Card.Body>
+            </Card>
+          </div>
+        ))}
       </Row>
 
       {/* Search and Filters */}
@@ -653,20 +505,6 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               </Button>
             )}
           </InputGroup>
-        </Col>
-        <Col md={3} className="mb-3">
-          <Form.Select
-            value={filterBarangay}
-            onChange={(e) => setFilterBarangay(e.target.value)}
-            style={{ borderRadius: '10px', padding: '0.6rem' }}
-          >
-            <option value="">All Barangays</option>
-            {barangays.map(barangay => (
-              <option key={barangay.id} value={barangay.id}>
-                {barangay.name}
-              </option>
-            ))}
-          </Form.Select>
         </Col>
         <Col md={3} className="mb-3">
           <Form.Select
@@ -729,7 +567,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                   }}
                 >
                   <i className="fas fa-plus me-2"></i>
-                  Add New Admin
+                  Add Admin
                 </Button>
               </div>
             </Card.Header>
@@ -778,7 +616,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                     <thead style={{ background: '#f8f9fa' }}>
                       <tr>
                         <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Name</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Age</th>
+                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Birthdate</th>
                         <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Office Role</th>
                         <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Contact</th>
                         <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Status</th>
@@ -801,20 +639,13 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                           }}
                         >
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <div>
-                              <strong style={{ fontSize: '1rem', color: '#333' }}>
-                                {official.first_name} {official.middle_name && official.middle_name[0] + '.'} {official.last_name}
-                              </strong>
-                              <br />
-                              <small className="text-muted" style={{ fontWeight: '500' }}>
-                                <i className="fas fa-user me-1"></i>
-                                {official.username}
-                              </small>
-                            </div>
+                            <strong style={{ fontSize: '1rem', color: '#333' }}>
+                              {official.first_name}
+                            </strong>
                           </td>
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                             <span style={{ fontWeight: '500', color: '#555' }}>
-                              {official.age ? `${official.age} years` : 'N/A'}
+                              {official.birthdate ? new Date(official.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
                             </span>
                           </td>
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -830,29 +661,22 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                             </span>
                           </td>
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <div>
+                            {official.phone ? (
                               <small style={{ fontWeight: '500', color: '#555' }}>
-                                <i className="fas fa-envelope me-1"></i>
-                                {official.email}
+                                <i className="fas fa-phone me-1"></i>
+                                {official.phone}
                               </small>
-                              {official.phone && (
-                                <>
-                                  <br />
-                                  <small style={{ fontWeight: '500', color: '#555' }}>
-                                    <i className="fas fa-phone me-1"></i>
-                                    {official.phone}
-                                  </small>
-                                </>
-                              )}
-                            </div>
+                            ) : (
+                              <span className="text-muted">—</span>
+                            )}
                           </td>
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <Badge 
-                              bg={official.is_active ? 'success' : 'secondary'}
-                              style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                            >
-                              {official.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: official.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${official.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.7rem', fontWeight: '700', color: official.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
+                                <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
+                                {official.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
                           </td>
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <div style={{ position: 'relative' }}>
@@ -1221,7 +1045,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
   >
     <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
       <i className="fas fa-plus-circle me-2"></i>
-      Add New Admin
+      Add Admin
     </Modal.Title>
   </Modal.Header>
   <Form onSubmit={handleSubmitAdd}>
@@ -1263,10 +1087,11 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               value={formData.first_name}
               onChange={handleFormChange}
               onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); }}
+              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); }}
               required
               disabled={formLoading}
               placeholder="Enter first name"
+              maxLength={30}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
@@ -1291,9 +1116,10 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               value={formData.middle_name}
               onChange={handleFormChange}
               onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); }}
+              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); }}
               disabled={formLoading}
               placeholder="Enter middle name"
+              maxLength={30}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
@@ -1318,10 +1144,11 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               value={formData.last_name}
               onChange={handleFormChange}
               onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); }}
+              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); }}
               required
               disabled={formLoading}
               placeholder="Enter last name"
+              maxLength={30}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
@@ -1338,27 +1165,31 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
       </Row>
 
       <Row>
-        <Col md={4}>
+       <Col md={4}>
           <Form.Group className="mb-3">
             <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Age <span style={{ color: '#dc3545' }}>*</span>
+              Birthdate <span style={{ color: '#dc3545' }}>*</span>
             </Form.Label>
             <Form.Control
-              type="number"
-              name="age"
-              value={formData.age}
+              type="date"
+              name="birthdate"
+              value={formData.birthdate}
               onChange={handleFormChange}
               required
-              min="18"
-              max="100"
               disabled={formLoading}
-              placeholder="Enter age"
+              max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().split('T')[0]; })()}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
-                border: '2px solid #dee2e6'
+                border: fieldErrors.birthdate ? '2px solid #dc3545' : '2px solid #dee2e6',
+                colorScheme: 'light'
               }}
             />
+            {fieldErrors.birthdate && (
+              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
+                <i className="fas fa-times-circle me-1" />{fieldErrors.birthdate}
+              </small>
+            )}
           </Form.Group>
         </Col>
         <Col md={4}>
@@ -1573,10 +1404,11 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               value={formData.first_name}
               onChange={handleFormChange}
               onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); }}
+              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); }}
               required
               disabled={formLoading}
               placeholder="Enter first name"
+              maxLength={30}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
@@ -1601,9 +1433,10 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               value={formData.middle_name}
               onChange={handleFormChange}
               onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); }}
+              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); }}
               disabled={formLoading}
               placeholder="Enter middle name"
+              maxLength={30}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
@@ -1628,10 +1461,11 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               value={formData.last_name}
               onChange={handleFormChange}
               onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); }}
+              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); }}
               required
               disabled={formLoading}
               placeholder="Enter last name"
+              maxLength={30}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
@@ -1648,27 +1482,31 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
       </Row>
 
       <Row>
-        <Col md={4}>
+       <Col md={4}>
           <Form.Group className="mb-3">
             <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Age <span style={{ color: '#dc3545' }}>*</span>
+              Birthdate <span style={{ color: '#dc3545' }}>*</span>
             </Form.Label>
             <Form.Control
-              type="number"
-              name="age"
-              value={formData.age}
+              type="date"
+              name="birthdate"
+              value={formData.birthdate}
               onChange={handleFormChange}
               required
-              min="18"
-              max="100"
               disabled={formLoading}
-              placeholder="Enter age"
+              max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().split('T')[0]; })()}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
-                border: '2px solid #dee2e6'
+                border: fieldErrors.birthdate ? '2px solid #dc3545' : '2px solid #dee2e6',
+                colorScheme: 'light'
               }}
             />
+            {fieldErrors.birthdate && (
+              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
+                <i className="fas fa-times-circle me-1" />{fieldErrors.birthdate}
+              </small>
+            )}
           </Form.Group>
         </Col>
         <Col md={4}>
@@ -1705,14 +1543,23 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
               value={formData.phone}
               onChange={handleFormChange}
               disabled={formLoading}
-              placeholder="09XX XXX XXXX"
-              pattern="[0-9]{11}"
+              placeholder="09XXXXXXXXX"
+              onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
               style={{
                 borderRadius: '8px',
                 padding: '0.75rem',
-                border: '2px solid #dee2e6'
+                border: fieldErrors.phone && formData.phone
+                  ? '2px solid #dc3545'
+                  : formData.phone && /^09\d{9}$/.test(formData.phone)
+                    ? '2px solid #198754'
+                    : '2px solid #dee2e6'
               }}
             />
+          {fieldErrors.phone && formData.phone && (
+              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
+                <i className="fas fa-times-circle me-1" />{fieldErrors.phone}
+              </small>
+            )}
           </Form.Group>
         </Col>
       </Row>
@@ -1874,9 +1721,9 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                     </td>
                   </tr>
                   <tr>
-                    <td style={{ fontWeight: '600', color: '#666666' }}>Age:</td>
+                    <td style={{ fontWeight: '600', color: '#666666' }}>Birthdate:</td>
                     <td style={{ fontWeight: '600', color: '#333333' }}>
-                      {selectedOfficial.age ? `${selectedOfficial.age} years old` : 'Not provided'}
+                      {selectedOfficial.birthdate ? new Date(selectedOfficial.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not provided'}
                     </td>
                   </tr>
                   <tr>

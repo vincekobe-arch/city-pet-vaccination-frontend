@@ -46,8 +46,13 @@ const [deletingBatchId, setDeletingBatchId] = useState(null);
 
 // Add item modal
 const [showAddModal, setShowAddModal]   = useState(false);
-const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '', vaccination_type_id: '' });
+const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '' });
 const [addLoading, setAddLoading]       = useState(false);
+
+// Edit item modal
+const [showEditItemModal, setShowEditItemModal] = useState(false);
+const [editItemForm, setEditItemForm] = useState(null);
+const [editItemLoading, setEditItemLoading] = useState(false);
 
 // Edit threshold modal
 const [showEditModal, setShowEditModal] = useState(false);
@@ -236,6 +241,41 @@ const handleRestock = async () => {
 };
 
   // ── Edit threshold ────────────────────────────────────────────────────────
+  const handleOpenEditItem = (item) => {
+    setEditItemForm({
+      id: item.id,
+      item_type: item.item_type,
+      item_name: item.item_name,
+      species: item.species || 'dog',
+      minimum_stock: item.minimum_stock,
+      unit: item.unit,
+      notes: item.notes || '',
+    });
+    setShowEditItemModal(true);
+  };
+
+  const handleEditItemSave = async () => {
+    if (!editItemForm.item_name.trim()) { setError('Item name is required.'); return; }
+    setEditItemLoading(true);
+    try {
+      await inventoryAPI.update(editItemForm.id, {
+        item_name: editItemForm.item_name.trim(),
+        species: editItemForm.species,
+        minimum_stock: parseInt(editItemForm.minimum_stock),
+        unit: editItemForm.unit,
+        notes: editItemForm.notes,
+      });
+      showSuccess(`"${editItemForm.item_name}" updated successfully.`);
+      setShowEditItemModal(false);
+      loadInventory();
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setEditItemLoading(false);
+    }
+  };
+
   const handleOpenEdit = (item) => {
     setEditItem(item);
     setEditMinStock(item.minimum_stock);
@@ -457,7 +497,7 @@ const handleDeleteClick = (item) => {
               onChange={e => setFilterType(e.target.value)}
               style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '100%' }}
             >
-              <option value="all">All Types</option>
+              <option value="all">All</option>
 <option value="vaccination">Vaccination</option>
 <option value="medicine">Medicine</option>
 <option value="microchip">Microchip</option>
@@ -713,42 +753,16 @@ const handleDeleteClick = (item) => {
           <Form.Group className="mb-3">
             <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Type <span style={{ color: '#dc3545' }}>*</span></Form.Label>
             <Form.Select value={addForm.item_type} onChange={e => {
-  const typeUnitMap = { vaccination: 'doses', medicine: 'mg', microchip: 'pcs', equipment: 'pcs' };
+  const typeUnitMap = { vaccination: 'doses', medicine: 'mg', equipment: 'pcs' };
   setAddForm(f => ({ ...f, item_type: e.target.value, unit: typeUnitMap[e.target.value] || 'pcs', vaccination_type_id: '', item_name: '' }));
 }}
               style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
               <option value="vaccination">Vaccination</option>
-<option value="medicine">Medicine</option>
-<option value="microchip">Microchip</option>
-<option value="equipment">Equipment</option>
+              <option value="medicine">Medicine</option>
+              <option value="equipment">Equipment</option>
             </Form.Select>
           </Form.Group>
-          {addForm.item_type === 'vaccination' && (
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>
-                Vaccination Type <span style={{ color: '#dc3545' }}>*</span>
-              </Form.Label>
-              <Form.Select
-                value={addForm.vaccination_type_id}
-                onChange={e => {
-                  const selected = vaccinationTypes.find(v => v.id === parseInt(e.target.value));
-                  setAddForm(f => ({
-                    ...f,
-                    vaccination_type_id: e.target.value,
-                    item_name: selected ? selected.name : f.item_name,
-                    species: selected ? (selected.species === 'all' ? 'all' : selected.species) : f.species,
-                  }));
-                }}
-                style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}
-              >
-                <option value="">Select vaccination type...</option>
-                {vaccinationTypes.map(vt => (
-                  <option key={vt.id} value={vt.id}>{vt.name} ({vt.species})</option>
-                ))}
-              </Form.Select>
-              <Form.Text className="text-muted">Item name and species will be auto-filled.</Form.Text>
-            </Form.Group>
-          )}
+          
           <Form.Group className="mb-3">
             <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Item Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
             <Form.Control value={addForm.item_name} onChange={e => setAddForm(f => ({ ...f, item_name: e.target.value }))}
@@ -810,13 +824,11 @@ const handleDeleteClick = (item) => {
                 minimum_stock: parseInt(addForm.minimum_stock),
                 unit: addForm.unit || 'pcs',
                 notes: addForm.notes,
-                ...(addForm.item_type === 'vaccination' && addForm.vaccination_type_id
-                  ? { item_type_id: parseInt(addForm.vaccination_type_id) }
-                  : {}),
+                
               });
               showSuccess(`"${addForm.item_name}" added to inventory.`);
               setShowAddModal(false);
-              setAddForm({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '', vaccination_type_id: '' });
+              setAddForm({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '' });
               loadInventory();
             } catch (err) {
               const { message } = handleAPIError(err);
@@ -1243,21 +1255,116 @@ const handleDeleteClick = (item) => {
                     <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
                     <span>View Details</span>
                   </button>
-                  <button
-                    onClick={() => handleDeleteClick(item)}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'}
-                    onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                  >
-                    <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span>Delete Item</span>
-                  </button>
+                  {item.item_type !== 'microchip' && (
+                    <button
+                      onClick={() => { handleOpenEditItem(item); setShowDropdown(null); }}
+                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#6f42c1', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#f8f0ff'}
+                      onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
+                    >
+                      <i className="fas fa-edit" style={{ fontSize: '1rem', width: '18px', textAlign: 'center', color: '#6f42c1' }} />
+                      <span>Edit Item</span>
+                    </button>
+                  )}
+                  {item.item_type !== 'microchip' && (
+                    <button
+                      onClick={() => handleDeleteClick(item)}
+                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'}
+                      onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
+                    >
+                      <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                      <span>Delete Item</span>
+                    </button>
+                  )}
                 </>
               );
             })()}
           </div>
         </>
       )}
+
+      {/* ── Edit Item Modal ── */}
+      <Modal show={showEditItemModal} onHide={() => !editItemLoading && setShowEditItemModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #6f42c1', borderRadius: '12px 12px 0 0' }}>
+          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
+            <i className="fas fa-edit me-2" style={{ color: '#6f42c1' }} />
+            Edit Item — {editItemForm?.item_name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '1.75rem' }}>
+          {editItemForm && (
+            <>
+              <Form.Group className="mb-3">
+                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Type</Form.Label>
+                <Form.Select value={editItemForm.item_type} disabled
+                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem', background: '#f8f9fa', color: '#999' }}>
+                  <option value="vaccination">Vaccination</option>
+                  <option value="medicine">Medicine</option>
+                  <option value="microchip">Microchip</option>
+                  <option value="equipment">Equipment</option>
+                </Form.Select>
+                <Form.Text className="text-muted">Type cannot be changed after creation.</Form.Text>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Item Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
+                <Form.Control value={editItemForm.item_name}
+                  onChange={e => setEditItemForm(f => ({ ...f, item_name: e.target.value }))}
+                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }} />
+              </Form.Group>
+              <Row className="mb-3 g-2">
+                <Col xs={6}>
+                  <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Species</Form.Label>
+                  <Form.Select value={editItemForm.species}
+                    onChange={e => setEditItemForm(f => ({ ...f, species: e.target.value }))}
+                    style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
+                    <option value="dog">Dog</option>
+                    <option value="cat">Cat</option>
+                    <option value="all">All</option>
+                  </Form.Select>
+                </Col>
+                <Col xs={6}>
+                  <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Unit</Form.Label>
+                  <Form.Select value={editItemForm.unit}
+                    onChange={e => setEditItemForm(f => ({ ...f, unit: e.target.value }))}
+                    style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
+                    <option value="doses">doses</option>
+                    <option value="pcs">pcs</option>
+                    <option value="mg">mg</option>
+                    <option value="ml">ml</option>
+                    <option value="tablets">tablets</option>
+                    <option value="capsules">capsules</option>
+                    <option value="vials">vials</option>
+                    <option value="sachets">sachets</option>
+                    <option value="bottles">bottles</option>
+                    <option value="boxes">boxes</option>
+                  </Form.Select>
+                </Col>
+              </Row>
+              <Form.Group className="mb-3">
+                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Min. Threshold</Form.Label>
+                <Form.Control type="number" min="0" value={editItemForm.minimum_stock}
+                  onChange={e => setEditItemForm(f => ({ ...f, minimum_stock: e.target.value }))}
+                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }} />
+              </Form.Group>
+              <Form.Group>
+                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Notes (Optional)</Form.Label>
+                <Form.Control as="textarea" rows={2} value={editItemForm.notes}
+                  onChange={e => setEditItemForm(f => ({ ...f, notes: e.target.value }))}
+                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem', resize: 'none' }} />
+              </Form.Group>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1rem 1.75rem' }}>
+          <Button variant="secondary" onClick={() => setShowEditItemModal(false)} disabled={editItemLoading}
+            style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
+          <Button onClick={handleEditItemSave} disabled={editItemLoading || !editItemForm?.item_name?.trim()}
+            style={{ background: '#6f42c1', border: 'none', color: '#fff', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
+            {editItemLoading ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : <><i className="fas fa-save me-2" />Save Changes</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* ── Edit Threshold Modal ── */}
       <Modal show={showEditModal} onHide={() => !editLoading && setShowEditModal(false)} centered style={{ zoom: '0.75' }}>

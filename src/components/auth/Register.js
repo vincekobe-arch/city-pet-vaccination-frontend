@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { setAuth } from '../../utils/auth';
 
 const API_BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost/city-pet-vaccination-api'
@@ -19,8 +20,10 @@ const Register = () => {
     first_name: '',
     middle_name: '',
     last_name: '',
+    suffix: '',
     birthdate: '',
     gender: '',
+    genderOther: '',
     phone: '',
   });
 
@@ -28,6 +31,7 @@ const Register = () => {
   const [loading, setLoading]                     = useState(false);
   const [error, setError]                         = useState('');
   const [success, setSuccess]                     = useState('');
+  const otpRefs = React.useRef([]);
   const [passwordErrors, setPasswordErrors]       = useState([]);
   const [resendCooldown, setResendCooldown]       = useState(0);
   const [showPassword, setShowPassword]           = useState(false);
@@ -118,7 +122,20 @@ const Register = () => {
     }
 
     if (name === 'phone') {
-      setFieldErrors(prev => ({ ...prev, phone: value && !/^09\d{9}$/.test(value) ? 'Phone must be 11 digits starting with 09' : '' }));
+      const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+      setFormData(prev => ({ ...prev, phone: digitsOnly }));
+      setFieldErrors(prev => ({ ...prev, phone: digitsOnly && !/^9\d{9}$/.test(digitsOnly) ? 'Invalid input' : '' }));
+    }
+
+    if (name === 'birthdate') {
+      if (value) {
+        const birth = new Date(value);
+        const minAge = new Date();
+        minAge.setFullYear(minAge.getFullYear() - 18);
+        setFieldErrors(prev => ({ ...prev, birthdate: birth > minAge ? 'You must be at least 18 years old to register' : '' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, birthdate: '' }));
+      }
     }
 
     if (['first_name', 'middle_name', 'last_name'].includes(name)) {
@@ -128,6 +145,8 @@ const Register = () => {
         setFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a space' }));
       } else if (value && value.startsWith('-')) {
         setFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a hyphen' }));
+      } else if (value && value.startsWith('.')) {
+        setFieldErrors(prev => ({ ...prev, [name]: 'Cannot start with a dot' }));
       } else if (value && /\s{2,}/.test(value)) {
         setFieldErrors(prev => ({ ...prev, [name]: 'Cannot contain multiple consecutive spaces' }));
       } else if (value && /--/.test(value)) {
@@ -135,6 +154,20 @@ const Register = () => {
       } else {
         setFieldErrors(prev => ({ ...prev, [name]: '' }));
       }
+    }
+
+    if (name === 'suffix') {
+      if (value && value.startsWith('.')) {
+        setFieldErrors(prev => ({ ...prev, suffix: 'Suffix cannot start with a dot' }));
+      } else if (value && !/^[a-zA-Z.]*$/.test(value)) {
+        setFieldErrors(prev => ({ ...prev, suffix: 'Only letters and dots allowed' }));
+      } else {
+        setFieldErrors(prev => ({ ...prev, suffix: '' }));
+      }
+    }
+
+    if (name === 'genderOther') {
+      setFieldErrors(prev => ({ ...prev, genderOther: value.trim() ? '' : 'Please specify your gender' }));
     }
   };
 
@@ -151,7 +184,10 @@ const Register = () => {
       passwordErrors.length === 0 &&
       !fieldErrors.confirmPassword && !fieldErrors.phone &&
       !fieldErrors.password && !fieldErrors.first_name &&
-      !fieldErrors.middle_name && !fieldErrors.last_name;
+      !fieldErrors.middle_name && !fieldErrors.last_name && !fieldErrors.birthdate &&
+      !fieldErrors.suffix && !fieldErrors.genderOther &&
+      formData.username.length >= 8 &&
+      (formData.gender !== 'Other' || formData.genderOther.trim() !== '');
 
     return filled && formData.password === formData.confirmPassword && noErrors && !usernameChecking && !emailChecking;
   };
@@ -167,12 +203,17 @@ const Register = () => {
     setLoading(true); setError(''); setSuccess('');
 
     try {
+      const fullLastName = formData.suffix.trim()
+        ? `${formData.last_name} ${formData.suffix.trim()}`
+        : formData.last_name;
+      const resolvedGender = formData.gender === 'Other' ? formData.genderOther.trim() : formData.gender;
+
       const res = await axios.post(`${API_BASE_URL}/auth/register.php`, {
         username: formData.username, email: formData.email,
         password: formData.password, first_name: formData.first_name,
-        middle_name: formData.middle_name, last_name: formData.last_name,
-        birthdate: formData.birthdate, gender: formData.gender,
-        phone: formData.phone,
+        middle_name: formData.middle_name, last_name: fullLastName,
+        birthdate: formData.birthdate, gender: resolvedGender,
+        phone: `+63${formData.phone}`,
       }, { headers: { 'Content-Type': 'application/json' } });
 
       if (res.data.success && res.data.requires_verification) {
@@ -186,6 +227,46 @@ const Register = () => {
     } finally { setLoading(false); }
   };
 
+  const handleOtpChange = (index, value) => {
+  const digit = value.replace(/\D/g, '').slice(-1); // only last digit typed
+  const codeArr = verificationCode.split('');
+  codeArr[index] = digit || '';
+  const newCode = codeArr.join('').slice(0, 6);
+  setVerificationCode(newCode);
+  if (error) setError('');
+
+  if (digit && index < 5) {
+    otpRefs.current[index + 1]?.focus();
+  }
+};
+
+const handleOtpKeyDown = (index, e) => {
+  if (e.key === 'Backspace') {
+    if (!verificationCode[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+      const codeArr = verificationCode.split('');
+      codeArr[index - 1] = '';
+      setVerificationCode(codeArr.join(''));
+      e.preventDefault();
+    }
+  } else if (e.key === 'ArrowLeft' && index > 0) {
+    otpRefs.current[index - 1]?.focus();
+  } else if (e.key === 'ArrowRight' && index < 5) {
+    otpRefs.current[index + 1]?.focus();
+  }
+};
+
+const handleOtpPaste = (e) => {
+  e.preventDefault();
+  const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+  if (pasted) {
+    setVerificationCode(pasted);
+    if (error) setError('');
+    const nextIndex = Math.min(pasted.length, 5);
+    otpRefs.current[nextIndex]?.focus();
+  }
+};
+
   const handleVerification = async (e) => {
     e.preventDefault();
     setLoading(true); setError(''); setSuccess('');
@@ -196,16 +277,23 @@ const Register = () => {
         username: formData.username, password: formData.password,
         first_name: formData.first_name, middle_name: formData.middle_name,
         last_name: formData.last_name, birthdate: formData.birthdate,
-        gender: formData.gender, phone: formData.phone,
+        gender: formData.gender === 'Other' ? formData.genderOther.trim() : formData.gender,
+        last_name: formData.suffix.trim() ? `${formData.last_name} ${formData.suffix.trim()}` : formData.last_name,
+        phone: formData.phone,
       }, { headers: { 'Content-Type': 'application/json' } });
 
       if (res.data.success) {
-        setSuccess('Registration successful! Redirecting to login...');
-        setTimeout(() => navigate('/login'), 2000);
+        setSuccess('Registration successful! Redirecting to your dashboard...');
+        setAuth(res.data.token, res.data.user);
+        sessionStorage.setItem('showVerifyPrompt', '1'); // triggers the verify prompt on first dashboard load
+        setTimeout(() => {
+          window.location.replace('/owner/dashboard');
+        }, 2000);
       } else { throw new Error(res.data.error || 'Registration failed'); }
     } catch (err) {
       setError(err.response?.data?.error || 'Verification failed');
-    } finally { setLoading(false); }
+      setLoading(false);
+    }
   };
 
   const handleResendCode = async () => {
@@ -218,7 +306,7 @@ const Register = () => {
         password: formData.password, first_name: formData.first_name,
         middle_name: formData.middle_name, last_name: formData.last_name,
         birthdate: formData.birthdate, gender: formData.gender,
-        phone: formData.phone,
+        phone: `+63${formData.phone}`,
       }, { headers: { 'Content-Type': 'application/json' } });
 
       setSuccess('Verification code resent! Please check your email.');
@@ -287,6 +375,7 @@ const Register = () => {
     @keyframes dropDown { 0%{opacity:0;transform:translateY(-40px)} 100%{opacity:1;transform:translateY(0)} }
     @keyframes pulse    { 0%,100%{opacity:0.5} 50%{opacity:1} }
     @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    @keyframes waveDots { 0%,60%,100%{transform:translateY(0);opacity:0.5} 30%{transform:translateY(-6px);opacity:1} }
     input::placeholder, textarea::placeholder, select::placeholder { color:rgba(0,0,0,0.3)!important; }
     input:-webkit-autofill,input:-webkit-autofill:focus {
       -webkit-box-shadow:0 0 0 1000px #f8f9fa inset!important;
@@ -368,13 +457,20 @@ const Register = () => {
                     {/* ── Section: Personal Info ── */}
                     <SectionHeading icon="fa-address-card" label="Personal Information" />
 
-                    <Row>
+                    <div style={{ background:'rgba(255,193,7,0.08)', border:'1.5px solid rgba(255,193,7,0.45)', borderRadius:'12px', padding:'0.85rem 1rem', marginBottom:'1.25rem', fontSize:'0.85rem', color:'#6b5300', display:'flex', alignItems:'flex-start', gap:'0.6rem', lineHeight:1.55 }}>
+                      <i className="fas fa-exclamation-triangle" style={{ color:'#ffc107', marginTop:'0.2rem', flexShrink:0 }} />
+                      <span>
+                        <strong style={{ color:'#1a1a1a' }}>Important Reminder:</strong> Your <strong>name</strong> and <strong>birthdate</strong> must be accurate and match your official government-issued ID, as they will be used to verify your account later.
+                      </span>
+                    </div>
+
+                                        <Row>
                       <Col md={4}>
                         <Form.Group className="mb-3">
                           <Form.Label style={labelStyle}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />First Name <Req /></Form.Label>
                           <Form.Control type="text" name="first_name" value={formData.first_name} onChange={handleChange}
-                            onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onFocus={() => setFocusedField('first_name')} onBlur={(e) => { setFocusedField(null); if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); }}
-                            placeholder="First name" required disabled={loading}
+                            onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onFocus={() => setFocusedField('first_name')} onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); else if (v.endsWith('.')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a dot' })); }}
+                            placeholder="First name" required disabled={loading} maxLength={30}
                             style={inputStyle('first_name')} />
                           <FieldError msg={fieldErrors.first_name} />
                         </Form.Group>
@@ -383,8 +479,8 @@ const Register = () => {
                         <Form.Group className="mb-3">
                           <Form.Label style={labelStyle}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Middle Name</Form.Label>
                           <Form.Control type="text" name="middle_name" value={formData.middle_name} onChange={handleChange}
-                            onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onFocus={() => setFocusedField('middle_name')}onBlur={(e) => { setFocusedField(null); if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); }}
-                            placeholder="Optional" disabled={loading}
+                            onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onFocus={() => setFocusedField('middle_name')} onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); else if (v.endsWith('.')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a dot' })); }}
+                            placeholder="Optional" disabled={loading} maxLength={30}
                             style={inputStyle('middle_name')} />
                           <FieldError msg={fieldErrors.middle_name} />
                         </Form.Group>
@@ -392,11 +488,24 @@ const Register = () => {
                       <Col md={4}>
                         <Form.Group className="mb-3">
                           <Form.Label style={labelStyle}><i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Last Name <Req /></Form.Label>
-                          <Form.Control type="text" name="last_name" value={formData.last_name} onChange={handleChange}
-                            onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onFocus={() => setFocusedField('last_name')} onBlur={(e) => { setFocusedField(null); if (e.target.value.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); }}
-                            placeholder="Last name" required disabled={loading}
-                            style={inputStyle('last_name')} />
-                          <FieldError msg={fieldErrors.last_name} />
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div style={{ flex: 3 }}>
+                              <Form.Control type="text" name="last_name" value={formData.last_name} onChange={handleChange}
+                                onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onFocus={() => setFocusedField('last_name')} onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); else if (v.endsWith('.')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a dot' })); }}
+                                placeholder="Last name" required disabled={loading} maxLength={30}
+                                style={inputStyle('last_name')} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <Form.Control type="text" name="suffix" value={formData.suffix} onChange={handleChange}
+                                onFocus={() => setFocusedField('suffix')} onBlur={() => setFocusedField(null)}
+                                placeholder="Jr." disabled={loading} maxLength={10}
+                                style={inputStyle('suffix')} />
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div style={{ flex: 3 }}><FieldError msg={fieldErrors.last_name} /></div>
+                            <div style={{ flex: 1 }}><FieldError msg={fieldErrors.suffix} /></div>
+                          </div>
                         </Form.Group>
                       </Col>
                     </Row>
@@ -407,8 +516,9 @@ const Register = () => {
                           <Form.Label style={labelStyle}><i className="fas fa-calendar me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Birthdate <Req /></Form.Label>
                           <Form.Control type="date" name="birthdate" value={formData.birthdate} onChange={handleChange}
                             onFocus={() => setFocusedField('birthdate')} onBlur={() => setFocusedField(null)}
-                            required disabled={loading} max={new Date().toISOString().split('T')[0]}
+                            required disabled={loading} max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().split('T')[0]; })()}
                             style={{ ...inputStyle('birthdate'), colorScheme:'light' }} />
+                          <FieldError msg={fieldErrors.birthdate} />
                         </Form.Group>
                       </Col>
                       <Col md={4}>
@@ -422,23 +532,58 @@ const Register = () => {
                             <option value="Female">Female</option>
                             <option value="Other">Other</option>
                           </Form.Select>
+                          {formData.gender === 'Other' && (
+                            <div style={{ marginTop: '0.5rem' }}>
+                              <Form.Control
+                                type="text"
+                                name="genderOther"
+                                value={formData.genderOther}
+                                onChange={handleChange}
+                                onFocus={() => setFocusedField('genderOther')}
+                                onBlur={() => {
+                                  setFocusedField(null);
+                                  if (!formData.genderOther.trim())
+                                    setFieldErrors(prev => ({ ...prev, genderOther: 'Please specify your gender' }));
+                                }}
+                                placeholder="Please specify…"
+                                disabled={loading}
+                                maxLength={30}
+                                style={inputStyle('genderOther')}
+                              />
+                              <FieldError msg={fieldErrors.genderOther} />
+                            </div>
+                          )}
                         </Form.Group>
                       </Col>
                       <Col md={4}>
                         <Form.Group className="mb-0">
                           <Form.Label style={labelStyle}><i className="fas fa-phone me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Phone Number <Req /></Form.Label>
-                          <Form.Control type="tel" name="phone" value={formData.phone} onChange={handleChange}
-                            onFocus={() => setFocusedField('phone')} onBlur={() => setFocusedField(null)}
-            onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-            placeholder="09123456789" required disabled={loading}
-                            style={{
-                              ...inputStyle('phone'),
-                              border: fieldErrors.phone
-                                ? '2px solid #ef4444'
-                                : (formData.phone && !fieldErrors.phone && /^09\d{9}$/.test(formData.phone))
-                                  ? '2px solid #10b981'
-                                  : focusedField === 'phone' ? '2px solid #ffc107' : '2px solid rgba(0,0,0,0.1)',
-                            }} />
+                          <div style={{ display: 'flex' }}>
+                            <span style={{
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              padding: '0 14px', height: '52px',
+                              borderRadius: '14px 0 0 14px',
+                              border: fieldErrors.phone ? '2px solid #ef4444' : focusedField === 'phone' ? '2px solid #ffc107' : '2px solid rgba(0,0,0,0.1)',
+                              borderRight: 'none',
+                              background: '#eee', color: '#1a1a1a', fontWeight: '600', fontSize: '0.95rem',
+                            }}>
+                              +63
+                            </span>
+                            <Form.Control type="tel" name="phone" value={formData.phone} onChange={handleChange}
+                              onFocus={() => setFocusedField('phone')} onBlur={() => setFocusedField(null)}
+                              onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                              placeholder="9123456789" required disabled={loading} maxLength={10}
+                              style={{
+                                ...inputStyle('phone'),
+                                borderRadius: '0 14px 14px 0',
+                                border: fieldErrors.phone
+                                  ? '2px solid #ef4444'
+                                  : (formData.phone && !fieldErrors.phone && /^9\d{9}$/.test(formData.phone))
+                                    ? '2px solid #10b981'
+                                    : focusedField === 'phone' ? '2px solid #ffc107' : '2px solid rgba(0,0,0,0.1)',
+                                borderLeftWidth: 0,
+                              }} />
+                          </div>
                           <FieldError msg={fieldErrors.phone} />
                         </Form.Group>
                       </Col>
@@ -456,7 +601,7 @@ const Register = () => {
                           <div style={{ position:'relative' }}>
                             <Form.Control type="text" name="username" value={formData.username} onChange={handleChange}
                               onFocus={() => setFocusedField('username')} onBlur={() => setFocusedField(null)}
-                              placeholder="Min. 8 characters" required disabled={loading}
+                              placeholder="Min. 8 characters" required disabled={loading} maxLength={30}
                               style={{
                                 ...inputStyle('username'), paddingRight:'3rem',
                                 border: usernameError === 'taken'   ? '2px solid #ef4444'
@@ -478,7 +623,7 @@ const Register = () => {
                           {usernameError === 'invalid'        && <FieldError msg="Only letters, numbers, and underscores" color="#f59e0b" />}
                           {usernameError === 'letters_required' && <FieldError msg="Username must contain at least one letter" color="#f59e0b" />}
                           {!usernameError && formData.username.length >= 8 && !usernameChecking && <FieldOk msg="Username is available!" />}
-                          {!usernameError && formData.username.length > 0 && formData.username.length < 8 && <FieldHint msg="Must be at least 8 characters" />}
+                          {!usernameError && formData.username.length > 0 && formData.username.length < 8 && <FieldError msg="Must be at least 8 characters" />}
                         </Form.Group>
                       </Col>
 
@@ -523,8 +668,8 @@ const Register = () => {
                               type={showPassword ? 'text' : 'password'}
                               name="password" value={formData.password} onChange={handleChange}
                               onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)}
-                              placeholder="Create a strong password" required disabled={loading}
-                              style={{ ...inputStyle('password'), paddingRight:'3rem' }} />
+                              placeholder="Create a strong password" required disabled={loading} maxLength={64}
+              style={{ ...inputStyle('password'), paddingRight:'3rem' }} />
                             <EyeToggle show={showPassword} onToggle={() => !loading && setShowPassword(p => !p)} disabled={loading} />
                           </div>
                           <FieldError msg={fieldErrors.password} />
@@ -565,7 +710,7 @@ const Register = () => {
                               type={showConfirmPassword ? 'text' : 'password'}
                               name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
                               onFocus={() => setFocusedField('confirmPassword')} onBlur={() => setFocusedField(null)}
-                              placeholder="Repeat your password" required disabled={loading}
+                              placeholder="Repeat your password" required disabled={loading} maxLength={64}
                               style={{
                                 ...inputStyle('confirmPassword'), paddingRight:'3rem',
                                 border: fieldErrors.confirmPassword ? '2px solid #ef4444'
@@ -594,7 +739,7 @@ const Register = () => {
                         onMouseOver={e => { if (!loading && isFormValid()) { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 32px rgba(255,193,7,0.6)'; } }}
                         onMouseOut={e  => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(255,193,7,0.4)'; }}>
                         {loading
-                          ? <><Spinner as="span" animation="border" size="sm" className="me-2" />Sending Code...</>
+                          ? <WaveDots color="#666" />
                           : <><i className="fas fa-envelope me-2" />Send Verification Code</>}
                       </Button>
                     </div>
@@ -671,18 +816,39 @@ const Register = () => {
                     <Form.Label className="d-block text-center mb-3" style={{ fontWeight:'600', color:'#1a1a1a', fontSize:'0.95rem' }}>
                       <i className="fas fa-key me-2" style={{ color:'#ffc107' }} />Enter 6-Digit Code
                     </Form.Label>
-                    <Form.Control type="text"
-                      value={verificationCode}
-                      onChange={e => { const v = e.target.value.replace(/\D/g,'').slice(0,6); setVerificationCode(v); if (error) setError(''); }}
-                      placeholder="000000" maxLength={6} required disabled={loading}
-                      style={{
-                        borderRadius:'16px', padding:'1rem',
-                        border:'2.5px dashed #ffc107',
-                        fontSize:'2.2rem', textAlign:'center',
-                        letterSpacing:'1rem', fontWeight:'bold',
-                        background:'rgba(255,193,7,0.04)', color:'#ffc107',
-                        transition:'all 0.3s',
-                      }} />
+                    <div
+                      onPaste={handleOtpPaste}
+                      style={{ display:'flex', justifyContent:'center', gap:'0.6rem' }}
+                    >
+                      {[0, 1, 2, 3, 4, 5].map((i) => (
+                        <input
+                          key={i}
+                          ref={(el) => (otpRefs.current[i] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={verificationCode[i] || ''}
+                          disabled={loading}
+                          onChange={(e) => handleOtpChange(i, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                          style={{
+                            width: '50px',
+                            height: '58px',
+                            borderRadius: '14px',
+                            border: verificationCode[i] ? '2.5px solid #ffc107' : '2.5px dashed #d1d5db',
+                            fontSize: '1.7rem',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            background: 'rgba(255,193,7,0.04)',
+                            color: '#1a1a1a',
+                            outline: 'none',
+                            transition: 'all 0.3s',
+                          }}
+                          onFocus={(e) => { e.target.style.border = '2.5px solid #ffc107'; e.target.style.boxShadow = '0 0 0 4px rgba(255,193,7,0.15)'; }}
+                          onBlur={(e) => { e.target.style.boxShadow = 'none'; if (!verificationCode[i]) e.target.style.border = '2.5px dashed #d1d5db'; }}
+                        />
+                      ))}
+                    </div>
                     <div className="text-center mt-2">
                       <small style={{ color:'#9ca3af', fontSize:'0.85rem' }}>
                         <i className="fas fa-clock me-1" />Code expires in 15 minutes
@@ -701,7 +867,7 @@ const Register = () => {
                     onMouseOver={e => { if (!loading && verificationCode.length === 6) e.currentTarget.style.transform='translateY(-2px)'; }}
                     onMouseOut={e  => { e.currentTarget.style.transform='translateY(0)'; }}>
                     {loading
-                      ? <><Spinner as="span" animation="border" size="sm" className="me-2" />Verifying...</>
+                      ? <WaveDots color="#666" />
                       : <><i className="fas fa-check-circle me-2" />Verify & Complete Registration</>}
                   </Button>
 
@@ -749,6 +915,14 @@ const Register = () => {
 };
 
 // ── Small helper components ────────────────────────────────
+const WaveDots = ({ color = '#ffffff' }) => (
+  <span style={{ display:'inline-flex', alignItems:'center', gap:'6px', height:'1.05rem' }}>
+    <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:color, display:'inline-block', animation:'waveDots 1.2s ease-in-out infinite', animationDelay:'0s' }} />
+    <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:color, display:'inline-block', animation:'waveDots 1.2s ease-in-out infinite', animationDelay:'0.15s' }} />
+    <span style={{ width:'8px', height:'8px', borderRadius:'50%', background:color, display:'inline-block', animation:'waveDots 1.2s ease-in-out infinite', animationDelay:'0.3s' }} />
+  </span>
+);
+
 const Req = () => <span style={{ color:'#ef4444', marginLeft:'2px' }}>*</span>;
 
 const FieldError = ({ msg, color = '#ef4444' }) =>

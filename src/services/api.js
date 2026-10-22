@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost/city-pet-vaccination-api'
-  : 'https://city-pet-vaccination-api.onrender.com';
+  : 'https://petunity-muntinlupacity.com/city-pet-vaccination-api';
 
 const TOKEN_KEY = 'pet_vaccination_token';
 const USER_KEY = 'pet_vaccination_user';
@@ -102,46 +102,52 @@ export const ownerAPI = {
 
 // Vaccination API
 export const vaccinationAPI = {
-  getAll: () => api.get('/vaccinations'),
+  getAll: (params = '') => api.get(`/vaccinations${params}`),
   getByPetId: (petId) => api.get(`/vaccinations/pet/${petId}`),
   getDue: () => api.get('/vaccinations/due'),
   getTypes: () => api.get('/vaccinations/types'),
   create: (data) => api.post('/vaccinations/create', data),
   update: (id, data) => api.put(`/vaccinations/update/${id}`, data),
   delete: (id) => api.delete(`/vaccinations/delete/${id}`),
+  restore: (id) => api.put(`/vaccinations/restore/${id}`),
+  forceDelete: (id) => api.delete(`/vaccinations/force-delete/${id}`),
   getStatistics: () => api.get('/vaccinations/statistics'),
 };
 
 // Deworming API
 export const dewormingAPI = {
-  getAll: () => api.get('/dewormings'),
+  getAll: (params = '') => api.get(`/dewormings${params}`),
   getByPetId: (petId) => api.get(`/dewormings/pet/${petId}`),
   getDue: () => api.get('/dewormings/due'),
   getTypes: () => api.get('/dewormings/types'),
   create: (data) => api.post('/dewormings/create', data),
   update: (id, data) => api.put(`/dewormings/update/${id}`, data),
   delete: (id) => api.delete(`/dewormings/delete/${id}`),
+  restore: (id) => api.put(`/dewormings/restore/${id}`),
   getStatistics: () => api.get('/dewormings/statistics'),
 };
-
 // Microchip API
 export const microchipAPI = {
-  getAll: () => api.get('/microchips'),
+  getAll: (params = '') => api.get(`/microchips${params}`),
   getByPetId: (petId) => api.get(`/microchips/pet/${petId}`),
   getById: (id) => api.get(`/microchips/show/${id}`),
   create: (data) => api.post('/microchips/create', data),
   update: (id, data) => api.put(`/microchips/update/${id}`, data),
   delete: (id) => api.delete(`/microchips/delete/${id}`),
+  restore: (id) => api.put(`/microchips/restore/${id}`),
+  forceDelete: (id) => api.delete(`/microchips/force-delete/${id}`),
 };
 
 // Sterilization API
 export const sterilizationAPI = {
-  getAll: () => api.get('/sterilizations'),
+  getAll: (params = '') => api.get(`/sterilizations${params}`),
   getByPetId: (petId) => api.get(`/sterilizations/pet/${petId}`),
   getStatistics: () => api.get('/sterilizations/statistics'),
   create: (data) => api.post('/sterilizations/create', data),
   update: (id, data) => api.put(`/sterilizations/update/${id}`, data),
   delete: (id) => api.delete(`/sterilizations/delete/${id}`),
+  restore: (id) => api.put(`/sterilizations/restore/${id}`),
+  forceDelete: (id) => api.delete(`/sterilizations/force-delete/${id}`),
 };
 
 // Vet Card API
@@ -247,7 +253,7 @@ export const barangayAPI = {
 // Private Clinic API
 export const clinicAPI = {
   getDashboard:  ()         => api.get('/clinics/dashboard'),
-  getRecords:    ()         => api.get('/clinics/records'),
+  getRecords:    (params = '') => api.get(`/clinics/records${params}`),  
   updateRecord:  (id, type, data)  => api.put(`/clinics/records/update/${id}/${type}`, data),
   getAll:        ()         => api.get('/clinics'),
   getById:       (id)       => api.get(`/clinics/show/${id}`),
@@ -272,9 +278,9 @@ export const inventoryAPI = {
   getBatchAvailability: (inventoryId)   => api.get(`/inventory/batch-availability/${inventoryId}`),
   getScheduleAllocations: (scheduleId) => api.get(`/inventory/schedule-allocations/${scheduleId}`),
   saveScheduleAllocations: (scheduleId, data) => api.post(`/inventory/schedule-allocations/${scheduleId}`, data),
-  getRecordBatchAvailability: (inventoryId) => api.get(`/inventory/record-batch-availability/${inventoryId}`),
-  deductBatchStock: (batchId, data) => api.post(`/inventory/batch-deduct/${batchId}`, data),
-  getClinicRecordBatchAvailability: (inventoryId) => api.get(`/clinic/inventory/record-batch-availability/${inventoryId}`),
+  getRecordBatchAvailability: (inventoryId, params = '') => api.get(`/inventory/record-batch-availability/${inventoryId}${params}`),
+deductBatchStock: (batchId, data) => api.post(`/inventory/batch-deduct/${batchId}`, data),
+  restoreBatchStock: (batchId, data) => api.post(`/inventory/batch-restore/${batchId}`, data),  getClinicRecordBatchAvailability: (inventoryId) => api.get(`/clinic/inventory/record-batch-availability/${inventoryId}`),
   deductClinicBatchStock: (batchId, data) => api.post(`/clinic/inventory/batch-deduct/${batchId}`, data),
   delete: (id) => api.delete(`/inventory/delete/${id}`),
 };

@@ -130,6 +130,10 @@ if (onLogin) {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
+        @keyframes waveDots {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+          30% { transform: translateY(-6px); opacity: 1; }
+        }
         @media (max-width: 991px) {
           .login-container {
             padding: 1.5rem 1rem !important;
@@ -569,17 +573,11 @@ if (onLogin) {
                     }}
                   >
                     {loading ? (
-                      <>
-                        <Spinner
-                          as="span"
-                          animation="border"
-                          size="sm"
-                          role="status"
-                          className="me-2"
-                          style={{ color: '#ffffff' }}
-                        />
-                        <span style={{ color: '#ffffff' }}>Signing in...</span>
-                      </>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '1.05rem' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ffffff', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0s' }} />
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ffffff', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.15s' }} />
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ffffff', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
+                      </span>
                     ) : (
                       <>
                         <i className="fas fa-sign-in-alt me-2"></i>

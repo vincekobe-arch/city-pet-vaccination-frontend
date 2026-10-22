@@ -2,6 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table } from 'react-bootstrap';
 import { petAPI, ownerAPI, microchipAPI, vetCardAPI, handleAPIError } from '../../services/api';
 
+const WaveDots = ({ color = '#000000' }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '1rem' }}>
+    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0s' }} />
+    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.15s' }} />
+    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
+  </span>
+);
+
 const PetStatus = () => {
   const [pets, setPets] = useState([]);
   const [selectedPet, setSelectedPet] = useState(null);
@@ -250,6 +258,10 @@ useEffect(() => {
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
+    }
+    @keyframes waveDots {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+      30% { transform: translateY(-6px); opacity: 1; }
     }
 
     @media (max-width: 768px) {
@@ -610,6 +622,7 @@ useEffect(() => {
       name: '',
       species: '',
       breed: '',
+      breed_other: '',
       gender: '',
       birth_date: '',
       weight: '',
@@ -708,6 +721,7 @@ useEffect(() => {
     try {
       const submitData = {
         ...registerFormData,
+        breed: registerFormData.breed === 'other' ? (registerFormData.breed_other?.trim() || 'Other') : registerFormData.breed,
         owner_id: ownerId
       };
       
@@ -776,7 +790,7 @@ useEffect(() => {
                 }}
               >
                 <i className="fas fa-plus me-2"></i>
-                Register New Pet
+                Register Pet
               </Button>
             )}
           </div>
@@ -1574,7 +1588,20 @@ useEffect(() => {
               ))}
               <option value="mixed">Mixed Breed</option>
               <option value="unknown">Unknown</option>
+              <option value="other">Other</option>
             </Form.Select>
+          {registerFormData.breed === 'other' && (
+            <Form.Control
+              type="text"
+              name="breed_other"
+              value={registerFormData.breed_other || ''}
+              onChange={handleRegisterFormChange}
+              placeholder="Please specify breed"
+              disabled={registerLoading}
+              className="mt-2"
+              style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #ffc107' }}
+            />
+          )}
           </Form.Group>
         </Col>
       </Row>
@@ -1792,10 +1819,7 @@ useEffect(() => {
         }}
       >
         {registerLoading ? (
-          <>
-            <Spinner size="sm" animation="border" className="me-2" />
-            Registering...
-          </>
+          <WaveDots />
         ) : (
           <>
             <i className="fas fa-plus-circle me-2"></i>
@@ -2330,10 +2354,7 @@ useEffect(() => {
         }}
       >
         {updateLoading ? (
-          <>
-            <Spinner size="sm" animation="border" className="me-2" />
-            Updating...
-          </>
+          <WaveDots />
         ) : (
           <>
             <i className="fas fa-save me-2"></i>
@@ -2421,10 +2442,7 @@ useEffect(() => {
       }}
     >
       {deleteLoading ? (
-        <>
-          <Spinner size="sm" animation="border" className="me-2" />
-          Removing...
-        </>
+        <WaveDots color="#ffffff" />
       ) : (
         <>
           <i className="fas fa-trash me-2"></i>
@@ -2505,7 +2523,7 @@ useEffect(() => {
                 disabled={photoUploading}
               >
                 {photoUploading ? (
-                  <><Spinner animation="border" size="sm" className="me-2" />Uploading...</>
+                  <WaveDots />
                 ) : (
                   <><i className="fas fa-check me-2"></i>Crop & Save</>
                 )}
