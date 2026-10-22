@@ -449,16 +449,13 @@ const streamRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
-  const bg = 'rgba(255,252,235,0.82)';
+  const bg = darkMode
+    ? 'linear-gradient(180deg, #0d0d0d 0%, #111111 100%)'
+    : 'linear-gradient(180deg, #ffffff 0%, #f9f9f9 100%)';
 
-  const border = 'rgba(0,0,0,0.08)';
-  const textColor = '#1a1a1a';
+  const border = darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
+  const textColor = darkMode ? '#e0e0e0' : '#1a1a1a';
   const subTextColor = darkMode ? '#666' : '#aaa';
-  const sidebarText = '#3d3d3d';
-  const sidebarIcon = '#9a7b00';
-  const sidebarActiveText = '#8a5a00';
-  const glassActiveBg = 'rgba(255,224,102,0.45)';
-  const glassActiveShadow = '0 2px 8px rgba(255,193,7,0.18), inset 0 0 0 1px rgba(255,255,255,0.8)';
 
   const sidebarWidth = collapsed ? '72px' : '240px';
 
@@ -546,8 +543,10 @@ const streamRef = useRef(null);
       marginBottom: '3px',
       cursor: 'pointer',
       transition: 'all 0.25s ease',
-      background: anyChildActive ? 'rgba(255,255,255,0.55)' : 'transparent',
-      color: sidebarText,
+      background: anyChildActive
+        ? 'linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(255,179,0,0.15) 100%)'
+        : 'transparent',
+      color: anyChildActive ? '#ffc107' : (darkMode ? '#bbbbbb' : '#333333'),
       fontWeight: anyChildActive ? '700' : '500',
       fontSize: '0.875rem',
       justifyContent: collapsed ? 'center' : 'flex-start',
@@ -568,14 +567,14 @@ const streamRef = useRef(null);
           }}
           onMouseOver={(e) => {
             if (!anyChildActive) {
-              e.currentTarget.style.background = 'rgba(255,224,102,0.28)';
-              e.currentTarget.style.color = '#2b2200';
+              e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.12)';
+              e.currentTarget.style.color = darkMode ? '#ffffff' : '#1a1a1a';
             }
           }}
           onMouseOut={(e) => {
             if (!anyChildActive) {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = sidebarText;
+              e.currentTarget.style.background = anyChildActive ? 'linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(255,179,0,0.15) 100%)' : 'transparent';
+              e.currentTarget.style.color = anyChildActive ? '#ffc107' : (darkMode ? '#bbbbbb' : '#333333');
             }
           }}
           title={collapsed ? link.label : undefined}
@@ -585,7 +584,7 @@ const streamRef = useRef(null);
             width: '18px',
             textAlign: 'center',
             flexShrink: 0,
-            color: sidebarIcon,
+            color: anyChildActive ? '#ffc107' : (darkMode ? '#888888' : '#666666'),
           }} />
           {!collapsed && (
             <>
@@ -594,7 +593,7 @@ const streamRef = useRef(null);
                 className={`fas fa-chevron-${isOpen ? 'up' : 'down'}`}
                 style={{
                   fontSize: '0.65rem',
-                  color: sidebarIcon,
+                  color: darkMode ? '#666' : '#aaa',
                   transition: 'transform 0.25s',
                   transform: isOpen ? 'rotate(0deg)' : 'rotate(0deg)',
                 }}
@@ -608,7 +607,7 @@ const streamRef = useRef(null);
           <div style={{
             marginLeft: '1.25rem',
             marginBottom: '4px',
-            borderLeft: '2px solid rgba(217,130,0,0.30)',
+            borderLeft: `2px solid ${darkMode ? 'rgba(255,193,7,0.2)' : 'rgba(255,193,7,0.3)'}`,
             paddingLeft: '0.5rem',
             overflow: 'hidden',
             animation: 'dropdownFadeIn 0.2s ease forwards',
@@ -627,24 +626,26 @@ const streamRef = useRef(null);
                     borderRadius: '10px',
                     marginBottom: '2px',
                     textDecoration: 'none',
-                    background: childActive ? glassActiveBg : 'transparent',
-                    color: childActive ? sidebarActiveText : sidebarText,
+                    background: childActive
+                      ? 'linear-gradient(135deg, #ffc107 0%, #ffb300 100%)'
+                      : 'transparent',
+                    color: childActive ? '#1a1a1a' : (darkMode ? '#bbbbbb' : '#444444'),
                     fontWeight: childActive ? '700' : '500',
                     fontSize: '0.85rem',
                     transition: 'all 0.2s',
-                    boxShadow: childActive ? glassActiveShadow : 'none',
+                    boxShadow: childActive ? '0 3px 10px rgba(255,193,7,0.3)' : 'none',
                   }}
                   onClick={() => setMobileOpen(false)}
                   onMouseOver={(e) => {
                     if (!childActive) {
-                      e.currentTarget.style.background = 'rgba(255,224,102,0.28)';
-                      e.currentTarget.style.color = '#2b2200';
+                      e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.1)';
+                      e.currentTarget.style.color = darkMode ? '#fff' : '#1a1a1a';
                     }
                   }}
                   onMouseOut={(e) => {
                     if (!childActive) {
                       e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = sidebarText;
+                      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#444444';
                     }
                   }}
                 >
@@ -652,7 +653,7 @@ const streamRef = useRef(null);
                     fontSize: '0.82rem',
                     width: '16px',
                     textAlign: 'center',
-                    color: childActive ? sidebarActiveText : sidebarIcon,
+                    color: childActive ? '#1a1a1a' : (darkMode ? '#888' : '#777'),
                   }} />
                   <span>{child.label}</span>
                 </Link>
@@ -674,8 +675,10 @@ const streamRef = useRef(null);
     marginBottom: '3px',
     cursor: 'pointer',
     transition: 'all 0.25s ease',
-    background: active ? glassActiveBg : 'transparent',
-    color: active ? sidebarActiveText : sidebarText,
+    background: active
+      ? 'linear-gradient(135deg, #ffc107 0%, #ffb300 100%)'
+      : 'transparent',
+    color: active ? '#1a1a1a' : (darkMode ? '#bbbbbb' : '#333333'),
     fontWeight: active ? '700' : '500',
     fontSize: '0.875rem',
     textDecoration: 'none',
@@ -683,7 +686,7 @@ const streamRef = useRef(null);
     position: 'relative',
     overflow: 'hidden',
     whiteSpace: 'nowrap',
-    boxShadow: active ? glassActiveShadow : 'none',
+    boxShadow: active ? '0 4px 14px rgba(255,193,7,0.35)' : 'none',
   };
 
   const iconStyle = {
@@ -691,20 +694,20 @@ const streamRef = useRef(null);
     width: '18px',
     textAlign: 'center',
     flexShrink: 0,
-    color: active ? sidebarActiveText : sidebarIcon,
+    color: active ? '#1a1a1a' : (darkMode ? '#888888' : '#666666'),
     transition: 'color 0.2s',
   };
 
   const handleMouseOver = (e) => {
     if (!active) {
-      e.currentTarget.style.background = 'rgba(255,224,102,0.28)';
-      e.currentTarget.style.color = '#2b2200';
+      e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.12)';
+      e.currentTarget.style.color = darkMode ? '#ffffff' : '#1a1a1a';
     }
   };
   const handleMouseOut = (e) => {
     if (!active) {
       e.currentTarget.style.background = 'transparent';
-      e.currentTarget.style.color = sidebarText;
+      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#333333';
     }
   };
 
@@ -804,8 +807,8 @@ const streamRef = useRef(null);
               onError={(e) => { e.target.style.display = 'none'; }}
             />
             <span style={{ fontWeight: '700', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#d98200' }}>Pet</span>
-              <span style={{ color: '#1a1a1a' }}>Unity</span>
+              <span style={{ color: '#ffc107' }}>Pet</span>
+              <span style={{ color: textColor }}>Unity</span>
             </span>
           </Link>
         )}
@@ -828,13 +831,13 @@ const streamRef = useRef(null);
               cursor: 'pointer',
               padding: '0.3rem',
               borderRadius: '8px',
-              color: '#8a6d00',
+              color: darkMode ? '#666' : '#aaa',
               transition: 'all 0.2s',
               flexShrink: 0,
               marginLeft: collapsed ? 0 : '0.3rem',
             }}
-            onMouseOver={(e) => { e.currentTarget.style.color = '#000'; e.currentTarget.style.background = 'rgba(255,224,102,0.28)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.color = '#3a2e00'; e.currentTarget.style.background = 'transparent'; }}
+            onMouseOver={(e) => { e.currentTarget.style.color = '#ffc107'; e.currentTarget.style.background = 'rgba(255,193,7,0.1)'; }}
+            onMouseOut={(e) => { e.currentTarget.style.color = darkMode ? '#666' : '#aaa'; e.currentTarget.style.background = 'transparent'; }}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
             <i className={`fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`} style={{ fontSize: '0.75rem' }} />
@@ -858,7 +861,7 @@ const streamRef = useRef(null);
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
-        color: 'rgba(0,0,0,0.35)',
+        color: darkMode ? '#333333' : '#cccccc',
       }}>
         Menu
       </span>
@@ -1432,9 +1435,7 @@ const streamRef = useRef(null);
           width: sidebarWidth,
           height: '100vh',
           background: bg,
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderRight: '1px solid rgba(255,193,7,0.18)',
+          borderRight: `1px solid ${border}`,
           position: 'fixed',
           top: 0,
           left: 0,
@@ -1442,7 +1443,9 @@ const streamRef = useRef(null);
           transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
           overflow: 'hidden',
           zIndex: 10000,
-          boxShadow: '4px 0 24px rgba(0,0,0,0.05)',
+          boxShadow: darkMode
+            ? '2px 0 20px rgba(0,0,0,0.4)'
+            : '2px 0 20px rgba(0,0,0,0.06)',
         }}
       >
         {sidebarContent(false)}
