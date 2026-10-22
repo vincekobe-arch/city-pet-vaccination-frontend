@@ -449,9 +449,9 @@ const streamRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
-  const bg = 'linear-gradient(180deg, #ffc107 0%, #ffb300 100%)';
+  const bg = 'linear-gradient(180deg, #fff59d 0%, #ffee58 100%)';
 
-  const border = 'rgba(0,0,0,0.12)';
+  const border = 'rgba(0,0,0,0.08)';
   const textColor = '#1a1a1a';
   const subTextColor = darkMode ? '#666' : '#aaa';
   const sidebarText = '#1a1a1a';
@@ -801,7 +801,7 @@ const streamRef = useRef(null);
               onError={(e) => { e.target.style.display = 'none'; }}
             />
             <span style={{ fontWeight: '700', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.25)' }}>Pet</span>
+              <span style={{ color: '#e08e00' }}>Pet</span>
               <span style={{ color: '#1a1a1a' }}>Unity</span>
             </span>
           </Link>
@@ -1437,7 +1437,7 @@ const streamRef = useRef(null);
           transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
           overflow: 'hidden',
           zIndex: 10000,
-          boxShadow: '2px 0 20px rgba(0,0,0,0.15)',
+          boxShadow: '2px 0 20px rgba(0,0,0,0.08)',
         }}
       >
         {sidebarContent(false)}
