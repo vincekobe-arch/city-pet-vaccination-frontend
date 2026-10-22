@@ -449,13 +449,20 @@ const streamRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
-  const bg = 'linear-gradient(180deg, #fff59d 0%, #ffee58 100%)';
+  const bg = `
+    radial-gradient(circle at 15% 0%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 55%),
+    radial-gradient(circle at 100% 100%, rgba(255,213,79,0.35) 0%, rgba(255,213,79,0) 60%),
+    linear-gradient(180deg, rgba(255,249,196,0.70) 0%, rgba(255,245,157,0.45) 100%)
+  `;
 
   const border = 'rgba(0,0,0,0.08)';
   const textColor = '#1a1a1a';
   const subTextColor = darkMode ? '#666' : '#aaa';
-  const sidebarText = '#1a1a1a';
-  const sidebarIcon = '#3a2e00';
+  const sidebarText = '#4a3b00';
+  const sidebarIcon = '#8a6d00';
+  const sidebarActiveText = '#a85f00';
+  const glassActiveBg = 'rgba(255,255,255,0.78)';
+  const glassActiveShadow = '0 4px 14px rgba(255,193,7,0.30), inset 0 0 0 1px rgba(255,255,255,0.9)';
 
   const sidebarWidth = collapsed ? '72px' : '240px';
 
@@ -543,7 +550,7 @@ const streamRef = useRef(null);
       marginBottom: '3px',
       cursor: 'pointer',
       transition: 'all 0.25s ease',
-      background: anyChildActive ? 'rgba(0,0,0,0.12)' : 'transparent',
+      background: anyChildActive ? 'rgba(255,255,255,0.55)' : 'transparent',
       color: sidebarText,
       fontWeight: anyChildActive ? '700' : '500',
       fontSize: '0.875rem',
@@ -565,8 +572,8 @@ const streamRef = useRef(null);
           }}
           onMouseOver={(e) => {
             if (!anyChildActive) {
-              e.currentTarget.style.background = 'rgba(0,0,0,0.1)';
-              e.currentTarget.style.color = '#000000';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.55)';
+              e.currentTarget.style.color = '#2b2200';
             }
           }}
           onMouseOut={(e) => {
@@ -605,7 +612,7 @@ const streamRef = useRef(null);
           <div style={{
             marginLeft: '1.25rem',
             marginBottom: '4px',
-            borderLeft: '2px solid rgba(0,0,0,0.2)',
+            borderLeft: '2px solid rgba(217,130,0,0.30)',
             paddingLeft: '0.5rem',
             overflow: 'hidden',
             animation: 'dropdownFadeIn 0.2s ease forwards',
@@ -624,18 +631,18 @@ const streamRef = useRef(null);
                     borderRadius: '10px',
                     marginBottom: '2px',
                     textDecoration: 'none',
-                    background: childActive ? '#1a1a1a' : 'transparent',
-                    color: childActive ? '#ffc107' : sidebarText,
+                    background: childActive ? glassActiveBg : 'transparent',
+                    color: childActive ? sidebarActiveText : sidebarText,
                     fontWeight: childActive ? '700' : '500',
                     fontSize: '0.85rem',
                     transition: 'all 0.2s',
-                    boxShadow: childActive ? '0 3px 10px rgba(0,0,0,0.25)' : 'none',
+                    boxShadow: childActive ? glassActiveShadow : 'none',
                   }}
                   onClick={() => setMobileOpen(false)}
                   onMouseOver={(e) => {
                     if (!childActive) {
-                      e.currentTarget.style.background = 'rgba(0,0,0,0.1)';
-                      e.currentTarget.style.color = '#000000';
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.55)';
+                      e.currentTarget.style.color = '#2b2200';
                     }
                   }}
                   onMouseOut={(e) => {
@@ -649,7 +656,7 @@ const streamRef = useRef(null);
                     fontSize: '0.82rem',
                     width: '16px',
                     textAlign: 'center',
-                    color: childActive ? '#ffc107' : sidebarIcon,
+                    color: childActive ? sidebarActiveText : sidebarIcon,
                   }} />
                   <span>{child.label}</span>
                 </Link>
@@ -671,8 +678,8 @@ const streamRef = useRef(null);
     marginBottom: '3px',
     cursor: 'pointer',
     transition: 'all 0.25s ease',
-    background: active ? '#1a1a1a' : 'transparent',
-    color: active ? '#ffc107' : sidebarText,
+    background: active ? glassActiveBg : 'transparent',
+    color: active ? sidebarActiveText : sidebarText,
     fontWeight: active ? '700' : '500',
     fontSize: '0.875rem',
     textDecoration: 'none',
@@ -680,7 +687,7 @@ const streamRef = useRef(null);
     position: 'relative',
     overflow: 'hidden',
     whiteSpace: 'nowrap',
-    boxShadow: active ? '0 4px 14px rgba(0,0,0,0.25)' : 'none',
+    boxShadow: active ? glassActiveShadow : 'none',
   };
 
   const iconStyle = {
@@ -688,14 +695,14 @@ const streamRef = useRef(null);
     width: '18px',
     textAlign: 'center',
     flexShrink: 0,
-    color: active ? '#ffc107' : sidebarIcon,
+    color: active ? sidebarActiveText : sidebarIcon,
     transition: 'color 0.2s',
   };
 
   const handleMouseOver = (e) => {
     if (!active) {
-      e.currentTarget.style.background = 'rgba(0,0,0,0.1)';
-      e.currentTarget.style.color = '#000000';
+      e.currentTarget.style.background = 'rgba(255,255,255,0.55)';
+      e.currentTarget.style.color = '#2b2200';
     }
   };
   const handleMouseOut = (e) => {
@@ -801,7 +808,7 @@ const streamRef = useRef(null);
               onError={(e) => { e.target.style.display = 'none'; }}
             />
             <span style={{ fontWeight: '700', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#e08e00' }}>Pet</span>
+              <span style={{ color: '#d98200' }}>Pet</span>
               <span style={{ color: '#1a1a1a' }}>Unity</span>
             </span>
           </Link>
@@ -825,12 +832,12 @@ const streamRef = useRef(null);
               cursor: 'pointer',
               padding: '0.3rem',
               borderRadius: '8px',
-              color: '#3a2e00',
+              color: '#8a6d00',
               transition: 'all 0.2s',
               flexShrink: 0,
               marginLeft: collapsed ? 0 : '0.3rem',
             }}
-            onMouseOver={(e) => { e.currentTarget.style.color = '#000'; e.currentTarget.style.background = 'rgba(0,0,0,0.1)'; }}
+            onMouseOver={(e) => { e.currentTarget.style.color = '#000'; e.currentTarget.style.background = 'rgba(255,255,255,0.55)'; }}
             onMouseOut={(e) => { e.currentTarget.style.color = '#3a2e00'; e.currentTarget.style.background = 'transparent'; }}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
@@ -855,7 +862,7 @@ const streamRef = useRef(null);
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
-        color: 'rgba(0,0,0,0.45)',
+        color: 'rgba(138,109,0,0.6)',
       }}>
         Menu
       </span>
@@ -1429,7 +1436,9 @@ const streamRef = useRef(null);
           width: sidebarWidth,
           height: '100vh',
           background: bg,
-          borderRight: `1px solid ${border}`,
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          borderRight: '1px solid rgba(255,255,255,0.65)',
           position: 'fixed',
           top: 0,
           left: 0,
@@ -1437,7 +1446,7 @@ const streamRef = useRef(null);
           transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
           overflow: 'hidden',
           zIndex: 10000,
-          boxShadow: '2px 0 20px rgba(0,0,0,0.08)',
+          boxShadow: '4px 0 32px rgba(255,193,7,0.20), inset -1px 0 0 rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.8)',
         }}
       >
         {sidebarContent(false)}
