@@ -449,20 +449,16 @@ const streamRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
-  const bg = `
-    radial-gradient(circle at 15% 0%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 55%),
-    radial-gradient(circle at 100% 100%, rgba(255,213,79,0.35) 0%, rgba(255,213,79,0) 60%),
-    linear-gradient(180deg, rgba(255,249,196,0.70) 0%, rgba(255,245,157,0.45) 100%)
-  `;
+  const bg = 'rgba(255,252,235,0.82)';
 
   const border = 'rgba(0,0,0,0.08)';
   const textColor = '#1a1a1a';
   const subTextColor = darkMode ? '#666' : '#aaa';
-  const sidebarText = '#4a3b00';
-  const sidebarIcon = '#8a6d00';
-  const sidebarActiveText = '#a85f00';
-  const glassActiveBg = 'rgba(255,255,255,0.78)';
-  const glassActiveShadow = '0 4px 14px rgba(255,193,7,0.30), inset 0 0 0 1px rgba(255,255,255,0.9)';
+  const sidebarText = '#3d3d3d';
+  const sidebarIcon = '#9a7b00';
+  const sidebarActiveText = '#8a5a00';
+  const glassActiveBg = 'rgba(255,224,102,0.45)';
+  const glassActiveShadow = '0 2px 8px rgba(255,193,7,0.18), inset 0 0 0 1px rgba(255,255,255,0.8)';
 
   const sidebarWidth = collapsed ? '72px' : '240px';
 
@@ -572,7 +568,7 @@ const streamRef = useRef(null);
           }}
           onMouseOver={(e) => {
             if (!anyChildActive) {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.55)';
+              e.currentTarget.style.background = 'rgba(255,224,102,0.28)';
               e.currentTarget.style.color = '#2b2200';
             }
           }}
@@ -641,7 +637,7 @@ const streamRef = useRef(null);
                   onClick={() => setMobileOpen(false)}
                   onMouseOver={(e) => {
                     if (!childActive) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.55)';
+                      e.currentTarget.style.background = 'rgba(255,224,102,0.28)';
                       e.currentTarget.style.color = '#2b2200';
                     }
                   }}
@@ -701,7 +697,7 @@ const streamRef = useRef(null);
 
   const handleMouseOver = (e) => {
     if (!active) {
-      e.currentTarget.style.background = 'rgba(255,255,255,0.55)';
+      e.currentTarget.style.background = 'rgba(255,224,102,0.28)';
       e.currentTarget.style.color = '#2b2200';
     }
   };
@@ -837,7 +833,7 @@ const streamRef = useRef(null);
               flexShrink: 0,
               marginLeft: collapsed ? 0 : '0.3rem',
             }}
-            onMouseOver={(e) => { e.currentTarget.style.color = '#000'; e.currentTarget.style.background = 'rgba(255,255,255,0.55)'; }}
+            onMouseOver={(e) => { e.currentTarget.style.color = '#000'; e.currentTarget.style.background = 'rgba(255,224,102,0.28)'; }}
             onMouseOut={(e) => { e.currentTarget.style.color = '#3a2e00'; e.currentTarget.style.background = 'transparent'; }}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
@@ -862,7 +858,7 @@ const streamRef = useRef(null);
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
-        color: 'rgba(138,109,0,0.6)',
+        color: 'rgba(0,0,0,0.35)',
       }}>
         Menu
       </span>
@@ -1438,7 +1434,7 @@ const streamRef = useRef(null);
           background: bg,
           backdropFilter: 'blur(24px) saturate(180%)',
           WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-          borderRight: '1px solid rgba(255,255,255,0.65)',
+          borderRight: '1px solid rgba(255,193,7,0.18)',
           position: 'fixed',
           top: 0,
           left: 0,
@@ -1446,7 +1442,7 @@ const streamRef = useRef(null);
           transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
           overflow: 'hidden',
           zIndex: 10000,
-          boxShadow: '4px 0 32px rgba(255,193,7,0.20), inset -1px 0 0 rgba(255,255,255,0.6), inset 0 1px 0 rgba(255,255,255,0.8)',
+          boxShadow: '4px 0 24px rgba(0,0,0,0.05)',
         }}
       >
         {sidebarContent(false)}
