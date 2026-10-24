@@ -1,5 +1,6 @@
 {
   "name": "city-pet-vaccination-frontend",
+"homepage": "/",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
