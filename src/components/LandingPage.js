@@ -91,7 +91,7 @@ const LandingPage = () => {
   useEffect(() => {
     if (window.google && window.google.maps) { setLeafletLoaded(true); return; }
     const script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To&v=weekly';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To';
     script.async = true;
     script.defer = true;
     script.onload = () => setLeafletLoaded(true);
@@ -129,21 +129,14 @@ const LandingPage = () => {
       const google = window.google;
       const map = new google.maps.Map(el, {
         center: { lat: MUNTI_CENTER[0], lng: MUNTI_CENTER[1] },
-        zoom: 15,
+        zoom: 13,
         minZoom: 12,
         maxZoom: 22,
-        mapId: 'DEMO_MAP_ID',                 // swap for your own Vector Map ID (see below)
-        colorScheme: google.maps.ColorScheme.DARK,
-        tilt: 55,
-        heading: 20,
         scrollwheel: false,
         zoomControl: true,
-        rotateControl: true,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
-        gestureHandling: 'cooperative',
-        backgroundColor: '#0d1424',
         restriction: {
           latLngBounds: {
             north: MUNTI_BOUNDS[1][0],
@@ -153,6 +146,25 @@ const LandingPage = () => {
           },
           strictBounds: true,
         },
+        backgroundColor: '#0d1424',
+        styles: [
+          { elementType:'geometry', stylers:[{ color:'#0d1424' }] },
+          { elementType:'labels.text.stroke', stylers:[{ color:'#0d1424' }] },
+          { elementType:'labels.text.fill', stylers:[{ color:'#7d8aa5' }] },
+          { featureType:'administrative', elementType:'geometry.stroke', stylers:[{ color:'#2a3550' }] },
+          { featureType:'administrative.locality', elementType:'labels.text.fill', stylers:[{ color:'#a9b4cc' }] },
+          { featureType:'poi', elementType:'labels', stylers:[{ visibility:'off' }] },
+          { featureType:'poi.park', elementType:'geometry', stylers:[{ color:'#10231f' }] },
+          { featureType:'road', elementType:'geometry', stylers:[{ color:'#1c2640' }] },
+          { featureType:'road', elementType:'geometry.stroke', stylers:[{ color:'#0d1424' }] },
+          { featureType:'road', elementType:'labels.text.fill', stylers:[{ color:'#6b7896' }] },
+          { featureType:'road.highway', elementType:'geometry', stylers:[{ color:'#2b3858' }] },
+          { featureType:'road.highway', elementType:'geometry.stroke', stylers:[{ color:'#1c2640' }] },
+          { featureType:'road.highway', elementType:'labels.text.fill', stylers:[{ color:'#9aa6c2' }] },
+          { featureType:'transit', elementType:'geometry', stylers:[{ color:'#15203a' }] },
+          { featureType:'water', elementType:'geometry', stylers:[{ color:'#060a14' }] },
+          { featureType:'water', elementType:'labels.text.fill', stylers:[{ color:'#3d4a6b' }] },
+        ],
       });
 
       // Draw boundary polygon
