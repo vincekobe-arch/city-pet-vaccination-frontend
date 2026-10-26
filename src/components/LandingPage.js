@@ -485,133 +485,226 @@ useEffect(() => {
       </section>
 
       {/* ════ MAP SECTION ════ */}
-      <section id="map-feature" style={{ padding:'5rem 0 6rem', background:'#0a0f1e', zoom:'0.75', position:'relative', overflow:'hidden' }}>
+      <section id="map-feature" style={{ padding:'5rem 0 6rem', background:'#f9fafb', zoom:'0.75', position:'relative', overflow:'hidden' }}>
 
-        {/* Background grid */}
-        <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,193,7,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,193,7,0.03) 1px, transparent 1px)', backgroundSize:'48px 48px', pointerEvents:'none' }} />
-        {/* Glow blobs */}
-        <div style={{ position:'absolute', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle, rgba(255,193,7,0.07) 0%, transparent 70%)', top:'-10%', left:'-5%', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%)', bottom:'0%', right:'5%', pointerEvents:'none' }} />
+        <style>{`
+          @keyframes pulseRing {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255,193,7,0.4); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255,193,7,0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+          }
+          @keyframes liveBlink {
+            0%,100% { opacity:1; } 50% { opacity:0.3; }
+          }
+          @keyframes slideInLeft {
+            from { opacity:0; transform:translateX(-20px); }
+            to   { opacity:1; transform:translateX(0); }
+          }
+          .map-stat-card {
+            background:#fff;
+            border:1px solid #f0f0f0;
+            border-radius:16px;
+            padding:1.1rem 1.2rem;
+            transition:all 0.25s;
+            position:relative;
+            overflow:hidden;
+          }
+          .map-stat-card:hover {
+            transform:translateY(-3px);
+            box-shadow:0 12px 32px rgba(0,0,0,0.08);
+            border-color:#ffc107;
+          }
+          .map-stat-card::before {
+            content:'';
+            position:absolute;
+            top:0; left:0; right:0;
+            height:3px;
+            background:var(--accent);
+            border-radius:16px 16px 0 0;
+            opacity:0;
+            transition:opacity 0.25s;
+          }
+          .map-stat-card:hover::before { opacity:1; }
+          .map-legend-row {
+            display:flex; align-items:center; gap:0.6rem;
+            padding:0.5rem 0.65rem;
+            border-radius:8px;
+            transition:background 0.2s;
+            cursor:default;
+          }
+          .map-legend-row:hover { background:rgba(0,0,0,0.04); }
+          .map-card-outer {
+            border-radius:20px;
+            overflow:hidden;
+            box-shadow:0 24px 64px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
+            border:1px solid #e8e8e8;
+            background:#fff;
+            display:flex;
+            flex-direction:column;
+            height:100%;
+          }
+          .map-toolbar {
+            background:linear-gradient(135deg,#1a1a2e,#16213e);
+            padding:0.85rem 1.25rem;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            flex-shrink:0;
+          }
+          .map-toolbar-pill {
+            display:flex; align-items:center; gap:0.5rem;
+            background:rgba(255,255,255,0.08);
+            border:1px solid rgba(255,255,255,0.12);
+            border-radius:20px;
+            padding:0.3rem 0.75rem;
+            font-size:0.68rem;
+            color:rgba(255,255,255,0.7);
+            font-weight:600;
+          }
+          .map-footer-bar {
+            background:linear-gradient(135deg,#1a1a2e,#16213e);
+            padding:0.65rem 1.25rem;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            flex-shrink:0;
+          }
+        `}</style>
 
         <Container style={{ position:'relative', zIndex:2 }}>
 
           {/* Section header */}
-          <div style={{ marginBottom:'3rem' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'1rem' }}>
-              <div style={{ width:6, height:6, borderRadius:'50%', background:'#ffc107', boxShadow:'0 0 8px #ffc107' }} />
-              <span style={{ color:'#ffc107', fontSize:'0.75rem', fontWeight:600, letterSpacing:'0.5px' }}>Live Intelligence</span>
+          <div style={{ marginBottom:'2.5rem' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.75rem' }}>
+              <div style={{ width:5, height:5, borderRadius:'50%', background:'#ffc107', animation:'liveBlink 2s infinite' }} />
+              <span style={{ color:'#ffc107', fontSize:'0.72rem', fontWeight:700, letterSpacing:'1px', textTransform:'uppercase' }}>Live Map Intelligence</span>
             </div>
             <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:'1rem' }}>
-              <h2 style={{ fontSize:'2.6rem', fontWeight:800, color:'#fff', margin:0, lineHeight:1.15, maxWidth:520 }}>
-                Rabies activity,<br/>
-                <span style={{ color:'#ffc107' }}>mapped in real time</span>
+              <h2 style={{ fontSize:'2.4rem', fontWeight:800, color:'#111827', margin:0, lineHeight:1.2 }}>
+                Rabies activity across<br/>
+                <span style={{ color:'#ffc107' }}>Muntinlupa City</span>
               </h2>
-              <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'0.95rem', lineHeight:1.7, maxWidth:320, margin:0 }}>
-                PetUnity monitors Muntinlupa City 24/7 — every confirmed case, every clinic, every danger zone updated live.
+              <p style={{ color:'#6b7280', fontSize:'0.95rem', lineHeight:1.7, maxWidth:300, margin:0 }}>
+                Every confirmed case, clinic, and danger zone — monitored and visualized in real time.
               </p>
             </div>
           </div>
 
           <Row className="g-4 align-items-stretch">
 
-            {/* LEFT — stat cards + feature list */}
+            {/* LEFT panel */}
             <Col lg={4} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
 
-              {/* Stat row */}
+              {/* Stat grid */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
                 {[
-                  { value:'16', label:'Barangays covered',  accent:'#ffc107' },
-                  { value:'1km', label:'Danger zone radius', accent:'#ef4444' },
-                  { value:'24/7', label:'Live monitoring',   accent:'#38bdf8' },
-                  { value:'Free', label:'For all residents', accent:'#10b981' },
+                  { value:'16',   label:'Barangays',     accent:'#ffc107' },
+                  { value:'1km',  label:'Danger radius',  accent:'#ef4444' },
+                  { value:'24/7', label:'Monitoring',     accent:'#3b82f6' },
+                  { value:'Free', label:'For residents',  accent:'#10b981' },
                 ].map((s, i) => (
-                  <div key={i} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'1rem 1.1rem', backdropFilter:'blur(8px)' }}>
-                    <div style={{ fontSize:'1.6rem', fontWeight:800, color:s.accent, lineHeight:1, marginBottom:4 }}>{s.value}</div>
-                    <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.45)', lineHeight:1.4 }}>{s.label}</div>
+                  <div key={i} className="map-stat-card" style={{ '--accent': s.accent }}>
+                    <div style={{ fontSize:'1.7rem', fontWeight:900, color:s.accent, lineHeight:1, marginBottom:3 }}>{s.value}</div>
+                    <div style={{ fontSize:'0.68rem', color:'#9ca3af', fontWeight:500 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
 
-              {/* Feature list */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem', flex:1 }}>
+              {/* Legend card */}
+              <div style={{ background:'#fff', border:'1px solid #f0f0f0', borderRadius:16, padding:'1rem 1.1rem', flex:1 }}>
+                <div style={{ fontSize:'0.7rem', fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:'0.75rem' }}>Map Legend</div>
                 {[
-                  { color:'#ef4444', dot:'☣️', title:'Confirmed cases',   desc:'Positive rabies reports pinned with exact barangay location.' },
-                  { color:'#f0c800', dot:'⚠️', title:'Suspected cases',   desc:'Unconfirmed alerts shown with 1km monitoring radius.' },
-                  { color:'#ffc107', dot:'🏥', title:'City Vet Office',   desc:'Government clinic with direct contact and hours.' },
-                  { color:'#38bdf8', dot:'🏥', title:'Private clinics',   desc:'Accredited vets near you with specialty info.' },
-                ].map((f, i) => (
-                  <div key={i} style={{ display:'flex', gap:'0.85rem', alignItems:'flex-start', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'0.85rem 1rem', transition:'border-color 0.2s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor='rgba(255,193,7,0.25)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}
-                  >
-                    <div style={{ width:32, height:32, borderRadius:8, background:`${f.color}18`, border:`1px solid ${f.color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>{f.dot}</div>
+                  { color:'#ef4444', bg:'#fef2f2', emoji:'☣️', label:'Positive Rabies',  sub:'Confirmed case' },
+                  { color:'#f59e0b', bg:'#fffbeb', emoji:'⚠️', label:'Suspected Rabies', sub:'Under monitoring' },
+                  { color:'#ffc107', bg:'#fffbeb', emoji:'🏥', label:'City Vet Office',  sub:'Government clinic' },
+                  { color:'#3b82f6', bg:'#eff6ff', emoji:'🏥', label:'Private Clinic',   sub:'Accredited vet' },
+                ].map((l, i) => (
+                  <div key={i} className="map-legend-row">
+                    <div style={{ width:30, height:30, borderRadius:8, background:l.bg, border:`1.5px solid ${l.color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>{l.emoji}</div>
                     <div>
-                      <div style={{ fontSize:'0.82rem', fontWeight:700, color:'#fff', marginBottom:2 }}>{f.title}</div>
-                      <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>{f.desc}</div>
+                      <div style={{ fontSize:'0.78rem', fontWeight:700, color:'#111827', lineHeight:1.2 }}>{l.label}</div>
+                      <div style={{ fontSize:'0.65rem', color:'#9ca3af' }}>{l.sub}</div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* CTA */}
+              {/* CTA button */}
               <button onClick={() => navigate('/owner/map-status')}
-                style={{ width:'100%', background:'linear-gradient(135deg,#ffc107,#f59e0b)', color:'#0a0f1e', border:'none', borderRadius:12, padding:'0.9rem', fontWeight:800, fontSize:'0.9rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', boxShadow:'0 8px 24px rgba(255,193,7,0.25)', transition:'all 0.25s' }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 32px rgba(255,193,7,0.35)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(255,193,7,0.25)'; }}
+                style={{ width:'100%', background:'linear-gradient(135deg,#1a1a2e,#16213e)', color:'#ffc107', border:'none', borderRadius:14, padding:'1rem', fontWeight:800, fontSize:'0.88rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.6rem', boxShadow:'0 8px 24px rgba(26,26,46,0.3)', transition:'all 0.25s', letterSpacing:'0.3px' }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 14px 32px rgba(26,26,46,0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(26,26,46,0.3)'; }}
               >
-                <i className="fas fa-expand-alt" style={{ fontSize:'0.8rem' }}></i>
-                Open Full Map
+                <i className="fas fa-map-marked-alt" style={{ fontSize:'0.85rem' }}></i>
+                Open Full Interactive Map
               </button>
 
             </Col>
 
             {/* RIGHT — map card */}
             <Col lg={8}>
-              <div style={{ background:'#0d1424', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, overflow:'hidden', height:'100%', minHeight:520, display:'flex', flexDirection:'column', boxShadow:'0 32px 80px rgba(0,0,0,0.5)' }}>
+              <div className="map-card-outer">
 
-                {/* Map toolbar */}
-                <div style={{ padding:'0.75rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', flexShrink:0 }}>
+                {/* Toolbar */}
+                <div className="map-toolbar">
                   <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
                     <div style={{ display:'flex', gap:'5px' }}>
                       {['#ff5f57','#febc2e','#28c840'].map((c,i) => <div key={i} style={{ width:9, height:9, borderRadius:'50%', background:c }} />)}
                     </div>
-                    <div style={{ width:1, height:14, background:'rgba(255,255,255,0.1)' }} />
-                    <span style={{ color:'rgba(255,255,255,0.6)', fontSize:'0.75rem', fontWeight:500 }}>
-                      Muntinlupa City · Rabies Activity
+                    <div style={{ width:1, height:14, background:'rgba(255,255,255,0.15)' }} />
+                    <span style={{ color:'rgba(255,255,255,0.75)', fontSize:'0.72rem', fontWeight:600 }}>
+                      PetUnity · Muntinlupa Rabies Monitor
                     </span>
                   </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
-                    <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', boxShadow:'0 0 6px #10b981' }} />
-                    <span style={{ color:'rgba(255,255,255,0.35)', fontSize:'0.68rem' }}>Live</span>
+                  <div style={{ display:'flex', gap:'0.5rem' }}>
+                    <div className="map-toolbar-pill">
+                      <div style={{ width:5, height:5, borderRadius:'50%', background:'#10b981', animation:'liveBlink 1.5s infinite' }} />
+                      Live
+                    </div>
+                    <div className="map-toolbar-pill">
+                      <i className="fas fa-shield-alt" style={{ fontSize:'0.6rem', color:'#ffc107' }}></i>
+                      Rabies Watch
+                    </div>
                   </div>
                 </div>
 
-                {/* Map */}
+                {/* Map container */}
                 <div style={{ position:'relative', flex:1 }}>
                   <div ref={leafletMapRef} className="map-leaflet-div" style={{ height:'100%', minHeight:440, width:'100%' }} />
 
-                  {/* Scanner */}
-                  <div style={{ position:'absolute', left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,rgba(255,193,7,0.5),transparent)', animation:'scanLine 4s linear infinite', pointerEvents:'none', zIndex:998 }} />
+                  {/* Scanner line */}
+                  <div style={{ position:'absolute', left:0, right:0, height:2, background:'linear-gradient(90deg,transparent,rgba(255,193,7,0.7),transparent)', animation:'scanLine 4s linear infinite', pointerEvents:'none', zIndex:998 }} />
 
-                  {/* Legend — bottom left glass pill */}
-                  <div style={{ position:'absolute', bottom:16, left:16, zIndex:999, background:'rgba(10,15,30,0.85)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, padding:'0.65rem 0.9rem', display:'flex', flexDirection:'column', gap:'0.4rem' }}>
+                  {/* Top-left status badge */}
+                  <div style={{ position:'absolute', top:12, left:12, zIndex:999, display:'flex', flexDirection:'column', gap:'0.4rem' }}>
+                    <div style={{ background:'rgba(26,26,46,0.92)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,193,7,0.3)', borderRadius:10, padding:'0.45rem 0.8rem', display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                      <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', boxShadow:'0 0 0 0 rgba(16,185,129,0.4)', animation:'pulseRing 2s infinite' }} />
+                      <span style={{ fontSize:'0.65rem', color:'#fff', fontWeight:700 }}>System Active</span>
+                    </div>
+                  </div>
+
+                  {/* Bottom-right coords */}
+                  <div style={{ position:'absolute', bottom:12, right:12, zIndex:999, background:'rgba(26,26,46,0.88)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'0.4rem 0.8rem' }}>
+                    <span style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.5)', fontFamily:'monospace', letterSpacing:'0.5px' }}>14.4081°N 121.0415°E</span>
+                  </div>
+                </div>
+
+                {/* Footer bar */}
+                <div className="map-footer-bar">
+                  <div style={{ display:'flex', alignItems:'center', gap:'1.5rem' }}>
                     {[
-                      { color:'#ef4444', emoji:'☣️', label:'Positive' },
-                      { color:'#f0c800', emoji:'⚠️', label:'Suspected' },
-                      { color:'#ffc107', emoji:'🏥', label:'City Vet' },
-                      { color:'#38bdf8', emoji:'🏥', label:'Clinic' },
-                    ].map((l, i) => (
-                      <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
-                        <div style={{ width:16, height:16, borderRadius:4, background:`${l.color}25`, border:`1px solid ${l.color}60`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, flexShrink:0 }}>{l.emoji}</div>
-                        <span style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.6)', fontWeight:500 }}>{l.label}</span>
+                      { dot:'#ef4444', label:'Positive' },
+                      { dot:'#f59e0b', label:'Suspected' },
+                      { dot:'#ffc107', label:'City Vet' },
+                      { dot:'#3b82f6', label:'Clinic' },
+                    ].map((t,i) => (
+                      <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.35rem' }}>
+                        <div style={{ width:7, height:7, borderRadius:'50%', background:t.dot }} />
+                        <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.5)', fontWeight:500 }}>{t.label}</span>
                       </div>
                     ))}
                   </div>
-
-                  {/* Coordinates badge — bottom right */}
-                  <div style={{ position:'absolute', bottom:16, right:16, zIndex:999, background:'rgba(10,15,30,0.85)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'0.4rem 0.75rem' }}>
-                    <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.35)', fontFamily:'monospace' }}>14.4081° N · 121.0415° E</span>
-                  </div>
+                  <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.3)', fontFamily:'monospace' }}>Muntinlupa City · PH</span>
                 </div>
 
               </div>
