@@ -291,10 +291,10 @@ useEffect(() => {
   }, [mapReports, leafletLoaded]);
 
   /* render clinic markers — identical to OwnerMapStatus */
-  useEffect(() => {
+    useEffect(() => {
     if (!leafletInstanceRef.current || !leafletLoaded) return;
-    const L   = window.L;
-    const map = leafletInstanceRef.current;
+    const google = window.google;
+    const map    = leafletInstanceRef.current;
 
     clinicMarkersRef.current.forEach(m => m.setMap(null));
     clinicMarkersRef.current = [];
