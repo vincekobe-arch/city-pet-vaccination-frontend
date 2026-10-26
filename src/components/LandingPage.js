@@ -87,13 +87,15 @@ const LandingPage = () => {
     return () => window.removeEventListener('mousemove', h);
   }, []);
 
-  /* load Google Maps JS */
+  /* load Leaflet CSS + JS */
   useEffect(() => {
-    if (window.google && window.google.maps) { setLeafletLoaded(true); return; }
+    if (window.L) { setLeafletLoaded(true); return; }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css';
+    document.head.appendChild(link);
     const script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To';
-    script.async = true;
-    script.defer = true;
+    script.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js';
     script.onload = () => setLeafletLoaded(true);
     document.head.appendChild(script);
   }, []);
@@ -114,7 +116,7 @@ const LandingPage = () => {
     load();
   }, []);
 
-  /* init Google Map — bounds locked to Muntinlupa */
+  /* init map — bounds locked to Muntinlupa */
 useEffect(() => {
   if (!leafletLoaded || !leafletMapRef.current || leafletInstanceRef.current) return;
 
@@ -126,57 +128,51 @@ useEffect(() => {
       return;
     }
 
-    const google = window.google;
-    const map = new google.maps.Map(el, {
-      center: { lat: MUNTI_CENTER[0], lng: MUNTI_CENTER[1] },
+    const L = window.L;
+    const map = L.map(el, {
+      center: MUNTI_CENTER,
       zoom: 13,
       minZoom: 12,
       maxZoom: 22,
-      scrollwheel: false,
+      maxBounds: MUNTI_BOUNDS,
+      maxBoundsViscosity: 1.0,
       zoomControl: true,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      restriction: {
-        latLngBounds: {
-          north: MUNTI_BOUNDS[1][0],
-          south: MUNTI_BOUNDS[0][0],
-          west:  MUNTI_BOUNDS[0][1],
-          east:  MUNTI_BOUNDS[1][1],
-        },
-        strictBounds: true,
-      },
-      styles: [
-        { featureType:'poi', elementType:'labels', stylers:[{ visibility:'off' }] },
-      ],
+      scrollWheelZoom: false,
     });
-
-    // Draw boundary polygon
-    new google.maps.Polygon({
-      paths: BOUNDARY.map(([lat, lng]) => ({ lat, lng })),
-      strokeColor: '#ffc107',
-      strokeOpacity: 0.8,
-      strokeWeight: 2.5,
-      fillColor: '#ffc107',
-      fillOpacity: 0,
-      map,
-    });
-
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 22, maxNativeZoom: 19,
+    }).addTo(map);
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `
+      .leaflet-control-attribution{background:rgba(0,0,0,0.45)!important;color:#aaa!important;font-size:0.62rem!important;padding:2px 6px!important;border-radius:4px 0 0 0!important}
+      .leaflet-control-attribution a{color:#ccc!important}
+      .custom-report-icon{background:none!important;border:none!important}
+      .radius-label{background:transparent!important;border:none!important;box-shadow:none!important}
+      .leaflet-popup-content-wrapper{border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,0.18)!important;border:none!important;padding:0!important;overflow:hidden}
+      .leaflet-popup-content{margin:0!important}
+      .leaflet-popup-tip-container{display:none}
+    `;
+    document.head.appendChild(styleEl);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.polygon(BOUNDARY, { color:'#ffc107', weight:2.5, opacity:0.8, fillColor:'#ffc107', fillOpacity:0, dashArray:'6,4' }).addTo(map);
     leafletInstanceRef.current = map;
+
+    setTimeout(() => map.invalidateSize(), 200);
   };
 
   initMap();
 
 }, [leafletLoaded]);
 
-  /* render report markers + danger circles */
+  /* render report markers + danger circles — identical to OwnerMapStatus */
   useEffect(() => {
     if (!leafletInstanceRef.current || !leafletLoaded) return;
-    const google = window.google;
-    const map    = leafletInstanceRef.current;
+    const L   = window.L;
+    const map = leafletInstanceRef.current;
 
-    markersRef.current.forEach(m => m.setMap(null));
-    circlesRef.current.forEach(c => c.setMap(null));
+    markersRef.current.forEach(m => map.removeLayer(m));
+    circlesRef.current.forEach(c => map.removeLayer(c));
     markersRef.current = [];
     circlesRef.current = [];
 
@@ -198,38 +194,26 @@ useEffect(() => {
     });
 
     circleOwners.forEach(o => {
-      const isPos = o.status === 'positive_rabies';
-      try {
-        const circle = new google.maps.Circle({
-          map,
-          center: { lat: o.lat, lng: o.lng },
-          radius: 1000,
-          strokeColor:   isPos ? '#e00000' : '#f0c800',
-          strokeOpacity: 0.85,
-          strokeWeight:  2.5,
-          fillColor:     isPos ? '#e00000' : '#f0c800',
-          fillOpacity:   isPos ? 0.12 : 0.10,
-        });
-        const labelMarker = new google.maps.Marker({
-          position: { lat: o.lat + 0.0085, lng: o.lng },
-          map,
-          icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg"/>',
-            scaledSize: new google.maps.Size(1, 1),
-          },
-          label: {
-            text: `1 km ${isPos ? '⚠️ Danger Zone' : '🔍 Alert Zone'}`,
-            color: '#fff',
-            fontSize: '0.7rem',
-            fontWeight: 'bold',
-          },
-          clickable: false,
-        });
-        circlesRef.current.push(circle, labelMarker);
-      } catch(e) {
-        console.warn('Circle render skipped:', e.message);
-      }
+  const isPos = o.status==='positive_rabies';
+  try {
+    const circle = L.circle([o.lat,o.lng], {
+      radius: 1000,
+      color: isPos?'#e00000':'#f0c800', weight:2.5, opacity:0.85,
+      fillColor: isPos?'#e00000':'#f0c800',
+      fillOpacity: isPos?0.12:0.10,
+      dashArray: isPos?null:'6,4',
+    }).addTo(map);
+    const lIcon = L.divIcon({
+      className: 'radius-label',
+      html: `<div style="background:${isPos?'rgba(220,0,0,0.85)':'rgba(220,180,0,0.9)'};color:#fff;padding:3px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);">1 km ${isPos?'⚠️ Danger Zone':'🔍 Alert Zone'}</div>`,
+      iconAnchor:[40,10],
     });
+    const lm = L.marker([o.lat+0.0085,o.lng],{icon:lIcon,interactive:false}).addTo(map);
+    circlesRef.current.push(circle,lm);
+  } catch(e) {
+    console.warn('Circle render skipped:', e.message);
+  }
+});
 
     sorted.forEach(r => {
       const lat=parseFloat(r.latitude), lng=parseFloat(r.longitude);
@@ -241,32 +225,48 @@ useEffect(() => {
       const bgColor = isPos?'rgba(224,0,0,0.9)':'rgba(220,180,0,0.95)';
       const txtColor= isPos?'#fff':'#1a1a1a';
 
-      const m = new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-              <circle cx="14" cy="14" r="13" fill="${color}" stroke="white" stroke-width="2"/>
-              <text x="14" y="19" text-anchor="middle" font-size="13">${emoji}</text>
-              <rect x="12" y="27" width="4" height="9" rx="2" fill="rgba(0,0,0,0.25)"/>
-            </svg>`)}`,
-          scaledSize: new google.maps.Size(28, 36),
-          anchor: new google.maps.Point(14, 36),
-        },
-        clickable: false,
+      const icon = L.divIcon({
+        className:'custom-report-icon',
+        html:`<div style="position:relative;width:28px;height:36px;display:flex;flex-direction:column;align-items:center;">
+          <div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};border:2px solid white;box-shadow:0 3px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+            <div style="transform:rotate(45deg);font-size:12px;">${emoji}</div>
+          </div>
+          <div style="width:3px;height:8px;background:rgba(0,0,0,0.25);border-radius:0 0 3px 3px;margin-top:-1px;"></div>
+        </div>`,
+        iconSize:[28,36],iconAnchor:[14,36],popupAnchor:[0,-38],
       });
+
+      const popup=`<div style="width:200px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
+        <div style="background:${bgColor};padding:0.65rem 0.85rem;">
+          <div style="font-size:1.2rem;margin-bottom:0.3rem;">${emoji}</div>
+          <div style="color:${txtColor};font-weight:700;font-size:0.78rem;">${label}</div>
+          <div style="color:${isPos?'rgba(255,255,255,0.65)':'rgba(0,0,0,0.5)'};font-size:0.62rem;margin-top:2px;">
+            Reported ${new Date(r.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}
+          </div>
+        </div>
+        <div style="padding:0.65rem 0.85rem;background:#fff;">
+          <div style="margin-bottom:0.4rem;">
+            <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Barangay</div>
+            <div style="font-size:0.75rem;color:#222;font-weight:600;margin-top:2px;">${r.barangay_name||'Not specified'}</div>
+          </div>
+          <div style="margin-top:0.5rem;padding:0.35rem 0.5rem;background:${isPos?'#ffe6e6':'#fffbe6'};border-radius:6px;border-left:3px solid ${color};font-size:0.65rem;font-weight:700;color:${isPos?'#8b0000':'#7a6000'};">
+            ${isPos?'⚠️ Stay alert — danger zone within 1km':'🔍 Alert zone — monitor pets nearby'}
+          </div>
+        </div>
+      </div>`;
+
+      const m = L.marker([lat,lng],{icon,interactive:false}).addTo(map);
       markersRef.current.push(m);
     });
   }, [mapReports, leafletLoaded]);
 
   /* render clinic markers — identical to OwnerMapStatus */
-    useEffect(() => {
+  useEffect(() => {
     if (!leafletInstanceRef.current || !leafletLoaded) return;
-    const google = window.google;
-    const map    = leafletInstanceRef.current;
+    const L   = window.L;
+    const map = leafletInstanceRef.current;
 
-    clinicMarkersRef.current.forEach(m => m.setMap(null));
+    clinicMarkersRef.current.forEach(m => map.removeLayer(m));
     clinicMarkersRef.current = [];
 
     const cityVet = {
@@ -281,21 +281,57 @@ useEffect(() => {
       if (isNaN(lat)||isNaN(lng)) return;
       const isCityVet = clinic.id==='cityvet';
 
-      const m = new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="${isCityVet?48:32}" height="${isCityVet?58:40}" viewBox="0 0 ${isCityVet?48:32} ${isCityVet?58:40}">
-              <circle cx="${isCityVet?24:16}" cy="${isCityVet?22:16}" r="${isCityVet?20:14}" fill="${isCityVet?'#ffc107':'#0d6efd'}" stroke="white" stroke-width="2.5"/>
-              <text x="${isCityVet?24:16}" y="${isCityVet?28:21}" text-anchor="middle" font-size="${isCityVet?16:12}" fill="white">🏥</text>
-              <rect x="${isCityVet?22:14}" y="${isCityVet?42:30}" width="4" height="${isCityVet?10:8}" rx="2" fill="rgba(0,0,0,0.25)"/>
-            </svg>`)}`,
-          scaledSize: new google.maps.Size(isCityVet?48:32, isCityVet?58:40),
-          anchor: new google.maps.Point(isCityVet?24:16, isCityVet?58:40),
-        },
-        clickable: false,
+      const icon = L.divIcon({
+        className:'custom-report-icon',
+        html: isCityVet ? `
+          <div style="position:relative;width:48px;height:58px;display:flex;flex-direction:column;align-items:center;">
+            <div style="position:absolute;top:-6px;left:-6px;width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,193,7,0.5);animation:cityvet-pulse 2s ease-out infinite;"></div>
+            <div style="width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#ffc107,#ff8c00);border:3px solid white;box-shadow:0 4px 16px rgba(255,193,7,0.7);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:1;">
+              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
+                <i class="fas fa-hospital" style="font-size:17px;color:#fff;"></i>
+              </div>
+            </div>
+            <div style="width:4px;height:10px;background:rgba(255,140,0,0.6);border-radius:0 0 4px 4px;margin-top:-1px;position:relative;z-index:1;"></div>
+          </div>
+          <style>@keyframes cityvet-pulse{0%{transform:scale(0.9);opacity:0.8}70%{transform:scale(1.4);opacity:0}100%{transform:scale(0.9);opacity:0}}</style>` : `
+          <div style="position:relative;width:32px;height:40px;display:flex;flex-direction:column;align-items:center;">
+            <div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#0d6efd,#0a58ca);border:2.5px solid white;box-shadow:0 3px 10px rgba(13,110,253,0.5);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
+                <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
+              </div>
+            </div>
+            <div style="width:3px;height:8px;background:rgba(13,110,253,0.4);border-radius:0 0 3px 3px;margin-top:-1px;"></div>
+          </div>`,
+        iconSize:    isCityVet?[48,58]:[32,40],
+        iconAnchor:  isCityVet?[24,58]:[16,40],
+        popupAnchor: [0,isCityVet?-60:-42],
       });
+
+      const popup=`<div style="width:210px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
+        <div style="background:${isCityVet?'linear-gradient(135deg,#ffc107,#ff8c00)':'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.65rem 0.85rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
+            <div style="width:28px;height:28px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
+            </div>
+            <div>
+              <div style="color:${isCityVet?'#1a1a1a':'#fff'};font-weight:700;font-size:0.75rem;line-height:1.2;">${clinic.clinic_name}</div>
+              <div style="color:${isCityVet?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.65)'};font-size:0.6rem;">${isCityVet?'Government Veterinary Office':(clinic.clinic_code||'')}</div>
+            </div>
+          </div>
+          <span style="display:inline-block;background:rgba(255,255,255,0.2);color:${isCityVet?'#1a1a1a':'#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
+            🏥 ${isCityVet?'City Government Clinic':'Private Clinic'}
+          </span>
+        </div>
+        <div style="padding:0.65rem 0.85rem;background:#fff;display:flex;flex-direction:column;gap:0.4rem;">
+          ${clinic.owner_name?`<div><div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div><div style="font-size:0.72rem;color:#222;font-weight:600;margin-top:1px;">${isCityVet?clinic.owner_name:'Dr. '+clinic.owner_name}</div></div>`:''}
+          <div style="display:flex;gap:0.35rem;margin-top:0.2rem;">
+            ${clinic.phone?`<div style="flex:1;background:#f8f9fa;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #eee;"><div style="font-size:0.54rem;color:#aaa;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#333;font-weight:600;margin-top:1px;">${clinic.phone}</div></div>`:''}
+            ${clinic.specialization?`<div style="flex:1;background:#e8f0fe;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #c5d8fc;"><div style="font-size:0.54rem;color:#5577aa;font-weight:700;text-transform:uppercase;">Specialty</div><div style="font-size:0.62rem;color:#0d6efd;font-weight:700;margin-top:1px;">${clinic.specialization}</div></div>`:''}
+          </div>
+        </div>
+      </div>`;
+
+      const m = L.marker([lat,lng],{icon,interactive:false}).addTo(map);
       clinicMarkersRef.current.push(m);
     });
   }, [mapClinics, leafletLoaded]);
@@ -484,137 +520,93 @@ useEffect(() => {
         </Container>
       </section>
 
-                  {/* ════ MAP SECTION ════ */}
-      <section id="map-feature" style={{ padding:'5rem 0 6rem', background:'#0a0f1e', zoom:'0.75', position:'relative', overflow:'hidden' }}>
-
-        {/* Background grid */}
-        <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,193,7,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,193,7,0.03) 1px, transparent 1px)', backgroundSize:'48px 48px', pointerEvents:'none' }} />
-        {/* Glow blobs */}
-        <div style={{ position:'absolute', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle, rgba(255,193,7,0.07) 0%, transparent 70%)', top:'-10%', left:'-5%', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%)', bottom:'0%', right:'5%', pointerEvents:'none' }} />
-
-        <Container style={{ position:'relative', zIndex:2 }}>
-
-          {/* Section header */}
-          <div ref={mapSectionRef} className={`reveal-section ${mapSectionVisible?'visible':''}`} style={{ marginBottom:'3rem' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'1rem' }}>
-              <div style={{ width:6, height:6, borderRadius:'50%', background:'#ffc107', boxShadow:'0 0 8px #ffc107' }} />
-              <span style={{ color:'#ffc107', fontSize:'0.75rem', fontWeight:600, letterSpacing:'0.5px' }}>Live Intelligence</span>
-            </div>
-            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:'1rem' }}>
-              <h2 style={{ fontSize:'2.6rem', fontWeight:800, color:'#fff', margin:0, lineHeight:1.15, maxWidth:520 }}>
-                Rabies activity,<br/>
-                <span style={{ color:'#ffc107' }}>mapped in real time</span>
-              </h2>
-              <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'0.95rem', lineHeight:1.7, maxWidth:320, margin:0 }}>
-                PetUnity monitors Muntinlupa City 24/7 — every confirmed case, every clinic, every danger zone updated live.
-              </p>
-            </div>
-          </div>
-
-          <Row className="g-4 align-items-stretch">
-
-            {/* LEFT — stat cards + feature list */}
-            <Col lg={4} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-
-              {/* Stat row */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
-                {[
-                  { value:'16', label:'Barangays covered',  accent:'#ffc107' },
-                  { value:'1km', label:'Danger zone radius', accent:'#ef4444' },
-                  { value:'24/7', label:'Live monitoring',   accent:'#38bdf8' },
-                  { value:'Free', label:'For all residents', accent:'#10b981' },
-                ].map((s, i) => (
-                  <div key={i} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'1rem 1.1rem', backdropFilter:'blur(8px)' }}>
-                    <div style={{ fontSize:'1.6rem', fontWeight:800, color:s.accent, lineHeight:1, marginBottom:4 }}>{s.value}</div>
-                    <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.45)', lineHeight:1.4 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Feature list */}
-              <div style={{ display:'flex', flexDirection:'column', gap:'0.5rem', flex:1 }}>
-                {[
-                  { color:'#ef4444', dot:'☣️', title:'Confirmed cases',   desc:'Positive rabies reports pinned with exact barangay location.' },
-                  { color:'#f0c800', dot:'⚠️', title:'Suspected cases',   desc:'Unconfirmed alerts shown with 1km monitoring radius.' },
-                  { color:'#ffc107', dot:'🏥', title:'City Vet Office',   desc:'Government clinic with direct contact and hours.' },
-                  { color:'#38bdf8', dot:'🏥', title:'Private clinics',   desc:'Accredited vets near you with specialty info.' },
-                ].map((f, i) => (
-                  <div key={i} style={{ display:'flex', gap:'0.85rem', alignItems:'flex-start', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'0.85rem 1rem', transition:'border-color 0.2s' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor='rgba(255,193,7,0.25)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}
-                  >
-                    <div style={{ width:32, height:32, borderRadius:8, background:`${f.color}18`, border:`1px solid ${f.color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>{f.dot}</div>
-                    <div>
-                      <div style={{ fontSize:'0.82rem', fontWeight:700, color:'#fff', marginBottom:2 }}>{f.title}</div>
-                      <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>{f.desc}</div>
+      {/* ════ MAP SECTION ════ */}
+      <section id="map-feature" style={{ padding:'6rem 0', background:'#f9fafb', zoom:'0.75' }}>
+        <Container>
+          <Row className="align-items-center g-5">
+            {/* Left copy */}
+            <Col lg={5}>
+              <div ref={mapSectionRef} className={`reveal-section ${mapSectionVisible?'visible':''}`}>
+                <span className="section-eyebrow"><i className="fas fa-map-marked-alt me-2"></i>Live Map Intelligence</span>
+                <h2 className="section-heading">Know What's Happening <em>Near You</em></h2>
+                <p className="section-sub" style={{ marginBottom:'2rem', fontSize:'1.2rem', lineHeight:'1.6' }}>
+                  PetUnity's interactive map gives you real-time visibility into rabies activity, danger zones, and the nearest veterinary services — all in one place.
+                </p>
+                <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                  {mapFeatures.map((f, i) => (
+                    <div key={i} className={`map-feature-item reveal-section stagger-${i+1} ${mapSectionVisible?'visible':''}`}>
+                      <div style={{ width:42, height:42, borderRadius:12, background:`${f.color}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <i className={`fas ${f.icon}`} style={{ color:f.color, fontSize:'1rem' }}></i>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight:700, fontSize:'1rem', color:'#111827', marginBottom:2 }}>{f.title}</div>
+                        <div style={{ fontSize:'0.9rem', color:'#6b7280', lineHeight:1.6 }}>{f.desc}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-
-              {/* CTA */}
-              <button onClick={() => navigate('/owner/map-status')}
-                style={{ width:'100%', background:'linear-gradient(135deg,#ffc107,#f59e0b)', color:'#0a0f1e', border:'none', borderRadius:12, padding:'0.9rem', fontWeight:800, fontSize:'0.9rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', boxShadow:'0 8px 24px rgba(255,193,7,0.25)', transition:'all 0.25s' }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 32px rgba(255,193,7,0.35)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(255,193,7,0.25)'; }}
-              >
-                <i className="fas fa-expand-alt" style={{ fontSize:'0.8rem' }}></i>
-                Open Full Map
-              </button>
-
             </Col>
 
-            {/* RIGHT — map card */}
-            <Col lg={8}>
-              <div style={{ background:'#0d1424', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, overflow:'hidden', height:'100%', minHeight:520, display:'flex', flexDirection:'column', boxShadow:'0 32px 80px rgba(0,0,0,0.5)' }}>
-
-                {/* Map toolbar */}
-                <div style={{ padding:'0.75rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', flexShrink:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-                    <div style={{ display:'flex', gap:'5px' }}>
-                      {['#ff5f57','#febc2e','#28c840'].map((c,i) => <div key={i} style={{ width:9, height:9, borderRadius:'50%', background:c }} />)}
+            {/* Right — real Leaflet map with scanner */}
+            <Col lg={7}>
+              <div className={`reveal-section stagger-2 ${mapSectionVisible?'visible':''}`}>
+                <div className="map-preview-card">
+                  {/* Header */}
+                  <div style={{ background:'linear-gradient(135deg,#1a1a1a,#2d2d2d)', padding:'1rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'0.6rem' }}>
+                      <i className="fas fa-map" style={{ color:'#ffc107' }}></i>
+                      <span style={{ color:'#fff', fontWeight:700, fontSize:'0.9rem' }}>Rabies Activity Map — Muntinlupa City</span>
                     </div>
-                    <div style={{ width:1, height:14, background:'rgba(255,255,255,0.1)' }} />
-                    <span style={{ color:'rgba(255,255,255,0.6)', fontSize:'0.75rem', fontWeight:500 }}>
-                      Muntinlupa City · Rabies Activity
+                    <div style={{ display:'flex', gap:'0.5rem' }}>
+                      {['#ff5f57','#febc2e','#28c840'].map((c,i)=>(
+                        <div key={i} style={{ width:10, height:10, borderRadius:'50%', background:c }} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Map + scanner overlay */}
+                  <div style={{ position:'relative', overflow:'hidden' }}>
+                    {/* Real Leaflet map */}
+                    <div ref={leafletMapRef} className="map-leaflet-div" style={{ height:'400px', width:'100%' }} />
+
+                    {/* Scanner line on top of real map */}
+                    <div style={{
+                      position:'absolute', left:0, right:0, height:2,
+                      background:'linear-gradient(90deg,transparent,rgba(255,193,7,0.6),transparent)',
+                      animation:'scanLine 4s linear infinite',
+                      pointerEvents:'none', zIndex:998
+                    }} />
+
+                    {/* Legend overlay */}
+                    <div style={{ position:'absolute', top:12, right:12, zIndex:999, background:'rgba(255,255,255,0.95)', borderRadius:12, padding:'0.7rem 1rem', boxShadow:'0 4px 16px rgba(0,0,0,0.12)' }}>
+                      {[
+                        { color:'#e00000', emoji:'☣️', label:'Positive Rabies' },
+                        { color:'#f0c800', emoji:'⚠️', label:'Suspected Rabies' },
+                        { color:'#ffc107', icon:'fa-hospital', label:'City Vet' },
+                        { color:'#0d6efd', icon:'fa-hospital', label:'Private Clinic' },
+                      ].map((l,i)=>(
+                        <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:i<3?'0.35rem':0 }}>
+                          <div style={{ width:18, height:18, borderRadius:'50%', background:l.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, flexShrink:0 }}>
+                            {l.emoji ? l.emoji : <i className={`fas ${l.icon}`} style={{ color:'#fff', fontSize:7 }}></i>}
+                          </div>
+                          <span style={{ fontSize:'0.65rem', fontWeight:600, color:'#444' }}>{l.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span style={{ fontSize:'0.72rem', color:'#aaa', fontWeight:500 }}>
+                      <i className="fas fa-circle me-1" style={{ color:'#10b981', fontSize:'0.5rem' }}></i>Live Data · Muntinlupa City
                     </span>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
-                    <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', boxShadow:'0 0 6px #10b981' }} />
-                    <span style={{ color:'rgba(255,255,255,0.35)', fontSize:'0.68rem' }}>Live</span>
-                  </div>
-                </div>
-
-                {/* Map */}
-                <div style={{ position:'relative', flex:1 }}>
-                  {/* ── YOUR EXISTING LEAFLET MAP (unchanged ref/class) ── */}
-                  <div ref={leafletMapRef} className="map-leaflet-div" style={{ height:'100%', minHeight:440, width:'100%' }} />
-
-                  {/* Scanner */}
-                  <div style={{ position:'absolute', left:0, right:0, height:1, background:'linear-gradient(90deg,transparent,rgba(255,193,7,0.5),transparent)', animation:'scanLine 4s linear infinite', pointerEvents:'none', zIndex:998 }} />
-
-                  {/* Legend — bottom left glass pill */}
-                  <div style={{ position:'absolute', bottom:16, left:16, zIndex:999, background:'rgba(10,15,30,0.85)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:12, padding:'0.65rem 0.9rem', display:'flex', flexDirection:'column', gap:'0.4rem' }}>
-                    {[
-                      { color:'#ef4444', emoji:'☣️', label:'Positive' },
-                      { color:'#f0c800', emoji:'⚠️', label:'Suspected' },
-                      { color:'#ffc107', emoji:'🏥', label:'City Vet' },
-                      { color:'#38bdf8', emoji:'🏥', label:'Clinic' },
-                    ].map((l, i) => (
-                      <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
-                        <div style={{ width:16, height:16, borderRadius:4, background:`${l.color}25`, border:`1px solid ${l.color}60`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, flexShrink:0 }}>{l.emoji}</div>
-                        <span style={{ fontSize:'0.65rem', color:'rgba(255,255,255,0.6)', fontWeight:500 }}>{l.label}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Coordinates badge — top right (bottom right is used by Leaflet zoom/attribution) */}
-                  <div style={{ position:'absolute', top:16, right:16, zIndex:999, background:'rgba(10,15,30,0.85)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'0.4rem 0.75rem' }}>
-                    <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.35)', fontFamily:'monospace' }}>14.4081° N · 121.0415° E</span>
+                    <button onClick={() => navigate('/owner/map-status')}
+                      style={{ background:'#1a1a1a', color:'#ffc107', border:'none', borderRadius:8, padding:'0.35rem 0.9rem', fontSize:'0.72rem', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:'0.4rem' }}>
+                      <i className="fas fa-expand-alt" style={{ fontSize:'0.65rem' }}></i> Full Map
+                    </button>
                   </div>
                 </div>
-
               </div>
             </Col>
           </Row>
