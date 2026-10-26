@@ -87,15 +87,13 @@ const LandingPage = () => {
     return () => window.removeEventListener('mousemove', h);
   }, []);
 
-  /* load Leaflet CSS + JS */
+  /* load Google Maps JS */
   useEffect(() => {
-    if (window.L) { setLeafletLoaded(true); return; }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css';
-    document.head.appendChild(link);
+    if (window.google && window.google.maps) { setLeafletLoaded(true); return; }
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To';
+    script.async = true;
+    script.defer = true;
     script.onload = () => setLeafletLoaded(true);
     document.head.appendChild(script);
   }, []);
@@ -116,63 +114,68 @@ const LandingPage = () => {
     load();
   }, []);
 
-  /* init map — bounds locked to Muntinlupa */
-useEffect(() => {
-  if (!leafletLoaded || !leafletMapRef.current || leafletInstanceRef.current) return;
+    /* init Google Map — bounds locked to Muntinlupa */
+  useEffect(() => {
+    if (!leafletLoaded || !leafletMapRef.current || leafletInstanceRef.current) return;
 
-  const initMap = () => {
-    if (!leafletMapRef.current) return;
-    const el = leafletMapRef.current;
-    if (!el.offsetWidth || !el.offsetHeight) {
-      setTimeout(initMap, 150);
-      return;
-    }
+    const initMap = () => {
+      if (!leafletMapRef.current) return;
+      const el = leafletMapRef.current;
+      if (!el.offsetWidth || !el.offsetHeight) {
+        setTimeout(initMap, 150);
+        return;
+      }
 
-    const L = window.L;
-    const map = L.map(el, {
-      center: MUNTI_CENTER,
-      zoom: 13,
-      minZoom: 12,
-      maxZoom: 22,
-      maxBounds: MUNTI_BOUNDS,
-      maxBoundsViscosity: 1.0,
-      zoomControl: true,
-      scrollWheelZoom: false,
-    });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 22, maxNativeZoom: 19,
-    }).addTo(map);
-    const styleEl = document.createElement('style');
-    styleEl.innerHTML = `
-      .leaflet-control-attribution{background:rgba(0,0,0,0.45)!important;color:#aaa!important;font-size:0.62rem!important;padding:2px 6px!important;border-radius:4px 0 0 0!important}
-      .leaflet-control-attribution a{color:#ccc!important}
-      .custom-report-icon{background:none!important;border:none!important}
-      .radius-label{background:transparent!important;border:none!important;box-shadow:none!important}
-      .leaflet-popup-content-wrapper{border-radius:16px!important;box-shadow:0 8px 32px rgba(0,0,0,0.18)!important;border:none!important;padding:0!important;overflow:hidden}
-      .leaflet-popup-content{margin:0!important}
-      .leaflet-popup-tip-container{display:none}
-    `;
-    document.head.appendChild(styleEl);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-    L.polygon(BOUNDARY, { color:'#ffc107', weight:2.5, opacity:0.8, fillColor:'#ffc107', fillOpacity:0, dashArray:'6,4' }).addTo(map);
-    leafletInstanceRef.current = map;
+      const google = window.google;
+      const map = new google.maps.Map(el, {
+        center: { lat: MUNTI_CENTER[0], lng: MUNTI_CENTER[1] },
+        zoom: 13,
+        minZoom: 12,
+        maxZoom: 22,
+        scrollwheel: false,
+        zoomControl: true,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        restriction: {
+          latLngBounds: {
+            north: MUNTI_BOUNDS[1][0],
+            south: MUNTI_BOUNDS[0][0],
+            west:  MUNTI_BOUNDS[0][1],
+            east:  MUNTI_BOUNDS[1][1],
+          },
+          strictBounds: true,
+        },
+        styles: [
+          { featureType:'poi', elementType:'labels', stylers:[{ visibility:'off' }] },
+        ],
+      });
 
-    setTimeout(() => map.invalidateSize(), 200);
-  };
+      // Draw boundary polygon
+      new google.maps.Polygon({
+        paths: BOUNDARY.map(([lat, lng]) => ({ lat, lng })),
+        strokeColor: '#ffc107',
+        strokeOpacity: 0.8,
+        strokeWeight: 2.5,
+        fillColor: '#ffc107',
+        fillOpacity: 0,
+        map,
+      });
 
-  initMap();
+      leafletInstanceRef.current = map;
+    };
 
-}, [leafletLoaded]);
+    initMap();
+  }, [leafletLoaded]);
 
-  /* render report markers + danger circles — identical to OwnerMapStatus */
+  /* render report markers + danger circles */
   useEffect(() => {
     if (!leafletInstanceRef.current || !leafletLoaded) return;
-    const L   = window.L;
-    const map = leafletInstanceRef.current;
+    const google = window.google;
+    const map    = leafletInstanceRef.current;
 
-    markersRef.current.forEach(m => map.removeLayer(m));
-    circlesRef.current.forEach(c => map.removeLayer(c));
+    markersRef.current.forEach(m => m.setMap(null));
+    circlesRef.current.forEach(c => c.setMap(null));
     markersRef.current = [];
     circlesRef.current = [];
 
@@ -194,79 +197,72 @@ useEffect(() => {
     });
 
     circleOwners.forEach(o => {
-  const isPos = o.status==='positive_rabies';
-  try {
-    const circle = L.circle([o.lat,o.lng], {
-      radius: 1000,
-      color: isPos?'#e00000':'#f0c800', weight:2.5, opacity:0.85,
-      fillColor: isPos?'#e00000':'#f0c800',
-      fillOpacity: isPos?0.12:0.10,
-      dashArray: isPos?null:'6,4',
-    }).addTo(map);
-    const lIcon = L.divIcon({
-      className: 'radius-label',
-      html: `<div style="background:${isPos?'rgba(220,0,0,0.85)':'rgba(220,180,0,0.9)'};color:#fff;padding:3px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);">1 km ${isPos?'⚠️ Danger Zone':'🔍 Alert Zone'}</div>`,
-      iconAnchor:[40,10],
+      const isPos = o.status === 'positive_rabies';
+      try {
+        const circle = new google.maps.Circle({
+          map,
+          center: { lat: o.lat, lng: o.lng },
+          radius: 1000,
+          strokeColor:   isPos ? '#e00000' : '#f0c800',
+          strokeOpacity: 0.85,
+          strokeWeight:  2.5,
+          fillColor:     isPos ? '#e00000' : '#f0c800',
+          fillOpacity:   isPos ? 0.12 : 0.10,
+        });
+        const labelMarker = new google.maps.Marker({
+          position: { lat: o.lat + 0.0085, lng: o.lng },
+          map,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg"/>',
+            scaledSize: new google.maps.Size(1, 1),
+          },
+          label: {
+            text: `1 km ${isPos ? '⚠️ Danger Zone' : '🔍 Alert Zone'}`,
+            color: '#fff',
+            fontSize: '0.7rem',
+            fontWeight: 'bold',
+          },
+          clickable: false,
+        });
+        circlesRef.current.push(circle, labelMarker);
+      } catch(e) {
+        console.warn('Circle render skipped:', e.message);
+      }
     });
-    const lm = L.marker([o.lat+0.0085,o.lng],{icon:lIcon,interactive:false}).addTo(map);
-    circlesRef.current.push(circle,lm);
-  } catch(e) {
-    console.warn('Circle render skipped:', e.message);
-  }
-});
 
     sorted.forEach(r => {
       const lat=parseFloat(r.latitude), lng=parseFloat(r.longitude);
       if (isNaN(lat)||isNaN(lng)) return;
-      const isPos   = r.status==='positive_rabies';
-      const color   = isPos?'#e00000':'#f0c800';
-      const emoji   = isPos?'☣️':'⚠️';
-      const label   = isPos?'Positive Rabies':'Suspected Rabies';
-      const bgColor = isPos?'rgba(224,0,0,0.9)':'rgba(220,180,0,0.95)';
-      const txtColor= isPos?'#fff':'#1a1a1a';
+      const isPos = r.status==='positive_rabies';
+      const color = isPos?'#e00000':'#f0c800';
+      const emoji = isPos?'☣️':'⚠️';
 
-      const icon = L.divIcon({
-        className:'custom-report-icon',
-        html:`<div style="position:relative;width:28px;height:36px;display:flex;flex-direction:column;align-items:center;">
-          <div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};border:2px solid white;box-shadow:0 3px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">
-            <div style="transform:rotate(45deg);font-size:12px;">${emoji}</div>
-          </div>
-          <div style="width:3px;height:8px;background:rgba(0,0,0,0.25);border-radius:0 0 3px 3px;margin-top:-1px;"></div>
-        </div>`,
-        iconSize:[28,36],iconAnchor:[14,36],popupAnchor:[0,-38],
+      const m = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+              <circle cx="14" cy="14" r="13" fill="${color}" stroke="white" stroke-width="2"/>
+              <text x="14" y="19" text-anchor="middle" font-size="13">${emoji}</text>
+              <rect x="12" y="27" width="4" height="9" rx="2" fill="rgba(0,0,0,0.25)"/>
+            </svg>`)}`,
+          scaledSize: new google.maps.Size(28, 36),
+          anchor: new google.maps.Point(14, 36),
+        },
+        clickable: false,
       });
-
-      const popup=`<div style="width:200px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
-        <div style="background:${bgColor};padding:0.65rem 0.85rem;">
-          <div style="font-size:1.2rem;margin-bottom:0.3rem;">${emoji}</div>
-          <div style="color:${txtColor};font-weight:700;font-size:0.78rem;">${label}</div>
-          <div style="color:${isPos?'rgba(255,255,255,0.65)':'rgba(0,0,0,0.5)'};font-size:0.62rem;margin-top:2px;">
-            Reported ${new Date(r.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}
-          </div>
-        </div>
-        <div style="padding:0.65rem 0.85rem;background:#fff;">
-          <div style="margin-bottom:0.4rem;">
-            <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Barangay</div>
-            <div style="font-size:0.75rem;color:#222;font-weight:600;margin-top:2px;">${r.barangay_name||'Not specified'}</div>
-          </div>
-          <div style="margin-top:0.5rem;padding:0.35rem 0.5rem;background:${isPos?'#ffe6e6':'#fffbe6'};border-radius:6px;border-left:3px solid ${color};font-size:0.65rem;font-weight:700;color:${isPos?'#8b0000':'#7a6000'};">
-            ${isPos?'⚠️ Stay alert — danger zone within 1km':'🔍 Alert zone — monitor pets nearby'}
-          </div>
-        </div>
-      </div>`;
-
-      const m = L.marker([lat,lng],{icon,interactive:false}).addTo(map);
       markersRef.current.push(m);
     });
   }, [mapReports, leafletLoaded]);
 
-  /* render clinic markers — identical to OwnerMapStatus */
+  /* render clinic markers */
   useEffect(() => {
     if (!leafletInstanceRef.current || !leafletLoaded) return;
-    const L   = window.L;
-    const map = leafletInstanceRef.current;
+    const google = window.google;
+    const map    = leafletInstanceRef.current;
 
-    clinicMarkersRef.current.forEach(m => map.removeLayer(m));
+    clinicMarkersRef.current.forEach(m => m.setMap(null));
     clinicMarkersRef.current = [];
 
     const cityVet = {
@@ -281,57 +277,21 @@ useEffect(() => {
       if (isNaN(lat)||isNaN(lng)) return;
       const isCityVet = clinic.id==='cityvet';
 
-      const icon = L.divIcon({
-        className:'custom-report-icon',
-        html: isCityVet ? `
-          <div style="position:relative;width:48px;height:58px;display:flex;flex-direction:column;align-items:center;">
-            <div style="position:absolute;top:-6px;left:-6px;width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,193,7,0.5);animation:cityvet-pulse 2s ease-out infinite;"></div>
-            <div style="width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#ffc107,#ff8c00);border:3px solid white;box-shadow:0 4px 16px rgba(255,193,7,0.7);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:1;">
-              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
-                <i class="fas fa-hospital" style="font-size:17px;color:#fff;"></i>
-              </div>
-            </div>
-            <div style="width:4px;height:10px;background:rgba(255,140,0,0.6);border-radius:0 0 4px 4px;margin-top:-1px;position:relative;z-index:1;"></div>
-          </div>
-          <style>@keyframes cityvet-pulse{0%{transform:scale(0.9);opacity:0.8}70%{transform:scale(1.4);opacity:0}100%{transform:scale(0.9);opacity:0}}</style>` : `
-          <div style="position:relative;width:32px;height:40px;display:flex;flex-direction:column;align-items:center;">
-            <div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#0d6efd,#0a58ca);border:2.5px solid white;box-shadow:0 3px 10px rgba(13,110,253,0.5);display:flex;align-items:center;justify-content:center;overflow:hidden;">
-              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
-                <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
-              </div>
-            </div>
-            <div style="width:3px;height:8px;background:rgba(13,110,253,0.4);border-radius:0 0 3px 3px;margin-top:-1px;"></div>
-          </div>`,
-        iconSize:    isCityVet?[48,58]:[32,40],
-        iconAnchor:  isCityVet?[24,58]:[16,40],
-        popupAnchor: [0,isCityVet?-60:-42],
+      const m = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="${isCityVet?48:32}" height="${isCityVet?58:40}" viewBox="0 0 ${isCityVet?48:32} ${isCityVet?58:40}">
+              <circle cx="${isCityVet?24:16}" cy="${isCityVet?22:16}" r="${isCityVet?20:14}" fill="${isCityVet?'#ffc107':'#0d6efd'}" stroke="white" stroke-width="2.5"/>
+              <text x="${isCityVet?24:16}" y="${isCityVet?28:21}" text-anchor="middle" font-size="${isCityVet?16:12}" fill="white">🏥</text>
+              <rect x="${isCityVet?22:14}" y="${isCityVet?42:30}" width="4" height="${isCityVet?10:8}" rx="2" fill="rgba(0,0,0,0.25)"/>
+            </svg>`)}`,
+          scaledSize: new google.maps.Size(isCityVet?48:32, isCityVet?58:40),
+          anchor: new google.maps.Point(isCityVet?24:16, isCityVet?58:40),
+        },
+        clickable: false,
       });
-
-      const popup=`<div style="width:210px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
-        <div style="background:${isCityVet?'linear-gradient(135deg,#ffc107,#ff8c00)':'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.65rem 0.85rem;">
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
-            <div style="width:28px;height:28px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
-            </div>
-            <div>
-              <div style="color:${isCityVet?'#1a1a1a':'#fff'};font-weight:700;font-size:0.75rem;line-height:1.2;">${clinic.clinic_name}</div>
-              <div style="color:${isCityVet?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.65)'};font-size:0.6rem;">${isCityVet?'Government Veterinary Office':(clinic.clinic_code||'')}</div>
-            </div>
-          </div>
-          <span style="display:inline-block;background:rgba(255,255,255,0.2);color:${isCityVet?'#1a1a1a':'#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
-            🏥 ${isCityVet?'City Government Clinic':'Private Clinic'}
-          </span>
-        </div>
-        <div style="padding:0.65rem 0.85rem;background:#fff;display:flex;flex-direction:column;gap:0.4rem;">
-          ${clinic.owner_name?`<div><div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div><div style="font-size:0.72rem;color:#222;font-weight:600;margin-top:1px;">${isCityVet?clinic.owner_name:'Dr. '+clinic.owner_name}</div></div>`:''}
-          <div style="display:flex;gap:0.35rem;margin-top:0.2rem;">
-            ${clinic.phone?`<div style="flex:1;background:#f8f9fa;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #eee;"><div style="font-size:0.54rem;color:#aaa;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#333;font-weight:600;margin-top:1px;">${clinic.phone}</div></div>`:''}
-            ${clinic.specialization?`<div style="flex:1;background:#e8f0fe;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #c5d8fc;"><div style="font-size:0.54rem;color:#5577aa;font-weight:700;text-transform:uppercase;">Specialty</div><div style="font-size:0.62rem;color:#0d6efd;font-weight:700;margin-top:1px;">${clinic.specialization}</div></div>`:''}
-          </div>
-        </div>
-      </div>`;
-
-      const m = L.marker([lat,lng],{icon,interactive:false}).addTo(map);
       clinicMarkersRef.current.push(m);
     });
   }, [mapClinics, leafletLoaded]);
