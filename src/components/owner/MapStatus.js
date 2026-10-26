@@ -138,7 +138,7 @@ useEffect(() => {
     const map = new google.maps.Map(el, {
       center: { lat: MUNTINLUPA_CENTER[0], lng: MUNTINLUPA_CENTER[1] },
       zoom: 13,
-      minZoom: 12,
+      minZoom: 10,
       maxZoom: 22,
       gestureHandling: 'greedy',
       zoomControl: true,
@@ -153,7 +153,7 @@ useEffect(() => {
           west:  MUNTINLUPA_BOUNDS[0][1],
           east:  MUNTINLUPA_BOUNDS[1][1],
         },
-        strictBounds: true,
+        strictBounds: false,
       },
       backgroundColor: '#0d1424',
       styles: [
