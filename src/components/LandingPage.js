@@ -281,6 +281,56 @@ useEffect(() => {
       if (isNaN(lat)||isNaN(lng)) return;
       const isCityVet = clinic.id==='cityvet';
 
+      const icon = L.divIcon({
+        className:'custom-report-icon',
+        html: isCityVet ? `
+          <div style="position:relative;width:48px;height:58px;display:flex;flex-direction:column;align-items:center;">
+            <div style="position:absolute;top:-6px;left:-6px;width:60px;height:60px;border-radius:50%;border:3px solid rgba(255,193,7,0.5);animation:cityvet-pulse 2s ease-out infinite;"></div>
+            <div style="width:44px;height:44px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#ffc107,#ff8c00);border:3px solid white;box-shadow:0 4px 16px rgba(255,193,7,0.7);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:1;">
+              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
+                <i class="fas fa-hospital" style="font-size:17px;color:#fff;"></i>
+              </div>
+            </div>
+            <div style="width:4px;height:10px;background:rgba(255,140,0,0.6);border-radius:0 0 4px 4px;margin-top:-1px;position:relative;z-index:1;"></div>
+          </div>
+          <style>@keyframes cityvet-pulse{0%{transform:scale(0.9);opacity:0.8}70%{transform:scale(1.4);opacity:0}100%{transform:scale(0.9);opacity:0}}</style>` : `
+          <div style="position:relative;width:32px;height:40px;display:flex;flex-direction:column;align-items:center;">
+            <div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#0d6efd,#0a58ca);border:2.5px solid white;box-shadow:0 3px 10px rgba(13,110,253,0.5);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
+                <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
+              </div>
+            </div>
+            <div style="width:3px;height:8px;background:rgba(13,110,253,0.4);border-radius:0 0 3px 3px;margin-top:-1px;"></div>
+          </div>`,
+        iconSize:    isCityVet?[48,58]:[32,40],
+        iconAnchor:  isCityVet?[24,58]:[16,40],
+        popupAnchor: [0,isCityVet?-60:-42],
+      });
+
+      const popup=`<div style="width:210px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
+        <div style="background:${isCityVet?'linear-gradient(135deg,#ffc107,#ff8c00)':'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.65rem 0.85rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
+            <div style="width:28px;height:28px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
+            </div>
+            <div>
+              <div style="color:${isCityVet?'#1a1a1a':'#fff'};font-weight:700;font-size:0.75rem;line-height:1.2;">${clinic.clinic_name}</div>
+              <div style="color:${isCityVet?'rgba(0,0,0,0.5)':'rgba(255,255,255,0.65)'};font-size:0.6rem;">${isCityVet?'Government Veterinary Office':(clinic.clinic_code||'')}</div>
+            </div>
+          </div>
+          <span style="display:inline-block;background:rgba(255,255,255,0.2);color:${isCityVet?'#1a1a1a':'#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
+            🏥 ${isCityVet?'City Government Clinic':'Private Clinic'}
+          </span>
+        </div>
+        <div style="padding:0.65rem 0.85rem;background:#fff;display:flex;flex-direction:column;gap:0.4rem;">
+          ${clinic.owner_name?`<div><div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div><div style="font-size:0.72rem;color:#222;font-weight:600;margin-top:1px;">${isCityVet?clinic.owner_name:'Dr. '+clinic.owner_name}</div></div>`:''}
+          <div style="display:flex;gap:0.35rem;margin-top:0.2rem;">
+            ${clinic.phone?`<div style="flex:1;background:#f8f9fa;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #eee;"><div style="font-size:0.54rem;color:#aaa;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#333;font-weight:600;margin-top:1px;">${clinic.phone}</div></div>`:''}
+            ${clinic.specialization?`<div style="flex:1;background:#e8f0fe;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #c5d8fc;"><div style="font-size:0.54rem;color:#5577aa;font-weight:700;text-transform:uppercase;">Specialty</div><div style="font-size:0.62rem;color:#0d6efd;font-weight:700;margin-top:1px;">${clinic.specialization}</div></div>`:''}
+          </div>
+        </div>
+      </div>`;
+
       const m = new google.maps.Marker({
         position: { lat, lng },
         map,
@@ -485,228 +535,92 @@ useEffect(() => {
       </section>
 
       {/* ════ MAP SECTION ════ */}
-      <section id="map-feature" style={{ padding:'5rem 0 6rem', background:'#f9fafb', zoom:'0.75', position:'relative', overflow:'hidden' }}>
-
-        <style>{`
-          @keyframes pulseRing {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255,193,7,0.4); }
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(255,193,7,0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(255,193,7,0); }
-          }
-          @keyframes liveBlink {
-            0%,100% { opacity:1; } 50% { opacity:0.3; }
-          }
-          @keyframes slideInLeft {
-            from { opacity:0; transform:translateX(-20px); }
-            to   { opacity:1; transform:translateX(0); }
-          }
-          .map-stat-card {
-            background:#fff;
-            border:1px solid #f0f0f0;
-            border-radius:16px;
-            padding:1.1rem 1.2rem;
-            transition:all 0.25s;
-            position:relative;
-            overflow:hidden;
-          }
-          .map-stat-card:hover {
-            transform:translateY(-3px);
-            box-shadow:0 12px 32px rgba(0,0,0,0.08);
-            border-color:#ffc107;
-          }
-          .map-stat-card::before {
-            content:'';
-            position:absolute;
-            top:0; left:0; right:0;
-            height:3px;
-            background:var(--accent);
-            border-radius:16px 16px 0 0;
-            opacity:0;
-            transition:opacity 0.25s;
-          }
-          .map-stat-card:hover::before { opacity:1; }
-          .map-legend-row {
-            display:flex; align-items:center; gap:0.6rem;
-            padding:0.5rem 0.65rem;
-            border-radius:8px;
-            transition:background 0.2s;
-            cursor:default;
-          }
-          .map-legend-row:hover { background:rgba(0,0,0,0.04); }
-          .map-card-outer {
-            border-radius:20px;
-            overflow:hidden;
-            box-shadow:0 24px 64px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06);
-            border:1px solid #e8e8e8;
-            background:#fff;
-            display:flex;
-            flex-direction:column;
-            height:100%;
-          }
-          .map-toolbar {
-            background:linear-gradient(135deg,#1a1a2e,#16213e);
-            padding:0.85rem 1.25rem;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            flex-shrink:0;
-          }
-          .map-toolbar-pill {
-            display:flex; align-items:center; gap:0.5rem;
-            background:rgba(255,255,255,0.08);
-            border:1px solid rgba(255,255,255,0.12);
-            border-radius:20px;
-            padding:0.3rem 0.75rem;
-            font-size:0.68rem;
-            color:rgba(255,255,255,0.7);
-            font-weight:600;
-          }
-          .map-footer-bar {
-            background:linear-gradient(135deg,#1a1a2e,#16213e);
-            padding:0.65rem 1.25rem;
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            flex-shrink:0;
-          }
-        `}</style>
-
-        <Container style={{ position:'relative', zIndex:2 }}>
-
-          {/* Section header */}
-          <div style={{ marginBottom:'2.5rem' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.75rem' }}>
-              <div style={{ width:5, height:5, borderRadius:'50%', background:'#ffc107', animation:'liveBlink 2s infinite' }} />
-              <span style={{ color:'#ffc107', fontSize:'0.72rem', fontWeight:700, letterSpacing:'1px', textTransform:'uppercase' }}>Live Map Intelligence</span>
-            </div>
-            <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:'1rem' }}>
-              <h2 style={{ fontSize:'2.4rem', fontWeight:800, color:'#111827', margin:0, lineHeight:1.2 }}>
-                Rabies activity across<br/>
-                <span style={{ color:'#ffc107' }}>Muntinlupa City</span>
-              </h2>
-              <p style={{ color:'#6b7280', fontSize:'0.95rem', lineHeight:1.7, maxWidth:300, margin:0 }}>
-                Every confirmed case, clinic, and danger zone — monitored and visualized in real time.
-              </p>
-            </div>
-          </div>
-
-          <Row className="g-4 align-items-stretch">
-
-            {/* LEFT panel */}
-            <Col lg={4} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-
-              {/* Stat grid */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
-                {[
-                  { value:'16',   label:'Barangays',     accent:'#ffc107' },
-                  { value:'1km',  label:'Danger radius',  accent:'#ef4444' },
-                  { value:'24/7', label:'Monitoring',     accent:'#3b82f6' },
-                  { value:'Free', label:'For residents',  accent:'#10b981' },
-                ].map((s, i) => (
-                  <div key={i} className="map-stat-card" style={{ '--accent': s.accent }}>
-                    <div style={{ fontSize:'1.7rem', fontWeight:900, color:s.accent, lineHeight:1, marginBottom:3 }}>{s.value}</div>
-                    <div style={{ fontSize:'0.68rem', color:'#9ca3af', fontWeight:500 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Legend card */}
-              <div style={{ background:'#fff', border:'1px solid #f0f0f0', borderRadius:16, padding:'1rem 1.1rem', flex:1 }}>
-                <div style={{ fontSize:'0.7rem', fontWeight:700, color:'#9ca3af', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:'0.75rem' }}>Map Legend</div>
-                {[
-                  { color:'#ef4444', bg:'#fef2f2', emoji:'☣️', label:'Positive Rabies',  sub:'Confirmed case' },
-                  { color:'#f59e0b', bg:'#fffbeb', emoji:'⚠️', label:'Suspected Rabies', sub:'Under monitoring' },
-                  { color:'#ffc107', bg:'#fffbeb', emoji:'🏥', label:'City Vet Office',  sub:'Government clinic' },
-                  { color:'#3b82f6', bg:'#eff6ff', emoji:'🏥', label:'Private Clinic',   sub:'Accredited vet' },
-                ].map((l, i) => (
-                  <div key={i} className="map-legend-row">
-                    <div style={{ width:30, height:30, borderRadius:8, background:l.bg, border:`1.5px solid ${l.color}40`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 }}>{l.emoji}</div>
-                    <div>
-                      <div style={{ fontSize:'0.78rem', fontWeight:700, color:'#111827', lineHeight:1.2 }}>{l.label}</div>
-                      <div style={{ fontSize:'0.65rem', color:'#9ca3af' }}>{l.sub}</div>
+      <section id="map-feature" style={{ padding:'6rem 0', background:'#f9fafb', zoom:'0.75' }}>
+        <Container>
+          <Row className="align-items-center g-5">
+            {/* Left copy */}
+            <Col lg={5}>
+              <div ref={mapSectionRef} className={`reveal-section ${mapSectionVisible?'visible':''}`}>
+                <span className="section-eyebrow"><i className="fas fa-map-marked-alt me-2"></i>Live Map Intelligence</span>
+                <h2 className="section-heading">Know What's Happening <em>Near You</em></h2>
+                <p className="section-sub" style={{ marginBottom:'2rem', fontSize:'1.2rem', lineHeight:'1.6' }}>
+                  PetUnity's interactive map gives you real-time visibility into rabies activity, danger zones, and the nearest veterinary services — all in one place.
+                </p>
+                <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
+                  {mapFeatures.map((f, i) => (
+                    <div key={i} className={`map-feature-item reveal-section stagger-${i+1} ${mapSectionVisible?'visible':''}`}>
+                      <div style={{ width:42, height:42, borderRadius:12, background:`${f.color}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <i className={`fas ${f.icon}`} style={{ color:f.color, fontSize:'1rem' }}></i>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight:700, fontSize:'1rem', color:'#111827', marginBottom:2 }}>{f.title}</div>
+                        <div style={{ fontSize:'0.9rem', color:'#6b7280', lineHeight:1.6 }}>{f.desc}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-
-              {/* CTA button */}
-              <button onClick={() => navigate('/owner/map-status')}
-                style={{ width:'100%', background:'linear-gradient(135deg,#1a1a2e,#16213e)', color:'#ffc107', border:'none', borderRadius:14, padding:'1rem', fontWeight:800, fontSize:'0.88rem', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.6rem', boxShadow:'0 8px 24px rgba(26,26,46,0.3)', transition:'all 0.25s', letterSpacing:'0.3px' }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 14px 32px rgba(26,26,46,0.4)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(26,26,46,0.3)'; }}
-              >
-                <i className="fas fa-map-marked-alt" style={{ fontSize:'0.85rem' }}></i>
-                Open Full Interactive Map
-              </button>
-
             </Col>
 
-            {/* RIGHT — map card */}
-            <Col lg={8}>
-              <div className="map-card-outer">
-
-                {/* Toolbar */}
-                <div className="map-toolbar">
-                  <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-                    <div style={{ display:'flex', gap:'5px' }}>
-                      {['#ff5f57','#febc2e','#28c840'].map((c,i) => <div key={i} style={{ width:9, height:9, borderRadius:'50%', background:c }} />)}
+            {/* Right — real Leaflet map with scanner */}
+            <Col lg={7}>
+              <div className={`reveal-section stagger-2 ${mapSectionVisible?'visible':''}`}>
+                <div className="map-preview-card">
+                  {/* Header */}
+                  <div style={{ background:'linear-gradient(135deg,#1a1a1a,#2d2d2d)', padding:'1rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'0.6rem' }}>
+                      <i className="fas fa-map" style={{ color:'#ffc107' }}></i>
+                      <span style={{ color:'#fff', fontWeight:700, fontSize:'0.9rem' }}>Rabies Activity Map — Muntinlupa City</span>
                     </div>
-                    <div style={{ width:1, height:14, background:'rgba(255,255,255,0.15)' }} />
-                    <span style={{ color:'rgba(255,255,255,0.75)', fontSize:'0.72rem', fontWeight:600 }}>
-                      PetUnity · Muntinlupa Rabies Monitor
+                    <div style={{ display:'flex', gap:'0.5rem' }}>
+                      {['#ff5f57','#febc2e','#28c840'].map((c,i)=>(
+                        <div key={i} style={{ width:10, height:10, borderRadius:'50%', background:c }} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Map + scanner overlay */}
+                  <div style={{ position:'relative', overflow:'hidden' }}>
+                    {/* Real Leaflet map */}
+                    <div ref={leafletMapRef} className="map-leaflet-div" style={{ height:'400px', width:'100%' }} />
+
+                    {/* Scanner line on top of real map */}
+                    <div style={{
+                      position:'absolute', left:0, right:0, height:2,
+                      background:'linear-gradient(90deg,transparent,rgba(255,193,7,0.6),transparent)',
+                      animation:'scanLine 4s linear infinite',
+                      pointerEvents:'none', zIndex:998
+                    }} />
+
+                    {/* Legend overlay */}
+                    <div style={{ position:'absolute', top:12, right:12, zIndex:999, background:'rgba(255,255,255,0.95)', borderRadius:12, padding:'0.7rem 1rem', boxShadow:'0 4px 16px rgba(0,0,0,0.12)' }}>
+                      {[
+                        { color:'#e00000', emoji:'☣️', label:'Positive Rabies' },
+                        { color:'#f0c800', emoji:'⚠️', label:'Suspected Rabies' },
+                        { color:'#ffc107', icon:'fa-hospital', label:'City Vet' },
+                        { color:'#0d6efd', icon:'fa-hospital', label:'Private Clinic' },
+                      ].map((l,i)=>(
+                        <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:i<3?'0.35rem':0 }}>
+                          <div style={{ width:18, height:18, borderRadius:'50%', background:l.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, flexShrink:0 }}>
+                            {l.emoji ? l.emoji : <i className={`fas ${l.icon}`} style={{ color:'#fff', fontSize:7 }}></i>}
+                          </div>
+                          <span style={{ fontSize:'0.65rem', fontWeight:600, color:'#444' }}>{l.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <span style={{ fontSize:'0.72rem', color:'#aaa', fontWeight:500 }}>
+                      <i className="fas fa-circle me-1" style={{ color:'#10b981', fontSize:'0.5rem' }}></i>Live Data · Muntinlupa City
                     </span>
-                  </div>
-                  <div style={{ display:'flex', gap:'0.5rem' }}>
-                    <div className="map-toolbar-pill">
-                      <div style={{ width:5, height:5, borderRadius:'50%', background:'#10b981', animation:'liveBlink 1.5s infinite' }} />
-                      Live
-                    </div>
-                    <div className="map-toolbar-pill">
-                      <i className="fas fa-shield-alt" style={{ fontSize:'0.6rem', color:'#ffc107' }}></i>
-                      Rabies Watch
-                    </div>
+                    <button onClick={() => navigate('/owner/map-status')}
+                      style={{ background:'#1a1a1a', color:'#ffc107', border:'none', borderRadius:8, padding:'0.35rem 0.9rem', fontSize:'0.72rem', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:'0.4rem' }}>
+                      <i className="fas fa-expand-alt" style={{ fontSize:'0.65rem' }}></i> Full Map
+                    </button>
                   </div>
                 </div>
-
-                {/* Map container */}
-                <div style={{ position:'relative', flex:1 }}>
-                  <div ref={leafletMapRef} className="map-leaflet-div" style={{ height:'100%', minHeight:440, width:'100%' }} />
-
-                  {/* Scanner line */}
-                  <div style={{ position:'absolute', left:0, right:0, height:2, background:'linear-gradient(90deg,transparent,rgba(255,193,7,0.7),transparent)', animation:'scanLine 4s linear infinite', pointerEvents:'none', zIndex:998 }} />
-
-                  {/* Top-left status badge */}
-                  <div style={{ position:'absolute', top:12, left:12, zIndex:999, display:'flex', flexDirection:'column', gap:'0.4rem' }}>
-                    <div style={{ background:'rgba(26,26,46,0.92)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,193,7,0.3)', borderRadius:10, padding:'0.45rem 0.8rem', display:'flex', alignItems:'center', gap:'0.5rem' }}>
-                      <div style={{ width:6, height:6, borderRadius:'50%', background:'#10b981', boxShadow:'0 0 0 0 rgba(16,185,129,0.4)', animation:'pulseRing 2s infinite' }} />
-                      <span style={{ fontSize:'0.65rem', color:'#fff', fontWeight:700 }}>System Active</span>
-                    </div>
-                  </div>
-
-                  {/* Bottom-right coords */}
-                  <div style={{ position:'absolute', bottom:12, right:12, zIndex:999, background:'rgba(26,26,46,0.88)', backdropFilter:'blur(8px)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'0.4rem 0.8rem' }}>
-                    <span style={{ fontSize:'0.6rem', color:'rgba(255,255,255,0.5)', fontFamily:'monospace', letterSpacing:'0.5px' }}>14.4081°N 121.0415°E</span>
-                  </div>
-                </div>
-
-                {/* Footer bar */}
-                <div className="map-footer-bar">
-                  <div style={{ display:'flex', alignItems:'center', gap:'1.5rem' }}>
-                    {[
-                      { dot:'#ef4444', label:'Positive' },
-                      { dot:'#f59e0b', label:'Suspected' },
-                      { dot:'#ffc107', label:'City Vet' },
-                      { dot:'#3b82f6', label:'Clinic' },
-                    ].map((t,i) => (
-                      <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.35rem' }}>
-                        <div style={{ width:7, height:7, borderRadius:'50%', background:t.dot }} />
-                        <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.5)', fontWeight:500 }}>{t.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.3)', fontFamily:'monospace' }}>Muntinlupa City · PH</span>
-                </div>
-
               </div>
             </Col>
           </Row>
