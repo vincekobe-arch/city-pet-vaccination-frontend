@@ -484,7 +484,7 @@ useEffect(() => {
         </Container>
       </section>
 
-            {/* ════ MAP SECTION ════ */}
+                  {/* ════ MAP SECTION ════ */}
       <section id="map-feature" style={{ padding:'5rem 0 6rem', background:'#0a0f1e', zoom:'0.75', position:'relative', overflow:'hidden' }}>
 
         {/* Background grid */}
@@ -496,7 +496,7 @@ useEffect(() => {
         <Container style={{ position:'relative', zIndex:2 }}>
 
           {/* Section header */}
-          <div style={{ marginBottom:'3rem' }}>
+          <div ref={mapSectionRef} className={`reveal-section ${mapSectionVisible?'visible':''}`} style={{ marginBottom:'3rem' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'1rem' }}>
               <div style={{ width:6, height:6, borderRadius:'50%', background:'#ffc107', boxShadow:'0 0 8px #ffc107' }} />
               <span style={{ color:'#ffc107', fontSize:'0.75rem', fontWeight:600, letterSpacing:'0.5px' }}>Live Intelligence</span>
@@ -588,6 +588,7 @@ useEffect(() => {
 
                 {/* Map */}
                 <div style={{ position:'relative', flex:1 }}>
+                  {/* ── YOUR EXISTING LEAFLET MAP (unchanged ref/class) ── */}
                   <div ref={leafletMapRef} className="map-leaflet-div" style={{ height:'100%', minHeight:440, width:'100%' }} />
 
                   {/* Scanner */}
@@ -608,8 +609,8 @@ useEffect(() => {
                     ))}
                   </div>
 
-                  {/* Coordinates badge — bottom right */}
-                  <div style={{ position:'absolute', bottom:16, right:16, zIndex:999, background:'rgba(10,15,30,0.85)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'0.4rem 0.75rem' }}>
+                  {/* Coordinates badge — top right (bottom right is used by Leaflet zoom/attribution) */}
+                  <div style={{ position:'absolute', top:16, right:16, zIndex:999, background:'rgba(10,15,30,0.85)', backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'0.4rem 0.75rem' }}>
                     <span style={{ fontSize:'0.62rem', color:'rgba(255,255,255,0.35)', fontFamily:'monospace' }}>14.4081° N · 121.0415° E</span>
                   </div>
                 </div>
