@@ -484,23 +484,29 @@ useEffect(() => {
         </Container>
       </section>
 
-      {/* ════ MAP SECTION ════ */}
-      <section id="map-feature" style={{ padding:'5rem 0 6rem', background:'#f9fafb', zoom:'0.75', position:'relative', overflow:'hidden' }}>
+            {/* ════ MAP SECTION ════ */}
+      <section id="map-feature" style={{ padding:'5rem 0 6rem', background:'#0a0f1e', zoom:'0.75', position:'relative', overflow:'hidden' }}>
+
+        {/* Background grid */}
+        <div style={{ position:'absolute', inset:0, backgroundImage:'linear-gradient(rgba(255,193,7,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,193,7,0.03) 1px, transparent 1px)', backgroundSize:'48px 48px', pointerEvents:'none' }} />
+        {/* Glow blobs */}
+        <div style={{ position:'absolute', width:600, height:600, borderRadius:'50%', background:'radial-gradient(circle, rgba(255,193,7,0.07) 0%, transparent 70%)', top:'-10%', left:'-5%', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, rgba(56,189,248,0.06) 0%, transparent 70%)', bottom:'0%', right:'5%', pointerEvents:'none' }} />
 
         <Container style={{ position:'relative', zIndex:2 }}>
 
           {/* Section header */}
           <div style={{ marginBottom:'3rem' }}>
             <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'1rem' }}>
-              <div style={{ width:6, height:6, borderRadius:'50%', background:'#ffc107' }} />
-              <span style={{ color:'#f59e0b', fontSize:'0.72rem', fontWeight:700, letterSpacing:'1px', textTransform:'uppercase' }}>Live Intelligence</span>
+              <div style={{ width:6, height:6, borderRadius:'50%', background:'#ffc107', boxShadow:'0 0 8px #ffc107' }} />
+              <span style={{ color:'#ffc107', fontSize:'0.75rem', fontWeight:600, letterSpacing:'0.5px' }}>Live Intelligence</span>
             </div>
             <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:'1rem' }}>
-              <h2 style={{ fontSize:'2.6rem', fontWeight:800, color:'#111827', margin:0, lineHeight:1.15, maxWidth:520 }}>
+              <h2 style={{ fontSize:'2.6rem', fontWeight:800, color:'#fff', margin:0, lineHeight:1.15, maxWidth:520 }}>
                 Rabies activity,<br/>
                 <span style={{ color:'#ffc107' }}>mapped in real time</span>
               </h2>
-              <p style={{ color:'#6b7280', fontSize:'0.95rem', lineHeight:1.7, maxWidth:320, margin:0 }}>
+              <p style={{ color:'rgba(255,255,255,0.45)', fontSize:'0.95rem', lineHeight:1.7, maxWidth:320, margin:0 }}>
                 PetUnity monitors Muntinlupa City 24/7 — every confirmed case, every clinic, every danger zone updated live.
               </p>
             </div>
@@ -519,9 +525,9 @@ useEffect(() => {
                   { value:'24/7', label:'Live monitoring',   accent:'#38bdf8' },
                   { value:'Free', label:'For all residents', accent:'#10b981' },
                 ].map((s, i) => (
-                  <div key={i} style={{ background:'#fff', border:'1px solid #f0f0f0', borderRadius:14, padding:'1rem 1.1rem', boxShadow:'0 2px 8px rgba(0,0,0,0.04)' }}>
+                  <div key={i} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'1rem 1.1rem', backdropFilter:'blur(8px)' }}>
                     <div style={{ fontSize:'1.6rem', fontWeight:800, color:s.accent, lineHeight:1, marginBottom:4 }}>{s.value}</div>
-                    <div style={{ fontSize:'0.68rem', color:'#9ca3af', lineHeight:1.4 }}>{s.label}</div>
+                    <div style={{ fontSize:'0.68rem', color:'rgba(255,255,255,0.45)', lineHeight:1.4 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
@@ -534,14 +540,14 @@ useEffect(() => {
                   { color:'#ffc107', dot:'🏥', title:'City Vet Office',   desc:'Government clinic with direct contact and hours.' },
                   { color:'#38bdf8', dot:'🏥', title:'Private clinics',   desc:'Accredited vets near you with specialty info.' },
                 ].map((f, i) => (
-                  <div key={i} style={{ display:'flex', gap:'0.85rem', alignItems:'flex-start', background:'#fff', border:'1px solid #f0f0f0', borderRadius:12, padding:'0.85rem 1rem', transition:'border-color 0.2s', boxShadow:'0 2px 8px rgba(0,0,0,0.03)' }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor='rgba(255,193,7,0.4)'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor='#f0f0f0'}
+                  <div key={i} style={{ display:'flex', gap:'0.85rem', alignItems:'flex-start', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:12, padding:'0.85rem 1rem', transition:'border-color 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor='rgba(255,193,7,0.25)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.06)'}
                   >
                     <div style={{ width:32, height:32, borderRadius:8, background:`${f.color}18`, border:`1px solid ${f.color}30`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>{f.dot}</div>
                     <div>
-                      <div style={{ fontSize:'0.82rem', fontWeight:700, color:'#111827', marginBottom:2 }}>{f.title}</div>
-                      <div style={{ fontSize:'0.72rem', color:'#6b7280', lineHeight:1.5 }}>{f.desc}</div>
+                      <div style={{ fontSize:'0.82rem', fontWeight:700, color:'#fff', marginBottom:2 }}>{f.title}</div>
+                      <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>{f.desc}</div>
                     </div>
                   </div>
                 ))}
