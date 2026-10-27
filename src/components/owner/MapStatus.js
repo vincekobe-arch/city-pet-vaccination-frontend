@@ -98,7 +98,7 @@ useEffect(() => {
   let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
   if (!script) {
     script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}`;
     script.async = true;
     script.defer = true;
     document.head.appendChild(script);

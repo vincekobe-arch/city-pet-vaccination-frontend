@@ -75,7 +75,7 @@ const withRetry = async (fn, retries = 3, delay = 800) => {
   }
 };
 
-const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY || 'AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To';
+const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY || '${process.env.REACT_APP_GOOGLE_MAPS_KEY}';
 
 const MUNTINLUPA_CENTER = [14.4081, 121.0415];
 const MUNTINLUPA_BOUNDS = [[14.34, 120.97], [14.50, 121.12]];
@@ -807,6 +807,8 @@ export default function MapStatus() {
           opacity: 0; transition: opacity 0.18s ease, transform 0.18s ease; z-index: 10003;
         }
         .filter-wrap:hover .tip { opacity: 1; transform: translateX(-50%) translateY(0px); }
+        .map-overlay-header { pointer-events: none; }
+        .map-overlay-header button, .map-overlay-header span, .map-overlay-header div[class="filter-wrap"] { pointer-events: auto; }
         .map-fullscreen { position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:10002 !important;border-radius:0 !important;margin:0 !important; }
         .progress-bar-fill { animation: fillBar 1.1s cubic-bezier(.4,0,.2,1) forwards; }
         .panel-row { display:flex; gap:1rem; }
@@ -930,45 +932,80 @@ export default function MapStatus() {
               </div>
             </Card>
 
+            {/* Safety Info */}
+            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', overflow: 'hidden', background: '#fff', flex: '1 1 auto' }}>
+              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <i className="fas fa-shield-alt" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
+                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Safety Information</span>
+                </div>
+              </div>
+              <div style={{ padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {[
+                  { color: '#e00000', border: 'solid',  label: '1km Danger Zone', desc: 'Positive rabies confirmed nearby. Keep pets indoors.' },
+                  { color: '#f0c800', border: 'dashed', label: '1km Alert Zone',  desc: 'Suspected rabies case nearby. Monitor pets closely.' },
+                ].map(z => (
+                  <div key={z.label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    <div style={{ width: '32px', height: '12px', borderRadius: '4px', border: `2px ${z.border} ${z.color}`, background: z.color + '18', flexShrink: 0, marginTop: '3px' }} />
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#333' }}>{z.label}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '2px', lineHeight: '1.5' }}>{z.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
             {/* Legend */}
             <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden' }}>
               <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fas fa-circle-info" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
+                  <i className="fas fa-map-pin" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
                   <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.88rem' }}>Map Legend</span>
                 </div>
               </div>
-              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                 {[
-                  { img: '/rabies.png',        label: 'Rabies / Positive',  color: '#e00000' },
-                  { img: '/rabies.png',        label: 'Suspected Rabies',   color: '#f0c800' },
-                  { img: '/animal_bite.png',   label: 'Animal Bite',        color: '#ff7700' },
-                  { img: '/animal_rescue.png', label: 'Animal Rescue',      color: '#22bb55' },
-                  { img: '/others.png',        label: 'Others',             color: '#6677ee' },
+                  { color: '#e00000', emoji: '☣️',        label: 'Positive Rabies'  },
+                  { color: '#f0c800', emoji: '⚠️',        label: 'Suspected Rabies' },
+                  { color: '#ff7700', emoji: '🐾',        label: 'Animal Bite'      },
+                  { color: '#22bb55', emoji: '🐕',        label: 'Animal Rescue'    },
+                  { color: '#6677ee', emoji: '📌',        label: 'Others'           },
+                  { color: '#ffc107', icon: 'fa-hospital', label: 'City Vet Office'  },
+                  { color: '#0d6efd', icon: 'fa-hospital', label: 'Private Clinic'   },
                 ].map(l => (
                   <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: l.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 2px 8px ${l.color}55` }}>
-                      <img src={l.img} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} onError={e => e.target.style.display = 'none'} />
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: l.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 2px 8px ${l.color}55`, fontSize: l.emoji ? '1rem' : undefined }}>
+                      {l.emoji ? l.emoji : <i className={`fas ${l.icon}`} style={{ fontSize: '13px', color: '#fff' }}></i>}
                     </div>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#444' }}>{l.label}</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '600', color: '#444' }}>{l.label}</span>
                   </div>
                 ))}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                  <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#0d6efd', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(13,110,253,0.4)' }}>
-                    <i className="fas fa-hospital" style={{ fontSize: '13px', color: '#fff' }}></i>
-                  </div>
-                  <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#444' }}>Private Clinic</span>
+              </div>
+            </Card>
+
+            {/* Pet Safety Tips */}
+            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden', flex: '1 1 auto' }}>
+              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <i className="fas fa-lightbulb" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
+                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Pet Safety Tips</span>
                 </div>
-                <div style={{ marginTop: '0.4rem', paddingTop: '0.75rem', borderTop: '1px solid #f0f0f0', display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '30px', height: '10px', borderRadius: '4px', border: '2px dashed #f0c800', background: 'rgba(240,200,0,0.15)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.73rem', color: '#7a6000', fontWeight: '600' }}>1km Alert Zone</span>
+              </div>
+              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {[
+                  { icon: 'fa-syringe',  tip: "Keep your pet's rabies vaccination up to date." },
+                  { icon: 'fa-home',     tip: 'Keep pets indoors if a danger zone is nearby.'  },
+                  { icon: 'fa-hospital', tip: 'Visit the nearest vet clinic if your pet is bitten.' },
+                  { icon: 'fa-phone',    tip: 'Report animal bites to the City Vet immediately.' },
+                ].map((t, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(255,193,7,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
+                      <i className={`fas ${t.icon}`} style={{ fontSize: '0.7rem', color: '#ffc107' }}></i>
+                    </div>
+                    <span style={{ fontSize: '0.85rem', color: '#555', lineHeight: '1.6', fontWeight: '500' }}>{t.tip}</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '30px', height: '10px', borderRadius: '4px', border: '2px solid #e00000', background: 'rgba(220,0,0,0.12)', flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.73rem', color: '#8b0000', fontWeight: '600' }}>1km Danger Zone</span>
-                  </div>
-                </div>
+                ))}
               </div>
             </Card>
           </Col>
@@ -976,9 +1013,9 @@ export default function MapStatus() {
           {/* ── Map Column ── */}
           <Col lg={9} className="order-1 order-lg-2">
             <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-  style={{ borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
+  style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
               {/* Map Header Bar */}
-              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem', transition: 'padding 0.3s ease', borderBottom: '2px solid #ffc107' }}>
+              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, background: 'transparent', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
