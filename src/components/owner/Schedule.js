@@ -106,6 +106,12 @@ const [showDropdown, setShowDropdown] = useState(null);
   };
 
   const styles = `
+    .dashboard-page {
+      zoom: 0.75;
+    }
+    @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+
     @keyframes dropDown {
       0% { opacity: 0; transform: translateY(-30px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -1093,7 +1099,7 @@ const getVaccineDetails = (schedule) => {
     return (
       <>
         <style>{styles}</style>
-        <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="text-center">
             <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
             <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Loading schedules...</p>
@@ -1106,7 +1112,7 @@ const getVaccineDetails = (schedule) => {
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
       <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
         <Col>
           <div>
