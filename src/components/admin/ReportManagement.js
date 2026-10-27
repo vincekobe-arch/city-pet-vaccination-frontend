@@ -99,6 +99,11 @@ const ZOOM = 0.75;
   const [updateLoading, setUpdateLoading] = useState(false);
 const [lightboxImg, setLightboxImg] = useState(null);
 const [lightboxZoom, setLightboxZoom] = useState(1);
+const statusChartRef  = useRef(null);
+const statusChartObj  = useRef(null);
+const monthlyChartRef = useRef(null);
+const monthlyChartObj = useRef(null);
+const [chartJsLoaded, setChartJsLoaded] = useState(!!window.Chart);
 
   // Generate report modal
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -147,6 +152,7 @@ const [filterSource, setFilterSource] = useState('all');
       0%, 100% { transform: translateY(0px); }
       50%       { transform: translateY(-10px); }
     }
+    @keyframes fadeInUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
     @media (max-width: 768px) {
       .rpt-title { font-size: 1.5rem !important; }
       .rpt-stat-row { flex-wrap: nowrap !important; }
@@ -192,6 +198,14 @@ const location = useLocation();
   }, []);
 
   useEffect(() => {
+    if (window.Chart) { setChartJsLoaded(true); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+    script.onload = () => setChartJsLoaded(true);
+    document.head.appendChild(script);
+  }, []);
+
+  useEffect(() => {
     if (location.state?.openReportId && reports.length > 0) {
       const report = reports.find(r => r.id === location.state.openReportId);
       if (report) {
@@ -212,6 +226,80 @@ const location = useLocation();
   window.addEventListener('scroll', updatePos, true);
   return () => window.removeEventListener('scroll', updatePos, true);
 }, [showDropdown]);
+
+  // Status bar chart
+  useEffect(() => {
+    if (!chartJsLoaded || !statusChartRef.current || loading) return;
+    const Chart = window.Chart;
+    if (statusChartObj.current) statusChartObj.current.destroy();
+    const labels = ['Pending', 'Suspected', 'Positive', 'Ongoing', 'Resolved', 'Declined'];
+    const values = [
+      reports.filter(r => r.status === 'pending').length,
+      reports.filter(r => r.status === 'suspected_rabies').length,
+      reports.filter(r => r.status === 'positive_rabies').length,
+      reports.filter(r => r.status === 'ongoing').length,
+      reports.filter(r => r.status === 'resolved').length,
+      reports.filter(r => r.status === 'declined').length,
+    ];
+    const colors = ['#ffc107','#f0c800','#e00000','#0dcaf0','#198754','#6c757d'];
+    statusChartObj.current = new Chart(statusChartRef.current, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ data: values, backgroundColor: colors, borderRadius: 8, borderSkipped: false, barThickness: 28 }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} reports` } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11, weight: '600' } } },
+          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888', font: { size: 11 }, stepSize: 1 }, beginAtZero: true },
+        },
+      },
+    });
+    return () => { if (statusChartObj.current) { statusChartObj.current.destroy(); statusChartObj.current = null; } };
+  }, [chartJsLoaded, reports, loading]);
+
+  // Monthly trend chart
+  useEffect(() => {
+    if (!chartJsLoaded || !monthlyChartRef.current || loading) return;
+    const Chart = window.Chart;
+    if (monthlyChartObj.current) monthlyChartObj.current.destroy();
+    const now = new Date();
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString('default', { month: 'short', year: '2-digit' }) });
+    }
+    const countByMonth = (statusArr) => months.map(m => reports.filter(r => {
+      const d = new Date(r.created_at);
+      return `${d.getFullYear()}-${d.getMonth()}` === m.key && statusArr.includes(r.status);
+    }).length);
+    monthlyChartObj.current = new Chart(monthlyChartRef.current, {
+      type: 'line',
+      data: {
+        labels: months.map(m => m.label),
+        datasets: [
+          { label: 'Total Reports', data: countByMonth(['pending','suspected_rabies','positive_rabies','ongoing','resolved','declined']), borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.08)', tension: 0.4, pointBackgroundColor: '#ffc107', pointRadius: 5, fill: true, borderWidth: 2.5 },
+          { label: 'Rabies Cases',  data: countByMonth(['suspected_rabies','positive_rabies']), borderColor: '#e00000', backgroundColor: 'rgba(224,0,0,0.06)', tension: 0.4, pointBackgroundColor: '#e00000', pointRadius: 5, fill: true, borderWidth: 2.5 },
+          { label: 'Resolved',      data: countByMonth(['resolved']), borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.06)', tension: 0.4, pointBackgroundColor: '#198754', pointRadius: 5, fill: true, borderWidth: 2.5 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', color: '#555', font: { size: 11, weight: '600' }, padding: 18 } },
+          tooltip: { mode: 'index', intersect: false },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11 } } },
+          y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888', font: { size: 11 }, stepSize: 1 }, beginAtZero: true },
+        },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+      },
+    });
+    return () => { if (monthlyChartObj.current) { monthlyChartObj.current.destroy(); monthlyChartObj.current = null; } };
+  }, [chartJsLoaded, reports, loading]);
 
   const loadData = async () => {
     try {
@@ -434,122 +522,60 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
           </Row>
         )}
 
-        {/* ── Stat Cards ── */}
-        <Row className="mb-4 rpt-stat-row" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px' }}>
-          {[
-            {
-              label: 'Pending Reports',
-              count: pendingCount,
-              img: '/pending.png',
-              accent: '#ffc107',
-              accentAlpha: 'rgba(255,193,7,0.12)',
-              fallbackIcon: 'fa-clock',
-              description: 'Awaiting Action',
-              delay: '0.1s'
-            },
-            {
-              label: 'Ongoing',
-              count: ongoingCount,
-              img: '/ongoing.png',
-              accent: '#0dcaf0',
-              accentAlpha: 'rgba(13,202,240,0.12)',
-              fallbackIcon: 'fa-rotate',
-              description: 'In Progress',
-              delay: '0.2s'
-            },
-            {
-              label: 'Avg Rabies / Month',
-              count: avgRabies,
-              img: '/average.png',
-              accent: '#dc3545',
-              accentAlpha: 'rgba(220,53,69,0.12)',
-              fallbackIcon: 'fa-chart-line',
-              description: 'Rabies Case Average',
-              delay: '0.3s'
-            }
-          ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => (
-            <div key={label} className="rpt-stat-col" style={{ flex: '1 1 0', padding: '0 6px', minWidth: 0, animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
-              <Card
-                className="border-0 h-100"
-                style={{
-                  borderRadius: '16px',
-                  background: '#ffffff',
-                  border: '1px solid #f0f0f0',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                  transition: 'all 0.25s ease',
-                  cursor: 'default',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.transform = 'translateY(-3px)';
-                  e.currentTarget.style.boxShadow = `0 6px 20px ${accentAlpha}`;
-                  e.currentTarget.style.borderColor = accent;
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
-                  e.currentTarget.style.borderColor = '#f0f0f0';
-                }}
-              >
-                <div style={{ height: '3px', background: accent, borderRadius: '14px 14px 0 0' }} />
-                <Card.Body className="rpt-stat-card-body" style={{ padding: '1.5rem', background: 'transparent' }}>
-                  <div className="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                      <p className="rpt-stat-label" style={{
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.08em',
-                        color: '#999999',
-                        marginBottom: '0.5rem',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {label}
-                      </p>
-                      <h2 className="rpt-stat-number" style={{
-                        fontSize: '2.75rem',
-                        fontWeight: '700',
-                        color: '#111111',
-                        lineHeight: 1,
-                        marginBottom: '0.75rem'
-                      }}>
-                        {count}
-                      </h2>
-                      <div className="rpt-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
-                        <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>
-                          {description}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="rpt-stat-icon" style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '14px',
-                      background: accentAlpha,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <img
-                        src={img}
-                        alt={label}
-                        style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-                        onError={e => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'block';
-                        }}
-                      />
-                      <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
-                    </div>
-                  </div>
-                </Card.Body>
-              </Card>
+                {/* ── Stats + Charts ── */}
+        <Row className="mb-4 g-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+
+          {/* Pill stats */}
+          <Col xs={12}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Total',     count: reports.length,                                                                                 color: '#333',    bg: '#f8f9fa',               border: '#e9ecef' },
+                { label: 'Pending',   count: reports.filter(r => r.status === 'pending').length,                                             color: '#856404', bg: 'rgba(255,193,7,0.12)',  border: 'rgba(255,193,7,0.4)' },
+                { label: 'Ongoing',   count: reports.filter(r => ['ongoing','suspected_rabies','positive_rabies'].includes(r.status)).length, color: '#055160', bg: 'rgba(13,202,240,0.1)',  border: 'rgba(13,202,240,0.4)' },
+                { label: 'Rabies',    count: reports.filter(r => r.status === 'suspected_rabies' || r.status === 'positive_rabies').length,   color: '#8b0000', bg: 'rgba(224,0,0,0.08)',    border: 'rgba(224,0,0,0.3)' },
+                { label: 'Resolved',  count: reports.filter(r => r.status === 'resolved').length,                                            color: '#0a4f2e', bg: 'rgba(25,135,84,0.08)',  border: 'rgba(25,135,84,0.3)' },
+                { label: 'Avg/Month', count: getAvgRabiesPerMonth(reports),                                                                  color: '#333',    bg: 'rgba(108,117,125,0.08)', border: 'rgba(108,117,125,0.25)' },
+              ].map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 1rem', borderRadius: '40px', background: s.bg, border: `1.5px solid ${s.border}`, animation: 'fadeInUp 0.4s ease-out backwards' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
+                  <span style={{ fontSize: '1.1rem', fontWeight: '800', color: s.color, lineHeight: 1 }}>{loading ? '—' : s.count}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          </Col>
+
+          {/* Status bar chart */}
+          <Col md={5}>
+            <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+              <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <i className="fas fa-chart-bar" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
+                <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Reports by Status</span>
+              </div>
+              <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
+                {loading
+                  ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
+                  : <canvas ref={statusChartRef} />
+                }
+              </div>
+            </Card>
+          </Col>
+
+          {/* Monthly trend line chart */}
+          <Col md={7}>
+            <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+              <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <i className="fas fa-chart-line" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
+                <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Monthly Report Trend</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#aaa', fontWeight: '500' }}>Last 6 months</span>
+              </div>
+              <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
+                {loading
+                  ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
+                  : <canvas ref={monthlyChartRef} />
+                }
+              </div>
+            </Card>
+          </Col>
         </Row>
 
         {/* ── Filters ── */}
