@@ -684,7 +684,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: 'calc(100vh / 0.75)', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -792,7 +792,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
             </Col>
           </Row>
         ) : loading ? (
-          <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+          <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards', flex: '1 1 auto' }}>
             <Col className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
               <Spinner animation="border" style={{ color: '#ffc107', width: '3rem', height: '3rem' }} />
             </Col>
@@ -852,7 +852,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
           </Row>
         ) : (
           <>
-            <Row>
+            <Row style={{ flex: '1 1 auto', alignContent: paginatedReports.length > 3 ? 'stretch' : 'flex-start' }}>
               {paginatedReports.map((report, index) => {
                 const typeInfo = getReportType(report.report_type);
                 return (
@@ -1012,7 +1012,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
 
             {/* Pagination */}
             {reports.length > itemsPerPage && (
-              <Row className="mt-4 report-pagination">
+              <Row className="report-pagination" style={{ marginTop: 'auto', paddingTop: '1.5rem' }}>
                 <Col className="d-flex justify-content-between align-items-center">
                   <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
                     Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
