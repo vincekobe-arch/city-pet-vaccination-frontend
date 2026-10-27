@@ -745,7 +745,7 @@ useEffect(() => {
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
 
       <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
         <Col>
@@ -840,13 +840,13 @@ useEffect(() => {
       )}
 
             {loading ? (
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+        <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards', flex: '1 1 auto' }}>
           <Col className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
             <Spinner animation="border" style={{ color: '#ffc107', width: '3rem', height: '3rem' }} />
           </Col>
         </Row>
       ) : pets.length === 0 ? (
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+        <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards', flex: '1 1 auto' }}>
           <Col>
             <Card 
               className="text-center py-5 border-0"
@@ -895,7 +895,7 @@ useEffect(() => {
         </Row>
       ) : (
         <>
-        <Row>
+        <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
           {pets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((pet, index) => (
 <Col key={pet.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + (index * 0.1)}s backwards` }}>              
 <Card 
