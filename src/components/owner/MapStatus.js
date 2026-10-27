@@ -460,7 +460,7 @@ useEffect(() => {
           .mobile-map-title { font-size: 1.5rem !important; }
         }
       `}</style>
-      <Container fluid className="py-4" style={{ background: '#ffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4" style={{ background: '#ffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -486,29 +486,29 @@ useEffect(() => {
         
 
         {/* Map + Legend */}
-        <Row className="g-3" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
+        <Row className="g-3" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards', flex: '1 1 auto' }}>
 
           {/* Legend */}
-          <Col lg={3} order={2} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', order: undefined }} className="order-2 order-lg-1">
+          <Col lg={3} order={2} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', order: undefined, minHeight: '640px' }} className="order-2 order-lg-1">
 
             {/* Safety Info */}
-            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', overflow: 'hidden', background: '#fff' }}>
+            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', overflow: 'hidden', background: '#fff', flex: '1 1 auto' }}>
               <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <i className="fas fa-shield-alt" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.88rem' }}>Safety Information</span>
+                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Safety Information</span>
                 </div>
               </div>
               <div style={{ padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[
                   { color: '#e00000', border: 'solid', label: '1km Danger Zone', desc: 'Positive rabies confirmed nearby. Keep pets indoors.' },
-                  { color: '#f0c800', border: 'dashed', label: '1km Alert Zone',  desc: 'Suspected rabies case nearby. Monitor pets closely.' },
+                  { color: '#f0c800', border: 'dashed', label: '1km Alert Zone', desc: 'Suspected rabies case nearby. Monitor pets closely.' },
                 ].map(z => (
                   <div key={z.label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                     <div style={{ width: '32px', height: '12px', borderRadius: '4px', border: `2px ${z.border} ${z.color}`, background: z.color + '18', flexShrink: 0, marginTop: '3px' }} />
                     <div>
-                      <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#333' }}>{z.label}</div>
-                      <div style={{ fontSize: '0.7rem', color: '#888', marginTop: '1px', lineHeight: '1.4' }}>{z.desc}</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#333' }}>{z.label}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '2px', lineHeight: '1.5' }}>{z.desc}</div>
                     </div>
                   </div>
                 ))}
@@ -534,21 +534,21 @@ useEffect(() => {
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: l.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 2px 8px ${l.color}55`, fontSize: l.emoji ? '1rem' : undefined }}>
                       {l.emoji ? l.emoji : <i className={`fas ${l.icon}`} style={{ fontSize: '13px', color: '#fff' }}></i>}
                     </div>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: '#444' }}>{l.label}</span>
+                    <span style={{ fontSize: '0.88rem', fontWeight: '600', color: '#444' }}>{l.label}</span>
                   </div>
                 ))}
               </div>
             </Card>
 
             {/* Tips */}
-            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden' }}>
+            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden', flex: '1 1 auto' }}>
               <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <i className="fas fa-lightbulb" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.88rem' }}>Pet Safety Tips</span>
+                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Pet Safety Tips</span>
                 </div>
               </div>
-              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {[
                   { icon: 'fa-syringe',       tip: 'Keep your pet\'s rabies vaccination up to date.' },
                   { icon: 'fa-home',           tip: 'Keep pets indoors if a danger zone is nearby.' },
@@ -559,7 +559,7 @@ useEffect(() => {
                     <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(255,193,7,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
                       <i className={`fas ${t.icon}`} style={{ fontSize: '0.7rem', color: '#ffc107' }}></i>
                     </div>
-                    <span style={{ fontSize: '0.75rem', color: '#555', lineHeight: '1.5', fontWeight: '500' }}>{t.tip}</span>
+                    <span style={{ fontSize: '0.85rem', color: '#555', lineHeight: '1.6', fontWeight: '500' }}>{t.tip}</span>
                   </div>
                 ))}
               </div>
@@ -568,9 +568,9 @@ useEffect(() => {
           </Col>
 
           {/* Map */}
-          <Col lg={9} className="order-1 order-lg-2">
+          <Col lg={9} className="order-1 order-lg-2" style={{ display: 'flex', flexDirection: 'column' }}>
             <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-              style={{ position: 'relative', minHeight: isFullscreen ? undefined : '640px', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
+              style={{ position: 'relative', minHeight: isFullscreen ? undefined : '640px', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', flex: '1 1 auto', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
 
               {/* Map header */}
               <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, background: 'transparent', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
