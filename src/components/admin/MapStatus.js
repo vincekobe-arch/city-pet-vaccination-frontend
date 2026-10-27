@@ -970,8 +970,8 @@ export default function MapStatus() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
-                    <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Muntinlupa City Reports Map</span>
-                    <span style={{ background: 'rgba(255,193,7,0.15)', color: '#b38600', padding: '2px 10px', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700' }}>
+                    <span style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>Muntinlupa City Reports Map</span>
+                    <span style={{ background: 'rgba(255,193,7,0.2)', color: '#ffd54f', padding: '2px 10px', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700' }}>
                       {loading ? '...' : `${filteredCount} pins`}
                     </span>
                   </div>
@@ -985,17 +985,17 @@ onClick={() => {
                       }, 300);
                     }}
                     title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                    style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.15)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
-onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(6px)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
                   >
-                    <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.82rem', color: '#333333' }}></i>
+                    <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.82rem', color: '#ffffff' }}></i>
                   </button>
                 </div>
 
                 {/* Status + Type Filters — single line */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-                  <span style={{ color: '#999999', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status:</span>
+                  <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status:</span>
                   {[
                     { v: 'all',              label: 'All',              icon: '🗺️', color: '#ffc107' },
                     { v: 'pending',          label: 'Pending',          icon: '📋', color: '#888' },
@@ -1013,7 +1013,7 @@ onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
 
                   <div style={{ width: '1px', height: '20px', background: 'rgba(0,0,0,0.12)', margin: '0 0.1rem' }} />
 
-                  <span style={{ color: '#999999', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type:</span>
+                  <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type:</span>
                   {[
                     { v: 'all',           label: 'All Types',    icon: '🗂️', img: null,                color: '#ffc107' },
                     { v: 'rabies_case',   label: 'Rabies Case',  icon: null, img: '/rabies.png',        color: '#e00000' },
@@ -1042,7 +1042,7 @@ onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
                     <span style={{ fontWeight: '600', color: '#555' }}>Loading reports...</span>
                   </div>
                 )}
-                <div ref={mapRef} style={{ height: isFullscreen ? 'calc(100vh - 110px)' : '100%', minHeight: isFullscreen ? 'unset' : '530px', width: '100%', display: 'block' }} />
+                <div ref={mapRef} style={{ height: '100%', minHeight: isFullscreen ? 'unset' : '530px', width: '100%', display: 'block' }} />
 
                 {/* Custom glass controls */}
                 <div style={{ position: 'absolute', right: 14, bottom: 34, zIndex: 5, display: 'flex', flexDirection: 'column', gap: '8px' }}>
