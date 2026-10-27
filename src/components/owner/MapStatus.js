@@ -524,11 +524,20 @@ useEffect(() => {
         .map-overlay-header { pointer-events: none; }
         .map-overlay-header button, .map-overlay-header span { pointer-events: auto; }
         .map-fullscreen { position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:10002 !important;border-radius:0 !important;margin:0 !important;zoom:1.333 !important; }
+        .dashboard-page {
+          zoom: 0.75;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+        @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
+        @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+
         @media (max-width: 768px) {
           .mobile-map-title { font-size: 1.5rem !important; }
         }
       `}</style>
-      <Container fluid className="py-4" style={{ background: '#ffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>

@@ -453,6 +453,15 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
       0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
       30% { transform: translateY(-6px); opacity: 1; }
     }
+    .dashboard-page {
+      zoom: 0.75;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+
     @media (max-width: 768px) {
       .mobile-page-title { font-size: 1.5rem !important; }
       .report-pagination span,
@@ -684,7 +693,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>

@@ -662,7 +662,7 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
   return (
     <>
       {/* ── Verification Modal ── */}
-      <Modal show={show} onHide={requestClose} size="lg" backdrop="static" style={{ zoom:'0.75', zIndex: 99999 }}>        <Modal.Header closeButton={!verifySubmitting} style={{ background:'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
+      <Modal show={show} onHide={requestClose} size="lg" backdrop="static" style={{ zoom: window.innerWidth >= 1920 ? 1 : window.innerWidth >= 1600 ? 0.9 : 0.75, zIndex: 99999 }}>        <Modal.Header closeButton={!verifySubmitting} style={{ background:'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
           <Modal.Title style={{ fontWeight:'800', color:'#333' }}>
             <i className="fas fa-id-card me-2" style={{ color:'#ffc107' }} />
             {verifyStep === 1 ? 'Step 1 of 2 — Upload Valid ID' : 'Step 2 of 2 — Confirm Your Profile'}
@@ -1012,7 +1012,7 @@ style={{ ...es, colorScheme:'light', border: (profileFieldErrors.birthdate || pr
       </Modal>
 
       {/* ── Post-submission Reviewing Modal ── */}
-      <Modal show={showReviewingModal} onHide={() => {}} backdrop="static" keyboard={false} centered style={{ zoom:'0.75', zIndex:99999 }}>
+      <Modal show={showReviewingModal} onHide={() => {}} backdrop="static" keyboard={false} centered style={{ zoom: window.innerWidth >= 1920 ? 1 : window.innerWidth >= 1600 ? 0.9 : 0.75, zIndex:99999 }}>
         <Modal.Body style={{ padding:'2.5rem', background:'linear-gradient(135deg,#ffffff,#f8f9fa)', borderRadius:'20px', border:'1px solid rgba(255,193,7,0.2)', textAlign:'center' }}>
           <div style={{ width:'80px', height:'80px', borderRadius:'50%', background:'rgba(255,193,7,0.12)', border:'3px solid rgba(255,193,7,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.5rem', boxShadow:'0 8px 24px rgba(255,193,7,0.2)' }}>
             {reviewStep < 2
@@ -1054,7 +1054,7 @@ style={{ ...es, colorScheme:'light', border: (profileFieldErrors.birthdate || pr
         </Modal.Body>
       </Modal>
             {/* ── Exit Confirmation Modal ── */}
-      <Modal show={showExitConfirm} onHide={() => setShowExitConfirm(false)} centered style={{ zoom:'0.75', zIndex: 100000 }}>
+      <Modal show={showExitConfirm} onHide={() => setShowExitConfirm(false)} centered style={{ zoom: window.innerWidth >= 1920 ? 1 : window.innerWidth >= 1600 ? 0.9 : 0.75, zIndex: 100000 }}>
         <Modal.Body style={{ padding:'2rem', textAlign:'center', borderRadius:'20px' }}>
           <div style={{ width:'64px', height:'64px', borderRadius:'50%', background:'rgba(220,53,69,0.1)', border:'2px solid rgba(220,53,69,0.25)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.25rem' }}>
             <i className="fas fa-exclamation-triangle" style={{ fontSize:'1.5rem', color:'#dc3545' }} />
