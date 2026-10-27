@@ -251,6 +251,12 @@ useEffect(() => {
       flex: 1;
       accent-color: #ffc107;
     }
+    .dashboard-page {
+      zoom: 0.75;
+    }
+    @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+
     @keyframes dropDown {
       0% { opacity: 0; transform: translateY(-30px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -745,7 +751,7 @@ useEffect(() => {
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
       <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
         <Col>
