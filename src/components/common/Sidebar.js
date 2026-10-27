@@ -772,7 +772,7 @@ const streamRef = useRef(null);
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
+        height: '100%',
         overflow: 'hidden',
         padding: '0',
       }}
@@ -878,6 +878,13 @@ const streamRef = useRef(null);
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
+        :root { --ui-zoom: 0.75; }
+        @media (min-width: 1600px) { :root { --ui-zoom: 0.9; } }
+        @media (min-width: 1920px) { :root { --ui-zoom: 1; } }
+        @media (min-width: 992px) {
+          .sidebar-desktop, .sidebar-spacer, .top-navbar-bar { zoom: var(--ui-zoom); }
+          .top-navbar-bar { height: calc(64px / var(--ui-zoom)) !important; }
+        }
         .sidebar-scroll::-webkit-scrollbar { display: none; }
         nav::-webkit-scrollbar { display: none; }
         @media (max-width: 991px) {
@@ -1433,7 +1440,7 @@ const streamRef = useRef(null);
         className={`sidebar-desktop ${sidebarAnim}`}
         style={{
           width: sidebarWidth,
-          height: '100vh',
+          bottom: 0,
           background: bg,
           borderRight: `1px solid ${border}`,
           position: 'fixed',
