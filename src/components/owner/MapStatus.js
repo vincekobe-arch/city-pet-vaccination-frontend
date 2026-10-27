@@ -6,17 +6,31 @@ const LEAFLET_CSS = `
   .gm-style .gm-style-iw-c {
     padding: 0 !important;
     border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+    background: #0d1424 !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.55) !important;
     overflow: hidden !important;
   }
-  .gm-style .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; }
-  .gm-style .gm-style-iw-tc { display: none; }
-  .gm-style .gm-ui-hover-effect {
-    top: 4px !important; right: 4px !important;
-    background: rgba(255,255,255,0.85) !important;
-    border-radius: 50% !important; width: 24px !important; height: 24px !important;
+  .gm-style .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; max-height: none !important; }
+  .gm-style .gm-style-iw-tc { display: none !important; }
+  .gm-style .gm-style-iw-ch { display: none !important; }
+  .gm-style .gm-style-iw-chr {
+    position: absolute !important; top: 6px !important; right: 6px !important;
+    height: auto !important; z-index: 3;
   }
-  .gm-style .gm-ui-hover-effect > span { margin: 5px !important; width: 14px !important; height: 14px !important; }
+  .gm-style .gm-ui-hover-effect {
+    top: 0 !important; right: 0 !important;
+    width: 26px !important; height: 26px !important;
+    background: rgba(255,255,255,0.14) !important;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    border-radius: 50% !important;
+    opacity: 1 !important;
+  }
+  .gm-style .gm-ui-hover-effect > span {
+    margin: 6px !important; width: 12px !important; height: 12px !important;
+    background-color: #ffffff !important;
+  }
 `;
 
 const MUNTINLUPA_CENTER = [14.4081, 121.0415];
@@ -278,21 +292,21 @@ useEffect(() => {
     const bgColor  = isPos ? 'rgba(224,0,0,0.9)' : 'rgba(220,180,0,0.95)';
     const txtColor = isPos ? '#fff' : '#1a1a1a';
 
-    const popupHtml = `
-      <div style="width:200px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
-        <div style="background:${bgColor};padding:0.65rem 0.85rem;">
+        const popupHtml = `
+      <div style="width:210px;font-family:'Segoe UI',sans-serif;overflow:hidden;background:#0d1424;">
+        <div style="background:${isPos ? 'linear-gradient(135deg,#b30000,#e00000)' : 'linear-gradient(135deg,#d4aa00,#f0c800)'};padding:0.75rem 0.9rem;">
           <div style="font-size:1.2rem;margin-bottom:0.3rem;">${emoji}</div>
-          <div style="color:${txtColor};font-weight:700;font-size:0.78rem;">${label}</div>
-          <div style="color:${isPos ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.5)'};font-size:0.62rem;margin-top:2px;">
+          <div style="color:${txtColor};font-weight:700;font-size:0.8rem;">${label}</div>
+          <div style="color:${isPos ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)'};font-size:0.62rem;margin-top:2px;">
             Reported ${new Date(report.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
-        <div style="padding:0.65rem 0.85rem;background:#fff;">
+        <div style="padding:0.7rem 0.9rem;background:#0d1424;">
           <div style="margin-bottom:0.4rem;">
-            <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Barangay</div>
-            <div style="font-size:0.75rem;color:#222;font-weight:600;margin-top:2px;">${report.barangay_name || 'Not specified'}</div>
+            <div style="font-size:0.58rem;color:#7d8aa5;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Barangay</div>
+            <div style="font-size:0.78rem;color:#e8ecf5;font-weight:600;margin-top:2px;">${report.barangay_name || 'Not specified'}</div>
           </div>
-          <div style="margin-top:0.5rem;padding:0.35rem 0.5rem;background:${isPos ? '#ffe6e6' : '#fffbe6'};border-radius:6px;border-left:3px solid ${color};font-size:0.65rem;font-weight:700;color:${isPos ? '#8b0000' : '#7a6000'};">
+          <div style="margin-top:0.5rem;padding:0.4rem 0.55rem;background:${isPos ? 'rgba(224,0,0,0.15)' : 'rgba(240,200,0,0.12)'};border-radius:8px;border-left:3px solid ${color};font-size:0.65rem;font-weight:700;color:${isPos ? '#ff8a8a' : '#ffe066'};">
             ${isPos ? '⚠️ Stay alert — danger zone within 1km' : '🔍 Alert zone — monitor pets nearby'}
           </div>
         </div>
@@ -347,22 +361,22 @@ useEffect(() => {
 
     const isCityVet = clinic.id === 'cityvet';
 
-    const popupHtml = `
-      <div style="width:210px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
-        <div style="background:${isCityVet ? 'linear-gradient(135deg,#ffc107,#ff8c00)' : 'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.65rem 0.85rem;">
+        const popupHtml = `
+      <div style="width:220px;font-family:'Segoe UI',sans-serif;overflow:hidden;background:#0d1424;">
+        <div style="background:${isCityVet ? 'linear-gradient(135deg,#ffc107,#ff8c00)' : 'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.75rem 0.9rem;">
           <div style="margin-bottom:0.3rem;">
-            <div style="color:${isCityVet ? '#1a1a1a' : '#fff'};font-weight:700;font-size:0.75rem;line-height:1.2;">${clinic.clinic_name}</div>
-            <div style="color:${isCityVet ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.65)'};font-size:0.6rem;">${isCityVet ? 'Government Veterinary Office' : (clinic.clinic_code || '')}</div>
+            <div style="color:${isCityVet ? '#1a1a1a' : '#fff'};font-weight:700;font-size:0.78rem;line-height:1.2;padding-right:22px;">${clinic.clinic_name}</div>
+            <div style="color:${isCityVet ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)'};font-size:0.6rem;">${isCityVet ? 'Government Veterinary Office' : (clinic.clinic_code || '')}</div>
           </div>
-          <span style="display:inline-block;background:rgba(255,255,255,0.2);color:${isCityVet ? '#1a1a1a' : '#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
+          <span style="display:inline-block;background:rgba(255,255,255,0.22);color:${isCityVet ? '#1a1a1a' : '#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
             🏥 ${isCityVet ? 'City Government Clinic' : 'Private Clinic'}
           </span>
         </div>
-        <div style="padding:0.65rem 0.85rem;background:#fff;display:flex;flex-direction:column;gap:0.4rem;">
-          ${clinic.owner_name ? `<div><div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div><div style="font-size:0.72rem;color:#222;font-weight:600;margin-top:1px;">${isCityVet ? clinic.owner_name : 'Dr. ' + clinic.owner_name}</div></div>` : ''}
+        <div style="padding:0.7rem 0.9rem;background:#0d1424;display:flex;flex-direction:column;gap:0.4rem;">
+          ${clinic.owner_name ? `<div><div style="font-size:0.58rem;color:#7d8aa5;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div><div style="font-size:0.75rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${isCityVet ? clinic.owner_name : 'Dr. ' + clinic.owner_name}</div></div>` : ''}
           <div style="display:flex;gap:0.35rem;margin-top:0.2rem;">
-            ${clinic.phone ? `<div style="flex:1;background:#f8f9fa;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #eee;"><div style="font-size:0.54rem;color:#aaa;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#333;font-weight:600;margin-top:1px;">${clinic.phone}</div></div>` : ''}
-            ${clinic.specialization ? `<div style="flex:1;background:#e8f0fe;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #c5d8fc;"><div style="font-size:0.54rem;color:#5577aa;font-weight:700;text-transform:uppercase;">Specialty</div><div style="font-size:0.62rem;color:#0d6efd;font-weight:700;margin-top:1px;">${clinic.specialization}</div></div>` : ''}
+            ${clinic.phone ? `<div style="flex:1;background:rgba(255,255,255,0.06);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(255,255,255,0.12);"><div style="font-size:0.54rem;color:#7d8aa5;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${clinic.phone}</div></div>` : ''}
+            ${clinic.specialization ? `<div style="flex:1;background:rgba(13,110,253,0.15);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(13,110,253,0.4);"><div style="font-size:0.54rem;color:#8fb4ff;font-weight:700;text-transform:uppercase;">Specialty</div><div style="font-size:0.62rem;color:#6ea8ff;font-weight:700;margin-top:1px;">${clinic.specialization}</div></div>` : ''}
           </div>
         </div>
       </div>`;
