@@ -317,13 +317,14 @@ useEffect(() => {
       map,
       icon: {
         url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-            <circle cx="14" cy="14" r="13" fill="${color}" stroke="white" stroke-width="2"/>
-            <text x="14" y="19" text-anchor="middle" font-size="13">${emoji}</text>
-            <rect x="12" y="27" width="4" height="9" rx="2" fill="rgba(0,0,0,0.25)"/>
+          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
+            <rect x="6" y="2" width="20" height="14" rx="3" fill="${color}" stroke="white" stroke-width="1.5"/>
+            <text x="16" y="13" text-anchor="middle" font-size="9">${emoji}</text>
+            <rect x="5" y="2" width="2.5" height="40" rx="1.2" fill="white"/>
+            <ellipse cx="6.25" cy="42" rx="4" ry="1.8" fill="rgba(0,0,0,0.18)"/>
           </svg>`)}`,
-        scaledSize: new google.maps.Size(28, 36),
-        anchor: new google.maps.Point(14, 36),
+        scaledSize: new google.maps.Size(36, 48),
+        anchor: new google.maps.Point(6, 48),
       },
     });
     marker.addListener('click', () => {
@@ -388,15 +389,82 @@ useEffect(() => {
       position: { lat, lng },
       map,
       zIndex: isCityVet ? 1000 : 500,
-      icon: {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-            <circle cx="${isCityVet?24:16}" cy="${isCityVet?22:16}" r="${isCityVet?20:14}" fill="${isCityVet?'#ffc107':'#0d6efd'}" stroke="white" stroke-width="2.5"/>
-            <text x="${isCityVet?24:16}" y="${isCityVet?28:21}" text-anchor="middle" font-size="${isCityVet?16:12}" fill="white">🏥</text>
-            <rect x="${isCityVet?22:14}" y="${isCityVet?42:30}" width="4" height="${isCityVet?10:8}" rx="2" fill="rgba(0,0,0,0.25)"/>
-          </svg>`)}`,
-        scaledSize: new google.maps.Size(w, h),
-        anchor: new google.maps.Point(w / 2, h),
+      icon: isCityVet ? {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="64" viewBox="0 0 52 64">
+            <!-- shadow -->
+            <ellipse cx="7" cy="62" rx="6" ry="2.2" fill="rgba(0,0,0,0.18)"/>
+            <!-- pole -->
+            <rect x="5" y="2" width="4" height="58" rx="2" fill="#d4d4d4"/>
+            <rect x="5" y="2" width="2" height="58" rx="2" fill="#f0f0f0"/>
+            <!-- flag body -->
+            <rect x="9" y="2" width="40" height="28" rx="5" fill="#ffc107"/>
+            <!-- top accent stripe -->
+            <rect x="9" y="2" width="40" height="8" rx="5" fill="#ffd54f"/>
+            <rect x="9" y="7" width="40" height="3" fill="#ffd54f"/>
+            <!-- dark overlay for depth -->
+            <rect x="9" y="2" width="40" height="28" rx="5" fill="url(#cvg)" opacity="0.3"/>
+            <defs>
+              <linearGradient id="cvg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="white"/>
+                <stop offset="100%" stop-color="black"/>
+              </linearGradient>
+            </defs>
+            <!-- medical cross vertical -->
+            <rect x="25" y="8" width="7" height="16" rx="2" fill="white"/>
+            <!-- medical cross horizontal -->
+            <rect x="19" y="13" width="19" height="6" rx="2" fill="white"/>
+            <!-- center circle -->
+            <circle cx="28.5" cy="16" r="3" fill="#ffc107"/>
+            <!-- star badge -->
+            <circle cx="44" cy="7" r="6" fill="#1a1a1a"/>
+            <circle cx="44" cy="7" r="5" fill="none" stroke="#ffc107" stroke-width="1"/>
+            <text x="44" y="10.5" text-anchor="middle" font-size="7" fill="#ffc107" font-family="Arial" font-weight="bold">★</text>
+            <!-- flag right edge wave -->
+            <path d="M49 2 Q52 8 49 15 Q52 22 49 30" stroke="rgba(0,0,0,0.1)" stroke-width="1" fill="none"/>
+          </svg>`
+        )}`,
+        scaledSize: new google.maps.Size(52, 64),
+        anchor: new google.maps.Point(7, 64),
+      } : {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="54" viewBox="0 0 44 54">
+            <!-- shadow -->
+            <ellipse cx="6" cy="52" rx="5" ry="1.8" fill="rgba(0,0,0,0.18)"/>
+            <!-- pole -->
+            <rect x="4" y="2" width="3.5" height="49" rx="1.8" fill="#d4d4d4"/>
+            <rect x="4" y="2" width="1.8" height="49" rx="1.8" fill="#f0f0f0"/>
+            <!-- flag body -->
+            <rect x="8" y="2" width="34" height="24" rx="4" fill="#0d6efd"/>
+            <!-- top accent stripe -->
+            <rect x="8" y="2" width="34" height="7" rx="4" fill="#4d94ff"/>
+            <rect x="8" y="7" width="34" height="2" fill="#4d94ff"/>
+            <!-- depth overlay -->
+            <rect x="8" y="2" width="34" height="24" rx="4" fill="url(#pvg)" opacity="0.2"/>
+            <defs>
+              <linearGradient id="pvg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="white"/>
+                <stop offset="100%" stop-color="black"/>
+              </linearGradient>
+            </defs>
+            <!-- medical cross vertical -->
+            <rect x="22" y="7" width="5.5" height="13" rx="1.5" fill="white"/>
+            <!-- medical cross horizontal -->
+            <rect x="16.5" y="11" width="16" height="5" rx="1.5" fill="white"/>
+            <!-- center circle -->
+            <circle cx="24.5" cy="13.5" r="2.5" fill="#0d6efd"/>
+            <!-- pulse ring -->
+            <circle cx="24.5" cy="13.5" r="4.5" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.2"/>
+            <!-- Rx badge -->
+            <circle cx="37" cy="6.5" r="5" fill="#0a3d91"/>
+            <circle cx="37" cy="6.5" r="4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
+            <text x="37" y="9.5" text-anchor="middle" font-size="6" fill="white" font-family="Arial" font-weight="bold">Rx</text>
+            <!-- flag right edge wave -->
+            <path d="M42 2 Q45 7 42 13 Q45 19 42 26" stroke="rgba(0,0,0,0.1)" stroke-width="1" fill="none"/>
+          </svg>`
+        )}`,
+        scaledSize: new google.maps.Size(44, 54),
+        anchor: new google.maps.Point(5.5, 54),
       },
     });
     marker.addListener('click', () => {
