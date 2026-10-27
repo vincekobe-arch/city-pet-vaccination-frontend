@@ -558,11 +558,11 @@ setDashboardData({
                   </p>
                 </div>
               ) : (
-                <div style={{ overflowX: 'auto', maxHeight: '320px', overflowY: 'auto' }}>
+                <div style={{ overflowX: 'auto' }}>
                   <table className="mobile-table" style={{
   width: '100%',
   borderCollapse: 'collapse',
-  fontSize: '0.8rem',
+  fontSize: '0.9rem',
   opacity: loading ? 0.4 : 1,
   transition: 'opacity 0.3s'
 }}>
@@ -572,25 +572,25 @@ setDashboardData({
     background: '#f8f9fa'
   }}>
     <th style={{ 
-      padding: '0.5rem', 
+      padding: '0.75rem', 
       textAlign: 'left', 
       fontWeight: '700', 
       color: '#333333' 
     }}>Event</th>
     <th style={{ 
-      padding: '0.5rem', 
+      padding: '0.75rem', 
       textAlign: 'left', 
       fontWeight: '700', 
       color: '#333333' 
     }}>Date</th>
     <th style={{ 
-      padding: '0.5rem', 
+      padding: '0.75rem', 
       textAlign: 'center', 
       fontWeight: '700', 
       color: '#333333' 
     }}>Slots</th>
     <th style={{ 
-      padding: '0.5rem', 
+      padding: '0.75rem', 
       textAlign: 'center', 
       fontWeight: '700', 
       color: '#333333' 
@@ -609,7 +609,7 @@ setDashboardData({
                           onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
                           onMouseOut={(e) => e.currentTarget.style.background = index % 2 === 0 ? '#ffffff' : '#f9f9f9'}
                         >
-                          <td style={{ padding: '0.4rem 0.5rem', color: '#333333' }}>
+                          <td style={{ padding: '0.75rem', color: '#333333' }}>
                             <div>
                               <div className="mobile-event-title" style={{ fontWeight: '600', marginBottom: '0.25rem' }}>
   {event.title}
@@ -623,10 +623,10 @@ setDashboardData({
 </small>
                             </div>
                           </td>
-                          <td style={{ padding: '0.4rem 0.5rem', color: '#666666' }}>
+                          <td style={{ padding: '0.75rem', color: '#666666' }}>
   {new Date(event.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
 </td>
-<td style={{ padding: '0.4rem 0.5rem', textAlign: 'center' }}>
+<td style={{ padding: '0.75rem', textAlign: 'center' }}>
   {event.type === 'vaccination' ? (
     <span style={{ 
       fontWeight: '600', 
@@ -645,19 +645,19 @@ setDashboardData({
     <span style={{ color: '#999999' }}>—</span>
   )}
 </td>
-<td style={{ padding: '0.4rem 0.5rem', textAlign: 'center' }}>
+<td style={{ padding: '0.75rem', textAlign: 'center' }}>
                             <a 
   href={`/owner/schedule?view=${event.type}-${event.id}`}
   className="mobile-btn"
   style={{
     display: 'inline-block',
-    padding: '0.25rem 0.6rem',
+    padding: '0.4rem 0.8rem',
                                 borderRadius: '6px',
                                 background: '#ffc107',
                                 color: '#000000',
                                 textDecoration: 'none',
                                 fontWeight: '600',
-                                fontSize: '0.75rem',
+                                fontSize: '0.85rem',
                                 transition: 'all 0.2s',
                                 cursor: 'pointer'
                               }}
@@ -681,7 +681,7 @@ setDashboardData({
                   {dashboardData.upcomingSchedules.length > 5 && (
                     <div style={{ 
                       marginTop: '1rem', 
-                      padding: '0.5rem', 
+                      padding: '0.75rem', 
                       background: '#f8f9fa', 
                       borderRadius: '8px',
                       textAlign: 'center'
