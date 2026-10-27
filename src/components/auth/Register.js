@@ -4,9 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { setAuth } from '../../utils/auth';
 
-const API_BASE_URL = window.location.hostname === 'localhost' 
+const API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost/city-pet-vaccination-api'
-  : 'https://city-pet-vaccination-api.onrender.com';
+  : 'https://api.petunity-muntinlupacity.com';
 
 const Register = () => {
   const navigate = useNavigate();
