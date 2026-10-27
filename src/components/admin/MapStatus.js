@@ -932,30 +932,6 @@ export default function MapStatus() {
               </div>
             </Card>
 
-            {/* Safety Info */}
-            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', overflow: 'hidden', background: '#fff', flex: '1 1 auto' }}>
-              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fas fa-shield-alt" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Safety Information</span>
-                </div>
-              </div>
-              <div style={{ padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[
-                  { color: '#e00000', border: 'solid',  label: '1km Danger Zone', desc: 'Positive rabies confirmed nearby. Keep pets indoors.' },
-                  { color: '#f0c800', border: 'dashed', label: '1km Alert Zone',  desc: 'Suspected rabies case nearby. Monitor pets closely.' },
-                ].map(z => (
-                  <div key={z.label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                    <div style={{ width: '32px', height: '12px', borderRadius: '4px', border: `2px ${z.border} ${z.color}`, background: z.color + '18', flexShrink: 0, marginTop: '3px' }} />
-                    <div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#333' }}>{z.label}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '2px', lineHeight: '1.5' }}>{z.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
             {/* Legend */}
             <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden' }}>
               <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
@@ -979,31 +955,6 @@ export default function MapStatus() {
                       {l.emoji ? l.emoji : <i className={`fas ${l.icon}`} style={{ fontSize: '13px', color: '#fff' }}></i>}
                     </div>
                     <span style={{ fontSize: '0.88rem', fontWeight: '600', color: '#444' }}>{l.label}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Pet Safety Tips */}
-            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden', flex: '1 1 auto' }}>
-              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fas fa-lightbulb" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Pet Safety Tips</span>
-                </div>
-              </div>
-              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {[
-                  { icon: 'fa-syringe',  tip: "Keep your pet's rabies vaccination up to date." },
-                  { icon: 'fa-home',     tip: 'Keep pets indoors if a danger zone is nearby.'  },
-                  { icon: 'fa-hospital', tip: 'Visit the nearest vet clinic if your pet is bitten.' },
-                  { icon: 'fa-phone',    tip: 'Report animal bites to the City Vet immediately.' },
-                ].map((t, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(255,193,7,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
-                      <i className={`fas ${t.icon}`} style={{ fontSize: '0.7rem', color: '#ffc107' }}></i>
-                    </div>
-                    <span style={{ fontSize: '0.85rem', color: '#555', lineHeight: '1.6', fontWeight: '500' }}>{t.tip}</span>
                   </div>
                 ))}
               </div>
