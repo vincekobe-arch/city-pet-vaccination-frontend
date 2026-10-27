@@ -92,6 +92,14 @@ useEffect(() => {
   const styles = `
   @keyframes dropDown { 0%{opacity:0;transform:translateY(-20px)} 100%{opacity:1;transform:translateY(0)} }
   @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .inv-page {
+    zoom: 0.75;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  @media (min-width: 1600px) { .inv-page { zoom: 0.9; } }
+  @media (min-width: 1920px) { .inv-page { zoom: 1; } }
   .inv-row:hover { background: rgba(255,193,7,0.04) !important; }
   tr[key^="empty-"]:hover td { background: transparent !important; }
   @media (max-width: 768px) {
@@ -409,7 +417,7 @@ const handleDeleteClick = (item) => {
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 inv-page" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>

@@ -560,6 +560,14 @@ setShowDropdown(null); // ← closes ellipsis dropdown
       0%, 100% { transform: translateY(0px); }
       50%       { transform: translateY(-10px); }
     }
+    .clinic-page {
+      zoom: 0.75;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 1600px) { .clinic-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .clinic-page { zoom: 1; } }
     @media (max-width: 768px) {
       .clinic-title { font-size: 1.5rem !important; }
       .clinic-stat-label { font-size: 0.55rem !important; margin-bottom: 0.15rem !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
@@ -590,7 +598,7 @@ setShowDropdown(null); // ← closes ellipsis dropdown
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 clinic-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
 
         {/* ── Page Title ── */}
         <Row style={{ animation: 'dropDown 0.4s ease-out' }}>

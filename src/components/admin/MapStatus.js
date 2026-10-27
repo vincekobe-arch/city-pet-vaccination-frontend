@@ -4,34 +4,33 @@ import { useNavigate } from 'react-router-dom';
 import { reportsAPI, clinicAPI, handleAPIError } from '../../services/api';
 
 const LEAFLET_CSS = `
-  .leaflet-container { font-family: 'Segoe UI', sans-serif; }
-  .custom-report-icon { background: none !important; border: none !important; }
-  .report-marker {
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%; border: 3px solid white;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.38), 0 0 0 2px rgba(0,0,0,0.08);
-    cursor: pointer; transition: transform 0.2s;
-    width: 40px; height: 40px; overflow: hidden;
-  }
-  .report-marker img { width: 22px; height: 22px; object-fit: contain; }
-  .report-marker:hover { transform: scale(1.22); }
-  .marker-rabies      { background: linear-gradient(135deg,#ff4444,#cc0000); }
-  .marker-suspected   { background: linear-gradient(135deg,#ffcc00,#e6a800); }
-  .marker-animal-bite { background: linear-gradient(135deg,#ff7700,#cc5500); }
-  .marker-rescue      { background: linear-gradient(135deg,#22bb55,#1a9944); }
-  .marker-others      { background: linear-gradient(135deg,#6677ee,#4455cc); }
-  .marker-pending     { background: linear-gradient(135deg,#aaaaaa,#777777); }
-  .leaflet-popup-content-wrapper {
+  .gm-style .gm-style-iw-c {
+    padding: 0 !important;
     border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
-    border: none !important; padding: 0 !important; overflow: hidden;
+    background: #0d1424 !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.55) !important;
+    overflow: hidden !important;
   }
-  .leaflet-popup-content { margin: 0 !important; }
-  .leaflet-popup-tip-container { display: none; }
-  .radius-label {
-    background: transparent !important; border: none !important;
-    box-shadow: none !important; font-weight: 700; font-size: 0.72rem;
-    color: #333; text-align: center;
+  .gm-style .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; max-height: none !important; }
+  .gm-style .gm-style-iw-tc { display: none !important; }
+  .gm-style .gm-style-iw-ch { display: none !important; }
+  .gm-style .gm-style-iw-chr {
+    position: absolute !important; top: 6px !important; right: 6px !important;
+    height: auto !important; z-index: 3;
+  }
+  .gm-style .gm-ui-hover-effect {
+    top: 0 !important; right: 0 !important;
+    width: 26px !important; height: 26px !important;
+    background: rgba(255,255,255,0.14) !important;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    border-radius: 50% !important;
+    opacity: 1 !important;
+  }
+  .gm-style .gm-ui-hover-effect > span {
+    margin: 6px !important; width: 12px !important; height: 12px !important;
+    background-color: #ffffff !important;
   }
 `;
 
@@ -76,8 +75,84 @@ const withRetry = async (fn, retries = 3, delay = 800) => {
   }
 };
 
+const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY || 'AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To';
+
 const MUNTINLUPA_CENTER = [14.4081, 121.0415];
 const MUNTINLUPA_BOUNDS = [[14.34, 120.97], [14.50, 121.12]];
+
+const BOUNDARY = [
+  [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+  [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+  [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+  [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+  [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+  [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+  [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+  [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+  [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+  [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+  [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+  [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+  [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+  [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+  [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+  [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+  [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+  [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+  [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+  [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+  [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+  [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+  [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
+];
+
+const MAP_STYLES = [
+  { elementType:'geometry', stylers:[{ color:'#0d1424' }] },
+  { elementType:'labels.text.stroke', stylers:[{ color:'#0d1424' }] },
+  { elementType:'labels.text.fill', stylers:[{ color:'#7d8aa5' }] },
+  { featureType:'administrative', elementType:'geometry.stroke', stylers:[{ color:'#2a3550' }] },
+  { featureType:'administrative.locality', elementType:'labels.text.fill', stylers:[{ color:'#a9b4cc' }] },
+  { featureType:'poi', elementType:'labels', stylers:[{ visibility:'off' }] },
+  { featureType:'poi.park', elementType:'geometry', stylers:[{ color:'#10231f' }] },
+  { featureType:'road', elementType:'geometry', stylers:[{ color:'#1c2640' }] },
+  { featureType:'road', elementType:'geometry.stroke', stylers:[{ color:'#0d1424' }] },
+  { featureType:'road', elementType:'labels.text.fill', stylers:[{ color:'#6b7896' }] },
+  { featureType:'road.highway', elementType:'geometry', stylers:[{ color:'#2b3858' }] },
+  { featureType:'road.highway', elementType:'geometry.stroke', stylers:[{ color:'#1c2640' }] },
+  { featureType:'road.highway', elementType:'labels.text.fill', stylers:[{ color:'#9aa6c2' }] },
+  { featureType:'transit', elementType:'geometry', stylers:[{ color:'#15203a' }] },
+  { featureType:'water', elementType:'geometry', stylers:[{ color:'#060a14' }] },
+  { featureType:'water', elementType:'labels.text.fill', stylers:[{ color:'#3d4a6b' }] },
+];
+
+const getDistMeters = (lat1, lng1, lat2, lng2) => {
+  const R = 6371000, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+};
+
+// Flag pin color + emoji per report
+const getPinMeta = (report) => {
+  if (report.status === 'positive_rabies')  return { color: '#e00000', emoji: '☣️' };
+  if (report.status === 'suspected_rabies') return { color: '#f0c800', emoji: '⚠️' };
+  if (report.status === 'pending')          return { color: '#888888', emoji: '📋' };
+  if (report.report_type === 'animal_bite')   return { color: '#ff7700', emoji: '🐾' };
+  if (report.report_type === 'animal_rescue') return { color: '#22bb55', emoji: '🐕' };
+  if (report.report_type === 'rabies_case')   return { color: '#e00000', emoji: '🦠' };
+  return { color: '#6677ee', emoji: '📌' };
+};
+
+const makeFlagIcon = (color, emoji) => ({
+  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
+      <rect x="6" y="2" width="20" height="14" rx="3" fill="${color}" stroke="white" stroke-width="1.5"/>
+      <text x="16" y="13" text-anchor="middle" font-size="9">${emoji}</text>
+      <rect x="5" y="2" width="2.5" height="40" rx="1.2" fill="white"/>
+      <ellipse cx="6.25" cy="42" rx="4" ry="1.8" fill="rgba(0,0,0,0.18)"/>
+    </svg>`)}`,
+  scaledSize: new window.google.maps.Size(36, 48),
+  anchor: new window.google.maps.Point(6, 48),
+});
 
 export default function MapStatus() {
   const mapRef         = useRef(null);
@@ -95,6 +170,8 @@ export default function MapStatus() {
   const [isFullscreen,  setIsFullscreen]  = useState(false);
   const [clinics,       setClinics]       = useState([]);
   const clinicMarkersRef = useRef([]);
+  const infoWindowRef    = useRef(null);
+  const [mapReady,       setMapReady]     = useState(false);
 
   const printMapRef = useRef(null);
   const printMapInstanceRef = useRef(null);
@@ -117,7 +194,7 @@ export default function MapStatus() {
     // Clean up previous
     const old = document.getElementById('rabies-print-area');
     if (old) old.remove();
-    if (window._printMapInst) { window._printMapInst.remove(); window._printMapInst = null; }
+    window._printMapInst = null;
 
     // Print styles
     let printStyleEl = document.getElementById('rabies-print-style');
@@ -194,7 +271,7 @@ export default function MapStatus() {
     const btnBar = document.createElement('div');
     btnBar.className = 'no-print';
     btnBar.style.cssText = 'position:absolute;bottom:12px;right:12px;z-index:100000;';
-    btnBar.innerHTML = `<button onclick="document.getElementById('rabies-print-area').remove();if(window._printMapInst){window._printMapInst.remove();window._printMapInst=null;}window.__setPrinting&&window.__setPrinting(false);" style="background:#fff;color:#333;border:1.5px solid #ccc;border-radius:7px;padding:7px 18px;font-weight:700;font-size:0.8rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);">✕ Close</button>`;
+    btnBar.innerHTML = `<button onclick="document.getElementById('rabies-print-area').remove();window._printMapInst=null;window.__setPrinting&&window.__setPrinting(false);" style="background:#fff;color:#333;border:1.5px solid #ccc;border-radius:7px;padding:7px 18px;font-weight:700;font-size:0.8rem;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);">✕ Close</button>`;
 
     container.appendChild(topBar);
     container.appendChild(infoBar);
@@ -203,132 +280,86 @@ export default function MapStatus() {
     container.appendChild(btnBar);
     document.body.appendChild(container);
 
-    // Init Leaflet with EXACT hardcoded pixel dimensions — no offsetWidth needed
-    const L = window.L;
-
-    const useZoom = 15.5;
-
-    setTimeout(() => {
-      const pMap = L.map('print-map-inner', {
-        center:     [lat, lng],
-        zoom:       useZoom,
-        zoomControl:      false,
-        attributionControl: false,
-        fadeAnimation:    false,
-        markerZoomAnimation: false,
-        zoomSnap:   0.25,
-        zoomDelta:  0.25,
-        renderer:   L.canvas(),
+        setTimeout(() => {
+      const google = window.google;
+      const zoom = 15;
+      const pMap = new google.maps.Map(document.getElementById('print-map-inner'), {
+        center: { lat, lng },
+        zoom,
+        disableDefaultUI: true,
+        gestureHandling: 'none',
+        keyboardShortcuts: false,
+        clickableIcons: false,
       });
       window._printMapInst = pMap;
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, maxNativeZoom: 19,
-      }).addTo(pMap);
+      // 1km zone
+      new google.maps.Circle({
+        map: pMap,
+        center: { lat, lng },
+        radius: 1000,
+        strokeColor:   isPos ? '#cc0000' : '#c8a000',
+        strokeOpacity: 0.9,
+        strokeWeight:  2.5,
+        fillColor:     isPos ? '#cc0000' : '#c8a000',
+        fillOpacity:   0.08,
+        clickable: false,
+      });
 
-      // 1km circle centered on exact report coordinates
-      L.circle([lat, lng], {
-        radius:      1000,
-        color:       isPos ? '#cc0000' : '#c8a000',
-        weight:      2.5,
-        opacity:     0.9,
-        fillColor:   isPos ? '#cc0000' : '#c8a000',
-        fillOpacity: 0.08,
-        dashArray:   isPos ? null : '7,5',
-      }).addTo(pMap);
-
-      // Subtle center dot using circleMarker (SVG-based, not a DOM marker)
-      L.circleMarker([lat, lng], {
-        radius:      5,
-        color:       isPos ? 'rgba(180,0,0,0.5)' : 'rgba(160,120,0,0.5)',
-        weight:      1.5,
-        fillColor:   isPos ? 'rgba(180,0,0,0.2)' : 'rgba(160,120,0,0.2)',
-        fillOpacity: 1,
-        interactive: false,
-      }).addTo(pMap);
-
-      // Lock view to exact coordinates
-      pMap.setView([lat, lng], useZoom, { animate: false });
-
-      // Show container only after map is set
+      // Center dot
+      new google.maps.Marker({
+        position: { lat, lng },
+        map: pMap,
+        clickable: false,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 5,
+          fillColor:   isPos ? '#b40000' : '#a07800',
+          fillOpacity: 0.35,
+          strokeColor: isPos ? '#b40000' : '#a07800',
+          strokeWeight: 1.5,
+        },
+      });
 
       let printed = false;
-      let tilesLoading = 0;
-      let tilesReady = false;
-      let mapEventFired = false;
-
       const doPrint = () => {
         if (printed) return;
-        if (!tilesReady && tilesLoading > 0) return; // tiles still pending
         printed = true;
-        pMap.setView([lat, lng], useZoom, { animate: false });
-        // Brief settle delay for final render pass, then print
         setTimeout(() => {
           container.style.visibility = 'visible';
           setTimeout(() => {
             window.print();
             setTimeout(() => {
               container.remove();
-              if (window._printMapInst) { window._printMapInst.remove(); window._printMapInst = null; }
+              window._printMapInst = null;
               if (printStyleEl) { printStyleEl.innerHTML = ''; }
               setIsPrinting(false);
             }, 1000);
           }, 400);
-        }, 200);
+        }, 300);
       };
 
-      // Track tile loading via Leaflet tile layer events
-      pMap.eachLayer(layer => {
-        if (layer instanceof L.TileLayer) {
-          layer.on('loading', () => { tilesLoading++; tilesReady = false; });
-          layer.on('load', () => {
-            tilesLoading = Math.max(0, tilesLoading - 1);
-            if (tilesLoading === 0) {
-              tilesReady = true;
-              if (mapEventFired) doPrint();
-            }
-          });
-          layer.on('tileerror', () => {
-            // Don't block printing on tile errors — just decrement and proceed
-            tilesLoading = Math.max(0, tilesLoading - 1);
-            if (tilesLoading === 0) {
-              tilesReady = true;
-              if (mapEventFired) doPrint();
-            }
-          });
-        }
-      });
-
-      pMap.once('load', () => {
-        mapEventFired = true;
-        if (tilesReady || tilesLoading === 0) doPrint();
-      });
-
-      // Safety fallback: if map 'load' never fires (edge case), trigger after a generous delay
-      // but only print if tiles are actually done
-      const fallbackTimer = setTimeout(() => {
-        mapEventFired = true;
-        if (tilesReady || tilesLoading === 0) doPrint();
-      }, 10000); // 10s max wait
-
-      // Clear fallback if we already printed
-      pMap.once('load', () => clearTimeout(fallbackTimer));
+      google.maps.event.addListenerOnce(pMap, 'tilesloaded', doPrint);
+      setTimeout(doPrint, 10000); // safety fallback
     }, 50);
   };
   
   const navigate = useNavigate();
 
-  // Load Leaflet
+    // Load Google Maps
   useEffect(() => {
-    if (window.L) { setLeafletLoaded(true); return; }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = () => setLeafletLoaded(true);
-    document.head.appendChild(script);
+    if (window.google && window.google.maps) { setLeafletLoaded(true); return; }
+    let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (!script) {
+      script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+    const onLoad = () => setLeafletLoaded(true);
+    script.addEventListener('load', onLoad);
+    return () => script.removeEventListener('load', onLoad);
   }, []);
 
   useEffect(() => {
@@ -381,66 +412,68 @@ export default function MapStatus() {
     }
   };
 
-  // Init map
+    // Init map
   useEffect(() => {
     if (!leafletLoaded || !mapRef.current || mapInstanceRef.current) return;
-    const L   = window.L;
-    const map = L.map(mapRef.current, {
-      center: MUNTINLUPA_CENTER, zoom: 13,
-      minZoom: 12, maxZoom: 22,
-      maxBounds: MUNTINLUPA_BOUNDS, maxBoundsViscosity: 0.7,
-      zoomControl: false,
-    });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 22,
-      maxNativeZoom: 19,
-    }).addTo(map);
 
-    // Style attribution to be subtle but still visible/compliant
-    const style = document.createElement('style');
-    style.innerHTML = `.leaflet-control-attribution { background: rgba(0,0,0,0.45) !important; color: #aaa !important; font-size: 0.62rem !important; padding: 2px 6px !important; border-radius: 4px 0 0 0 !important; } .leaflet-control-attribution a { color: #ccc !important; }`;
-    document.head.appendChild(style);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-    const boundary = [
-      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-      [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-      [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-      [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-      [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-      [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-      [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-      [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-      [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-      [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-      [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-      [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-      [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-      [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-      [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-      [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-      [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-      [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-      [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-      [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-      [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-      [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-      [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-    ];
-    L.polygon(boundary, {
-      color: '#ffc107', weight: 2.5, opacity: 0.8,
-      fillColor: '#ffc107', fillOpacity: 0, dashArray: '6,4',
-    }).addTo(map);
-    mapInstanceRef.current = map;
+    const initMap = () => {
+      if (!mapRef.current) return;
+      const el = mapRef.current;
+      if (!el.offsetWidth || !el.offsetHeight) { setTimeout(initMap, 150); return; }
+
+      const google = window.google;
+      const map = new google.maps.Map(el, {
+        center: { lat: MUNTINLUPA_CENTER[0], lng: MUNTINLUPA_CENTER[1] },
+        zoom: 13,
+        minZoom: 8,
+        maxZoom: 22,
+        gestureHandling: 'greedy',
+        zoomControl: false,
+        cameraControl: false,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        restriction: {
+          latLngBounds: {
+            north: MUNTINLUPA_BOUNDS[1][0],
+            south: MUNTINLUPA_BOUNDS[0][0],
+            west:  MUNTINLUPA_BOUNDS[0][1],
+            east:  MUNTINLUPA_BOUNDS[1][1],
+          },
+          strictBounds: false,
+        },
+        backgroundColor: '#0d1424',
+        styles: MAP_STYLES,
+      });
+
+      new google.maps.Polygon({
+        paths: BOUNDARY.map(([lat, lng]) => ({ lat, lng })),
+        strokeColor: '#ffc107',
+        strokeOpacity: 0.8,
+        strokeWeight: 2.5,
+        fillColor: '#ffc107',
+        fillOpacity: 0,
+        map,
+      });
+
+      infoWindowRef.current = new google.maps.InfoWindow();
+      map.addListener('click', () => infoWindowRef.current && infoWindowRef.current.close());
+
+      mapInstanceRef.current = map;
+      setMapReady(true);
+    };
+
+    initMap();
   }, [leafletLoaded]);
 
-  // Render markers
+  // Render report markers + zones
   useEffect(() => {
-    if (!mapInstanceRef.current || !leafletLoaded) return;
-    const L   = window.L;
+    if (!mapInstanceRef.current || !mapReady) return;
+    const google = window.google;
     const map = mapInstanceRef.current;
-    markersRef.current.forEach(m => map.removeLayer(m));
-    circlesRef.current.forEach(c => map.removeLayer(c));
+
+    markersRef.current.forEach(m => m.setMap(null));
+    circlesRef.current.forEach(c => c.setMap(null));
     markersRef.current = [];
     circlesRef.current = [];
 
@@ -451,74 +484,60 @@ export default function MapStatus() {
       return r.latitude && r.longitude;
     });
 
-    // Pre-compute which rabies reports need their own circle
-    // (only if NOT within 1km of an already-circled report of same/higher severity)
-    const rabiesReports = filtered.filter(r =>
-      r.status === 'suspected_rabies' || r.status === 'positive_rabies'
-    );
+    const sortedRabies = filtered
+      .filter(r => r.status === 'suspected_rabies' || r.status === 'positive_rabies')
+      .sort((a, b) => {
+        if (a.status === 'positive_rabies' && b.status !== 'positive_rabies') return -1;
+        if (b.status === 'positive_rabies' && a.status !== 'positive_rabies') return 1;
+        return 0;
+      });
 
-    // Sort: positive_rabies first so they "own" circles over suspected
-    const sortedRabies = [...rabiesReports].sort((a, b) => {
-      if (a.status === 'positive_rabies' && b.status !== 'positive_rabies') return -1;
-      if (b.status === 'positive_rabies' && a.status !== 'positive_rabies') return 1;
-      return 0;
-    });
-
-    // Haversine distance in meters
-    const getDistanceMeters = (lat1, lng1, lat2, lng2) => {
-      const R = 6371000;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 +
-                Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
-                Math.sin(dLng/2)**2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    };
-
-    // Track which reports get their own circle
-    const circleOwners = []; // { lat, lng, status }
-
+    const circleOwners = [];
     sortedRabies.forEach(report => {
       const lat = parseFloat(report.latitude);
       const lng = parseFloat(report.longitude);
       if (isNaN(lat) || isNaN(lng)) return;
-
-      const isWithinExisting = circleOwners.some(owner => {
-        // If existing owner is positive_rabies, it covers both types within 1km
-        // If existing owner is suspected_rabies, it only groups suspected within 1km
-        if (owner.status === 'positive_rabies') {
-          return getDistanceMeters(lat, lng, owner.lat, owner.lng) <= 1000;
-        }
-        // suspected owner only groups same-type
-        if (owner.status === 'suspected_rabies' && report.status === 'suspected_rabies') {
-          return getDistanceMeters(lat, lng, owner.lat, owner.lng) <= 1000;
-        }
+      const isWithin = circleOwners.some(owner => {
+        if (owner.status === 'positive_rabies') return getDistMeters(lat, lng, owner.lat, owner.lng) <= 1000;
+        if (owner.status === 'suspected_rabies' && report.status === 'suspected_rabies') return getDistMeters(lat, lng, owner.lat, owner.lng) <= 1000;
         return false;
       });
-
-      if (!isWithinExisting) {
-        circleOwners.push({ lat, lng, status: report.status });
-      }
+      if (!isWithin) circleOwners.push({ lat, lng, status: report.status });
     });
 
-    // Draw circles only for circleOwners
     circleOwners.forEach(owner => {
       const isPos = owner.status === 'positive_rabies';
-      const circle = L.circle([owner.lat, owner.lng], {
-        radius: 1000,
-        color:       isPos ? '#e00000' : '#f0c800',
-        weight:      2.5, opacity: 0.85,
-        fillColor:   isPos ? '#e00000' : '#f0c800',
-        fillOpacity: isPos ? 0.12 : 0.10,
-        dashArray:   isPos ? null : '6,4',
-      }).addTo(map);
-      const labelIcon = L.divIcon({
-        className: 'radius-label',
-        html: `<div style="background:${isPos?'rgba(220,0,0,0.85)':'rgba(220,180,0,0.9)'};color:#fff;padding:3px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);">1 km ${isPos?'⚠️ Danger Zone':'🔍 Alert Zone'}</div>`,
-        iconAnchor: [40, 10],
-      });
-      const lm = L.marker([owner.lat + 0.0085, owner.lng], { icon: labelIcon, interactive: false }).addTo(map);
-      circlesRef.current.push(circle, lm);
+      try {
+        const circle = new google.maps.Circle({
+          map,
+          center: { lat: owner.lat, lng: owner.lng },
+          radius: 1000,
+          strokeColor:   isPos ? '#e00000' : '#f0c800',
+          strokeOpacity: 0.85,
+          strokeWeight:  2.5,
+          fillColor:     isPos ? '#e00000' : '#f0c800',
+          fillOpacity:   isPos ? 0.12 : 0.10,
+          clickable: false,
+        });
+        const labelMarker = new google.maps.Marker({
+          position: { lat: owner.lat + 0.0085, lng: owner.lng },
+          map,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg"/>',
+            scaledSize: new google.maps.Size(1, 1),
+          },
+          label: {
+            text: `1 km ${isPos ? '⚠️ Danger Zone' : '🔍 Alert Zone'}`,
+            color: '#fff',
+            fontSize: '0.7rem',
+            fontWeight: 'bold',
+          },
+          clickable: false,
+        });
+        circlesRef.current.push(circle, labelMarker);
+      } catch (e) {
+        console.warn('Circle render skipped:', e.message);
+      }
     });
 
     filtered.forEach(report => {
@@ -526,84 +545,74 @@ export default function MapStatus() {
       const lng = parseFloat(report.longitude);
       if (isNaN(lat) || isNaN(lng)) return;
 
-      const markerClass = getMarkerClass(report);
-      const imgSrc      = getMarkerImg(report);
-      const icon = L.divIcon({
-        className: 'custom-report-icon',
-        html: `
-          <div style="position:relative;width:28px;height:36px;display:flex;flex-direction:column;align-items:center;">
-            <div class="report-marker ${markerClass}" style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid white;box-shadow:0 3px 8px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden;">
-              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
-                <img src="${imgSrc}" alt="" style="width:14px;height:14px;object-fit:contain;" onerror="this.style.display='none';this.parentNode.innerHTML='${TYPE_CONFIG[report.report_type]?.fallback||'📌'}'" />
-              </div>
-            </div>
-            <div style="width:3px;height:8px;background:rgba(0,0,0,0.25);border-radius:0 0 3px 3px;margin-top:-1px;"></div>
-          </div>`,
-        iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38],
-      });
-
+      const { color, emoji } = getPinMeta(report);
       const statusCfg = STATUS_CONFIG[report.status] || STATUS_CONFIG.pending;
-      const typeCfg   = TYPE_CONFIG[report.report_type] || { label: report.report_type };
+      const typeCfg   = TYPE_CONFIG[report.report_type] || { label: report.report_type, fallback: '📌' };
+      const isRabies  = report.status === 'suspected_rabies' || report.status === 'positive_rabies';
+      const isPos     = report.status === 'positive_rabies';
+      const reportId  = report.id;
+      const headBg    = isPos ? 'linear-gradient(135deg,#b30000,#e00000)'
+                      : report.status === 'suspected_rabies' ? 'linear-gradient(135deg,#d4aa00,#f0c800)'
+                      : `linear-gradient(135deg,${color},${color}cc)`;
+      const headTxt   = report.status === 'suspected_rabies' ? '#1a1a1a' : '#fff';
+      const headSub   = report.status === 'suspected_rabies' ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)';
 
-      const reportId = report.id;
       const popupHtml = `
-        <div style="width:200px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
-          <div style="background:linear-gradient(135deg,#f8f9fa,#e9ecef);padding:0.6rem 0.75rem;border-bottom:2px solid #ffc107;">
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
-              <img src="${imgSrc}" style="width:18px;height:18px;object-fit:contain;"
-              <div>
-                <div style="color:#b38600;font-weight:700;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.4px">${typeCfg.label}</div>
-                <div style="color:#999999;font-size:0.6rem;">${report.report_number || '#RPT-'+String(report.id).padStart(4,'0')}</div>
-              </div>
-            </div>
-            <span style="display:inline-block;background:${statusCfg.color};color:#fff;padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">${statusCfg.label}</span>
+        <div style="width:220px;font-family:'Segoe UI',sans-serif;overflow:hidden;background:#0d1424;">
+          <div style="background:${headBg};padding:0.75rem 0.9rem;">
+            <div style="font-size:1.2rem;margin-bottom:0.3rem;">${emoji}</div>
+            <div style="color:${headTxt};font-weight:700;font-size:0.8rem;padding-right:22px;">${typeCfg.label}</div>
+            <div style="color:${headSub};font-size:0.62rem;margin-top:2px;">${report.report_number || '#RPT-' + String(report.id).padStart(4, '0')}</div>
+            <span style="display:inline-block;margin-top:0.4rem;background:rgba(255,255,255,0.22);color:${headTxt};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">${statusCfg.label}</span>
           </div>
-          <div style="padding:0.6rem 0.75rem;background:#fff;">
+          <div style="padding:0.7rem 0.9rem;background:#0d1424;">
             <div style="margin-bottom:0.4rem;">
-              <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;margin-bottom:1px">Barangay</div>
-              <div style="font-size:0.72rem;color:#222;font-weight:500;line-height:1.3">${report.barangay_name || 'Not specified'}</div>
+              <div style="font-size:0.58rem;color:#7d8aa5;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Barangay</div>
+              <div style="font-size:0.78rem;color:#e8ecf5;font-weight:600;margin-top:2px;">${report.barangay_name || 'Not specified'}</div>
             </div>
             <div style="display:flex;gap:0.35rem;margin-top:0.4rem;">
-              ${report.phone_number ? `<div style="flex:1;background:#f8f9fa;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #eee"><div style="font-size:0.54rem;color:#aaa;font-weight:700;text-transform:uppercase">Phone</div><div style="font-size:0.65rem;color:#333;font-weight:600;margin-top:1px">${report.phone_number}</div></div>` : ''}
-              <div style="flex:1;background:#f8f9fa;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #eee"><div style="font-size:0.54rem;color:#aaa;font-weight:700;text-transform:uppercase">Date</div><div style="font-size:0.65rem;color:#333;font-weight:600;margin-top:1px">${new Date(report.created_at).toLocaleDateString()}</div></div>
+              ${report.phone_number ? `<div style="flex:1;background:rgba(255,255,255,0.06);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(255,255,255,0.12);"><div style="font-size:0.54rem;color:#7d8aa5;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${report.phone_number}</div></div>` : ''}
+              <div style="flex:1;background:rgba(255,255,255,0.06);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(255,255,255,0.12);"><div style="font-size:0.54rem;color:#7d8aa5;font-weight:700;text-transform:uppercase;">Date</div><div style="font-size:0.65rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${new Date(report.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</div></div>
             </div>
-            ${(report.status==='suspected_rabies'||report.status==='positive_rabies')?`<div style="margin-top:0.4rem;padding:0.3rem 0.5rem;background:${report.status==='positive_rabies'?'#ffe6e6':'#fffbe6'};border-radius:6px;border-left:3px solid ${statusCfg.color};font-size:0.62rem;font-weight:700;color:${report.status==='positive_rabies'?'#8b0000':'#7a6000'}">${report.status==='positive_rabies'?'⚠️ Danger Zone':'🔍 Alert Zone'}</div>`:''}
+            ${isRabies ? `<div style="margin-top:0.5rem;padding:0.4rem 0.55rem;background:${isPos ? 'rgba(224,0,0,0.15)' : 'rgba(240,200,0,0.12)'};border-radius:8px;border-left:3px solid ${color};font-size:0.65rem;font-weight:700;color:${isPos ? '#ff8a8a' : '#ffe066'};">${isPos ? '⚠️ Danger Zone — 1km radius' : '🔍 Alert Zone — 1km radius'}</div>` : ''}
             <button
               onclick="window.dispatchEvent(new CustomEvent('viewReport', { detail: { id: ${reportId} } }))"
-              style="margin-top:0.4rem;width:100%;padding:0.38rem;background:linear-gradient(135deg,#f8f9fa,#e9ecef);color:#333333;border:none;border-top:1px solid #dee2e6;${(report.status === 'suspected_rabies' || report.status === 'positive_rabies') ? '' : 'border-radius:0 0 6px 6px;'}font-size:0.65rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.3rem;"
-              onmouseover="this.style.background='#e9ecef'"
-              onmouseout="this.style.background='linear-gradient(135deg,#f8f9fa,#e9ecef)'"
-            >
-              👁️ View Full Details
-            </button>
-            ${(report.status === 'suspected_rabies' || report.status === 'positive_rabies') ? `
+              style="margin-top:0.55rem;width:100%;padding:0.42rem;background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:8px;font-size:0.65rem;font-weight:700;cursor:pointer;"
+              onmouseover="this.style.background='rgba(255,255,255,0.2)'"
+              onmouseout="this.style.background='rgba(255,255,255,0.1)'"
+            >👁️ View Full Details</button>
+            ${isRabies ? `
             <button
               onclick="window.dispatchEvent(new CustomEvent('printReport', { detail: { id: ${reportId} } }))"
-              style="width:100%;padding:0.38rem;background:${report.status === 'positive_rabies' ? 'linear-gradient(135deg,#e00000,#8b0000)' : 'linear-gradient(135deg,#f0c800,#c8a000)'};color:${report.status === 'positive_rabies' ? '#fff' : '#1a1a1a'};border:none;border-radius:0 0 6px 6px;font-size:0.65rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.3rem;"
+              style="margin-top:0.35rem;width:100%;padding:0.42rem;background:${isPos ? 'linear-gradient(135deg,#e00000,#8b0000)' : 'linear-gradient(135deg,#f0c800,#c8a000)'};color:${isPos ? '#fff' : '#1a1a1a'};border:none;border-radius:8px;font-size:0.65rem;font-weight:700;cursor:pointer;"
               onmouseover="this.style.opacity='0.88'"
               onmouseout="this.style.opacity='1'"
-            >
-              🖨️ Print 1km Zone Report
-            </button>` : ''}
+            >🖨️ Print 1km Zone Report</button>` : ''}
           </div>
         </div>`;
 
-      const marker = L.marker([lat, lng], { icon }).addTo(map).bindPopup(popupHtml, { maxWidth: 220, minWidth: 200 });
+      const marker = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        icon: makeFlagIcon(color, emoji),
+      });
+      marker.addListener('click', () => {
+        infoWindowRef.current.setContent(popupHtml);
+        infoWindowRef.current.open({ map, anchor: marker });
+      });
       markersRef.current.push(marker);
     });
-  }, [reports, filterStatus, filterType, leafletLoaded]);
+  }, [reports, filterStatus, filterType, mapReady]);
 
-  // ── Render clinic markers ──────────────────────────────────────────────────
+  // ── Render clinic markers ──
   useEffect(() => {
-    if (!mapInstanceRef.current || !leafletLoaded) return;
-    const L   = window.L;
+    if (!mapInstanceRef.current || !mapReady) return;
+    const google = window.google;
     const map = mapInstanceRef.current;
 
-    // Remove old clinic markers
-    clinicMarkersRef.current.forEach(m => map.removeLayer(m));
+    clinicMarkersRef.current.forEach(m => m.setMap(null));
     clinicMarkersRef.current = [];
 
-    // ── Hardcoded CityVet / City Hall marker ──
     const cityVet = {
       id: 'cityvet',
       clinic_name: 'City Veterinary Office',
@@ -615,120 +624,103 @@ export default function MapStatus() {
       latitude: 14.395293,
       longitude: 121.044737,
     };
-    const hardcoded = [cityVet];
 
-    [...hardcoded, ...clinics].forEach(clinic => {
+    [cityVet, ...clinics].forEach(clinic => {
       const lat = parseFloat(clinic.latitude);
       const lng = parseFloat(clinic.longitude);
       if (isNaN(lat) || isNaN(lng)) return;
 
       const isCityVet = clinic.id === 'cityvet';
-      const icon = L.divIcon({
-        className: 'custom-report-icon',
-        html: isCityVet ? `
-          <div style="position:relative;width:48px;height:58px;display:flex;flex-direction:column;align-items:center;">
-            <!-- Pulse ring -->
-            <div style="
-              position:absolute;top:-6px;left:-6px;
-              width:60px;height:60px;
-              border-radius:50%;
-              border:3px solid rgba(255,193,7,0.5);
-              animation:cityvet-pulse 2s ease-out infinite;
-            "></div>
-            <!-- Main pin -->
-            <div style="
-              width:44px;height:44px;
-              border-radius:50% 50% 50% 0;
-              transform:rotate(-45deg);
-              background:linear-gradient(135deg,#ffc107,#ff8c00);
-              border:3px solid white;
-              box-shadow:0 4px 16px rgba(255,193,7,0.7), 0 0 0 3px rgba(255,193,7,0.25);
-              display:flex;align-items:center;justify-content:center;overflow:hidden;
-              position:relative;z-index:1;
-            ">
-              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
-                <i class="fas fa-hospital" style="font-size:17px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.3);"></i>
-              </div>
-            </div>
-            <div style="width:4px;height:10px;background:rgba(255,140,0,0.6);border-radius:0 0 4px 4px;margin-top:-1px;position:relative;z-index:1;"></div>
-          </div>
-          <style>
-            @keyframes cityvet-pulse {
-              0%   { transform: scale(0.9); opacity: 0.8; }
-              70%  { transform: scale(1.4); opacity: 0; }
-              100% { transform: scale(0.9); opacity: 0; }
-            }
-          </style>` : `
-          <div style="position:relative;width:32px;height:40px;display:flex;flex-direction:column;align-items:center;">
-            <div style="
-              width:32px;height:32px;
-              border-radius:50% 50% 50% 0;
-              transform:rotate(-45deg);
-              background:linear-gradient(135deg,#0d6efd,#0a58ca);
-              border:2.5px solid white;
-              box-shadow:0 3px 10px rgba(13,110,253,0.5);
-              display:flex;align-items:center;justify-content:center;overflow:hidden;
-            ">
-              <div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
-                <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
-              </div>
-            </div>
-            <div style="width:3px;height:8px;background:rgba(13,110,253,0.4);border-radius:0 0 3px 3px;margin-top:-1px;"></div>
-          </div>`,
-        iconSize:   isCityVet ? [48, 58] : [32, 40],
-        iconAnchor: isCityVet ? [24, 58] : [16, 40],
-        popupAnchor: [0, isCityVet ? -60 : -42],
-      });
 
       const popupHtml = `
-        <div style="width:210px;font-family:'Segoe UI',sans-serif;overflow:hidden;">
-          <div style="background:${isCityVet ? 'linear-gradient(135deg,#ffc107,#ff8c00)' : 'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.6rem 0.75rem;">
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
-              <div style="width:28px;height:28px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="fas fa-hospital" style="font-size:13px;color:#fff;"></i>
-              </div>
-              <div>
-                <div style="color:${isCityVet ? '#1a1a1a' : '#fff'};font-weight:700;font-size:0.72rem;line-height:1.2;">${clinic.clinic_name}</div>
-                <div style="color:${isCityVet ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.65)'};font-size:0.6rem;">${clinic.clinic_code || ''}</div>
-              </div>
+        <div style="width:220px;font-family:'Segoe UI',sans-serif;overflow:hidden;background:#0d1424;">
+          <div style="background:${isCityVet ? 'linear-gradient(135deg,#ffc107,#ff8c00)' : 'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.75rem 0.9rem;">
+            <div style="margin-bottom:0.3rem;">
+              <div style="color:${isCityVet ? '#1a1a1a' : '#fff'};font-weight:700;font-size:0.78rem;line-height:1.2;padding-right:22px;">${clinic.clinic_name}</div>
+              <div style="color:${isCityVet ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)'};font-size:0.6rem;">${isCityVet ? 'Government Veterinary Office' : (clinic.clinic_code || '')}</div>
             </div>
-            <span style="display:inline-block;background:rgba(255,255,255,0.2);color:${isCityVet ? '#1a1a1a' : '#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
-              🏥 ${isCityVet ? 'Government Clinic' : 'Private Clinic'}
+            <span style="display:inline-block;background:rgba(255,255,255,0.22);color:${isCityVet ? '#1a1a1a' : '#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
+              🏥 ${isCityVet ? 'City Government Clinic' : 'Private Clinic'}
             </span>
           </div>
-          <div style="padding:0.65rem 0.75rem;background:#fff;display:flex;flex-direction:column;gap:0.4rem;">
-            ${clinic.owner_name ? `
-              <div>
-                <div style="font-size:0.58rem;color:#aaa;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div>
-                <div style="font-size:0.72rem;color:#222;font-weight:600;margin-top:1px;">Dr. ${clinic.owner_name}</div>
-              </div>` : ''}
-            
+          <div style="padding:0.7rem 0.9rem;background:#0d1424;display:flex;flex-direction:column;gap:0.4rem;">
+            ${clinic.owner_name ? `<div><div style="font-size:0.58rem;color:#7d8aa5;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div><div style="font-size:0.75rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${isCityVet ? clinic.owner_name : 'Dr. ' + clinic.owner_name}</div></div>` : ''}
             <div style="display:flex;gap:0.35rem;margin-top:0.2rem;">
-              ${clinic.phone ? `
-                <div style="flex:1;background:#f8f9fa;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #eee;">
-                  <div style="font-size:0.54rem;color:#aaa;font-weight:700;text-transform:uppercase;">Phone</div>
-                  <div style="font-size:0.65rem;color:#333;font-weight:600;margin-top:1px;">${clinic.phone}</div>
-                </div>` : ''}
-              ${clinic.specialization ? `
-                <div style="flex:1;background:#e8f0fe;padding:0.28rem 0.4rem;border-radius:5px;border:1px solid #c5d8fc;">
-                  <div style="font-size:0.54rem;color:#5577aa;font-weight:700;text-transform:uppercase;">Specialty</div>
-                  <div style="font-size:0.62rem;color:#0d6efd;font-weight:700;margin-top:1px;">${clinic.specialization}</div>
-                </div>` : ''}
+              ${clinic.phone ? `<div style="flex:1;background:rgba(255,255,255,0.06);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(255,255,255,0.12);"><div style="font-size:0.54rem;color:#7d8aa5;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${clinic.phone}</div></div>` : ''}
+              ${clinic.specialization ? `<div style="flex:1;background:rgba(13,110,253,0.15);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(13,110,253,0.4);"><div style="font-size:0.54rem;color:#8fb4ff;font-weight:700;text-transform:uppercase;">Specialty</div><div style="font-size:0.62rem;color:#6ea8ff;font-weight:700;margin-top:1px;">${clinic.specialization}</div></div>` : ''}
             </div>
-            ${clinic.vaccinations_administered ? `
-              <div style="margin-top:0.2rem;padding:0.3rem 0.5rem;background:#e8f0fe;border-radius:6px;border-left:3px solid #0d6efd;font-size:0.65rem;font-weight:700;color:#0d6efd;">
-                💉 ${clinic.vaccinations_administered} vaccinations administered
-              </div>` : ''}
+            ${clinic.vaccinations_administered ? `<div style="margin-top:0.2rem;padding:0.4rem 0.55rem;background:rgba(13,110,253,0.15);border-radius:8px;border-left:3px solid #0d6efd;font-size:0.65rem;font-weight:700;color:#8fb4ff;">💉 ${clinic.vaccinations_administered} vaccinations administered</div>` : ''}
           </div>
         </div>`;
 
-      const marker = L.marker([lat, lng], { icon })
-        .addTo(map)
-        .bindPopup(popupHtml, { maxWidth: 230, minWidth: 210 });
-
+      const marker = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        zIndex: isCityVet ? 1000 : 500,
+        icon: isCityVet ? {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="64" viewBox="0 0 52 64">
+              <ellipse cx="7" cy="62" rx="6" ry="2.2" fill="rgba(0,0,0,0.18)"/>
+              <rect x="5" y="2" width="4" height="58" rx="2" fill="#d4d4d4"/>
+              <rect x="5" y="2" width="2" height="58" rx="2" fill="#f0f0f0"/>
+              <rect x="9" y="2" width="40" height="28" rx="5" fill="#ffc107"/>
+              <rect x="9" y="2" width="40" height="8" rx="5" fill="#ffd54f"/>
+              <rect x="9" y="7" width="40" height="3" fill="#ffd54f"/>
+              <rect x="25" y="8" width="7" height="16" rx="2" fill="white"/>
+              <rect x="19" y="13" width="19" height="6" rx="2" fill="white"/>
+              <circle cx="28.5" cy="16" r="3" fill="#ffc107"/>
+              <circle cx="44" cy="7" r="6" fill="#1a1a1a"/>
+              <circle cx="44" cy="7" r="5" fill="none" stroke="#ffc107" stroke-width="1"/>
+              <text x="44" y="10.5" text-anchor="middle" font-size="7" fill="#ffc107" font-family="Arial" font-weight="bold">★</text>
+            </svg>`
+          )}`,
+          scaledSize: new google.maps.Size(52, 64),
+          anchor: new google.maps.Point(7, 64),
+        } : {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="54" viewBox="0 0 44 54">
+              <ellipse cx="6" cy="52" rx="5" ry="1.8" fill="rgba(0,0,0,0.18)"/>
+              <rect x="4" y="2" width="3.5" height="49" rx="1.8" fill="#d4d4d4"/>
+              <rect x="4" y="2" width="1.8" height="49" rx="1.8" fill="#f0f0f0"/>
+              <rect x="8" y="2" width="34" height="24" rx="4" fill="#0d6efd"/>
+              <rect x="8" y="2" width="34" height="7" rx="4" fill="#4d94ff"/>
+              <rect x="8" y="7" width="34" height="2" fill="#4d94ff"/>
+              <rect x="22" y="7" width="5.5" height="13" rx="1.5" fill="white"/>
+              <rect x="16.5" y="11" width="16" height="5" rx="1.5" fill="white"/>
+              <circle cx="24.5" cy="13.5" r="2.5" fill="#0d6efd"/>
+              <circle cx="37" cy="6.5" r="5" fill="#0a3d91"/>
+              <text x="37" y="9.5" text-anchor="middle" font-size="6" fill="white" font-family="Arial" font-weight="bold">Rx</text>
+            </svg>`
+          )}`,
+          scaledSize: new google.maps.Size(44, 54),
+          anchor: new google.maps.Point(5.5, 54),
+        },
+      });
+      marker.addListener('click', () => {
+        infoWindowRef.current.setContent(popupHtml);
+        infoWindowRef.current.open({ map, anchor: marker });
+      });
       clinicMarkersRef.current.push(marker);
     });
-  }, [clinics, leafletLoaded]);
+  }, [clinics, mapReady]);
+
+  const zoomBy = (d) => {
+    const m = mapInstanceRef.current;
+    if (m) m.setZoom((m.getZoom() || 13) + d);
+  };
+  const recenter = () => {
+    const m = mapInstanceRef.current;
+    if (!m) return;
+    m.panTo({ lat: MUNTINLUPA_CENTER[0], lng: MUNTINLUPA_CENTER[1] });
+    m.setZoom(13);
+  };
+  const glassBtn = {
+    width: '40px', height: '40px', border: 'none',
+    background: 'rgba(255,255,255,0.12)', color: '#fff',
+    backdropFilter: 'blur(6px)', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '0.9rem',
+  };
 
   const filteredCount = reports.filter(r => {
     if (r.status === 'resolved') return false;
@@ -798,6 +790,14 @@ export default function MapStatus() {
         @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
         @keyframes fillBar  { from{width:0} to{width:var(--target-width)} }
         @keyframes spin     { to{transform:rotate(360deg)} }
+        .dashboard-page {
+          zoom: 0.75;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+        }
+        @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
+        @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
         .filter-btn:hover { transform:translateY(-2px); box-shadow:0 3px 10px rgba(0,0,0,0.2); }
         .filter-wrap { position: relative; }
         .filter-wrap .tip {
@@ -817,7 +817,7 @@ export default function MapStatus() {
         }
       `}</style>
 
-      <Container fluid className="py-4" style={{ background: '#ffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh' }}>
 
         {/* ── Header (unchanged) ── */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -988,7 +988,15 @@ export default function MapStatus() {
                     </span>
                   </div>
                   <button
-onClick={() => { setIsFullscreen(f => !f); setTimeout(() => mapInstanceRef.current?.invalidateSize(), 300); }}                    title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+onClick={() => {
+                      setIsFullscreen(f => !f);
+                      setTimeout(() => {
+                        if (mapInstanceRef.current && window.google) {
+                          window.google.maps.event.trigger(mapInstanceRef.current, 'resize');
+                        }
+                      }, 300);
+                    }}
+                    title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
                     style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.15)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
                     onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
 onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
@@ -1047,6 +1055,18 @@ onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
                   </div>
                 )}
                 <div ref={mapRef} style={{ height: isFullscreen ? 'calc(100vh - 110px)' : '100%', minHeight: isFullscreen ? 'unset' : '530px', width: '100%', display: 'block' }} />
+
+                {/* Custom glass controls */}
+                <div style={{ position: 'absolute', right: 14, bottom: 34, zIndex: 5, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <button onClick={recenter} title="Recenter map" style={glassBtn}><i className="fas fa-crosshairs"></i></button>
+                  </div>
+                  <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <button onClick={() => zoomBy(1)} title="Zoom in" style={glassBtn}><i className="fas fa-plus"></i></button>
+                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)' }} />
+                    <button onClick={() => zoomBy(-1)} title="Zoom out" style={glassBtn}><i className="fas fa-minus"></i></button>
+                  </div>
+                </div>
               </div>
 
               

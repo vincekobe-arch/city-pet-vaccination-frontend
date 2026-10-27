@@ -130,6 +130,15 @@ const [filterSource, setFilterSource] = useState('all');
   const itemsPerPage = 8;
 
   const styles = `
+    .reports-page {
+      zoom: 0.75;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 1600px) { .reports-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .reports-page { zoom: 1; } }
+
     @keyframes dropDown {
       0%   { opacity: 0; transform: translateY(-30px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -389,7 +398,7 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 reports-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
 
         {/* ── Header ── */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
