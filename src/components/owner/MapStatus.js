@@ -141,8 +141,8 @@ useEffect(() => {
       minZoom: 8,
       maxZoom: 22,
       gestureHandling: 'greedy',
-      zoomControl: true,
-      zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+      zoomControl: false,
+      cameraControl: false,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
@@ -393,6 +393,24 @@ useEffect(() => {
   });
 }, [clinics, mapReady]);
 
+  const zoomBy = (d) => {
+    const m = mapInstanceRef.current;
+    if (m) m.setZoom((m.getZoom() || 13) + d);
+  };
+  const recenter = () => {
+    const m = mapInstanceRef.current;
+    if (!m) return;
+    m.panTo({ lat: MUNTINLUPA_CENTER[0], lng: MUNTINLUPA_CENTER[1] });
+    m.setZoom(13);
+  };
+  const glassBtn = {
+    width: '40px', height: '40px', border: 'none',
+    background: 'rgba(255,255,255,0.12)', color: '#fff',
+    backdropFilter: 'blur(6px)', cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '0.9rem',
+  };
+
   const filteredCount = reports.filter(r => {
     if (filterStatus !== 'all' && r.status !== filterStatus) return false;
     return r.latitude && r.longitude;
@@ -401,9 +419,10 @@ useEffect(() => {
   const btnStyle = (active, color) => ({
     padding: '0.4rem 1rem',
     borderRadius: '20px',
-    border: `2px solid ${active ? color : 'rgba(0,0,0,0.12)'}`,
-    background: active ? color : 'rgba(0,0,0,0.04)',
-    color: active ? (color === '#ffc107' ? '#1a1a1a' : '#fff') : '#555555',
+    border: `2px solid ${active ? color : 'rgba(255,255,255,0.3)'}`,
+    background: active ? color : 'rgba(255,255,255,0.12)',
+    backdropFilter: 'blur(6px)',
+    color: active ? (color === '#ffc107' ? '#1a1a1a' : '#fff') : '#ffffff',
     fontWeight: '600',
     fontSize: '0.78rem',
     cursor: 'pointer',
@@ -420,6 +439,8 @@ useEffect(() => {
       <style>{`
         @keyframes dropDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
         @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        .map-overlay-header { pointer-events: none; }
+        .map-overlay-header button, .map-overlay-header span { pointer-events: auto; }
         .map-fullscreen { position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:10002 !important;border-radius:0 !important;margin:0 !important;zoom:1.333 !important; }
         @media (max-width: 768px) {
           .mobile-map-title { font-size: 1.5rem !important; }
@@ -535,15 +556,15 @@ useEffect(() => {
           {/* Map */}
           <Col lg={9} className="order-1 order-lg-2">
             <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-              style={{ borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
+              style={{ position: 'relative', minHeight: isFullscreen ? undefined : '640px', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
 
               {/* Map header */}
-              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
+              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, background: 'transparent', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
-                    <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Rabies Activity Map</span>
-                    <span style={{ background: 'rgba(255,193,7,0.15)', color: '#b38600', padding: '2px 10px', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700' }}>
+                    <span style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>Rabies Activity Map</span>
+                    <span style={{ background: 'rgba(255,193,7,0.2)', color: '#ffd54f', padding: '2px 10px', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700' }}>
                       {loading ? '...' : `${filteredCount} active cases`}
                     </span>
                   </div>
@@ -556,12 +577,12 @@ useEffect(() => {
     }
   }, 300);
 }}
-                    style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.15)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
-                    onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(6px)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                    onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
                     title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
                   >
-                    <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.82rem', color: '#333333' }}></i>
+                    <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.82rem', color: '#ffffff' }}></i>
                   </button>
                 </div>
 
@@ -581,14 +602,26 @@ useEffect(() => {
               </div>
 
               {/* Map container */}
-              <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+              <div style={{ position: 'absolute', inset: 0 }}>
                 {loading && (
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.85)', zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
                     <Spinner animation="border" style={{ color: '#ffc107', width: '2.5rem', height: '2.5rem', borderWidth: '3px' }} />
                     <span style={{ fontWeight: '600', color: '#555' }}>Loading map data...</span>
                   </div>
                 )}
-                <div ref={mapRef} style={{ height: isFullscreen ? 'calc(100vh - 110px)' : '100%', minHeight: isFullscreen ? 'unset' : '530px', width: '100%' }} />
+                <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
+
+                {/* Custom glass controls */}
+                <div style={{ position: 'absolute', right: 14, bottom: 34, zIndex: 5, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <button onClick={recenter} title="Recenter map" style={glassBtn}><i className="fas fa-crosshairs"></i></button>
+                  </div>
+                  <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
+                    <button onClick={() => zoomBy(1)} title="Zoom in" style={glassBtn}><i className="fas fa-plus"></i></button>
+                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)' }} />
+                    <button onClick={() => zoomBy(-1)} title="Zoom out" style={glassBtn}><i className="fas fa-minus"></i></button>
+                  </div>
+                </div>
               </div>
 
             </Card>
