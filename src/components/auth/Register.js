@@ -279,7 +279,7 @@ const handleOtpPaste = (e) => {
         last_name: formData.last_name, birthdate: formData.birthdate,
         gender: formData.gender === 'Other' ? formData.genderOther.trim() : formData.gender,
         last_name: formData.suffix.trim() ? `${formData.last_name} ${formData.suffix.trim()}` : formData.last_name,
-        phone: formData.phone,
+        phone: `+63${formData.phone}`,
       }, { headers: { 'Content-Type': 'application/json' } });
 
       if (res.data.success) {
@@ -611,7 +611,7 @@ const handleOtpPaste = (e) => {
                                       : '2px solid rgba(0,0,0,0.1)',
                               }} />
                             <div style={{ position:'absolute', right:'0.75rem', top:'50%', transform:'translateY(-50%)' }}>
-                              {usernameChecking && <Spinner animation="border" size="sm" style={{ color:'#ffc107' }} />}
+                              {usernameChecking && <Spinner animation="border" style={{ color:'#ffc107', width:'14px', height:'14px', borderWidth:'2px', display:'block' }} />}
                               {!usernameChecking && formData.username.length >= 8 && (
                                 usernameError === 'taken'            ? <i className="fas fa-times-circle" style={{ color:'#ef4444' }} /> :
                                 usernameError === 'invalid' || usernameError === 'letters_required' ? <i className="fas fa-exclamation-circle" style={{ color:'#f59e0b' }} /> :
@@ -643,7 +643,7 @@ const handleOtpPaste = (e) => {
                                       : '2px solid rgba(0,0,0,0.1)',
                               }} />
                             <div style={{ position:'absolute', right:'0.75rem', top:'50%', transform:'translateY(-50%)' }}>
-                              {emailChecking && <Spinner animation="border" size="sm" style={{ color:'#ffc107' }} />}
+                              {emailChecking && <Spinner animation="border" style={{ color:'#ffc107', width:'14px', height:'14px', borderWidth:'2px', display:'block' }} />}
                               {!emailChecking && formData.email && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/.test(formData.email.toLowerCase()) && (
                                 emailError
                                   ? <i className="fas fa-times-circle" style={{ color:'#ef4444' }} />
