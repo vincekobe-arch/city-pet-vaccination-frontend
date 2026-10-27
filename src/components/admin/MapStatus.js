@@ -63,6 +63,19 @@ const getMarkerImg = (report) => {
   return TYPE_CONFIG[report.report_type]?.img || TYPE_CONFIG['others'].img;
 };
 
+const withRetry = async (fn, retries = 3, delay = 800) => {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = err?.response?.status;
+      // only retry server errors / network errors, not 4xx
+      if (i === retries || (status && status < 500)) throw err;
+      await new Promise(r => setTimeout(r, delay * (i + 1)));
+    }
+  }
+};
+
 const MUNTINLUPA_CENTER = [14.4081, 121.0415];
 const MUNTINLUPA_BOUNDS = [[14.34, 120.97], [14.50, 121.12]];
 
@@ -318,7 +331,12 @@ export default function MapStatus() {
     document.head.appendChild(script);
   }, []);
 
-  useEffect(() => { loadReports(); loadClinics(); }, []);
+  useEffect(() => {
+  (async () => {
+    await loadReports();
+    await loadClinics();
+  })();
+}, []);
 
   useEffect(() => {
     const handler = (e) => {
@@ -338,7 +356,7 @@ export default function MapStatus() {
 
   const loadClinics = async () => {
     try {
-      const res = await clinicAPI.getAll();
+      const res = await withRetry(() => clinicAPI.getAll());
       setClinics((res.data.clinics || []).filter(c => c.is_active == 1 && c.latitude && c.longitude));
     } catch (err) {
       console.error('Failed to load clinics:', err);
@@ -348,7 +366,7 @@ export default function MapStatus() {
   const loadReports = async () => {
     try {
       setLoading(true);
-      const res  = await reportsAPI.getAll();
+      const res  = await withRetry(() => reportsAPI.getAll());
       const data = res.data.reports || [];
       setReports(data);
       const s = {};
