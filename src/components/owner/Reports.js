@@ -684,7 +684,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: 'calc(100vh / 0.75)', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
+      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -852,7 +852,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
           </Row>
         ) : (
           <>
-            <Row style={{ flex: '1 1 auto', alignContent: paginatedReports.length > 3 ? 'stretch' : 'flex-start' }}>
+            <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
               {paginatedReports.map((report, index) => {
                 const typeInfo = getReportType(report.report_type);
                 return (
@@ -1012,7 +1012,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
 
             {/* Pagination */}
             {reports.length > itemsPerPage && (
-              <Row className="report-pagination" style={{ marginTop: 'auto', paddingTop: '1.5rem' }}>
+              <Row className="report-pagination" style={{ marginTop: 'auto' }}>
                 <Col className="d-flex justify-content-between align-items-center">
                   <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
                     Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>

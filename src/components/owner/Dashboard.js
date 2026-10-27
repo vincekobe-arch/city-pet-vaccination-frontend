@@ -35,6 +35,15 @@ const OwnerDashboard = () => {
       50% { transform: translateY(-10px); }
     }
     
+    .dashboard-page {
+      zoom: 0.75;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+
     @media (max-width: 768px) {
       .mobile-title {
         font-size: 1.5rem !important;
@@ -338,7 +347,7 @@ setDashboardData({
     return (
       <>
         <style>{styles}</style>
-        <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', zoom: '0.75', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', alignItems: 'center', justifyContent: 'center' }}>
           <div className="text-center">
             <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
             <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Loading dashboard...</p>
@@ -351,7 +360,7 @@ setDashboardData({
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', zoom: '0.75', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff' }}>
 
       <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
         <Col>
@@ -722,7 +731,7 @@ setDashboardData({
                 Vaccination Reminders
               </h5>
             </Card.Header>
-<Card.Body className="mobile-card-body" style={{ padding: '2rem', maxHeight: '500px', overflowY: 'auto' }}>
+<Card.Body className="mobile-card-body" style={{ padding: '2rem', flex: '1 1 0', minHeight: '320px', overflowY: 'auto' }}>
                 {loading ? (
                   <div className="text-center py-5">
                     <Spinner animation="border" style={{ width: '2.5rem', height: '2.5rem', color: '#ffc107', borderWidth: '3px' }} />
