@@ -32,7 +32,16 @@ const [filterSpecies, setFilterSpecies] = useState('all');
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
     }
-    @media (max-width: 768px) {
+    .vc-management-page {
+  zoom: 0.75;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 1600px) { .vc-management-page { zoom: 0.9; } }
+@media (min-width: 1920px) { .vc-management-page { zoom: 1; } }
+
+@media (max-width: 768px) {
       .vc-title { font-size: 1.5rem !important; }
       .vc-stat-label { font-size: 0.55rem !important; margin-bottom: 0.15rem !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
       .vc-stat-number { font-size: 1.1rem !important; margin-bottom: 0.25rem !important; }
@@ -131,7 +140,7 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 vc-management-page" style={{ backgroundColor: '#ffffffff', transition: 'all 0.3s ease' }}>
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
           <Col>
             <div>

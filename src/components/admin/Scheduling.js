@@ -71,21 +71,32 @@ const itemsPerPage = 5;
   
   const styles = `
     @keyframes dropDown {
-      0% {
-        opacity: 0;
-        transform: translateY(-30px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      0% { opacity: 0; transform: translateY(-30px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
     }
+    .sched-page-wrapper {
+      width: 100%;
+      box-sizing: border-box;
+    }
+    @media (max-width: 1400px) {
+      .sched-page-wrapper { font-size: 0.95rem; }
+    }
+    @media (max-width: 1200px) {
+      .sched-page-wrapper { font-size: 0.9rem; }
+      .sched-title { font-size: 1.6rem !important; }
+    }
+    @media (max-width: 992px) {
+      .sched-page-wrapper { font-size: 0.85rem; }
+      .sched-title { font-size: 1.4rem !important; }
+      .sched-stat-number { font-size: 2rem !important; }
+    }
     @media (max-width: 768px) {
-      .sched-title { font-size: 1.5rem !important; }
+      .sched-page-wrapper { font-size: 0.8rem; }
+      .sched-title { font-size: 1.2rem !important; }
       .sched-stat-row { flex-wrap: nowrap !important; }
       .sched-stat-col { flex: 1 1 0 !important; min-width: 0 !important; }
       .sched-stat-number { font-size: 1.1rem !important; margin-bottom: 0.25rem !important; }
@@ -100,13 +111,19 @@ const itemsPerPage = 5;
       .sched-card-body { padding: 1rem !important; }
       .sched-table th, .sched-table td { font-size: 0.7rem !important; padding: 0.5rem 0.3rem !important; }
       .sched-table .mobile-hide { display: none !important; }
-.sched-table .mobile-hide-datetime { display: none !important; }
+      .sched-table .mobile-hide-datetime { display: none !important; }
       .sched-pagination { font-size: 0.75rem !important; }
       .sched-pagination .page-btn { padding: 0.35rem 0.55rem !important; min-width: 32px !important; font-size: 0.75rem !important; }
       .sched-pagination .page-info { font-size: 0.75rem !important; }
       .sched-view-modal .modal-body { padding: 1rem !important; }
       .sched-view-modal .modal-body strong { font-size: 0.78rem !important; }
       .sched-view-modal .modal-body p { font-size: 0.85rem !important; margin-bottom: 0.4rem !important; }
+    }
+    @media (max-width: 480px) {
+      .sched-page-wrapper { font-size: 0.75rem; }
+      .sched-title { font-size: 1rem !important; }
+      .sched-stat-number { font-size: 0.95rem !important; }
+      .sched-stat-icon { width: 26px !important; height: 26px !important; }
     }
   `;
   
@@ -909,7 +926,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 sched-page-wrapper" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
           <Col>
             <div>
@@ -1527,7 +1544,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       )}
 
       {/* View Schedule Modal */}
-      <Modal show={showViewModal} onHide={handleCloseViewModal} size="lg" className="sched-view-modal" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
+      <Modal show={showViewModal} onHide={handleCloseViewModal} size="lg" className="sched-view-modal" centered>
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-eye me-2"></i>
@@ -1701,7 +1718,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       </Modal>
 
       {/* Add/Edit Schedule Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} size="lg" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
+      <Modal show={showModal} onHide={handleCloseModal} size="lg" centered>
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             {modalMode === 'edit' ? (
@@ -2650,7 +2667,7 @@ return (
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
         <Modal.Header 
           closeButton
           style={{
@@ -2802,7 +2819,7 @@ return (
       </>
     )}
     {/* ── Review & Confirm Schedule Modal ── */}
-<Modal show={showConfirmScheduleModal} onHide={() => setShowConfirmScheduleModal(false)} centered style={{ zoom: '0.75' }}>
+<Modal show={showConfirmScheduleModal} onHide={() => setShowConfirmScheduleModal(false)} centered>
   <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
     <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
       <i className="fas fa-clipboard-check me-2" style={{ color: '#ffc107' }} />

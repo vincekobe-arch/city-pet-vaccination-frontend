@@ -76,7 +76,16 @@ const [filterClinic, setFilterClinic] = useState('city_vet');
         0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-10px); }
       }
-      @media (max-width: 768px) {
+      .record-management-page {
+  zoom: 0.75;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 1600px) { .record-management-page { zoom: 0.9; } }
+@media (min-width: 1920px) { .record-management-page { zoom: 1; } }
+
+@media (max-width: 768px) {
   .mobile-title { font-size: 1.5rem !important; }
   .mobile-stat-label { font-size: 0.6rem !important; margin-bottom: 0.25rem !important; }
   .mobile-stat-number { font-size: 1.2rem !important; }
@@ -1024,7 +1033,7 @@ const getSelectedPet = () => {
     return (
       <>
         <style>{styles}</style>
-        <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+        <Container fluid className="py-4 record-management-page" style={{ backgroundColor: '#ffffffff', transition: 'all 0.3s ease' }}>
           <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
             <Col>
               <div>
