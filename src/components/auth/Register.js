@@ -8,11 +8,17 @@ const API_BASE_URL = window.location.hostname === 'localhost'
   ? 'http://localhost/city-pet-vaccination-api'
   : 'https://api.petunity-muntinlupacity.com';
 
+const STORAGE_KEY = 'petunity_register_draft';
+const loadDraft = () => {
+  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY)) || null; }
+  catch { return null; }
+};
+
 const Register = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => loadDraft()?.step || 1);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => loadDraft()?.formData || {
     username: '',
     email: '',
     password: '',
@@ -27,7 +33,7 @@ const Register = () => {
     phone: '',
   });
 
-  const [verificationCode, setVerificationCode]   = useState('');
+  const [verificationCode, setVerificationCode]   = useState(() => loadDraft()?.verificationCode || '');
   const [loading, setLoading]                     = useState(false);
   const [error, setError]                         = useState('');
   const [success, setSuccess]                     = useState('');
@@ -100,6 +106,20 @@ const Register = () => {
     if (!/\d/.test(pwd))      errors.push('number');
     setPasswordErrors(errors);
   };
+
+  // Save progress so a reload doesn't lose it
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
+        step: 1,
+        formData: { ...formData, password: '', confirmPassword: '' },
+        verificationCode: ''
+      }));
+    } catch { /* storage unavailable, ignore */ }
+  }, [step, formData, verificationCode]);
+
+  // Re-run password checks for a restored password
+  useEffect(() => { validatePassword(formData.password); }, []); // eslint-disable-line
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -285,6 +305,7 @@ const handleOtpPaste = (e) => {
       if (res.data.success) {
         setSuccess('Registration successful! Redirecting to your dashboard...');
         setAuth(res.data.token, res.data.user);
+        sessionStorage.removeItem(STORAGE_KEY);
         sessionStorage.setItem('showVerifyPrompt', '1'); // triggers the verify prompt on first dashboard load
         setTimeout(() => {
           window.location.replace('/owner/dashboard');
