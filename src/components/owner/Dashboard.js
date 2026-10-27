@@ -338,7 +338,7 @@ setDashboardData({
     return (
       <>
         <style>{styles}</style>
-        <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', zoom: '0.75', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', zoom: '0.75', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <div className="text-center">
             <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
             <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Loading dashboard...</p>
@@ -351,7 +351,7 @@ setDashboardData({
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', zoom: '0.75' }}>
+      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', zoom: '0.75', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
       <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
         <Col>
@@ -504,15 +504,16 @@ setDashboardData({
 </Col>
       </Row>
 
-      <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
+      <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards', flex: '1 1 auto' }}>
         {/* Upcoming Events Table */}
-        <Col lg={6} className="mb-4">
+        <Col lg={6} className="mb-4" style={{ display: 'flex', flexDirection: 'column' }}>
           <Card 
             className="h-100 border-0" 
             style={{
               borderRadius: '20px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              flex: '1 1 auto'
             }}
           >
             <Card.Header 
@@ -697,13 +698,14 @@ setDashboardData({
         </Col>
 
         {/* Vaccination Reminders */}
-        <Col lg={6} className="mb-4">
+        <Col lg={6} className="mb-4" style={{ display: 'flex', flexDirection: 'column' }}>
           <Card 
             className="h-100 border-0"
             style={{
               borderRadius: '20px',
               boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              flex: '1 1 auto'
             }}
           >
             <Card.Header
