@@ -233,7 +233,8 @@ export default function MapStatus() {
     const styleParams = '&style=feature:poi|element:labels|visibility:off'
       + '&style=feature:transit|visibility:off'
       + '&style=feature:administrative.land_parcel|visibility:off';
-    const staticUrl = `${window.location.hostname === 'localhost' ? 'http://localhost/city-pet-vaccination-api' : 'https://api.petunity-muntinlupacity.com'}/static-map?center=${lat},${lng}&zoom=${ZOOM}&size=${reqW}x${reqH}&scale=2&markers=size:mid|color:${isPos ? 'red' : 'yellow'}|${lat},${lng}`;
+    const markersParam = `size:mid|color:${isPos ? 'red' : 'yellow'}|${lat},${lng}`;
+    const staticUrl = `${window.location.hostname === 'localhost' ? 'http://localhost/city-pet-vaccination-api' : 'https://api.petunity-muntinlupacity.com'}/static-map?center=${lat},${lng}&zoom=${ZOOM}&size=${reqW}x${reqH}&scale=2&markers=${encodeURIComponent(markersParam)}`;
 
     // Try fetching via no-cors blob (works if your API key has no referrer restriction,
     // otherwise falls back to drawing without the map tile)
