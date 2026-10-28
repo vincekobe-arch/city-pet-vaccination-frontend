@@ -436,138 +436,77 @@ const AdminDashboard = ({ darkMode }) => {
   const vaccinationStatsBySpecies = getVaccinationStatsBySpecies();
 
   const styles = `
-    @keyframes dropDown {
-      0% {
-        opacity: 0;
-        transform: translateY(-30px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
-    }
-    
-    .dashboard-page {
-      zoom: 0.75;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
-    @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+  @keyframes dropDown {
+    0%   { opacity: 0; transform: translateY(-30px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-10px); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+  @keyframes fadeInUp {
+    0%   { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
 
-    @media (max-width: 768px) {
-      .mobile-title {
-        font-size: 1.5rem !important;
-      }
-        .vaccination-progress-bar {
-  height: 10px !important;
-  border-radius: 5px !important;
-}
-.vaccination-progress-bar > div {
-  border-radius: 5px !important;
-}
-  .mobile-species-icon {
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 6px !important;
-  margin-right: 8px !important;
-}
-.mobile-species-icon-img {
-  width: 18px !important;
-  height: 18px !important;
-}
-      .mobile-subtitle {
-        font-size: 0.9rem !important;
-      }
-      .mobile-stat-number {
-        font-size: 1.2rem !important;
-      }
-      .mobile-stat-label {
-        font-size: 0.6rem !important;
-        margin-bottom: 0.25rem !important;
-      }
-      .mobile-stat-icon {
-        width: 30px !important;
-        height: 30px !important;
-        border-radius: 8px !important;
-      }
-      .mobile-stat-icon img {
-        width: 18px !important;
-        height: 18px !important;
-      }
-      .mobile-card-padding {
-        padding: 0.5rem 0.3rem !important;
-      }
-      .mobile-card-header {
-        padding: 1rem !important;
-      }
-      .mobile-card-header h5 {
-        font-size: 0.95rem !important;
-      }
-      .mobile-card-body {
-        padding: 1rem !important;
-      }
-      .mobile-stat-description {
-        display: none !important;
-      }
-      .mobile-stat-card {
-        margin-bottom: 0.5rem !important;
-      }
-      .mobile-pet-name {
-        font-size: 0.9rem !important;
-      }
-      .mobile-pet-info {
-        font-size: 0.7rem !important;
-      }
-      .mobile-pet-icon {
-        width: 35px !important;
-        height: 35px !important;
-      }
-      .mobile-pet-icon img {
-        width: 24px !important;
-        height: 24px !important;
-      }.mobile-pet-item {
-  padding: 0.6rem !important;
-  margin-bottom: 0.5rem !important;
-  border-radius: 8px !important;
-}
-.mobile-recent-pet-icon {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 8px !important;
-  margin-right: 10px !important;
-}
-.mobile-recent-pet-img {
-  width: 22px !important;
-  height: 22px !important;
-}
-.mobile-pet-name {
-  font-size: 0.85rem !important;
-  margin-bottom: 0.25rem !important;
-}
-.mobile-pet-info {
-  font-size: 0.7rem !important;
-  gap: 8px !important;
-}
-.mobile-pet-info i {
-  font-size: 0.65rem !important;
-}.mobile-vaccination-item {
-  margin-bottom: 0.75rem !important;
-}
-.mobile-vaccination-item .d-flex {
-  margin-bottom: 0.5rem !important;
-}.mobile-vaccination-badge {
-  font-size: 0.7rem !important;
-  padding: 0.25rem 0.5rem !important;
-  border-radius: 6px !important;
-}
-    }
-  `;
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  .skeleton-dark {
+    background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+  }
+
+  .dashboard-page {
+    zoom: 0.75;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
+  @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+
+  @media (max-width: 768px) {
+    .mobile-title { font-size: 1.5rem !important; }
+    .vaccination-progress-bar { height: 10px !important; border-radius: 5px !important; }
+    .vaccination-progress-bar > div { border-radius: 5px !important; }
+    .mobile-species-icon { width: 28px !important; height: 28px !important; border-radius: 6px !important; margin-right: 8px !important; }
+    .mobile-species-icon-img { width: 18px !important; height: 18px !important; }
+    .mobile-subtitle { font-size: 0.9rem !important; }
+    .mobile-stat-number { font-size: 1.2rem !important; }
+    .mobile-stat-label { font-size: 0.6rem !important; margin-bottom: 0.25rem !important; }
+    .mobile-stat-icon { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
+    .mobile-stat-icon img { width: 18px !important; height: 18px !important; }
+    .mobile-card-padding { padding: 0.5rem 0.3rem !important; }
+    .mobile-card-header { padding: 1rem !important; }
+    .mobile-card-header h5 { font-size: 0.95rem !important; }
+    .mobile-card-body { padding: 1rem !important; }
+    .mobile-stat-description { display: none !important; }
+    .mobile-stat-card { margin-bottom: 0.5rem !important; }
+    .mobile-pet-name { font-size: 0.9rem !important; }
+    .mobile-pet-info { font-size: 0.7rem !important; }
+    .mobile-pet-icon { width: 35px !important; height: 35px !important; }
+    .mobile-pet-icon img { width: 24px !important; height: 24px !important; }
+    .mobile-pet-item { padding: 0.6rem !important; margin-bottom: 0.5rem !important; border-radius: 8px !important; }
+    .mobile-recent-pet-icon { width: 32px !important; height: 32px !important; border-radius: 8px !important; margin-right: 10px !important; }
+    .mobile-recent-pet-img { width: 22px !important; height: 22px !important; }
+    .mobile-pet-name { font-size: 0.85rem !important; margin-bottom: 0.25rem !important; }
+    .mobile-pet-info { font-size: 0.7rem !important; gap: 8px !important; }
+    .mobile-pet-info i { font-size: 0.65rem !important; }
+    .mobile-vaccination-item { margin-bottom: 0.75rem !important; }
+    .mobile-vaccination-item .d-flex { margin-bottom: 0.5rem !important; }
+    .mobile-vaccination-badge { font-size: 0.7rem !important; padding: 0.25rem 0.5rem !important; border-radius: 6px !important; }
+  }
+`;
 
   return (
     <>
@@ -616,277 +555,105 @@ const AdminDashboard = ({ darkMode }) => {
       {/* Statistics Cards */}
 <Row className="mb-4">
   {[
-    {
-      label: 'Total Pets',
-      count: dashboardData.statistics.total_pets,
-      img: '/paw.png',
-      accent: '#ffc107',
-      accentAlpha: 'rgba(255,193,7,0.12)',
-      fallbackIcon: 'fa-paw',
-      description: 'Registered Pets',
-      delay: '0.1s'
-    },
-    {
-      label: 'Pet Owners',
-      count: dashboardData.statistics.total_owners,
-      img: '/users.png',
-      accent: '#0dcaf0',
-      accentAlpha: 'rgba(13,202,240,0.12)',
-      fallbackIcon: 'fa-users',
-      description: 'Total Owners',
-      delay: '0.2s'
-    },
-    {
-      label: 'Events',
-      count: dashboardData.statistics.upcoming_schedules,
-      img: '/events.png',
-      accent: '#dc3545',
-      accentAlpha: 'rgba(220,53,69,0.12)',
-      fallbackIcon: 'fa-calendar-alt',
-      description: 'Upcoming Events',
-      delay: '0.3s'
-    }
-  ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => {
-    const [displayCount, setDisplayCount] = React.useState(0);
-    const [hasAnimated, setHasAnimated] = React.useState(false);
-
-    React.useEffect(() => {
-      if (loading || hasAnimated || count === 0) return;
-      setHasAnimated(true);
-      const duration = 1200;
-      const steps = 40;
-      const increment = count / steps;
-      let current = 0;
-      let step = 0;
-      const timer = setInterval(() => {
-        step++;
-        current = step >= steps ? count : Math.round(increment * step);
-        setDisplayCount(current);
-        if (step >= steps) clearInterval(timer);
-      }, duration / steps);
-      return () => clearInterval(timer);
-    }, [loading, count]);
-
-    return (
-      <Col xs={4} md={4} lg={4} className="mb-3 mobile-stat-card" key={label} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
-        <Card
-          className="border-0 h-100"
-          style={{
-            borderRadius: '16px',
-            background: darkMode ? '#141414' : '#ffffff',
-            border: darkMode ? '1px solid #222222' : '1px solid #f0f0f0',
-            boxShadow: darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
-            transition: 'all 0.25s ease',
-            cursor: 'default',
-            overflow: 'hidden'
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.transform = 'translateY(-4px)';
-            e.currentTarget.style.boxShadow = `0 8px 24px ${accentAlpha}`;
-            e.currentTarget.style.borderColor = accent;
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)';
-            e.currentTarget.style.borderColor = darkMode ? '#222222' : '#f0f0f0';
-          }}
-        >
-          <div style={{ height: '3px', background: accent, borderRadius: '16px 16px 0 0' }} />
-          <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <p className="mobile-stat-label" style={{
-                  fontSize: '0.75rem',
-                  fontWeight: '600',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: darkMode ? '#666666' : '#999999',
-                  marginBottom: '0.5rem'
-                }}>
-                  {label}
-                </p>
-                <h2 className="mobile-stat-number" style={{
-                  fontSize: '2.75rem',
-                  fontWeight: '700',
-                  color: darkMode ? '#f0f0f0' : '#111111',
-                  lineHeight: 1,
-                  marginBottom: '0.75rem',
-                  fontVariantNumeric: 'tabular-nums',
-                  minWidth: '3ch',
-                  transition: 'color 0.3s'
-                }}>
-                  {loading ? (
-                    <span style={{
-                      display: 'inline-block',
-                      width: '3ch',
-                      height: '1em',
-                      borderRadius: '6px',
-                      background: darkMode ? '#2a2a2a' : '#f0f0f0',
-                      animation: 'shimmer 1.4s ease-in-out infinite',
-                      verticalAlign: 'middle'
-                    }} />
-                  ) : displayCount}
-                </h2>
-                <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
-                  <span style={{ fontSize: '0.75rem', color: darkMode ? '#555555' : '#aaaaaa', fontWeight: '500' }}>
-                    {description}
-                  </span>
-                </div>
-              </div>
-              <div className="mobile-stat-icon" style={{
-                width: '56px', height: '56px', borderRadius: '14px',
-                background: accentAlpha, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', flexShrink: 0
-              }}>
-                <img
-                  src={img} alt={label}
-                  style={{ width: '32px', height: '32px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }}
-                  onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
-                />
-                <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
-              </div>
-            </div>
-          </Card.Body>
-        </Card>
-      </Col>
-    );
-  })}
+    { label: 'Total Pets',  count: dashboardData.statistics.total_pets,        img: '/paw.png',    accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',  fallbackIcon: 'fa-paw',          description: 'Registered Pets',  delay: '0.1s' },
+    { label: 'Pet Owners',  count: dashboardData.statistics.total_owners,       img: '/users.png',  accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users',        description: 'Total Owners',     delay: '0.2s' },
+    { label: 'Events',      count: dashboardData.statistics.upcoming_schedules, img: '/events.png', accent: '#dc3545', accentAlpha: 'rgba(220,53,69,0.12)',  fallbackIcon: 'fa-calendar-alt', description: 'Upcoming Events',  delay: '0.3s' },
+  ].map(props => (
+    <StatCard key={props.label} {...props} darkMode={darkMode} loading={loading} />
+  ))}
 </Row>
 
       <Row style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-  {/* Pet Vaccination Status - Cat & Dog Donut Cards */}
+
+  {/* Vaccination Status */}
   <Col lg={6} className="mb-4">
-    <Card
-      className="border-0 h-100"
-      style={{
-        borderRadius: '20px',
-        boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)',
-        overflow: 'hidden',
-        background: darkMode ? '#141414' : '#ffffff',
-        transition: 'all 0.3s ease'
-      }}
-    >
-      <Card.Header
-        className="mobile-card-header"
-        style={{
-          background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-          borderBottom: '2px solid #ffc107',
-          padding: '1.5rem',
-          borderRadius: '20px 20px 0 0'
-        }}
-      >
+    <Card className="border-0 h-100" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.2s backwards' }}>
+      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
         <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-          <i className="fas fa-syringe me-2" style={{ color: '#ffc107' }}></i>
-          Vaccination Status
+          <i className="fas fa-syringe me-2" style={{ color: '#ffc107' }}></i>Vaccination Status
         </h5>
       </Card.Header>
-      <Card.Body
-        className="mobile-card-body"
-        style={{
-          padding: '1.5rem',
-          background: darkMode ? '#141414' : '#ffffff',
-          transition: 'all 0.3s ease',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1.25rem'
-        }}
-      >
-        {['Dog', 'Cat'].map((speciesName) => {
-          const colors = { Dog: { main: '#FF6B6B', light: 'rgba(255,107,107,0.12)', icon: '/dog.png' }, Cat: { main: '#4ECDC4', light: 'rgba(78,205,196,0.12)', icon: '/cat.png' } };
-          const cfg = colors[speciesName];
-          const speciesPets = dashboardData.pets.filter(p => p.species?.toLowerCase() === speciesName.toLowerCase());
-          const vaccinated = speciesPets.filter(p => p.vaccination_count && p.vaccination_count > 0).length;
-          const total = speciesPets.length;
-          const pct = total > 0 ? Math.round((vaccinated / total) * 100) : 0;
-          const radius = 38;
-          const circ = 2 * Math.PI * radius;
-          const offset = circ - (pct / 100) * circ;
-
-          return (
-            <div key={speciesName} style={{
-              padding: '1.25rem',
-              borderRadius: '16px',
-              background: darkMode ? '#1e1e1e' : cfg.light,
-              border: `1.5px solid ${cfg.main}30`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem'
-            }}>
-              {/* Donut */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <svg width="90" height="90" viewBox="0 0 90 90">
-                  <circle cx="45" cy="45" r={radius} fill="none" stroke={darkMode ? '#2a2a2a' : '#e9ecef'} strokeWidth="10" />
-                  <circle
-                    cx="45" cy="45" r={radius} fill="none"
-                    stroke={cfg.main} strokeWidth="10"
-                    strokeDasharray={circ}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                    transform="rotate(-90 45 45)"
-                    style={{ transition: 'stroke-dashoffset 1s ease' }}
-                  />
-                </svg>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                  <img src={cfg.icon} alt={speciesName} style={{ width: '22px', height: '22px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
-                </div>
-              </div>
-              {/* Info */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: '700', fontSize: '0.95rem', color: darkMode ? '#f0f0f0' : '#333', marginBottom: '0.25rem' }}>{speciesName}</div>
-                <div style={{ fontSize: '1.6rem', fontWeight: '800', color: cfg.main, lineHeight: 1, marginBottom: '0.25rem' }}>{pct}%</div>
-                <div style={{ fontSize: '0.72rem', color: darkMode ? '#666' : '#999', fontWeight: '600' }}>
-                  {vaccinated} / {total} vaccinated
-                </div>
-                <div style={{ marginTop: '0.5rem', height: '4px', borderRadius: '4px', background: darkMode ? '#2a2a2a' : '#e9ecef', overflow: 'hidden' }}>
-                  <div style={{ width: `${pct}%`, height: '100%', background: cfg.main, borderRadius: '4px', transition: 'width 1s ease' }} />
-                </div>
+      <Card.Body className="mobile-card-body" style={{ padding: '1.5rem', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {loading ? (
+          ['Dog', 'Cat'].map(s => (
+            <div key={s} style={{ padding: '1.25rem', borderRadius: '16px', background: darkMode ? '#1e1e1e' : '#f5f5f5', border: `1.5px solid ${darkMode ? '#2a2a2a' : '#ebebeb'}`, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '90px', height: '90px', borderRadius: '50%', flexShrink: 0 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '60px', height: '14px' }} />
+                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '80px', height: '28px' }} />
+                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '100px', height: '10px' }} />
+                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '100%', height: '4px', marginTop: '4px' }} />
               </div>
             </div>
-          );
-        })}
+          ))
+        ) : (
+          ['Dog', 'Cat'].map((speciesName) => {
+            const colors = { Dog: { main: '#FF6B6B', light: 'rgba(255,107,107,0.12)', icon: '/dog.png' }, Cat: { main: '#4ECDC4', light: 'rgba(78,205,196,0.12)', icon: '/cat.png' } };
+            const cfg = colors[speciesName];
+            const speciesPets = dashboardData.pets.filter(p => p.species?.toLowerCase() === speciesName.toLowerCase());
+            const vaccinated = speciesPets.filter(p => p.vaccination_count && p.vaccination_count > 0).length;
+            const total = speciesPets.length;
+            const pct = total > 0 ? Math.round((vaccinated / total) * 100) : 0;
+            const radius = 38;
+            const circ = 2 * Math.PI * radius;
+            const offset = circ - (pct / 100) * circ;
+            return (
+              <div key={speciesName} style={{ padding: '1.25rem', borderRadius: '16px', background: darkMode ? '#1e1e1e' : cfg.light, border: `1.5px solid ${cfg.main}30`, display: 'flex', alignItems: 'center', gap: '1rem', animation: 'fadeInUp 0.4s ease-out backwards' }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <svg width="90" height="90" viewBox="0 0 90 90">
+                    <circle cx="45" cy="45" r={radius} fill="none" stroke={darkMode ? '#2a2a2a' : '#e9ecef'} strokeWidth="10" />
+                    <circle cx="45" cy="45" r={radius} fill="none" stroke={cfg.main} strokeWidth="10" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90 45 45)" style={{ transition: 'stroke-dashoffset 1s ease' }} />
+                  </svg>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={cfg.icon} alt={speciesName} style={{ width: '22px', height: '22px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '700', fontSize: '0.95rem', color: darkMode ? '#f0f0f0' : '#333', marginBottom: '0.25rem' }}>{speciesName}</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: '800', color: cfg.main, lineHeight: 1, marginBottom: '0.25rem' }}>{pct}%</div>
+                  <div style={{ fontSize: '0.72rem', color: darkMode ? '#666' : '#999', fontWeight: '600' }}>{vaccinated} / {total} vaccinated</div>
+                  <div style={{ marginTop: '0.5rem', height: '4px', borderRadius: '4px', background: darkMode ? '#2a2a2a' : '#e9ecef', overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: cfg.main, borderRadius: '4px', transition: 'width 1s ease' }} />
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </Card.Body>
     </Card>
   </Col>
 
   {/* Recently Registered Pets */}
   <Col lg={6} className="mb-4">
-    <Card
-      className="h-100 border-0"
-      style={{
-        borderRadius: '20px',
-        boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)',
-        overflow: 'hidden',
-        background: darkMode ? '#141414' : '#ffffff',
-        transition: 'all 0.3s ease'
-      }}
-    >
-      <Card.Header
-        className="mobile-card-header"
-        style={{
-          background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-          borderBottom: '2px solid #ffc107',
-          padding: '1.5rem',
-          borderRadius: '20px 20px 0 0'
-        }}
-      >
+    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.3s backwards' }}>
+      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
         <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-          <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>
-          Recently Registered Pets
+          <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>Recently Registered Pets
         </h5>
       </Card.Header>
-      <Card.Body
-        className="mobile-card-body"
-        style={{ padding: '1rem', height: '320px', overflowY: 'auto', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}
-      >
-        {dashboardData.recentPets.length === 0 ? (
+      <Card.Body className="mobile-card-body" style={{ padding: '1rem', height: '320px', overflowY: 'auto', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.25rem' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0' }}>
+                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '55%', height: '12px' }} />
+                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '40%', height: '10px' }} />
+                </div>
+                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '32px', height: '10px', flexShrink: 0 }} />
+              </div>
+            ))}
+          </div>
+        ) : dashboardData.recentPets.length === 0 ? (
           <div className="text-center py-5">
             <i className="fas fa-paw" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
             <h6 style={{ color: darkMode ? '#aaaaaa' : '#666', fontWeight: '600', marginTop: '1rem' }}>No pets yet</h6>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {dashboardData.recentPets.map((pet) => {
+            {dashboardData.recentPets.map((pet, i) => {
               const getPetImage = (species) => {
                 if (species?.toLowerCase() === 'dog') return '/dog.png';
                 if (species?.toLowerCase() === 'cat') return '/cat.png';
@@ -896,17 +663,7 @@ const AdminDashboard = ({ darkMode }) => {
               const speciesColors = { dog: '#FF6B6B', cat: '#4ECDC4', rabbit: '#95E1D3' };
               const sc = speciesColors[pet.species?.toLowerCase()] || '#ffc107';
               return (
-                <div
-                  key={pet.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    padding: '0.7rem 0.85rem',
-                    borderRadius: '12px',
-                    background: darkMode ? '#1e1e1e' : '#f9f9f9',
-                    border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0',
-                    transition: 'all 0.2s ease',
-                    cursor: 'default'
-                  }}
+                <div key={pet.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0', transition: 'all 0.2s ease', cursor: 'default', animation: `fadeInUp 0.35s ease-out ${i * 0.06}s backwards` }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.borderColor = sc; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = darkMode ? '#2a2a2a' : '#f0f0f0'; }}
                 >
@@ -931,86 +688,60 @@ const AdminDashboard = ({ darkMode }) => {
 
   {/* Recent Reports */}
   <Col lg={6} className="mb-4">
-    <Card
-      className="h-100 border-0"
-      style={{
-        borderRadius: '20px',
-        boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)',
-        overflow: 'hidden',
-        background: darkMode ? '#141414' : '#ffffff',
-        transition: 'all 0.3s ease'
-      }}
-    >
-      <Card.Header
-        className="mobile-card-header"
-        style={{
-          background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-          borderBottom: '2px solid #dc3545',
-          padding: '1.5rem',
-          borderRadius: '20px 20px 0 0',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-        }}
-      >
+    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.4s backwards' }}>
+      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #dc3545', padding: '1.5rem', borderRadius: '20px 20px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-          <i className="fas fa-flag me-2" style={{ color: '#dc3545' }}></i>
-          Recent Reports
+          <i className="fas fa-flag me-2" style={{ color: '#dc3545' }}></i>Recent Reports
         </h5>
-        <a href="/admin/reports" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#dc3545', textDecoration: 'none', background: 'rgba(220,53,69,0.08)', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(220,53,69,0.2)' }}>
-          View All →
-        </a>
+        <a href="/admin/reports" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#dc3545', textDecoration: 'none', background: 'rgba(220,53,69,0.08)', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(220,53,69,0.2)' }}>View All →</a>
       </Card.Header>
-      <Card.Body
-        className="mobile-card-body"
-        style={{ padding: '1rem', height: '320px', overflowY: 'auto', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}
-      >
-        {(() => {
-          const storedReports = dashboardData.recentReports || [];
-          if (storedReports.length === 0) {
-            return (
-              <div className="text-center py-5">
-                <i className="fas fa-flag" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
-                <h6 style={{ color: darkMode ? '#aaa' : '#666', fontWeight: '600', marginTop: '1rem' }}>No reports yet</h6>
+      <Card.Body className="mobile-card-body" style={{ padding: '1rem', height: '320px', overflowY: 'auto', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}>
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.25rem' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0' }}>
+                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '50%', height: '12px' }} />
+                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '35%', height: '10px' }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
+                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '52px', height: '16px', borderRadius: '20px' }} />
+                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '36px', height: '10px' }} />
+                </div>
               </div>
-            );
-          }
+            ))}
+          </div>
+        ) : (() => {
+          const storedReports = dashboardData.recentReports || [];
+          if (storedReports.length === 0) return (
+            <div className="text-center py-5">
+              <i className="fas fa-flag" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
+              <h6 style={{ color: darkMode ? '#aaa' : '#666', fontWeight: '600', marginTop: '1rem' }}>No reports yet</h6>
+            </div>
+          );
           const TYPE_ICONS = { rabies_case: { icon: '🦠', color: '#dc3545' }, animal_bite: { icon: '🩹', color: '#fd7e14' }, animal_rescue: { icon: '🐾', color: '#0d6efd' }, others: { icon: '📋', color: '#6c757d' } };
           const STATUS_COLORS = { pending: '#ffc107', suspected_rabies: '#dc3545', positive_rabies: '#8b0000', ongoing: '#0dcaf0', resolved: '#198754' };
           const STATUS_LABELS = { pending: 'Pending', suspected_rabies: 'Suspected', positive_rabies: 'Positive', ongoing: 'Ongoing', resolved: 'Resolved' };
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {storedReports.slice(0, 5).map((report) => {
+              {storedReports.slice(0, 5).map((report, i) => {
                 const tc = TYPE_ICONS[report.report_type] || TYPE_ICONS.others;
                 const sc = STATUS_COLORS[report.status] || '#888';
                 const sl = STATUS_LABELS[report.status] || report.status;
                 return (
-                  
-                  <a
-                    key={report.id}
-                    href="/admin/reports"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.75rem',
-                      padding: '0.7rem 0.85rem',
-                      borderRadius: '12px',
-                      background: darkMode ? '#1e1e1e' : '#f9f9f9',
-                      border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0',
-                      textDecoration: 'none',
-                      transition: 'all 0.2s ease'
-                    }}
+                  <a key={report.id} href="/admin/reports" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0', textDecoration: 'none', transition: 'all 0.2s ease', animation: `fadeInUp 0.35s ease-out ${i * 0.06}s backwards` }}
                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.borderColor = tc.color; }}
                     onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = darkMode ? '#2a2a2a' : '#f0f0f0'; }}
                   >
-                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${tc.color}15`, border: `1.5px solid ${tc.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
-                      {tc.icon}
-                    </div>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${tc.color}15`, border: `1.5px solid ${tc.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>{tc.icon}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: '700', fontSize: '0.82rem', color: darkMode ? '#f0f0f0' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.reporter_name || 'Anonymous'}</div>
                       <div style={{ fontSize: '0.68rem', color: darkMode ? '#666' : '#aaa', fontWeight: '500' }}>{report.barangay_name || 'Unknown'}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.62rem', fontWeight: '700', color: '#fff', background: sc, padding: '0.15rem 0.5rem', borderRadius: '20px' }}>{sl}</span>
-                      <span style={{ fontSize: '0.62rem', color: darkMode ? '#555' : '#bbb', fontWeight: '600' }}>
-                        {new Date(report.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
+                      <span style={{ fontSize: '0.62rem', color: darkMode ? '#555' : '#bbb', fontWeight: '600' }}>{new Date(report.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                     </div>
                   </a>
                 );
@@ -1022,43 +753,45 @@ const AdminDashboard = ({ darkMode }) => {
     </Card>
   </Col>
 
-  {/* Map Status Card — with real embedded Leaflet map */}
-<Col lg={6} className="mb-4">
-  <Card
-    className="h-100 border-0"
-    style={{
-      borderRadius: '20px',
-      boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)',
-      overflow: 'hidden',
-      background: darkMode ? '#141414' : '#ffffff',
-      transition: 'all 0.3s ease'
-    }}
-  >
-    <Card.Header
-      className="mobile-card-header"
-      style={{
-        background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-        borderBottom: '2px solid #198754',
-        padding: '1.5rem',
-        borderRadius: '20px 20px 0 0',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-      }}
-    >
-      <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-        <i className="fas fa-map-marked-alt me-2" style={{ color: '#198754' }}></i>
-        Map Status
-      </h5>
-      <a href="/admin/map-status" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#198754', textDecoration: 'none', background: 'rgba(25,135,84,0.08)', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(25,135,84,0.2)' }}>
-        Open Map →
-      </a>
-    </Card.Header>
+  {/* Map Status */}
+  <Col lg={6} className="mb-4">
+    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.5s backwards' }}>
+      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #198754', padding: '1.5rem', borderRadius: '20px 20px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
+          <i className="fas fa-map-marked-alt me-2" style={{ color: '#198754' }}></i>Map Status
+        </h5>
+        <a href="/admin/map-status" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#198754', textDecoration: 'none', background: 'rgba(25,135,84,0.08)', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(25,135,84,0.2)' }}>Open Map →</a>
+      </Card.Header>
+      <div style={{ position: 'relative', height: '320px' }}>
+        {loading ? (
+          <div style={{ width: '100%', height: '100%', background: darkMode ? '#1a1a1a' : '#eef0f2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+            {/* Grid lines */}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={`h${i}`} style={{ position: 'absolute', left: 0, right: 0, height: '1px', top: `${20 + i * 16}%`, background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)' }} />
+            ))}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={`v${i}`} style={{ position: 'absolute', top: 0, bottom: 0, width: '1px', left: `${15 + i * 18}%`, background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)' }} />
+            ))}
+            {/* Skeleton road-like blobs */}
+            <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ position: 'absolute', width: '60%', height: '8px', top: '35%', left: '10%', borderRadius: '4px', opacity: 0.6 }} />
+            <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ position: 'absolute', width: '40%', height: '8px', top: '55%', left: '25%', borderRadius: '4px', opacity: 0.5 }} />
+            <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ position: 'absolute', width: '5px', height: '40%', top: '20%', left: '45%', borderRadius: '4px', opacity: 0.5 }} />
+            {/* Center pin */}
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: darkMode ? 'rgba(25,135,84,0.15)' : 'rgba(25,135,84,0.1)', border: '2px solid rgba(25,135,84,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="fas fa-map-marker-alt" style={{ fontSize: '1.3rem', color: '#198754', opacity: 0.5 }} />
+              </div>
+              <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '110px', height: '11px' }} />
+              <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '75px', height: '9px' }} />
+            </div>
+          </div>
+        ) : (
+          <MiniMapEmbed reports={dashboardData.recentReports} darkMode={darkMode} />
+        )}
+      </div>
+    </Card>
+  </Col>
 
-    {/* Embedded mini-map */}
-    <div style={{ position: 'relative', height: '320px' }}>
-      <MiniMapEmbed reports={dashboardData.recentReports} darkMode={darkMode} />
-    </div>
-  </Card>
-</Col>
 </Row>
     </Container>
     </>
