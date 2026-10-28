@@ -1773,15 +1773,37 @@ useEffect(() => {
         </Modal.Header>
         <Modal.Body style={{ padding: '2rem' }}>
           {selectedPet && (
-            <p style={{ fontSize: '1rem' }}>
-              Restore <strong style={{ color: '#198754' }}>{selectedPet.name}</strong> back to your active pets?
-            </p>
+            <>
+              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                Are you sure you want to restore this pet back to your active list?
+              </p>
+              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #198754' }}>
+                <div className="mb-2">
+                  <span style={{ fontWeight: '500', color: '#555' }}>
+                    <i className="fas fa-paw me-1" style={{ color: '#ffc107' }}></i>
+                    Pet Information
+                  </span>
+                </div>
+                <strong style={{ fontSize: '1.1rem' }}>{selectedPet.name}</strong>
+                <br />
+                <small className="text-muted">
+                  <i className="fas fa-id-card me-1"></i>
+                  {selectedPet.registration_number} • <span className="text-capitalize">{selectedPet.species}</span> • {selectedPet.breed || 'Mixed'}
+                </small>
+              </div>
+              <Alert variant="success" className="mt-3 mb-0">
+                <i className="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> This pet and all its associated records will be fully restored and visible again.
+              </Alert>
+            </>
           )}
         </Modal.Body>
         <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
-          <Button variant="success" onClick={confirmRestorePet} disabled={restoreLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>
-            {restoreLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-undo me-1"></i>Restore</>}
+          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            Cancel
+          </Button>
+          <Button variant="success" onClick={confirmRestorePet} disabled={restoreLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            {restoreLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-undo me-2"></i>Restore Pet</>}
           </Button>
         </Modal.Footer>
       </Modal>
