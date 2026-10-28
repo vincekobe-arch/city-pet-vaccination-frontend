@@ -5,178 +5,245 @@ import api from '../../services/api';
 import { getUser } from '../../utils/auth';
 
 
-const MiniMapEmbed = ({ reports = [], darkMode }) => {
-  const mapRef = useRef(null);
+const MiniMapEmbed = ({ reports = [] }) => {
+  const mapRef     = useRef(null);
   const instanceRef = useRef(null);
-  const markersRef = useRef([]);
+  const markersRef  = useRef([]);
+
+  const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY || '${process.env.REACT_APP_GOOGLE_MAPS_KEY}';
+
+  const MAP_STYLES = [
+    { elementType: 'geometry',            stylers: [{ color: '#0d1424' }] },
+    { elementType: 'labels.text.stroke',  stylers: [{ color: '#0d1424' }] },
+    { elementType: 'labels.text.fill',    stylers: [{ color: '#7d8aa5' }] },
+    { featureType: 'poi',                 elementType: 'labels', stylers: [{ visibility: 'off' }] },
+    { featureType: 'road',                elementType: 'geometry', stylers: [{ color: '#1c2640' }] },
+    { featureType: 'road.highway',        elementType: 'geometry', stylers: [{ color: '#2b3858' }] },
+    { featureType: 'water',               elementType: 'geometry', stylers: [{ color: '#060a14' }] },
+    { featureType: 'administrative',      elementType: 'geometry.stroke', stylers: [{ color: '#2a3550' }] },
+  ];
+
+  const STATUS_COLOR = {
+    positive_rabies:  '#e00000',
+    suspected_rabies: '#f0c800',
+    ongoing:          '#22bb55',
+    pending:          '#888888',
+    resolved:         '#0088ff',
+  };
 
   useEffect(() => {
-    if (window.L) { initMap(); return; }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = initMap;
-    document.head.appendChild(script);
+    const init = () => {
+      if (!mapRef.current || instanceRef.current) return;
+      if (!mapRef.current.offsetWidth || !mapRef.current.offsetHeight) {
+        setTimeout(init, 150); return;
+      }
+      const google = window.google;
+      const map = new google.maps.Map(mapRef.current, {
+        center: { lat: 14.4081, lng: 121.0415 },
+        zoom: 13,
+        disableDefaultUI: true,
+        gestureHandling: 'none',
+        keyboardShortcuts: false,
+        clickableIcons: false,
+        backgroundColor: '#0d1424',
+        styles: MAP_STYLES,
+      });
+
+      new google.maps.Polygon({
+        paths: [
+          [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+          [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+          [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+          [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+          [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+          [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+          [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+          [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+          [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+          [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+          [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+          [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+          [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+          [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+          [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+          [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+          [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+          [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+          [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+          [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+          [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+          [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+          [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
+        ].map(([lat, lng]) => ({ lat, lng })),
+        strokeColor: '#ffc107', strokeOpacity: 0.8, strokeWeight: 2,
+        fillOpacity: 0, map,
+      });
+
+      // City Vet marker
+      new google.maps.Marker({
+        position: { lat: 14.395293, lng: 121.044737 },
+        map,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#ffc107', fillOpacity: 1,
+          strokeColor: '#fff', strokeWeight: 2,
+        },
+        title: 'City Veterinary Office',
+      });
+
+      instanceRef.current = map;
+      renderMarkers(map);
+    };
+
+    if (window.google && window.google.maps) { init(); return; }
+    let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (!script) {
+      script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}`;
+      script.async = true; script.defer = true;
+      document.head.appendChild(script);
+    }
+    script.addEventListener('load', init);
+    return () => script.removeEventListener('load', init);
   }, []);
 
   useEffect(() => {
-    if (!instanceRef.current || !window.L) return;
-    renderMarkers();
+    if (instanceRef.current) renderMarkers(instanceRef.current);
   }, [reports]);
 
-  const initMap = () => {
-    if (!mapRef.current || instanceRef.current) return;
-    if (!mapRef.current.offsetWidth || !mapRef.current.offsetHeight) {
-      setTimeout(initMap, 100);
-      return;
-    }
-    const L = window.L;
-    const map = L.map(mapRef.current, {
-      center: [14.4081, 121.0415],
-      zoom: 13,
-      minZoom: 12,
-      maxZoom: 16,
-      maxBounds: [[14.34, 120.97], [14.50, 121.12]],
-      maxBoundsViscosity: 1.0,
-      zoomControl: false,
-      attributionControl: true,
-      dragging: true,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      touchZoom: false,
-      boxZoom: false,
-      keyboard: false,
-    });
-
-    // Block scroll wheel zoom but allow page scrolling
-    mapRef.current.addEventListener('wheel', (e) => {
-      e.stopPropagation();
-    }, { passive: true });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 19,
-    }).addTo(map);
-
-    const boundary = [
-      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-      [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-      [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-      [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-      [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-      [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-      [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-      [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-      [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-      [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-      [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-      [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-      [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-      [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-      [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-      [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-      [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-      [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-      [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-      [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-      [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-      [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-      [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-    ];
-    L.polygon(boundary, { color: '#ffc107', weight: 2, opacity: 0.8, fillOpacity: 0, dashArray: '6,4' }).addTo(map);
-
-    // City Vet marker
-    const cvIcon = L.divIcon({
-      className: '',
-      html: `<div style="width:28px;height:36px;display:flex;flex-direction:column;align-items:center;">
-        <div style="width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:linear-gradient(135deg,#ffc107,#ff8c00);border:2.5px solid white;box-shadow:0 3px 10px rgba(255,193,7,0.5);display:flex;align-items:center;justify-content:center;">
-          <i class="fas fa-hospital" style="transform:rotate(45deg);font-size:10px;color:#fff;"></i>
-        </div>
-        <div style="width:3px;height:8px;background:rgba(255,140,0,0.4);margin-top:-1px;border-radius:0 0 3px 3px;"></div>
-      </div>`,
-      iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -38],
-    });
-    L.marker([14.395293, 121.044737], { icon: cvIcon })
-      .addTo(map)
-      .bindPopup('<b>City Veterinary Office</b>');
-
-    instanceRef.current = map;
-
-    map.scrollWheelZoom.disable();
-    map.touchZoom.disable();
-    map.doubleClickZoom.disable();
-    map.boxZoom.disable();
-
-    setTimeout(() => {
-      map.invalidateSize();
-      renderMarkers();
-    }, 50);
-  };
-
-  const renderMarkers = () => {
-    const L = window.L;
-    const map = instanceRef.current;
-    if (!map || !map.getPane('mapPane')) return;
-    try { map.invalidateSize(); } catch(e) {}
-    markersRef.current.forEach(m => { try { map.removeLayer(m); } catch(e) {} });
+  const renderMarkers = (map) => {
+    const google = window.google;
+    markersRef.current.forEach(m => m.setMap(null));
     markersRef.current = [];
-
-    const STATUS_COLOR = {
-      positive_rabies:  '#e00000',
-      suspected_rabies: '#f0c800',
-      ongoing:          '#22bb55',
-      pending:          '#888888',
-      resolved:         '#0088ff',
-    };
 
     reports
       .filter(r => r.latitude && r.longitude && r.status !== 'resolved')
       .forEach(r => {
         const color = STATUS_COLOR[r.status] || '#888';
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="width:20px;height:26px;display:flex;flex-direction:column;align-items:center;">
-            <div style="width:20px;height:20px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>
-            <div style="width:2px;height:6px;background:rgba(0,0,0,0.2);margin-top:-1px;"></div>
-          </div>`,
-          iconSize: [20, 26], iconAnchor: [10, 26], popupAnchor: [0, -28],
+        const marker = new google.maps.Marker({
+          position: { lat: parseFloat(r.latitude), lng: parseFloat(r.longitude) },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            fillColor: color, fillOpacity: 0.9,
+            strokeColor: '#fff', strokeWeight: 1.5,
+          },
+          title: r.barangay_name || '',
         });
-        const m = L.marker([parseFloat(r.latitude), parseFloat(r.longitude)], { icon })
-          .addTo(map)
-          .bindPopup(`<b>${r.barangay_name || 'Unknown'}</b><br/>${r.report_type?.replace('_', ' ')}`);
-        markersRef.current.push(m);
+        markersRef.current.push(marker);
 
-        // Danger/alert circles for rabies
         if (r.status === 'positive_rabies' || r.status === 'suspected_rabies') {
-          try {
-            const circle = L.circle([parseFloat(r.latitude), parseFloat(r.longitude)], {
-              radius: 1000,
-              color,
-              weight: r.status === 'positive_rabies' ? 2 : 1.5,
-              dashArray: r.status === 'suspected_rabies' ? '6,4' : null,
-              fillColor: color,
-              fillOpacity: r.status === 'positive_rabies' ? 0.12 : 0.08,
-              renderer: L.svg(),
-            });
-            circle.addTo(map);
-            markersRef.current.push(circle);
-          } catch(e) {
-            console.warn('Circle render skipped:', e.message);
-          }
+          const circle = new google.maps.Circle({
+            map,
+            center: { lat: parseFloat(r.latitude), lng: parseFloat(r.longitude) },
+            radius: 1000,
+            strokeColor: color, strokeOpacity: 0.7, strokeWeight: 1.5,
+            fillColor: color, fillOpacity: r.status === 'positive_rabies' ? 0.1 : 0.07,
+            clickable: false,
+          });
+          markersRef.current.push(circle);
         }
       });
   };
 
+  return <div ref={mapRef} style={{ height: '100%', width: '100%' }} />;
+};
+
+const StatCard = ({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay, darkMode, loading }) => {
+  const [displayCount, setDisplayCount] = React.useState(0);
+  const [hasAnimated, setHasAnimated] = React.useState(false);
+
+  React.useEffect(() => {
+    if (loading || hasAnimated || count === 0) return;
+    setHasAnimated(true);
+    const duration = 1200;
+    const steps = 40;
+    const increment = count / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const current = step >= steps ? count : Math.round(increment * step);
+      setDisplayCount(current);
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [loading, count]);
+
   return (
-    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
-      <div
-        ref={mapRef}
-        style={{ height: '100%', width: '100%' }}
-      />
-      
-    </div>
+    <Col xs={4} md={4} lg={4} className="mb-3 mobile-stat-card" style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+      <Card
+        className="border-0 h-100"
+        style={{
+          borderRadius: '16px',
+          background: darkMode ? '#141414' : '#ffffff',
+          border: darkMode ? '1px solid #222222' : '1px solid #f0f0f0',
+          boxShadow: darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
+          transition: 'all 0.25s ease',
+          cursor: 'default',
+          overflow: 'hidden'
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.boxShadow = `0 8px 24px ${accentAlpha}`;
+          e.currentTarget.style.borderColor = accent;
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)';
+          e.currentTarget.style.borderColor = darkMode ? '#222222' : '#f0f0f0';
+        }}
+      >
+        <div style={{ height: '3px', background: accent, borderRadius: '16px 16px 0 0' }} />
+        <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
+          <div className="d-flex align-items-center justify-content-between">
+            <div>
+              <p className="mobile-stat-label" style={{
+                fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase',
+                letterSpacing: '0.08em', color: darkMode ? '#666666' : '#999999', marginBottom: '0.5rem'
+              }}>
+                {label}
+              </p>
+              <h2 className="mobile-stat-number" style={{
+                fontSize: '2.75rem', fontWeight: '700',
+                color: darkMode ? '#f0f0f0' : '#111111',
+                lineHeight: 1, marginBottom: '0.75rem',
+                fontVariantNumeric: 'tabular-nums', minWidth: '3ch', transition: 'color 0.3s'
+              }}>
+                {loading ? (
+                  <span style={{
+                    display: 'inline-block', width: '3ch', height: '1em',
+                    borderRadius: '6px',
+                    background: darkMode ? '#2a2a2a' : '#f0f0f0',
+                    animation: 'shimmer 1.4s ease-in-out infinite',
+                    verticalAlign: 'middle'
+                  }} />
+                ) : displayCount}
+              </h2>
+              <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
+                <span style={{ fontSize: '0.75rem', color: darkMode ? '#555555' : '#aaaaaa', fontWeight: '500' }}>
+                  {description}
+                </span>
+              </div>
+            </div>
+            <div className="mobile-stat-icon" style={{
+              width: '56px', height: '56px', borderRadius: '14px',
+              background: accentAlpha, display: 'flex', alignItems: 'center',
+              justifyContent: 'center', flexShrink: 0
+            }}>
+              <img
+                src={img} alt={label}
+                style={{ width: '32px', height: '32px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }}
+                onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+              />
+              <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
+            </div>
+          </div>
+        </Card.Body>
+      </Card>
+    </Col>
   );
 };
 
@@ -547,129 +614,145 @@ const AdminDashboard = ({ darkMode }) => {
       )}
 
       {/* Statistics Cards */}
-      <Row className="mb-4">
-        {[
-          {
-            label: 'Total Pets',
-            count: dashboardData.statistics.total_pets,
-            img: '/paw.png',
-            accent: '#ffc107',
-            accentAlpha: 'rgba(255,193,7,0.12)',
-            fallbackIcon: 'fa-paw',
-            description: 'Registered Pets',
-            delay: '0.1s'
-          },
-          {
-            label: 'Pet Owners',
-            count: dashboardData.statistics.total_owners,
-            img: '/users.png',
-            accent: '#0dcaf0',
-            accentAlpha: 'rgba(13,202,240,0.12)',
-            fallbackIcon: 'fa-users',
-            description: 'Total Owners',
-            delay: '0.2s'
-          },
-          {
-            label: 'Events',
-            count: dashboardData.statistics.upcoming_schedules,
-            img: '/events.png',
-            accent: '#dc3545',
-            accentAlpha: 'rgba(220,53,69,0.12)',
-            fallbackIcon: 'fa-calendar-alt',
-            description: 'Upcoming Events',
-            delay: '0.3s'
-          }
-        ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => (
-          <Col xs={4} md={4} lg={4} className="mb-3 mobile-stat-card" key={label} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
-            <Card
-              className="border-0 h-100"
-              style={{
-                borderRadius: '16px',
-                background: darkMode ? '#141414' : '#ffffff',
-                border: darkMode ? '1px solid #222222' : '1px solid #f0f0f0',
-                boxShadow: darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
-                transition: 'all 0.25s ease',
-                cursor: 'default',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = `0 8px 24px ${accentAlpha}`;
-                e.currentTarget.style.borderColor = accent;
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)';
-                e.currentTarget.style.borderColor = darkMode ? '#222222' : '#f0f0f0';
-              }}
-            >
-              {/* Accent top bar */}
-              <div style={{ height: '3px', background: accent, borderRadius: '16px 16px 0 0' }} />
-              <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <p className="mobile-stat-label" style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em',
-                      color: darkMode ? '#666666' : '#999999',
-                      marginBottom: '0.5rem'
-                    }}>
-                      {label}
-                    </p>
-                    <h2 className="mobile-stat-number" style={{
-                      fontSize: '2.75rem',
-                      fontWeight: '700',
-                      color: darkMode ? '#f0f0f0' : '#111111',
-                      lineHeight: 1,
-                      marginBottom: '0.75rem'
-                    }}>
-                      {count}
-                    </h2>
-                    <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <div style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        background: accent
-                      }} />
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: darkMode ? '#555555' : '#aaaaaa',
-                        fontWeight: '500'
-                      }}>
-                        {description}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mobile-stat-icon" style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '14px',
-                    background: accentAlpha,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <img
-                      src={img}
-                      alt={label}
-                      style={{ width: '32px', height: '32px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }}
-                      onError={e => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                      }}
-                    />
-                    <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
-                  </div>
+<Row className="mb-4">
+  {[
+    {
+      label: 'Total Pets',
+      count: dashboardData.statistics.total_pets,
+      img: '/paw.png',
+      accent: '#ffc107',
+      accentAlpha: 'rgba(255,193,7,0.12)',
+      fallbackIcon: 'fa-paw',
+      description: 'Registered Pets',
+      delay: '0.1s'
+    },
+    {
+      label: 'Pet Owners',
+      count: dashboardData.statistics.total_owners,
+      img: '/users.png',
+      accent: '#0dcaf0',
+      accentAlpha: 'rgba(13,202,240,0.12)',
+      fallbackIcon: 'fa-users',
+      description: 'Total Owners',
+      delay: '0.2s'
+    },
+    {
+      label: 'Events',
+      count: dashboardData.statistics.upcoming_schedules,
+      img: '/events.png',
+      accent: '#dc3545',
+      accentAlpha: 'rgba(220,53,69,0.12)',
+      fallbackIcon: 'fa-calendar-alt',
+      description: 'Upcoming Events',
+      delay: '0.3s'
+    }
+  ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => {
+    const [displayCount, setDisplayCount] = React.useState(0);
+    const [hasAnimated, setHasAnimated] = React.useState(false);
+
+    React.useEffect(() => {
+      if (loading || hasAnimated || count === 0) return;
+      setHasAnimated(true);
+      const duration = 1200;
+      const steps = 40;
+      const increment = count / steps;
+      let current = 0;
+      let step = 0;
+      const timer = setInterval(() => {
+        step++;
+        current = step >= steps ? count : Math.round(increment * step);
+        setDisplayCount(current);
+        if (step >= steps) clearInterval(timer);
+      }, duration / steps);
+      return () => clearInterval(timer);
+    }, [loading, count]);
+
+    return (
+      <Col xs={4} md={4} lg={4} className="mb-3 mobile-stat-card" key={label} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+        <Card
+          className="border-0 h-100"
+          style={{
+            borderRadius: '16px',
+            background: darkMode ? '#141414' : '#ffffff',
+            border: darkMode ? '1px solid #222222' : '1px solid #f0f0f0',
+            boxShadow: darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
+            transition: 'all 0.25s ease',
+            cursor: 'default',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-4px)';
+            e.currentTarget.style.boxShadow = `0 8px 24px ${accentAlpha}`;
+            e.currentTarget.style.borderColor = accent;
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = darkMode ? 'none' : '0 1px 4px rgba(0,0,0,0.06)';
+            e.currentTarget.style.borderColor = darkMode ? '#222222' : '#f0f0f0';
+          }}
+        >
+          <div style={{ height: '3px', background: accent, borderRadius: '16px 16px 0 0' }} />
+          <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
+            <div className="d-flex align-items-center justify-content-between">
+              <div>
+                <p className="mobile-stat-label" style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: darkMode ? '#666666' : '#999999',
+                  marginBottom: '0.5rem'
+                }}>
+                  {label}
+                </p>
+                <h2 className="mobile-stat-number" style={{
+                  fontSize: '2.75rem',
+                  fontWeight: '700',
+                  color: darkMode ? '#f0f0f0' : '#111111',
+                  lineHeight: 1,
+                  marginBottom: '0.75rem',
+                  fontVariantNumeric: 'tabular-nums',
+                  minWidth: '3ch',
+                  transition: 'color 0.3s'
+                }}>
+                  {loading ? (
+                    <span style={{
+                      display: 'inline-block',
+                      width: '3ch',
+                      height: '1em',
+                      borderRadius: '6px',
+                      background: darkMode ? '#2a2a2a' : '#f0f0f0',
+                      animation: 'shimmer 1.4s ease-in-out infinite',
+                      verticalAlign: 'middle'
+                    }} />
+                  ) : displayCount}
+                </h2>
+                <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
+                  <span style={{ fontSize: '0.75rem', color: darkMode ? '#555555' : '#aaaaaa', fontWeight: '500' }}>
+                    {description}
+                  </span>
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
-      </Row>
+              </div>
+              <div className="mobile-stat-icon" style={{
+                width: '56px', height: '56px', borderRadius: '14px',
+                background: accentAlpha, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', flexShrink: 0
+              }}>
+                <img
+                  src={img} alt={label}
+                  style={{ width: '32px', height: '32px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }}
+                  onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                />
+                <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
+              </div>
+            </div>
+          </Card.Body>
+        </Card>
+      </Col>
+    );
+  })}
+</Row>
 
       <Row style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
   {/* Pet Vaccination Status - Cat & Dog Donut Cards */}
