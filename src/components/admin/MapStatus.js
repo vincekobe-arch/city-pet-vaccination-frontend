@@ -219,7 +219,7 @@ export default function MapStatus() {
     ctx.fillRect(0, 0, CW, CH);
 
     // ── Fetch Static Map image via blob (avoids CORS taint) ──
-    const ZOOM   = 15;
+    const ZOOM   = 14;
     const reqW   = 640, reqH = 640; // max allowed by Static Maps
     const params = new URLSearchParams({
       center:  `${lat},${lng}`,
@@ -233,7 +233,7 @@ export default function MapStatus() {
     const styleParams = '&style=feature:poi|element:labels|visibility:off'
       + '&style=feature:transit|visibility:off'
       + '&style=feature:administrative.land_parcel|visibility:off';
-    const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?${params}${styleParams}`;
+    const staticUrl = `${window.location.hostname === 'localhost' ? 'http://localhost/city-pet-vaccination-api' : 'https://api.petunity-muntinlupacity.com'}/static-map?center=${lat},${lng}&zoom=${ZOOM}&size=${reqW}x${reqH}&scale=2&markers=size:mid|color:${isPos ? 'red' : 'yellow'}|${lat},${lng}`;
 
     // Try fetching via no-cors blob (works if your API key has no referrer restriction,
     // otherwise falls back to drawing without the map tile)
