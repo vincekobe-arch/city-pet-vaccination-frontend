@@ -806,12 +806,9 @@ const handleCancelSelectedOrAll = (petId, registrationId) => {
       )
     );
     
-    setRegisterSuccess('Registration cancelled successfully!');
+    setFloatingSuccess('Registration cancelled successfully!');
     await loadData();
-    
-    setTimeout(() => {
-      setRegisterSuccess('');
-    }, 3000);
+    setTimeout(() => setFloatingSuccess(''), 4000);
     
   } catch (err) {
     const { message } = handleAPIError(err);
@@ -866,7 +863,7 @@ const confirmCancelVaccine = async () => {
         )
       );
       
-      setRegisterSuccess(vaccinesToRemove.length > 1 ? 'Selected vaccines cancelled successfully!' : 'Vaccine cancelled successfully!');
+      setFloatingSuccess(vaccinesToRemove.length > 1 ? 'Selected vaccines cancelled successfully!' : 'Vaccine cancelled successfully!');
     }
     
     // Reload all data to refresh counts and registrations
@@ -896,9 +893,7 @@ const confirmCancelVaccine = async () => {
       }
     }
     
-    setTimeout(() => {
-      setRegisterSuccess('');
-    }, 3000);
+    setTimeout(() => setFloatingSuccess(''), 4000);
     
   } catch (err) {
     const { message } = handleAPIError(err);
