@@ -32,7 +32,17 @@ const [filterSpecies, setFilterSpecies] = useState('all');
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
     }
-    .vc-management-page {
+    .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+  }
+  .vc-management-page {
   zoom: 0.75;
   min-height: 100vh;
   display: flex;
@@ -62,13 +72,41 @@ const [filterSpecies, setFilterSpecies] = useState('all');
     }
   `;
   
-  const user = getUser();
+  const [displayCounts, setDisplayCounts] = useState({ totalVetCards: 0, withoutCards: 0, coverage: 0 });
+const [hasAnimated, setHasAnimated] = useState(false);
+
+const user = getUser();
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  useEffect(() => {
+  if (loading || hasAnimated) return;
+  const targets = {
+    totalVetCards: parseInt(totalVetCards) || 0,
+    withoutCards: petsWithoutCards.length || 0,
+    coverage: parseInt(averagePercentage) || 0,
+  };
+  if (Object.values(targets).every(v => v === 0)) return;
+  setHasAnimated(true);
+  const duration = 1200;
+  const steps = 40;
+  let step = 0;
+  const timer = setInterval(() => {
+    step++;
+    const t = step >= steps ? 1 : step / steps;
+    setDisplayCounts({
+      totalVetCards: step >= steps ? targets.totalVetCards : Math.round(t * targets.totalVetCards),
+      withoutCards:  step >= steps ? targets.withoutCards  : Math.round(t * targets.withoutCards),
+      coverage:      step >= steps ? targets.coverage      : Math.round(t * targets.coverage),
+    });
+    if (step >= steps) clearInterval(timer);
+  }, duration / steps);
+  return () => clearInterval(timer);
+}, [loading, totalVetCards, petsWithoutCards.length, averagePercentage]);
+
+const loadData = async () => {
     try {
       setLoading(true);
       const [vetCardsRes, petsRes] = await Promise.all([
@@ -207,7 +245,7 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
         {[
           {
             label: 'Total Vet Cards',
-            count: totalVetCards,
+            count: displayCounts.totalVetCards,
             img: '/vetcard.png',
             accent: '#ffc107',
             accentAlpha: 'rgba(255,193,7,0.12)',
@@ -217,7 +255,7 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
           },
           {
             label: 'Without Vet Cards',
-            count: petsWithoutCards.length,
+            count: displayCounts.withoutCards,
             img: '/without_vetcard.png',
             accent: '#0dcaf0',
             accentAlpha: 'rgba(13,202,240,0.12)',
@@ -227,7 +265,7 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
           },
           {
             label: 'Coverage',
-            count: `${averagePercentage}%`,
+            count: `${displayCounts.coverage}%`,
             img: '/average.png',
             accent: '#198754',
             accentAlpha: 'rgba(25,135,84,0.12)',
@@ -278,9 +316,19 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
                       fontWeight: '700',
                       color: '#111111',
                       lineHeight: 1,
-                      marginBottom: '0.75rem'
+                      marginBottom: '0.75rem',
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '3ch'
                     }}>
-                      {count}
+                      {loading ? (
+                        <span style={{
+                          display: 'inline-block', width: '3ch', height: '1em',
+                          borderRadius: '6px',
+                          background: '#f0f0f0',
+                          animation: 'shimmer 1.4s ease-in-out infinite',
+                          verticalAlign: 'middle'
+                        }} />
+                      ) : count}
                     </h2>
                     <div className="vc-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div style={{
