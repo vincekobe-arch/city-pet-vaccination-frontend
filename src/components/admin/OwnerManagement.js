@@ -60,6 +60,9 @@ const AdminOwnerManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const [displayCounts, setDisplayCounts] = useState({ activeOwners: 0, totalPets: 0, average: 0 });
+  const [hasAnimated, setHasAnimated] = useState(false);
+
   const styles = `
     @keyframes dropDown {
       0% {
@@ -74,6 +77,16 @@ const AdminOwnerManagement = () => {
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
     }
     .owner-management-page {
   zoom: 0.75;
@@ -140,6 +153,32 @@ const AdminOwnerManagement = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (loading || hasAnimated) return;
+    const avgVal = activeOwners.length > 0 ? parseFloat((totalPets / activeOwners.length).toFixed(1)) : 0;
+    const targets = {
+      activeOwners: activeOwners.length,
+      totalPets: totalPets,
+      average: avgVal,
+    };
+    if (Object.values(targets).every(v => v === 0)) return;
+    setHasAnimated(true);
+    const duration = 1200;
+    const steps = 40;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const t = step >= steps ? 1 : step / steps;
+      setDisplayCounts({
+        activeOwners: step >= steps ? targets.activeOwners : Math.round(t * targets.activeOwners),
+        totalPets:    step >= steps ? targets.totalPets    : Math.round(t * targets.totalPets),
+        average:      step >= steps ? targets.average      : parseFloat((t * targets.average).toFixed(1)),
+      });
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [loading, activeOwners.length, totalPets]);
 
   const handleViewOwner = async (owner) => {
     setSelectedOwner(owner);
@@ -246,6 +285,9 @@ const AdminOwnerManagement = () => {
     }
   };
 
+  const activeOwners = owners.filter(o => o.is_active);
+  const totalPets = pets.length;
+
   const filteredOwners = owners.filter(owner => {
     const searchLower = searchTerm.toLowerCase();
     const fullName = `${owner.first_name || ''} ${owner.last_name || ''}`.toLowerCase();
@@ -261,9 +303,6 @@ const AdminOwnerManagement = () => {
     const matchesActive = filterActive === 'all' || String(owner.is_active) === filterActive;
     return matchesSearch && matchesVerif && matchesActive;
   });
-
-  const activeOwners = owners.filter(o => o.is_active);
-  const totalPets = pets.length;
 
   return (
     <>
@@ -304,7 +343,7 @@ const AdminOwnerManagement = () => {
         {[
           {
             label: 'Active Communities',
-            count: activeOwners.length,
+            count: displayCounts.activeOwners,
             img: '/users.png',
             accent: '#0dcaf0',
             accentAlpha: 'rgba(13,202,240,0.12)',
@@ -314,7 +353,7 @@ const AdminOwnerManagement = () => {
           },
           {
             label: 'Total Pets',
-            count: totalPets,
+            count: displayCounts.totalPets,
             img: '/paw.png',
             accent: '#ffc107',
             accentAlpha: 'rgba(255,193,7,0.12)',
@@ -324,7 +363,7 @@ const AdminOwnerManagement = () => {
           },
           {
             label: 'Average',
-            count: activeOwners.length > 0 ? (totalPets / activeOwners.length).toFixed(1) : 0,
+            count: displayCounts.average,
             img: '/average.png',
             accent: '#198754',
             accentAlpha: 'rgba(25,135,84,0.12)',
@@ -376,9 +415,19 @@ const AdminOwnerManagement = () => {
                       fontWeight: '700',
                       color: '#111111',
                       lineHeight: 1,
-                      marginBottom: '0.75rem'
+                      marginBottom: '0.75rem',
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '3ch'
                     }}>
-                      {count}
+                      {loading ? (
+                        <span style={{
+                          display: 'inline-block', width: '3ch', height: '1em',
+                          borderRadius: '6px',
+                          background: '#f0f0f0',
+                          animation: 'shimmer 1.4s ease-in-out infinite',
+                          verticalAlign: 'middle'
+                        }} />
+                      ) : count}
                     </h2>
                     <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div style={{
@@ -502,9 +551,56 @@ const AdminOwnerManagement = () => {
             </Card.Header>
             <Card.Body className="mobile-card-body" style={{ padding: '2rem' }}>
               {loading ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" variant="primary" />
-                  <p className="mt-3 text-muted">Loading communities...</p>
+                <div className="table-responsive">
+                  <Table className="mobile-table-wrap" style={{ marginBottom: 0, tableLayout: 'fixed', width: '100%' }}>
+                    <thead style={{ background: '#f8f9fa' }}>
+                      <tr>
+                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Name</th>
+                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Phone</th>
+                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Address</th>
+                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Total Pets</th>
+                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Status</th>
+                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '13%' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Array.from({ length: itemsPerPage }).map((_, i) => (
+                        <tr key={`skel-${i}`}>
+                          <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                              <div className="skeleton" style={{ width: '90px', height: '13px' }} />
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <div className="skeleton" style={{ width: '100px', height: '13px' }} />
+                            </div>
+                          </td>
+                          <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <div className="skeleton" style={{ width: '120px', height: '13px' }} />
+                            </div>
+                          </td>
+                          <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <div className="skeleton" style={{ width: '30px', height: '13px' }} />
+                            </div>
+                          </td>
+                          <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                              <div className="skeleton" style={{ width: '60px', height: '20px', borderRadius: '999px' }} />
+                              <div className="skeleton" style={{ width: '50px', height: '10px' }} />
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center' }}>
+                              <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
                 </div>
               ) : filteredOwners.length === 0 ? (
                 <div className="text-center py-5">

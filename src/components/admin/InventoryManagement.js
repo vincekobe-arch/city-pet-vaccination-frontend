@@ -64,6 +64,9 @@ const [editLoading, setEditLoading]     = useState(false);
 const [currentPage, setCurrentPage] = useState(1);
 const itemsPerPage = 8;
 
+const [displayCounts, setDisplayCounts] = useState({ totalItems: 0, totalStock: 0, lowStock: 0, outOfStock: 0 });
+const [hasAnimated, setHasAnimated] = useState(false);
+
 // View details modal
 const [showViewModal, setShowViewModal] = useState(false);
 const [viewItem, setViewItem]           = useState(null);
@@ -92,6 +95,16 @@ useEffect(() => {
   const styles = `
   @keyframes dropDown { 0%{opacity:0;transform:translateY(-20px)} 100%{opacity:1;transform:translateY(0)} }
   @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+  }
   .inv-page {
     zoom: 0.75;
     min-height: 100vh;
@@ -149,6 +162,33 @@ useEffect(() => {
       setExpiredBatchMap(map);
     });
   }, [inventory]);
+
+  useEffect(() => {
+    if (loading || hasAnimated) return;
+    const targets = {
+      totalItems:  totalItems,
+      totalStock:  totalStock,
+      lowStock:    lowStockItems,
+      outOfStock:  outOfStock,
+    };
+    if (Object.values(targets).every(v => v === 0)) return;
+    setHasAnimated(true);
+    const duration = 1200;
+    const steps = 40;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const t = step >= steps ? 1 : step / steps;
+      setDisplayCounts({
+        totalItems:  step >= steps ? targets.totalItems  : Math.round(t * targets.totalItems),
+        totalStock:  step >= steps ? targets.totalStock  : Math.round(t * targets.totalStock),
+        lowStock:    step >= steps ? targets.lowStock    : Math.round(t * targets.lowStock),
+        outOfStock:  step >= steps ? targets.outOfStock  : Math.round(t * targets.outOfStock),
+      });
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [loading, totalItems, totalStock, lowStockItems, outOfStock]);
 
   const loadInventory = async () => {
     try {
@@ -448,10 +488,10 @@ const handleDeleteClick = (item) => {
         {/* Stat Cards */}
         <Row className="mb-4 inv-stat-row" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px', animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
           {[
-            { label: 'Total Items',    value: totalItems,    color: '#0d6efd', bg: 'rgba(13,110,253,0.1)',  icon: 'fa-boxes' },
-            { label: 'Total Stock',    value: totalStock,    color: '#28a745', bg: 'rgba(40,167,69,0.1)',   icon: 'fa-cubes' },
-            { label: 'Low Stock',      value: lowStockItems, color: '#ffc107', bg: 'rgba(255,193,7,0.1)',   icon: 'fa-exclamation-triangle' },
-            { label: 'Out of Stock',   value: outOfStock,    color: '#dc3545', bg: 'rgba(220,53,69,0.1)',   icon: 'fa-times-circle' },
+            { label: 'Total Items',    value: displayCounts.totalItems,  color: '#0d6efd', bg: 'rgba(13,110,253,0.1)',  icon: 'fa-boxes' },
+            { label: 'Total Stock',    value: displayCounts.totalStock,  color: '#28a745', bg: 'rgba(40,167,69,0.1)',   icon: 'fa-cubes' },
+            { label: 'Low Stock',      value: displayCounts.lowStock,    color: '#ffc107', bg: 'rgba(255,193,7,0.1)',   icon: 'fa-exclamation-triangle' },
+            { label: 'Out of Stock',   value: displayCounts.outOfStock,  color: '#dc3545', bg: 'rgba(220,53,69,0.1)',   icon: 'fa-times-circle' },
           ].map(s => (
             <div key={s.label} className="inv-stat-col" style={{ flex: '1 1 0', padding: '0 6px', minWidth: 0 }}>
               <Card className="border-0 h-100" style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -463,8 +503,16 @@ const handleDeleteClick = (item) => {
                   <div className="d-flex align-items-center justify-content-between">
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <p className="inv-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '0.5rem' }}>{s.label}</p>
-                      <h2 className="inv-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111', lineHeight: 1, marginBottom: 0 }}>
-                        {loading ? '—' : s.value}
+                      <h2 className="inv-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111', lineHeight: 1, marginBottom: 0, fontVariantNumeric: 'tabular-nums', minWidth: '3ch' }}>
+                        {loading ? (
+                          <span style={{
+                            display: 'inline-block', width: '3ch', height: '1em',
+                            borderRadius: '6px',
+                            background: '#f0f0f0',
+                            animation: 'shimmer 1.4s ease-in-out infinite',
+                            verticalAlign: 'middle'
+                          }} />
+                        ) : s.value}
                       </h2>
                     </div>
                     <div className="inv-stat-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -541,9 +589,55 @@ const handleDeleteClick = (item) => {
 
               <Card.Body className="inv-card-body" style={{ padding: '1.5rem' }}>
                 {loading ? (
-                  <div className="text-center py-5">
-                    <Spinner animation="border" style={{ color: '#ffc107' }} />
-                    <p className="mt-3 text-muted">Loading inventory...</p>
+                  <div className="table-responsive">
+                    <Table className="inv-table" style={{ marginBottom: 0, width: '100%', tableLayout: 'fixed' }}>
+                      <thead>
+                        <tr style={{ background: '#f8f9fa' }}>
+                          <th className="mobile-hide-type" style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '16%' }}>Type</th>
+                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '22%' }}>Item Name</th>
+                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '13%', textAlign: 'center' }}>Current Stock</th>
+                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '18%' }}>Min. Threshold</th>
+                          <th className="mobile-hide-status" style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '15%', textAlign: 'center' }}>Status</th>
+                          <th className="mobile-hide-restock" style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '11%', textAlign: 'center' }}>Last Restocked</th>
+                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '5%', textAlign: 'center' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: itemsPerPage }).map((_, i) => (
+                          <tr key={`skel-${i}`} style={{ height: '68px' }}>
+                            <td className="mobile-hide-type" style={{ padding: '1rem', verticalAlign: 'middle' }}>
+                              <div className="skeleton" style={{ width: '90px', height: '22px', borderRadius: '20px' }} />
+                            </td>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle' }}>
+                              <div className="skeleton" style={{ width: '80%', height: '13px' }} />
+                            </td>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '50px', height: '13px' }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle' }}>
+                              <div className="skeleton" style={{ width: '60px', height: '28px', borderRadius: '6px' }} />
+                            </td>
+                            <td className="mobile-hide-status" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '20px' }} />
+                              </div>
+                            </td>
+                            <td className="mobile-hide-restock" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '70px', height: '13px' }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
                   </div>
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-5">

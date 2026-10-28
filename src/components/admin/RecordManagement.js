@@ -60,6 +60,9 @@ const [filterClinic, setFilterClinic] = useState('city_vet');
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+
+    const [displayCounts, setDisplayCounts] = useState({ vaccinations: 0, sterilizations: 0, microchips: 0 });
+    const [hasAnimated, setHasAnimated] = useState(false);
     
     const styles = `
       @keyframes dropDown {
@@ -75,6 +78,16 @@ const [filterClinic, setFilterClinic] = useState('city_vet');
       @keyframes float {
         0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-10px); }
+      }
+      .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 800px 100%;
+        animation: shimmer 1.4s ease-in-out infinite;
+        border-radius: 8px;
+      }
+      @keyframes shimmer {
+        0%   { background-position: -400px 0; }
+        100% { background-position:  400px 0; }
       }
       .record-management-page {
   zoom: 0.75;
@@ -181,6 +194,31 @@ useEffect(() => {
   window.addEventListener('scroll', updatePos, true);
   return () => window.removeEventListener('scroll', updatePos, true);
 }, [showDropdown]);
+
+    useEffect(() => {
+      if (loading || hasAnimated) return;
+      const targets = {
+        vaccinations: vaccinations.length,
+        sterilizations: sterilizations.length,
+        microchips: microchips.length,
+      };
+      if (Object.values(targets).every(v => v === 0)) return;
+      setHasAnimated(true);
+      const duration = 1200;
+      const steps = 40;
+      let step = 0;
+      const timer = setInterval(() => {
+        step++;
+        const t = step >= steps ? 1 : step / steps;
+        setDisplayCounts({
+          vaccinations:   step >= steps ? targets.vaccinations   : Math.round(t * targets.vaccinations),
+          sterilizations: step >= steps ? targets.sterilizations : Math.round(t * targets.sterilizations),
+          microchips:     step >= steps ? targets.microchips     : Math.round(t * targets.microchips),
+        });
+        if (step >= steps) clearInterval(timer);
+      }, duration / steps);
+      return () => clearInterval(timer);
+    }, [loading, vaccinations.length, sterilizations.length, microchips.length]);
 
     const loadData = async () => {
       try {
@@ -1098,9 +1136,9 @@ const getSelectedPet = () => {
         {/* Statistics Cards */}
       <Row className="mb-4" style={{ flexWrap: 'nowrap', margin: '0 -6px' }}>
   {[
-    {
-      label: 'Vaccination',
-            count: vaccinations.length,
+              {
+            label: 'Vaccination',
+            count: displayCounts.vaccinations,
             img: '/vaccine.png',
             accent: '#ffc107',
             accentAlpha: 'rgba(255,193,7,0.12)',
@@ -1111,7 +1149,7 @@ const getSelectedPet = () => {
           
           {
             label: 'Sterilization',
-            count: sterilizations.length,
+            count: displayCounts.sterilizations,
             img: '/sterilization.png',
             accent: '#28a745',
             accentAlpha: 'rgba(40,167,69,0.12)',
@@ -1121,7 +1159,7 @@ const getSelectedPet = () => {
           },
           {
             label: 'Microchip',
-            count: microchips.length,
+            count: displayCounts.microchips,
             img: '/microchip.png',
             accent: '#4361ee',
             accentAlpha: 'rgba(67,97,238,0.12)',
@@ -1172,9 +1210,19 @@ const getSelectedPet = () => {
                       fontWeight: '700',
                       color: '#111111',
                       lineHeight: 1,
-                      marginBottom: '0.75rem'
+                      marginBottom: '0.75rem',
+                      fontVariantNumeric: 'tabular-nums',
+                      minWidth: '3ch'
                     }}>
-                      {count}
+                      {loading ? (
+                        <span style={{
+                          display: 'inline-block', width: '3ch', height: '1em',
+                          borderRadius: '6px',
+                          background: '#f0f0f0',
+                          animation: 'shimmer 1.4s ease-in-out infinite',
+                          verticalAlign: 'middle'
+                        }} />
+                      ) : count}
                     </h2>
                     <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div style={{
@@ -1371,9 +1419,57 @@ const getSelectedPet = () => {
               </Card.Header>
               <Card.Body className="mobile-card-body" style={{ padding: '2rem' }}>
                 {loading ? (
-                  <div className="text-center py-5">
-                    <Spinner animation="border" variant="primary" />
-                    <p className="mt-3 text-muted">Loading records...</p>
+                  <div className="table-responsive">
+                    <Table className="mobile-table-wrap" style={{ marginBottom: 0, width: '100%' }}>
+                      <thead style={{ background: '#f8f9fa' }}>
+                        <tr>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Type</th>
+                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
+                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Record Details</th>
+                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: itemsPerPage }).map((_, i) => (
+                          <tr key={`skel-${i}`}>
+                            <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '90px', height: '13px' }} />
+                              </div>
+                            </td>
+                            <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '80px', height: '13px' }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                                <div className="skeleton" style={{ width: '90px', height: '13px' }} />
+                                <div className="skeleton" style={{ width: '110px', height: '10px' }} />
+                              </div>
+                            </td>
+                            <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                                <div className="skeleton" style={{ width: '100px', height: '13px' }} />
+                                <div className="skeleton" style={{ width: '70px', height: '10px' }} />
+                              </div>
+                            </td>
+                            <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '110px', height: '26px', borderRadius: '6px' }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
                   </div>
                 ) : (
                   <>

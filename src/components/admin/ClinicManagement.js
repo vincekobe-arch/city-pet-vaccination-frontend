@@ -256,6 +256,9 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const [displayCounts, setDisplayCounts] = useState({ active: 0, inactive: 0, specs: 0 });
+  const [hasAnimated, setHasAnimated] = useState(false);
+
   useEffect(() => { loadData(); }, []);
   useEffect(() => { setCurrentPage(1); }, [filterStatus, filterSpecialization, searchTerm]);
 
@@ -269,6 +272,31 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     window.addEventListener('scroll', updatePos, true);
     return () => window.removeEventListener('scroll', updatePos, true);
   }, [showDropdown]);
+
+  useEffect(() => {
+    if (loading || hasAnimated) return;
+    const targets = {
+      active:   activeClinics.length,
+      inactive: inactiveClinics.length,
+      specs:    uniqueSpecs.length,
+    };
+    if (Object.values(targets).every(v => v === 0)) return;
+    setHasAnimated(true);
+    const duration = 1200;
+    const steps = 40;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const t = step >= steps ? 1 : step / steps;
+      setDisplayCounts({
+        active:   step >= steps ? targets.active   : Math.round(t * targets.active),
+        inactive: step >= steps ? targets.inactive : Math.round(t * targets.inactive),
+        specs:    step >= steps ? targets.specs    : Math.round(t * targets.specs),
+      });
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [loading, activeClinics.length, inactiveClinics.length, uniqueSpecs.length]);
 
   const loadData = async () => {
     try {
@@ -560,6 +588,16 @@ setShowDropdown(null); // ← closes ellipsis dropdown
       0%, 100% { transform: translateY(0px); }
       50%       { transform: translateY(-10px); }
     }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
     .clinic-page {
       zoom: 0.75;
       min-height: 100vh;
@@ -641,9 +679,9 @@ setShowDropdown(null); // ← closes ellipsis dropdown
         {/* ── Stat Cards ── */}
         <Row className="mb-4" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px' }}>
           {[
-            {
-              label: 'Active Clinics',
-              count: activeClinics.length,
+                      {
+            label: 'Active Clinics',
+            count: displayCounts.active,
               img: '/active.png',
               accent: '#198754',
               accentAlpha: 'rgba(25,135,84,0.12)',
@@ -651,9 +689,9 @@ setShowDropdown(null); // ← closes ellipsis dropdown
               description: 'Currently Active',
               delay: '0.1s'
             },
-            {
-              label: 'Inactive Clinics',
-              count: inactiveClinics.length,
+                      {
+            label: 'Inactive Clinics',
+            count: displayCounts.inactive,
               img: '/inactive.png',
               accent: '#dc3545',
               accentAlpha: 'rgba(220,53,69,0.12)',
@@ -661,9 +699,9 @@ setShowDropdown(null); // ← closes ellipsis dropdown
               description: 'Deactivated',
               delay: '0.2s'
             },
-            {
-              label: 'Specializations',
-              count: uniqueSpecs.length,
+                      {
+            label: 'Specializations',
+            count: displayCounts.specs,
               img: '/average.png',
               accent: '#0dcaf0',
               accentAlpha: 'rgba(13,202,240,0.12)',
@@ -714,9 +752,19 @@ setShowDropdown(null); // ← closes ellipsis dropdown
                         fontWeight: '700',
                         color: '#111111',
                         lineHeight: 1,
-                        marginBottom: '0.75rem'
+                        marginBottom: '0.75rem',
+                        fontVariantNumeric: 'tabular-nums',
+                        minWidth: '3ch'
                       }}>
-                        {count}
+                        {loading ? (
+                          <span style={{
+                            display: 'inline-block', width: '3ch', height: '1em',
+                            borderRadius: '6px',
+                            background: '#f0f0f0',
+                            animation: 'shimmer 1.4s ease-in-out infinite',
+                            verticalAlign: 'middle'
+                          }} />
+                        ) : count}
                       </h2>
                       <div className="clinic-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <div style={{
@@ -840,9 +888,63 @@ setShowDropdown(null); // ← closes ellipsis dropdown
 
               <Card.Body className="clinic-card-body" style={{ padding: '2rem' }}>
                 {loading ? (
-                  <div className="text-center py-5">
-                    <Spinner animation="border" variant="warning" />
-                    <p className="mt-3 text-muted">Loading clinics...</p>
+                  <div className="table-responsive" style={{ overflow: 'visible' }}>
+                    <Table className="clinic-table" style={{ marginBottom: 0 }}>
+                      <thead style={{ background: '#f8f9fa' }}>
+                        <tr>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Clinic</th>
+                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Code</th>
+                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Owner</th>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Contact</th>
+                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Specialization</th>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Status</th>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.from({ length: itemsPerPage }).map((_, i) => (
+                          <tr key={`skel-${i}`} style={{ height: '73px' }}>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                                <div className="skeleton" style={{ width: '100px', height: '13px' }} />
+                                <div className="skeleton" style={{ width: '70px', height: '10px' }} />
+                              </div>
+                            </td>
+                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '6px' }} />
+                              </div>
+                            </td>
+                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '90px', height: '13px' }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                                <div className="skeleton" style={{ width: '120px', height: '10px' }} />
+                                <div className="skeleton" style={{ width: '80px', height: '10px' }} />
+                              </div>
+                            </td>
+                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '6px' }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '8px' }} />
+                              </div>
+                            </td>
+                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
                   </div>
                 ) : filteredClinics.length === 0 ? (
                   <div className="text-center py-5">
