@@ -206,14 +206,17 @@ export default function MapStatus() {
     printStyleEl.innerHTML = `
       @media print {
         @page { margin: 0; size: A4 landscape; }
-        body > *:not(#rabies-print-area) { display: none !important; visibility: hidden !important; }
+        body * { visibility: hidden !important; }
+        body { background: #fff !important; }
         #rabies-print-area {
+          visibility: visible !important;
           display: flex !important; flex-direction: column !important;
           position: fixed !important; inset: 0 !important;
           width: 100vw !important; height: 100vh !important;
           z-index: 99999 !important; background: #fff !important;
         }
-        .no-print { display: none !important; }
+        #rabies-print-area * { visibility: visible !important; }
+        .no-print { display: none !important; visibility: hidden !important; }
         #print-map-inner svg { overflow: visible !important; }
       }
     `;

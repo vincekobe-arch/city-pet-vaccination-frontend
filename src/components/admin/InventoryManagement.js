@@ -142,6 +142,12 @@ useEffect(() => {
   }
 `;
 
+  // Stats — must be declared before animation useEffect
+  const totalItems    = inventory.length;
+  const lowStockItems = inventory.filter(i => parseInt(i.current_stock) > 0 && parseInt(i.current_stock) < 10).length;
+  const outOfStock    = inventory.filter(i => parseInt(i.current_stock) === 0).length;
+  const totalStock    = inventory.reduce((sum, i) => sum + parseInt(i.current_stock || 0), 0);
+
   useEffect(() => { loadInventory(); loadVaccinationTypes(); }, []);
 
   useEffect(() => {
@@ -214,11 +220,7 @@ useEffect(() => {
 
   const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 4000); };
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
-  const totalItems    = inventory.length;
-  const lowStockItems = inventory.filter(i => parseInt(i.current_stock) > 0 && parseInt(i.current_stock) < 10).length;
-  const outOfStock    = inventory.filter(i => parseInt(i.current_stock) === 0).length;
-  const totalStock    = inventory.reduce((sum, i) => sum + parseInt(i.current_stock || 0), 0);
+  // ── Stats (already declared above) ───────────────────────────────────────
 
   // ── Filter ────────────────────────────────────────────────────────────────
 const TYPE_ORDER = { microchip: 0, vaccination: 1, medicine: 2, equipment: 3 };

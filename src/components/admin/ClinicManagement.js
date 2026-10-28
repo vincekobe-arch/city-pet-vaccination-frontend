@@ -259,6 +259,11 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [displayCounts, setDisplayCounts] = useState({ active: 0, inactive: 0, specs: 0 });
   const [hasAnimated, setHasAnimated] = useState(false);
 
+  // Stats — must be declared before animation useEffect
+  const activeClinics   = clinics.filter(c => c.is_active == 1);
+  const inactiveClinics = clinics.filter(c => c.is_active == 0);
+  const uniqueSpecs     = [...new Set(activeClinics.map(c => c.specialization).filter(Boolean))];
+
   useEffect(() => { loadData(); }, []);
   useEffect(() => { setCurrentPage(1); }, [filterStatus, filterSpecialization, searchTerm]);
 
@@ -574,10 +579,7 @@ setShowDropdown(null); // ← closes ellipsis dropdown
   const paginatedClinics = filteredClinics.slice(startIdx, startIdx + itemsPerPage);
   const emptyRows = itemsPerPage - paginatedClinics.length;
 
-  // Stats
-  const activeClinics = clinics.filter(c => c.is_active == 1);
-  const inactiveClinics = clinics.filter(c => c.is_active == 0);
-  const uniqueSpecs = [...new Set(activeClinics.map(c => c.specialization).filter(Boolean))];
+  // (stats already declared above)
 
   const styles = `
     @keyframes dropDown {
