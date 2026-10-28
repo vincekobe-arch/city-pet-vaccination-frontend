@@ -21,7 +21,7 @@ export default function InventoryManagement() {
 const [vaccinationTypes, setVaccinationTypes] = useState([]);
 const [loading, setLoading]           = useState(true);
 const [error, setError]               = useState('');
-const [success, setSuccess]           = useState('');
+
 const [filterType, setFilterType]     = useState('all');
 const [searchTerm, setSearchTerm]     = useState('');
 
@@ -115,6 +115,37 @@ useEffect(() => {
   @media (min-width: 1920px) { .inv-page { zoom: 1; } }
   .inv-row:hover { background: rgba(255,193,7,0.04) !important; }
   tr[key^="empty-"]:hover td { background: transparent !important; }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(60px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeOutRight {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(60px); }
+  }
+  .inv-toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 99999;
+    min-width: 300px;
+    max-width: 420px;
+    background: linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97));
+    color: #fff;
+    border-radius: 14px;
+    border: 2px solid #198754;
+    box-shadow: 0 8px 32px rgba(25,135,84,0.35);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    animation: slideInRight 0.3s ease;
+    pointer-events: auto;
+  }
+  .inv-toast.hiding {
+    animation: fadeOutRight 0.3s ease forwards;
+  }
   @media (max-width: 768px) {
     .inv-title { font-size: 1.5rem !important; }
     .inv-stat-row { flex-wrap: nowrap !important; }
@@ -218,7 +249,17 @@ useEffect(() => {
   }
 };
 
-  const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 4000); };
+  const [toast, setToast] = useState({ visible: false, hiding: false, msg: '' });
+  const toastTimer = useRef(null);
+
+  const showSuccess = (msg) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ visible: true, hiding: false, msg });
+    toastTimer.current = setTimeout(() => {
+      setToast(t => ({ ...t, hiding: true }));
+      setTimeout(() => setToast({ visible: false, hiding: false, msg: '' }), 300);
+    }, 3500);
+  };
 
   // ── Stats (already declared above) ───────────────────────────────────────
 
@@ -256,7 +297,7 @@ const TYPE_ORDER = { microchip: 0, vaccination: 1, medicine: 2, equipment: 3 };
   setShowRestockModal(true);
 };
 
-const handleRestock = async () => {
+  const handleRestock = async () => {
   if (!restockQty || parseInt(restockQty) <= 0) {
     setError('Please enter a valid quantity greater than 0.');
     return;
@@ -267,6 +308,7 @@ const handleRestock = async () => {
   }
   setBatchNoError('');
   setRestockLoading(true);
+  setShowRestockModal(false);
   try {
     await inventoryAPI.restock(restockItem.id, {
       quantity:        parseInt(restockQty),
@@ -275,11 +317,10 @@ const handleRestock = async () => {
       notes:           restockNotes,
     });
     showSuccess(`Batch "${restockBatchNo}" added to ${restockItem.item_name}.`);
-    setShowRestockModal(false);
     loadInventory();
   } catch (err) {
     const { message } = handleAPIError(err);
-    // surface duplicate batch error in the field, not the page alert
+    setShowRestockModal(true);
     if (message?.toLowerCase().includes('batch number')) {
       setBatchNoError(message);
     } else {
@@ -307,6 +348,7 @@ const handleRestock = async () => {
   const handleEditItemSave = async () => {
     if (!editItemForm.item_name.trim()) { setError('Item name is required.'); return; }
     setEditItemLoading(true);
+    setShowEditItemModal(false);
     try {
       await inventoryAPI.update(editItemForm.id, {
         item_name: editItemForm.item_name.trim(),
@@ -316,9 +358,9 @@ const handleRestock = async () => {
         notes: editItemForm.notes,
       });
       showSuccess(`"${editItemForm.item_name}" updated successfully.`);
-      setShowEditItemModal(false);
       loadInventory();
     } catch (err) {
+      setShowEditItemModal(true);
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
@@ -338,12 +380,13 @@ const handleRestock = async () => {
       return;
     }
     setEditLoading(true);
+    setShowEditModal(false);
     try {
       await inventoryAPI.update(editItem.id, { minimum_stock: parseInt(editMinStock) });
       showSuccess(`Minimum stock threshold updated for ${editItem.item_name}.`);
-      setShowEditModal(false);
       loadInventory();
     } catch (err) {
+      setShowEditModal(true);
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
@@ -405,15 +448,16 @@ const handleDeleteBatch = (batchId) => {
 const handleDeleteBatchConfirm = async () => {
   if (!batchToDelete) return;
   setDeleteBatchLoading(true);
+  setShowDeleteBatchModal(false);
   try {
     await inventoryAPI.deleteBatch(batchToDelete.id);
     showSuccess('Batch deleted.');
     const res = await inventoryAPI.getBatches(batchItem.id);
     setBatches(res.data.batches || []);
-    loadInventory();
-    setShowDeleteBatchModal(false);
     setBatchToDelete(null);
+    loadInventory();
   } catch (err) {
+    setShowDeleteBatchModal(true);
     const { message } = handleAPIError(err);
     setError(message);
   } finally {
@@ -431,13 +475,14 @@ const handleDeleteClick = (item) => {
   const handleDeleteConfirm = async () => {
     if (!itemToDelete) return;
     setDeleteLoading(true);
+    setShowDeleteModal(false);
     try {
       await inventoryAPI.delete(itemToDelete.id);
       showSuccess(`"${itemToDelete.item_name}" removed from inventory.`);
-      setShowDeleteModal(false);
       setItemToDelete(null);
       loadInventory();
     } catch (err) {
+      setShowDeleteModal(true);
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
@@ -458,6 +503,21 @@ const handleDeleteClick = (item) => {
 
   return (
     <>
+      {toast.visible && (
+        <div className={`inv-toast${toast.hiding ? ' hiding' : ''}`}>
+          <i className="fas fa-check-circle" style={{ fontSize: '1.5rem', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>Success!</div>
+            <div style={{ fontSize: '0.82rem', opacity: 0.9 }}>{toast.msg}</div>
+          </div>
+          <button
+            onClick={() => setToast({ visible: false, hiding: false, msg: '' })}
+            style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', flexShrink: 0 }}
+          >
+            <i className="fas fa-times" />
+          </button>
+        </div>
+      )}
       <style>{styles}</style>
       <Container fluid className="py-4 inv-page" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
 
@@ -480,12 +540,7 @@ const handleDeleteClick = (item) => {
             <i className="fas fa-exclamation-triangle me-2" />{error}
           </Alert>
         )}
-        {success && (
-          <Alert variant="success" dismissible onClose={() => setSuccess('')}
-            style={{ borderRadius: '12px', border: '2px solid #28a745', marginBottom: '1.5rem' }}>
-            <i className="fas fa-check-circle me-2" />{success}
-          </Alert>
-        )}
+
 
         {/* Stat Cards */}
         <Row className="mb-4 inv-stat-row" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px', animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
@@ -918,6 +973,7 @@ const handleDeleteClick = (item) => {
             style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
           <Button onClick={async () => {
             if (!addForm.item_name.trim()) { setError('Item name is required.'); return; }
+            setShowAddModal(false);
             setAddLoading(true);
             try {
               await inventoryAPI.create({
@@ -931,10 +987,10 @@ const handleDeleteClick = (item) => {
                 
               });
               showSuccess(`"${addForm.item_name}" added to inventory.`);
-              setShowAddModal(false);
               setAddForm({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '' });
               loadInventory();
             } catch (err) {
+              setShowAddModal(true);
               const { message } = handleAPIError(err);
               setError(message);
             } finally {
