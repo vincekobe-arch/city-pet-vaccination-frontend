@@ -130,6 +130,146 @@ const itemsPerPage = 5;
     loadVaccinationTypes();
     loadInventory();
   }, []);
+
+  useEffect(() => {
+  if (schedules.length === 0) return;
+
+  // Destroy previous charts if re-rendering
+  const typeCtx = document.getElementById('schedTypeChart');
+  const statusCtx = document.getElementById('schedStatusChart');
+  if (!typeCtx || !statusCtx) return;
+
+  // Clear existing Chart.js instances
+  const existingType = window._schedTypeChart;
+  const existingStatus = window._schedStatusChart;
+  if (existingType) existingType.destroy();
+  if (existingStatus) existingStatus.destroy();
+
+  // ── Bar chart: Events by Type ──
+  const typeData = {
+    Vaccination: schedules.filter(s => s.type === 'vaccination').length,
+    Seminar: schedules.filter(s => s.type === 'seminar').length,
+    Sterilization: schedules.filter(s => s.type === 'sterilization').length,
+    Microchip: schedules.filter(s => s.type === 'microchip').length,
+    Other: schedules.filter(s => s.type === 'other').length,
+  };
+
+  // Load Chart.js dynamically if not already loaded
+  const renderCharts = () => {
+    window._schedTypeChart = new window.Chart(typeCtx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(typeData),
+        datasets: [{
+          label: 'Events',
+          data: Object.values(typeData),
+          backgroundColor: ['#ffc107cc', '#6f42c1cc', '#28a745cc', '#6c757dcc', '#343a40cc'],
+          borderColor: ['#ffc107', '#6f42c1', '#28a745', '#6c757d', '#343a40'],
+          borderWidth: 2,
+          borderRadius: 6,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#fff',
+            titleColor: '#333',
+            bodyColor: '#555',
+            borderColor: '#e0e0e0',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#999', font: { size: 11, weight: '600' } },
+            border: { display: false }
+          },
+          y: {
+            beginAtZero: true,
+            grid: { color: '#f0f0f0', lineWidth: 1 },
+            ticks: {
+              color: '#bbb',
+              font: { size: 10 },
+              stepSize: 1,
+              precision: 0,
+            },
+            border: { display: false }
+          }
+        }
+      }
+    });
+
+    // ── Doughnut: Status Breakdown ──
+    const upcoming = schedules.filter(s => s.status === 'scheduled' && new Date(s.scheduled_date) >= new Date()).length;
+    const ongoing = schedules.filter(s => s.status === 'ongoing').length;
+    const completed = schedules.filter(s => s.status === 'completed').length;
+    const cancelled = schedules.filter(s => s.status === 'cancelled').length;
+    const pastDue = schedules.filter(s => s.status === 'scheduled' && new Date(s.scheduled_date) < new Date()).length;
+
+    const statusLabels = ['Upcoming', 'Ongoing', 'Completed', 'Past Due', 'Cancelled'];
+    const statusData = [upcoming, ongoing, completed, pastDue, cancelled];
+    const statusColors = ['#007bff', '#28a745', '#6c757d', '#ffc107', '#dc3545'];
+
+    window._schedStatusChart = new window.Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: statusLabels,
+        datasets: [{
+          data: statusData,
+          backgroundColor: statusColors.map(c => c + 'cc'),
+          borderColor: statusColors,
+          borderWidth: 2,
+          hoverOffset: 6,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              color: '#666',
+              font: { size: 10, weight: '600' },
+              boxWidth: 10,
+              boxHeight: 10,
+              borderRadius: 2,
+              padding: 8,
+              filter: (item, data) => data.datasets[0].data[item.index] > 0
+            }
+          },
+          tooltip: {
+            backgroundColor: '#fff',
+            titleColor: '#333',
+            bodyColor: '#555',
+            borderColor: '#e0e0e0',
+            borderWidth: 1,
+            padding: 10,
+            cornerRadius: 8,
+          }
+        }
+      }
+    });
+  };
+
+  if (window.Chart) {
+    renderCharts();
+  } else {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
+    script.onload = renderCharts;
+    document.head.appendChild(script);
+  }
+}, [schedules]);
   useEffect(() => {
   setCurrentPage(1);
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
@@ -979,130 +1119,32 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
         </Row>
       )}
 
-      {/* Statistics Cards */}
-      <Row className="mb-4 sched-stat-row" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px' }}>
-        {[
-          {
-            label: 'Vaccination',
-            count: schedules.filter(s => s.type === 'vaccination').length,
-            img: '/vaccine.png',
-            accent: '#ffc107',
-            accentAlpha: 'rgba(255,193,7,0.12)',
-            fallbackIcon: 'fa-syringe',
-            delay: '0.1s'
-          },
-          
-          {
-            label: 'Seminar',
-            count: schedules.filter(s => s.type === 'seminar').length,
-            img: '/seminar.png',
-            accent: '#6f42c1',
-            accentAlpha: 'rgba(111,66,193,0.12)',
-            fallbackIcon: 'fa-chalkboard-teacher',
-            delay: '0.3s'
-          },
-          {
-            label: 'Sterilization',
-            count: schedules.filter(s => s.type === 'sterilization').length,
-            img: '/sterilization.png',
-            accent: '#28a745',
-            accentAlpha: 'rgba(40,167,69,0.12)',
-            fallbackIcon: 'fa-cut',
-            delay: '0.4s'
-          },
-          {
-            label: 'Microchip',
-            count: schedules.filter(s => s.type === 'microchip').length,
-            img: '/microchip.png',
-            accent: '#6c757d',
-            accentAlpha: 'rgba(108,117,125,0.12)',
-            fallbackIcon: 'fa-microchip',
-            delay: '0.5s'
-          }
-        ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, delay }) => (
-          <div key={label} className="sched-stat-col" style={{ flex: '1 1 0', padding: '0 6px', minWidth: 0, animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
-            <Card
-              className="border-0 h-100"
-              style={{
-                borderRadius: '16px',
-                background: '#ffffff',
-                border: '1px solid #f0f0f0',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                transition: 'all 0.25s ease',
-                cursor: 'default',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-3px)';
-                e.currentTarget.style.boxShadow = `0 6px 20px ${accentAlpha}`;
-                e.currentTarget.style.borderColor = accent;
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)';
-                e.currentTarget.style.borderColor = '#f0f0f0';
-              }}
-            >
-              <div style={{ height: '3px', background: accent, borderRadius: '14px 14px 0 0' }} />
-              <Card.Body className="sched-stat-card-body" style={{ padding: '1.5rem', background: 'transparent' }}>
-                <div className="d-flex justify-content-between align-items-start mb-3">
-                  <div>
-                    <p style={{
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.08em',
-                      color: '#999999',
-                      marginBottom: '0.5rem',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
-                      {label}
-                    </p>
-                    <h2 className="sched-stat-number" style={{
-                      fontSize: '2.75rem',
-                      fontWeight: '700',
-                      color: '#111111',
-                      lineHeight: 1,
-                      marginBottom: '0.75rem'
-                    }}>
-                      {count}
-                    </h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
-                      <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>
-                        events
-                      </span>
-                    </div>
-                  </div>
-                  <div className="sched-stat-icon" style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '14px',
-                    background: accentAlpha,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
-                  }}>
-                    <img
-                      src={img}
-                      alt={label}
-                      style={{ width: '32px', height: '32px', objectFit: 'contain' }}
-                      onError={e => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'block';
-                      }}
-                    />
-                    <i className={`fas ${fallbackIcon}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </div>
-        ))}
-      </Row>
+      {/* Statistics Cards — Charts Row */}
+<Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
+  <Col md={8} className="mb-3 mb-md-0">
+    <Card className="border-0 h-100" style={{ borderRadius: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+      <div style={{ height: '3px', background: 'linear-gradient(90deg, #ffc107 0%, #6f42c1 33%, #28a745 66%, #6c757d 100%)', borderRadius: '14px 14px 0 0' }} />
+      <Card.Body style={{ padding: '1.25rem 1.5rem' }}>
+        <p style={{ fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '1rem' }}>Events by Type</p>
+        <div style={{ position: 'relative', width: '100%', height: '160px' }}>
+          <canvas id="schedTypeChart" role="img" aria-label="Bar chart showing event counts by type"></canvas>
+        </div>
+      </Card.Body>
+    </Card>
+  </Col>
+
+  <Col md={4}>
+    <Card className="border-0 h-100" style={{ borderRadius: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+      <div style={{ height: '3px', background: 'linear-gradient(90deg, #007bff 0%, #28a745 50%, #ffc107 100%)', borderRadius: '14px 14px 0 0' }} />
+      <Card.Body style={{ padding: '1.25rem 1.5rem' }}>
+        <p style={{ fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '1rem' }}>Status Breakdown</p>
+        <div style={{ position: 'relative', width: '100%', height: '160px' }}>
+          <canvas id="schedStatusChart" role="img" aria-label="Doughnut chart showing schedule status breakdown"></canvas>
+        </div>
+      </Card.Body>
+    </Card>
+  </Col>
+</Row>
 
       {/* Filters */}
       <Row className="mb-4 sched-filters-row" style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
