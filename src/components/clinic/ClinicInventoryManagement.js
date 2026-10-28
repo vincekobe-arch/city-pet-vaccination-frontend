@@ -169,7 +169,13 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
   }
 };
 
-  const showSuccess = (msg) => { setSuccess(msg); setTimeout(() => setSuccess(''), 4000); };
+  // Resets the timer so an older timeout can't hide a newer message
+  const successTimerRef = useRef(null);
+  const showSuccess = (msg, duration = 3000) => {
+    clearTimeout(successTimerRef.current);
+    setSuccess(msg);
+    successTimerRef.current = setTimeout(() => setSuccess(''), duration);
+  };
 
   // ─── Stats ────────────────────────────────────────────────────────────────
   const totalItems    = inventory.length;
@@ -203,11 +209,13 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
     setShowRestockModal(true);
   };
 
-  const handleRestock = async () => {
+    const handleRestock = async () => {
+    if (restockLoading) return;
     if (!restockQty || parseInt(restockQty) <= 0) { setError('Enter a valid quantity > 0.'); return; }
     if (!restockBatchNo.trim()) { setBatchNoError('Batch number is required.'); return; }
     setBatchNoError('');
     setRestockLoading(true);
+    setShowRestockModal(false);            // close immediately
     try {
       const res = await clinicInventoryAPI.restock(restockItem.id, {
         quantity:        parseInt(restockQty),
@@ -217,14 +225,17 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
       });
       if (res.success) {
         showSuccess(`Batch "${restockBatchNo}" added to ${restockItem.item_name}.`);
-        setShowRestockModal(false); loadInventory();
+        loadInventory();
       } else {
         const msg = handleAPIError(res).message;
         if (msg?.toLowerCase().includes('batch')) setBatchNoError(msg);
         else setError(msg);
+        setShowRestockModal(true);         // reopen with data intact
       }
-    } catch { setError('Failed to restock.'); }
-    finally { setRestockLoading(false); }
+    } catch {
+      setError('Failed to restock.');
+      setShowRestockModal(true);
+    } finally { setRestockLoading(false); }
   };
 
   // ─── Batches ──────────────────────────────────────────────────────────────
@@ -238,27 +249,33 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
     finally { setBatchesLoading(false); }
   };
 
-  const handleSaveBatch = async () => {
-    if (!editingBatch) return;
+    const handleSaveBatch = async () => {
+    if (!editingBatch || editBatchSaving) return;
     if (!editingBatch.batch_no?.trim()) { setError('Batch number cannot be empty.'); return; }
     if (parseInt(editingBatch.quantity) < 0) { setError('Quantity cannot be negative.'); return; }
+    const batchToSave = editingBatch;
     setEditBatchSaving(true);
+    setEditingBatch(null);                 // exit edit mode immediately
     try {
-      const res = await clinicInventoryAPI.updateBatch(editingBatch.id, {
-        batch_no:        editingBatch.batch_no.trim(),
-        quantity:        parseInt(editingBatch.quantity),
-        expiration_date: editingBatch.expiration_date || null,
-        notes:           editingBatch.notes || null,
+      const res = await clinicInventoryAPI.updateBatch(batchToSave.id, {
+        batch_no:        batchToSave.batch_no.trim(),
+        quantity:        parseInt(batchToSave.quantity),
+        expiration_date: batchToSave.expiration_date || null,
+        notes:           batchToSave.notes || null,
       });
       if (res.success) {
         showSuccess('Batch updated.');
-        setEditingBatch(null);
         const r2 = await clinicInventoryAPI.getBatches(batchItem.id);
         setBatches(r2.batches || []);
         loadInventory();
-      } else setError(handleAPIError(res).message);
-    } catch { setError('Failed to save batch.'); }
-    finally { setEditBatchSaving(false); }
+      } else {
+        setError(handleAPIError(res).message);
+        setEditingBatch(batchToSave);      // restore so changes aren't lost
+      }
+    } catch {
+      setError('Failed to save batch.');
+      setEditingBatch(batchToSave);
+    } finally { setEditBatchSaving(false); }
   };
 
   // ── Delete batch modal state
@@ -272,17 +289,18 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
     setShowDeleteBatchModal(true);
   };
 
-  const handleDeleteBatchConfirm = async () => {
-    if (!batchToDelete) return;
+    const handleDeleteBatchConfirm = async () => {
+    if (!batchToDelete || deleteBatchLoading) return;
+    const target = batchToDelete;
     setDeleteBatchLoading(true);
+    setShowDeleteBatchModal(false);        // close immediately
     try {
-      const res = await clinicInventoryAPI.deleteBatch(batchToDelete.id);
+      const res = await clinicInventoryAPI.deleteBatch(target.id);
       if (res.success) {
         showSuccess('Batch deleted.');
         const r2 = await clinicInventoryAPI.getBatches(batchItem.id);
         setBatches(r2.batches || []);
         loadInventory();
-        setShowDeleteBatchModal(false);
         setBatchToDelete(null);
       } else setError(handleAPIError(res).message);
     } catch { setError('Failed to delete batch.'); }
@@ -300,14 +318,15 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
     setShowDropdown(null);
   };
 
-  const handleDeleteItemConfirm = async () => {
-    if (!itemToDelete) return;
+    const handleDeleteItemConfirm = async () => {
+    if (!itemToDelete || deleteItemLoading) return;
+    const target = itemToDelete;
     setDeleteItemLoading(true);
+    setShowDeleteItemModal(false);         // close immediately
     try {
-      const res = await clinicInventoryAPI.deleteItem(itemToDelete.id);
+      const res = await clinicInventoryAPI.deleteItem(target.id);
       if (res.success) {
-        showSuccess(`"${itemToDelete.item_name}" deleted.`);
-        setShowDeleteItemModal(false);
+        showSuccess(`"${target.item_name}" deleted.`);
         setItemToDelete(null);
         loadInventory();
       } else setError(handleAPIError(res).message);
@@ -316,26 +335,33 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
   };
 
   // ─── Add item ─────────────────────────────────────────────────────────────
-  const handleAdd = async () => {
+    const handleAdd = async () => {
+    if (addLoading) return;
     if (!addForm.item_name.trim()) { setError('Item name is required.'); return; }
+    const submitted = addForm;
     setAddLoading(true);
+    setShowAddModal(false);                // close immediately
     try {
       const res = await clinicInventoryAPI.create({
-        item_type:     addForm.item_type,
-        item_name:     addForm.item_name.trim(),
-        species:       addForm.species || null,
-        minimum_stock: parseInt(addForm.minimum_stock) || 10,
-        unit:          addForm.unit || 'pcs',
-        notes:         addForm.notes || null,
+        item_type:     submitted.item_type,
+        item_name:     submitted.item_name.trim(),
+        species:       submitted.species || null,
+        minimum_stock: parseInt(submitted.minimum_stock) || 10,
+        unit:          submitted.unit || 'pcs',
+        notes:         submitted.notes || null,
       });
       if (res.success) {
-        showSuccess(`"${addForm.item_name}" added to inventory.`);
-        setShowAddModal(false);
+        showSuccess(`"${submitted.item_name}" added to inventory.`);
         setAddForm({ item_type: 'vaccination', item_name: '', species: 'all', minimum_stock: '10', unit: 'doses', notes: '' });
         loadInventory();
-      } else setError(handleAPIError(res).message);
-    } catch { setError('Failed to add item.'); }
-    finally { setAddLoading(false); }
+      } else {
+        setError(handleAPIError(res).message);
+        setShowAddModal(true);             // reopen with form data intact
+      }
+    } catch {
+      setError('Failed to add item.');
+      setShowAddModal(true);
+    } finally { setAddLoading(false); }
   };
 
   // ─── CSS ──────────────────────────────────────────────────────────────────
@@ -384,10 +410,48 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
           </Alert>
         )}
         {success && (
-          <Alert variant="success" dismissible onClose={() => setSuccess('')}
-            style={{ borderRadius: '12px', border: '2px solid #28a745', marginBottom: '1.5rem' }}>
-            <i className="fas fa-check-circle me-2" />{success}
-          </Alert>
+          <div style={{
+            position: 'fixed',
+            top: '24px',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 99999,
+            pointerEvents: 'none'
+          }}>
+            <div style={{
+              minWidth: '320px',
+              maxWidth: '480px',
+              animation: 'dropDown 0.4s ease-out',
+              pointerEvents: 'auto'
+            }}>
+              <Alert
+                variant="success"
+                dismissible
+                onClose={() => setSuccess('')}
+                style={{
+                  borderRadius: '14px',
+                  border: '2px solid #198754',
+                  background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
+                  color: '#fff',
+                  fontWeight: '600',
+                  boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem 1.25rem',
+                  marginBottom: 0
+                }}
+              >
+                <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
+                  <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
+                </div>
+              </Alert>
+            </div>
+          </div>
         )}
 
         {/* ── Stat Cards ── */}
