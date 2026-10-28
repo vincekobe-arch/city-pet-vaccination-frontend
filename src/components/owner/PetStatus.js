@@ -974,19 +974,28 @@ useEffect(() => {
       {updateSuccess && (
         <Row className="mb-4">
           <Col>
-            <Alert 
-              variant="success" 
-              dismissible 
+            <Alert
+              variant="success"
+              dismissible
               onClose={() => setUpdateSuccess('')}
               style={{
-                borderRadius: '12px',
+                borderRadius: '14px',
                 border: '2px solid #198754',
-                background: 'rgba(25, 135, 84, 0.1)',
-                color: '#198754'
+                background: 'linear-gradient(135deg, rgba(25,135,84,0.13), rgba(25,135,84,0.05))',
+                color: '#198754',
+                fontWeight: '600',
+                boxShadow: '0 4px 20px rgba(25,135,84,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '1rem 1.25rem'
               }}
             >
-              <i className="fas fa-check-circle me-2"></i>
-              {updateSuccess}
+              <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
+                <div style={{ fontSize: '0.88rem', opacity: 0.85 }}>{updateSuccess}</div>
+              </div>
             </Alert>
           </Col>
         </Row>
@@ -1826,9 +1835,12 @@ useEffect(() => {
       )}
 
       {registerSuccess && (
-        <Alert variant="success" className="mb-3">
-          <i className="fas fa-check-circle me-2"></i>
-          {registerSuccess}
+        <Alert variant="success" className="mb-3" style={{ borderRadius: '12px', border: '2px solid #198754', background: 'linear-gradient(135deg, rgba(25,135,84,0.12), rgba(25,135,84,0.06))', color: '#198754', fontWeight: '600', fontSize: '0.95rem', boxShadow: '0 4px 16px rgba(25,135,84,0.15)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <i className="fas fa-check-circle" style={{ fontSize: '1.4rem', flexShrink: 0 }}></i>
+          <div>
+            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Pet Registered Successfully!</div>
+            <div style={{ fontSize: '0.85rem', opacity: 0.85 }}>{registerSuccess}</div>
+          </div>
         </Alert>
       )}
 
