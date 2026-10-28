@@ -1088,7 +1088,8 @@ const getSelectedPet = () => {
     minWidth: '320px',
     maxWidth: '480px',
     animation: 'dropDown 0.4s ease-out',
-    pointerEvents: 'auto'
+    pointerEvents: 'auto',
+    zoom: '0.75'
   }}>
     <Alert
       variant="success"
