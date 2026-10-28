@@ -46,6 +46,25 @@ const [showDropdown, setShowDropdown] = useState(null);
   const dropdownButtonRef = useRef(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const ZOOM = 0.75;
+    // Floating notification helper (a newer message resets the timer)
+  const successTimerRef = useRef(null);
+  const showSuccess = (msg, duration = 4000) => {
+    clearTimeout(successTimerRef.current);
+    setSuccess(msg);
+    successTimerRef.current = setTimeout(() => setSuccess(''), duration);
+  };
+
+  // Blocks double submits (a ref updates instantly, unlike state)
+  const submittingRef = useRef(false);
+
+  const validateDueDate = (date, nextDue, label) => {
+    if (!nextDue) return true;
+    const d = new Date(date), nd = new Date(nextDue), today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (d.getTime() === nd.getTime()) { setError(`${label} date and next due date cannot be the same`); return false; }
+    if (nd < today) { setError('Next due date cannot be in the past'); return false; }
+    return true;
+  };
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -347,21 +366,22 @@ setInventoryDewormerItems(
     setShowDropdown(null);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!recordToDelete) return;
+    const handleDeleteConfirm = async () => {
+    if (!recordToDelete || deleteLoading) return;
+    const target = recordToDelete;
+    const permanent = filterStatus === 'trash';
     setDeleteLoading(true);
+    setShowDeleteModal(false);             // close immediately
     try {
-      if (filterStatus === 'trash') {
-        await api.delete(`/clinics/records/delete/${recordToDelete.id}/${recordToDelete.recordType}`);
-        setSuccess('Record permanently deleted.');
+      if (permanent) {
+        await api.delete(`/clinics/records/delete/${target.id}/${target.recordType}`);
+        showSuccess('Record permanently deleted.');
       } else {
-        await api.put(`/clinics/records/trash/${recordToDelete.id}/${recordToDelete.recordType}`);
-        setSuccess('Record moved to trash. It will be automatically removed after 30 days.');
+        await api.put(`/clinics/records/trash/${target.id}/${target.recordType}`);
+        showSuccess('Record moved to trash. It will be automatically removed after 30 days.', 6000);
       }
-      setShowDeleteModal(false);
       setRecordToDelete(null);
       loadData();
-      setTimeout(() => setSuccess(''), 6000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -533,71 +553,60 @@ setError('');
     return [];
   };
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormLoading(true);
+    if (submittingRef.current) return;     // block double submit
     setError('');
 
-    try {
-      if (modalMode === 'edit' && editingRecord) {
-        const type = editingRecord.recordType;
-        let payload = {};
+    const isEdit = modalMode === 'edit' && editingRecord;
+    const type = isEdit ? editingRecord.recordType : formData.record_type;
 
+    // ── Validation (modal stays open) ──
+    if (!isEdit && !formData.pet_id) {
+      setError('Pet registration number not found. Please enter a valid registration number.');
+      return;
+    }
+    if (type === 'vaccination' && !validateDueDate(formData.vaccination_date, formData.vaccination_next_due_date, 'Vaccination')) return;
+    if (type === 'deworming' && !validateDueDate(formData.deworming_date, formData.deworming_next_due_date, 'Deworming')) return;
+
+    let procedureType = '';
+    if (!isEdit && type === 'sterilization') {
+      const selectedPet = getSelectedPet();
+      procedureType = selectedPet ? (selectedPet.gender === 'female' ? 'spay' : 'neuter') : '';
+      if (!procedureType) { setError('Please select a valid pet first.'); return; }
+    }
+
+    // ── Lock + close modal immediately ──
+    submittingRef.current = true;
+    setFormLoading(true);
+    setShowModal(false);
+
+    try {
+      const { inventoryAPI } = await import('../../services/api');
+      let message = '';
+
+      if (isEdit) {
+        let payload = {};
         if (type === 'vaccination') {
-          if (formData.vaccination_next_due_date) {
-            const vd = new Date(formData.vaccination_date), nd = new Date(formData.vaccination_next_due_date), today = new Date(); today.setHours(0,0,0,0);
-            if (vd.getTime() === nd.getTime()) { setError('Vaccination date and next due date cannot be the same'); setFormLoading(false); return; }
-            if (nd < today) { setError('Next due date cannot be in the past'); setFormLoading(false); return; }
-          }
           payload = { clinic_item_id: resolvedVaccinationTypeId || null, clinic_batch_id: selectedVaccineBatch || null, vaccination_date: formData.vaccination_date, next_due_date: formData.vaccination_next_due_date || null, veterinarian_name: formData.veterinarian_name || null, weight: formData.weight ? parseFloat(formData.weight) : null, notes: formData.notes || null };
           if (selectedVaccineBatch) {
-            try {
-              const { inventoryAPI } = await import('../../services/api');
-              await inventoryAPI.deductClinicBatchStock(selectedVaccineBatch, { quantity: 1 });
-            } catch (err) { console.error('Failed to deduct clinic vaccine batch on edit:', err); }
+            try { await inventoryAPI.deductClinicBatchStock(selectedVaccineBatch, { quantity: 1 }); }
+            catch (err) { console.error('Failed to deduct clinic vaccine batch on edit:', err); }
           }
         } else if (type === 'deworming') {
-          if (formData.deworming_next_due_date) {
-            const dd = new Date(formData.deworming_date), nd = new Date(formData.deworming_next_due_date), today = new Date(); today.setHours(0,0,0,0);
-            if (dd.getTime() === nd.getTime()) { setError('Deworming date and next due date cannot be the same'); setFormLoading(false); return; }
-            if (nd < today) { setError('Next due date cannot be in the past'); setFormLoading(false); return; }
-          }
           payload = { clinic_item_id: resolvedDewormingTypeId || null, batch_id: selectedDewormingBatch || null, deworming_date: formData.deworming_date, next_due_date: formData.deworming_next_due_date || null, dosage: formData.dosage || null, veterinarian_name: formData.veterinarian_name || null, weight: formData.weight ? parseFloat(formData.weight) : null, notes: formData.notes || null };
           if (selectedDewormingBatch) {
-            try {
-              const { inventoryAPI } = await import('../../services/api');
-              await inventoryAPI.deductClinicBatchStock(selectedDewormingBatch, { quantity: 1 });
-            } catch (err) { console.error('Failed to deduct clinic dewormer batch on edit:', err); }
+            try { await inventoryAPI.deductClinicBatchStock(selectedDewormingBatch, { quantity: 1 }); }
+            catch (err) { console.error('Failed to deduct clinic dewormer batch on edit:', err); }
           }
         } else if (type === 'sterilization') {
           payload = { sterilization_date: formData.sterilization_date, veterinarian_name: formData.veterinarian_name || null, weight: formData.weight ? parseFloat(formData.weight) : null };
         } else if (type === 'microchip') {
           payload = { implant_date: formData.implant_date, implant_site: formData.implant_site || null, microchip_brand: formData.microchip_brand || null, veterinarian_name: formData.veterinarian_name || null, weight: formData.weight ? parseFloat(formData.weight) : null, notes: formData.notes || null };
         }
-
         await (type === 'microchip' ? microchipAPI.update(editingRecord.id, payload) : clinicAPI.updateRecord(editingRecord.id, type, payload));
-        setSuccess('Record updated successfully!');
-        handleCloseModal();
-        loadData();
-        setTimeout(() => setSuccess(''), 5000);
-        return;
-      }
-
-      // CREATE mode
-      if (!formData.pet_id) {
-        setError('Pet registration number not found. Please enter a valid registration number.');
-        setFormLoading(false);
-        return;
-      }
-
-      if (formData.record_type === 'vaccination') {
-        if (formData.vaccination_next_due_date) {
-          const vacDate = new Date(formData.vaccination_date);
-          const nextDueDate = new Date(formData.vaccination_next_due_date);
-          const today = new Date(); today.setHours(0, 0, 0, 0);
-          if (vacDate.getTime() === nextDueDate.getTime()) { setError('Vaccination date and next due date cannot be the same'); setFormLoading(false); return; }
-          if (nextDueDate < today) { setError('Next due date cannot be in the past'); setFormLoading(false); return; }
-        }
+        message = 'Record updated successfully!';
+      } else if (type === 'vaccination') {
         const response = await vaccinationAPI.create({
           pet_id: parseInt(formData.pet_id),
           vaccination_type_id: null,
@@ -611,20 +620,11 @@ setError('');
           administered_by: user.id
         });
         if (selectedVaccineBatch) {
-          try {
-            const { inventoryAPI } = await import('../../services/api');
-            await inventoryAPI.deductClinicBatchStock(selectedVaccineBatch, { quantity: 1 });
-          } catch (err) { console.error('Failed to deduct clinic vaccine batch:', err); }
+          try { await inventoryAPI.deductClinicBatchStock(selectedVaccineBatch, { quantity: 1 }); }
+          catch (err) { console.error('Failed to deduct clinic vaccine batch:', err); }
         }
-        setSuccess(response.data.message || 'Vaccination record added successfully!');
-      } else if (formData.record_type === 'deworming') {
-        if (formData.deworming_next_due_date) {
-          const dewDate = new Date(formData.deworming_date);
-          const nextDueDate = new Date(formData.deworming_next_due_date);
-          const today = new Date(); today.setHours(0, 0, 0, 0);
-          if (dewDate.getTime() === nextDueDate.getTime()) { setError('Deworming date and next due date cannot be the same'); setFormLoading(false); return; }
-          if (nextDueDate < today) { setError('Next due date cannot be in the past'); setFormLoading(false); return; }
-        }
+        message = response.data.message || 'Vaccination record added successfully!';
+      } else if (type === 'deworming') {
         const response = await dewormingAPI.create({
           pet_id: parseInt(formData.pet_id),
           deworming_type_id: null,
@@ -638,11 +638,8 @@ setError('');
           notes: formData.notes || null,
           administered_by: user.id
         });
-        setSuccess(response.data.message || 'Deworming record added successfully!');
-      } else if (formData.record_type === 'sterilization') {
-        const selectedPet = getSelectedPet();
-        const procedureType = selectedPet ? (selectedPet.gender === 'female' ? 'spay' : 'neuter') : '';
-        if (!procedureType) { setError('Please select a valid pet first.'); setFormLoading(false); return; }
+        message = response.data.message || 'Deworming record added successfully!';
+      } else if (type === 'sterilization') {
         const response = await sterilizationAPI.create({
           pet_id: parseInt(formData.pet_id),
           procedure_type: procedureType,
@@ -651,8 +648,8 @@ setError('');
           weight: formData.weight ? parseFloat(formData.weight) : null,
           administered_by: user.id
         });
-        setSuccess(response.data.message || 'Sterilization record added successfully!');
-      } else if (formData.record_type === 'microchip') {
+        message = response.data.message || 'Sterilization record added successfully!';
+      } else if (type === 'microchip') {
         const response = await microchipAPI.create({
           pet_id: parseInt(formData.pet_id),
           microchip_number: formData.microchip_number,
@@ -666,17 +663,15 @@ setError('');
           clinic_batch_id: selectedMicrochipBatch || null
         });
         if (selectedMicrochipBatch) {
-          try {
-            const { inventoryAPI } = await import('../../services/api');
-            await inventoryAPI.deductClinicBatchStock(selectedMicrochipBatch, { quantity: 1 });
-          } catch (err) { console.error('Failed to deduct clinic microchip batch:', err); }
+          try { await inventoryAPI.deductClinicBatchStock(selectedMicrochipBatch, { quantity: 1 }); }
+          catch (err) { console.error('Failed to deduct clinic microchip batch:', err); }
         }
-        setSuccess(response.data.message || 'Microchip record added successfully!');
+        message = response.data.message || 'Microchip record added successfully!';
       }
 
-      handleCloseModal();
+      showSuccess(message);
+      handleCloseModal();                  // reset form state only after success
       loadData();
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       const { message, data } = handleAPIError(err);
       if (data && data.details) {
@@ -692,7 +687,9 @@ setError('');
       } else {
         setError(message);
       }
+      setShowModal(true);                  // reopen with the form data intact
     } finally {
+      submittingRef.current = false;
       setFormLoading(false);
     }
   };
@@ -783,16 +780,16 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
     setShowDropdown(null);
   };
 
-  const handleRestoreConfirm = async () => {
-    if (!recordToRestore) return;
+    const handleRestoreConfirm = async () => {
+    if (!recordToRestore || restoreLoading) return;
+    const target = recordToRestore;
     setRestoreLoading(true);
+    setShowRestoreModal(false);            // close immediately
     try {
-      await api.put(`/clinics/records/restore/${recordToRestore.id}/${recordToRestore.recordType}`);
-      setSuccess('Record restored successfully!');
-      setShowRestoreModal(false);
+      await api.put(`/clinics/records/restore/${target.id}/${target.recordType}`);
+      showSuccess('Record restored successfully!');
       setRecordToRestore(null);
       loadData();
-      setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -850,13 +847,48 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
         )}
 
         {success && (
-          <Row className="mb-4">
-            <Col>
-              <Alert variant="success" dismissible onClose={() => setSuccess('')} style={{ borderRadius: '12px', border: '2px solid #28a745', background: 'rgba(40, 167, 69, 0.1)', color: '#28a745' }}>
-                <i className="fas fa-check-circle me-2"></i>{success}
+          <div style={{
+            position: 'fixed',
+            top: '24px',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 99999,
+            pointerEvents: 'none'
+          }}>
+            <div style={{
+              minWidth: '320px',
+              maxWidth: '480px',
+              animation: 'dropDown 0.4s ease-out',
+              pointerEvents: 'auto'
+            }}>
+              <Alert
+                variant="success"
+                dismissible
+                onClose={() => setSuccess('')}
+                style={{
+                  borderRadius: '14px',
+                  border: '2px solid #198754',
+                  background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
+                  color: '#fff',
+                  fontWeight: '600',
+                  boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem 1.25rem',
+                  marginBottom: 0
+                }}
+              >
+                <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
+                  <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
+                </div>
               </Alert>
-            </Col>
-          </Row>
+            </div>
+          </div>
         )}
 
         {/* Stats Cards */}
