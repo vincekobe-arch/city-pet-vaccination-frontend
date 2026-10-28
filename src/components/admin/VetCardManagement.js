@@ -425,7 +425,7 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
 </Row>
 
       {/* Pets WITH Vet Cards */}
-      {petsWithCards.length > 0 && (
+      {(loading || petsWithCards.length > 0) && (
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
           <Col>
             <Card 
@@ -464,7 +464,44 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
                       </tr>
                     </thead>
                     <tbody>
-  {paginatedPetsWithCards.map((pet) => (
+  {loading ? (
+    Array.from({ length: itemsPerPage }).map((_, i) => (
+      <tr key={`skel-${i}`}>
+        <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+            <div className="skeleton" style={{ width: '40px', height: '40px', borderRadius: '8px' }} />
+            <div className="skeleton" style={{ width: '60px', height: '10px' }} />
+          </div>
+        </td>
+        <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+            <div className="skeleton" style={{ width: '80px', height: '13px' }} />
+            <div className="skeleton" style={{ width: '100px', height: '10px' }} />
+          </div>
+        </td>
+        <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="skeleton" style={{ width: '60px', height: '13px' }} />
+          </div>
+        </td>
+        <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="skeleton" style={{ width: '30px', height: '13px' }} />
+          </div>
+        </td>
+        <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="skeleton" style={{ width: '30px', height: '13px' }} />
+          </div>
+        </td>
+        <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+          </div>
+        </td>
+      </tr>
+    ))
+  ) : paginatedPetsWithCards.map((pet) => (
                         <tr 
                           key={pet.id}
                           style={{
@@ -558,8 +595,9 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
                             </Button>
                           </td>
                         </tr>
-                      ))}
-                      {Array.from({ length: emptyRows }).map((_, index) => (
+                      ))
+                      }
+                      {!loading && Array.from({ length: emptyRows }).map((_, index) => (
   <tr key={`empty-${index}`} className="empty-row" style={{ pointerEvents: 'none' }}>
     <td style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
     <td style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
