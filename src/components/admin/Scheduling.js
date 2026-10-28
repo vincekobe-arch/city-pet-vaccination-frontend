@@ -43,6 +43,12 @@ const [filterStatus, setFilterStatus] = useState('upcoming');
 const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
 const ZOOM = 0.75;
 
+const schedTypeChartRef    = useRef(null);
+const schedTypeChartObj    = useRef(null);
+const schedMonthlyChartRef = useRef(null);
+const schedMonthlyChartObj = useRef(null);
+const [chartJsLoaded, setChartJsLoaded] = useState(!!window.Chart);
+
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
 const itemsPerPage = 5;
@@ -130,6 +136,94 @@ const itemsPerPage = 5;
     loadVaccinationTypes();
     loadInventory();
   }, []);
+
+  useEffect(() => {
+  if (window.Chart) { setChartJsLoaded(true); return; }
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+  script.onload = () => setChartJsLoaded(true);
+  document.head.appendChild(script);
+}, []);
+
+useEffect(() => {
+  if (!chartJsLoaded || !schedTypeChartRef.current || loading) return;
+  const Chart = window.Chart;
+  if (schedTypeChartObj.current) schedTypeChartObj.current.destroy();
+
+  const labels = ['Vaccination', 'Seminar', 'Sterilization', 'Microchip', 'Other'];
+  const values = [
+    schedules.filter(s => s.type === 'vaccination').length,
+    schedules.filter(s => s.type === 'seminar').length,
+    schedules.filter(s => s.type === 'sterilization').length,
+    schedules.filter(s => s.type === 'microchip').length,
+    schedules.filter(s => s.type === 'other').length,
+  ];
+  const colors = ['#ffc107', '#6f42c1', '#28a745', '#6c757d', '#343a40'];
+
+  schedTypeChartObj.current = new Chart(schedTypeChartRef.current, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: colors, borderRadius: 8, borderSkipped: false, barThickness: 28 }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw} events` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11, weight: '600' } } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888', font: { size: 11 }, stepSize: 1 }, beginAtZero: true },
+      },
+    },
+  });
+
+  return () => { if (schedTypeChartObj.current) { schedTypeChartObj.current.destroy(); schedTypeChartObj.current = null; } };
+}, [chartJsLoaded, schedules, loading]);
+
+useEffect(() => {
+  if (!chartJsLoaded || !schedMonthlyChartRef.current || loading) return;
+  const Chart = window.Chart;
+  if (schedMonthlyChartObj.current) schedMonthlyChartObj.current.destroy();
+
+  const now = new Date();
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleString('default', { month: 'short', year: '2-digit' }) });
+  }
+
+  const countByMonth = (types) => months.map(m =>
+    schedules.filter(s => {
+      const d = new Date(s.scheduled_date);
+      return `${d.getFullYear()}-${d.getMonth()}` === m.key && (types === 'all' || types.includes(s.type));
+    }).length
+  );
+
+  schedMonthlyChartObj.current = new Chart(schedMonthlyChartRef.current, {
+    type: 'line',
+    data: {
+      labels: months.map(m => m.label),
+      datasets: [
+        { label: 'All Events',   data: countByMonth('all'),                     borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.08)',  tension: 0.4, pointBackgroundColor: '#ffc107', pointRadius: 5, fill: true, borderWidth: 2.5 },
+        { label: 'Vaccination',  data: countByMonth(['vaccination']),            borderColor: '#e00000', backgroundColor: 'rgba(224,0,0,0.06)',    tension: 0.4, pointBackgroundColor: '#e00000', pointRadius: 5, fill: true, borderWidth: 2.5 },
+        { label: 'Sterilization',data: countByMonth(['sterilization']),          borderColor: '#28a745', backgroundColor: 'rgba(40,167,69,0.06)',  tension: 0.4, pointBackgroundColor: '#28a745', pointRadius: 5, fill: true, borderWidth: 2.5 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', color: '#555', font: { size: 11, weight: '600' }, padding: 18 } },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#888', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#888', font: { size: 11 }, stepSize: 1 }, beginAtZero: true },
+      },
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
+    },
+  });
+
+  return () => { if (schedMonthlyChartObj.current) { schedMonthlyChartObj.current.destroy(); schedMonthlyChartObj.current = null; } };
+}, [chartJsLoaded, schedules, loading]);
 
   useEffect(() => {
   if (schedules.length === 0) return;
@@ -1119,29 +1213,58 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
         </Row>
       )}
 
-      {/* Statistics Cards — Charts Row */}
-<Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-  <Col md={8} className="mb-3 mb-md-0">
-    <Card className="border-0 h-100" style={{ borderRadius: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-      <div style={{ height: '3px', background: 'linear-gradient(90deg, #ffc107 0%, #6f42c1 33%, #28a745 66%, #6c757d 100%)', borderRadius: '14px 14px 0 0' }} />
-      <Card.Body style={{ padding: '1.25rem 1.5rem' }}>
-        <p style={{ fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '1rem' }}>Events by Type</p>
-        <div style={{ position: 'relative', width: '100%', height: '160px' }}>
-          <canvas id="schedTypeChart" role="img" aria-label="Bar chart showing event counts by type"></canvas>
+      {/* ── Charts Row ── */}
+<Row className="mb-4 g-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+
+  {/* Pill stats */}
+  <Col xs={12}>
+    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+      {[
+        { label: 'Total',        count: schedules.length,                                          color: '#333',    bg: '#f8f9fa',                border: '#e9ecef' },
+        { label: 'Vaccination',  count: schedules.filter(s => s.type === 'vaccination').length,   color: '#856404', bg: 'rgba(255,193,7,0.12)',   border: 'rgba(255,193,7,0.4)' },
+        { label: 'Seminar',      count: schedules.filter(s => s.type === 'seminar').length,       color: '#3d1f8a', bg: 'rgba(111,66,193,0.1)',   border: 'rgba(111,66,193,0.4)' },
+        { label: 'Sterilization',count: schedules.filter(s => s.type === 'sterilization').length, color: '#0a4f2e', bg: 'rgba(40,167,69,0.08)',   border: 'rgba(40,167,69,0.35)' },
+        { label: 'Microchip',    count: schedules.filter(s => s.type === 'microchip').length,     color: '#333',    bg: 'rgba(108,117,125,0.08)', border: 'rgba(108,117,125,0.3)' },
+        { label: 'Other',        count: schedules.filter(s => s.type === 'other').length,         color: '#333',    bg: 'rgba(52,58,64,0.07)',    border: 'rgba(52,58,64,0.25)' },
+      ].map(s => (
+        <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 1rem', borderRadius: '40px', background: s.bg, border: `1.5px solid ${s.border}` }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
+          <span style={{ fontSize: '1.1rem', fontWeight: '800', color: s.color, lineHeight: 1 }}>{loading ? '—' : s.count}</span>
         </div>
-      </Card.Body>
+      ))}
+    </div>
+  </Col>
+
+  {/* Bar chart — Events by Type */}
+  <Col md={5}>
+    <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+      <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <i className="fas fa-chart-bar" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
+        <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Events by Type</span>
+      </div>
+      <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
+        {loading
+          ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
+          : <canvas ref={schedTypeChartRef} />
+        }
+      </div>
     </Card>
   </Col>
 
-  <Col md={4}>
-    <Card className="border-0 h-100" style={{ borderRadius: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-      <div style={{ height: '3px', background: 'linear-gradient(90deg, #007bff 0%, #28a745 50%, #ffc107 100%)', borderRadius: '14px 14px 0 0' }} />
-      <Card.Body style={{ padding: '1.25rem 1.5rem' }}>
-        <p style={{ fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '1rem' }}>Status Breakdown</p>
-        <div style={{ position: 'relative', width: '100%', height: '160px' }}>
-          <canvas id="schedStatusChart" role="img" aria-label="Doughnut chart showing schedule status breakdown"></canvas>
-        </div>
-      </Card.Body>
+  {/* Line chart — Monthly Trend */}
+  <Col md={7}>
+    <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+      <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <i className="fas fa-chart-line" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
+        <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Monthly Event Trend</span>
+        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#aaa', fontWeight: '500' }}>Last 6 months</span>
+      </div>
+      <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
+        {loading
+          ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
+          : <canvas ref={schedMonthlyChartRef} />
+        }
+      </div>
     </Card>
   </Col>
 </Row>
