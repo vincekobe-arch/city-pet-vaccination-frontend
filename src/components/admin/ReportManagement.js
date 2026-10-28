@@ -517,39 +517,44 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
           <div style={{
             position: 'fixed',
             top: '24px',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
             zIndex: 99999,
-            minWidth: '320px',
-            maxWidth: '480px',
-            animation: 'dropDown 0.4s ease-out',
-            pointerEvents: 'auto',
-            zoom: '0.75'
+            pointerEvents: 'none'
           }}>
-            <Alert
-              variant="success"
-              dismissible
-              onClose={() => setSuccess('')}
-              style={{
-                borderRadius: '14px',
-                border: '2px solid #198754',
-                background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-                color: '#fff',
-                fontWeight: '600',
-                boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '1rem 1.25rem',
-                marginBottom: 0
-              }}
-            >
-              <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-              <div>
-                <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
-                <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
-              </div>
-            </Alert>
+            <div style={{
+              minWidth: '320px',
+              maxWidth: '480px',
+              animation: 'dropDown 0.4s ease-out',
+              pointerEvents: 'auto'
+            }}>
+              <Alert
+                variant="success"
+                dismissible
+                onClose={() => setSuccess('')}
+                style={{
+                  borderRadius: '14px',
+                  border: '2px solid #198754',
+                  background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
+                  color: '#fff',
+                  fontWeight: '600',
+                  boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem 1.25rem',
+                  marginBottom: 0
+                }}
+              >
+                <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
+                  <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
+                </div>
+              </Alert>
+            </div>
           </div>
         )}
 
@@ -1228,7 +1233,7 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
             minWidth: '200px',
             zIndex: 1050,
             overflow: 'hidden',
-            zoom: '0.75',
+      
           }}>
             {(() => {
               const report = reports.find(r => r.id === showDropdown);

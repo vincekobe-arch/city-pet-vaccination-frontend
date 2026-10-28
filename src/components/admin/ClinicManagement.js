@@ -252,6 +252,14 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const ZOOM = 0.75;
 
+    // Floating notification helper (resets timer so older timeouts don't hide newer messages)
+  const successTimerRef = useRef(null);
+  const showSuccess = (msg, duration = 3000) => {
+    clearTimeout(successTimerRef.current);
+    setSuccess(msg);
+    successTimerRef.current = setTimeout(() => setSuccess(''), duration);
+  };
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -445,11 +453,13 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     setShowDeleteModal(true);
   };
 
-  const handleSubmitAdd = async (e) => {
+    const handleSubmitAdd = async (e) => {
     e.preventDefault();
+    if (formLoading) return;               // block double submit
     if (!validateAddForm()) return;
     setFormLoading(true);
     setFormError('');
+    setShowAddModal(false);                // close immediately
     try {
       const submitData = {
         ...formData,
@@ -459,17 +469,17 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
       };
       const response = await clinicAPI.create(submitData);
       if (response.data && response.data.success) {
-        setSuccess(`Clinic "${formData.clinic_name}" added successfully! Username: ${formData.username} | Default password: clinic123`);
-        setShowAddModal(false);
+        showSuccess(`Clinic "${formData.clinic_name}" added successfully! Username: ${formData.username} | Default password: clinic123`, 6000);
         resetForm();
         loadData();
-        setTimeout(() => setSuccess(''), 6000);
       } else {
         setFormError(response.data?.error || 'Failed to create clinic. Please try again.');
+        setShowAddModal(true);             // reopen with data intact so user can fix it
       }
     } catch (err) {
       const { message } = handleAPIError(err);
       setFormError(message);
+      setShowAddModal(true);
     } finally {
       setFormLoading(false);
     }
@@ -477,9 +487,11 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
 
   const handleSubmitEdit = async (e) => {
     e.preventDefault();
+    if (formLoading) return;
     if (!validateEditForm()) return;
     setFormLoading(true);
     setFormError('');
+    setShowEditModal(false);               // close immediately
     try {
       const updateData = {
         clinic_name: formData.clinic_name,
@@ -493,28 +505,28 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
         specialization: formData.specialization
       };
       await clinicAPI.update(selectedClinic.id, updateData);
-      setSuccess('Clinic updated successfully!');
-      setShowEditModal(false);
+      showSuccess('Clinic updated successfully!');
       resetForm();
       setSelectedClinic(null);
       loadData();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setFormError(message);
+      setShowEditModal(true);              // reopen so changes aren't lost
     } finally {
       setFormLoading(false);
     }
   };
 
   const handleConfirmDelete = async () => {
+    if (formLoading) return;
     setFormLoading(true);
+    setShowDeleteModal(false);             // close immediately
     try {
       await clinicAPI.delete(selectedClinic.id);
-      setSuccess('Clinic deactivated successfully!');
-      setShowDeleteModal(false);
+      showSuccess('Clinic deactivated successfully!');
+      setSelectedClinic(null);
       loadData();
-      setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -524,27 +536,22 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   };
 
   const handleRestoreClinic = async (clinic) => {
-  setFormLoading(true);
-
-  try {
-    await clinicAPI.restore(clinic.id);
-
-    setSuccess('Clinic restored successfully!');
-
-    setShowRestoreModal(false);
-setSelectedClinic(null);
-setShowDropdown(null); // ← closes ellipsis dropdown
-
-    loadData();
-
-    setTimeout(() => setSuccess(''), 3000);
-  } catch (err) {
-    const { message } = handleAPIError(err);
-    setError(message);
-  } finally {
-    setFormLoading(false);
-  }
-};
+    if (formLoading) return;
+    setFormLoading(true);
+    setShowRestoreModal(false);            // close immediately
+    setShowDropdown(null);
+    try {
+      await clinicAPI.restore(clinic.id);
+      showSuccess('Clinic restored successfully!');
+      setSelectedClinic(null);
+      loadData();
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   // Unique specializations for filter dropdown
   const specializations = [...new Set(clinics.map(c => c.specialization).filter(Boolean))];
@@ -668,14 +675,48 @@ setShowDropdown(null); // ← closes ellipsis dropdown
           </Row>
         )}
         {success && (
-          <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-            <Col>
-              <Alert variant="success" dismissible onClose={() => setSuccess('')}
-                style={{ borderRadius: '12px', border: '2px solid #198754', background: 'rgba(25,135,84,0.1)', color: '#198754' }}>
-                <i className="fas fa-check-circle me-2"></i>{success}
+          <div style={{
+            position: 'fixed',
+            top: '24px',
+            left: 0,
+            right: 0,
+            display: 'flex',
+            justifyContent: 'center',
+            zIndex: 99999,
+            pointerEvents: 'none'
+          }}>
+            <div style={{
+              minWidth: '320px',
+              maxWidth: '480px',
+              animation: 'dropDown 0.4s ease-out',
+              pointerEvents: 'auto'
+            }}>
+              <Alert
+                variant="success"
+                dismissible
+                onClose={() => setSuccess('')}
+                style={{
+                  borderRadius: '14px',
+                  border: '2px solid #198754',
+                  background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
+                  color: '#fff',
+                  fontWeight: '600',
+                  boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '1rem 1.25rem',
+                  marginBottom: 0
+                }}
+              >
+                <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
+                  <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
+                </div>
               </Alert>
-            </Col>
-          </Row>
+            </div>
+          </div>
         )}
 
         {/* ── Stat Cards ── */}
@@ -1849,6 +1890,7 @@ setShowDropdown(null); // ← closes ellipsis dropdown
                     </>
                   ) : (
                     <button onClick={() => {
+  setShowDropdown(null);
   setSelectedClinic(clinic);
   setShowRestoreModal(true);
 }}
