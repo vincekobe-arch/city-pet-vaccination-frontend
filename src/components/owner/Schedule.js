@@ -65,6 +65,7 @@ const [showDropdown, setShowDropdown] = useState(null);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerError, setRegisterError] = useState('');
   const [registerSuccess, setRegisterSuccess] = useState('');
+const [floatingSuccess, setFloatingSuccess] = useState('');
   const [compatiblePets, setCompatiblePets] = useState([]);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [petToCancel, setPetToCancel] = useState(null);
@@ -1031,14 +1032,12 @@ const confirmCancelVaccine = async () => {
         pets: registeredPetsSummary
       });
 
-      setRegisterSuccess(`Successfully registered for ${scheduleType}!`);
+      setFloatingSuccess(`Successfully registered for ${scheduleType}!`);
       await loadData();
-      
-      setTimeout(() => {
-        setShowRegisterModal(false);
-        setRegisterSuccess('');
-        setShowConfirmRegistrationModal(true);
-      }, 1000);
+      setShowRegisterModal(false);
+      setRegisterSuccess('');
+      setShowConfirmRegistrationModal(true);
+      setTimeout(() => setFloatingSuccess(''), 4000);
       
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -1113,6 +1112,45 @@ const getVaccineDetails = (schedule) => {
     <>
       <style>{styles}</style>
       <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
+      {floatingSuccess && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 99999,
+          minWidth: '320px',
+          maxWidth: '480px',
+          animation: 'dropDown 0.4s ease-out',
+          pointerEvents: 'auto'
+        }}>
+          <Alert
+            variant="success"
+            dismissible
+            onClose={() => setFloatingSuccess('')}
+            style={{
+              borderRadius: '14px',
+              border: '2px solid #198754',
+              background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
+              color: '#fff',
+              fontWeight: '600',
+              boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '1rem 1.25rem',
+              marginBottom: 0
+            }}
+          >
+            <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '1rem' }}>Registered!</div>
+              <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{floatingSuccess}</div>
+            </div>
+          </Alert>
+        </div>
+      )}
+
       <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
         <Col>
           <div>
