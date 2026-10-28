@@ -1216,24 +1216,6 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       {/* ── Charts Row ── */}
 <Row className="mb-4 g-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
 
-  {/* Pill stats */}
-  <Col xs={12}>
-    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-      {[
-        { label: 'Total',        count: schedules.length,                                          color: '#333',    bg: '#f8f9fa',                border: '#e9ecef' },
-        { label: 'Vaccination',  count: schedules.filter(s => s.type === 'vaccination').length,   color: '#856404', bg: 'rgba(255,193,7,0.12)',   border: 'rgba(255,193,7,0.4)' },
-        { label: 'Seminar',      count: schedules.filter(s => s.type === 'seminar').length,       color: '#3d1f8a', bg: 'rgba(111,66,193,0.1)',   border: 'rgba(111,66,193,0.4)' },
-        { label: 'Sterilization',count: schedules.filter(s => s.type === 'sterilization').length, color: '#0a4f2e', bg: 'rgba(40,167,69,0.08)',   border: 'rgba(40,167,69,0.35)' },
-        { label: 'Microchip',    count: schedules.filter(s => s.type === 'microchip').length,     color: '#333',    bg: 'rgba(108,117,125,0.08)', border: 'rgba(108,117,125,0.3)' },
-        { label: 'Other',        count: schedules.filter(s => s.type === 'other').length,         color: '#333',    bg: 'rgba(52,58,64,0.07)',    border: 'rgba(52,58,64,0.25)' },
-      ].map(s => (
-        <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 1rem', borderRadius: '40px', background: s.bg, border: `1.5px solid ${s.border}` }}>
-          <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
-          <span style={{ fontSize: '1.1rem', fontWeight: '800', color: s.color, lineHeight: 1 }}>{loading ? '—' : s.count}</span>
-        </div>
-      ))}
-    </div>
-  </Col>
 
   {/* Bar chart — Events by Type */}
   <Col md={5}>
