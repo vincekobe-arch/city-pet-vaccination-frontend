@@ -154,6 +154,9 @@ const AdminOwnerManagement = () => {
     }
   };
 
+  const activeOwners = owners.filter(o => o.is_active);
+  const totalPets = pets.length;
+
   useEffect(() => {
     if (loading || hasAnimated) return;
     const avgVal = activeOwners.length > 0 ? parseFloat((totalPets / activeOwners.length).toFixed(1)) : 0;
@@ -285,8 +288,6 @@ const AdminOwnerManagement = () => {
     }
   };
 
-  const activeOwners = owners.filter(o => o.is_active);
-  const totalPets = pets.length;
 
   const filteredOwners = owners.filter(owner => {
     const searchLower = searchTerm.toLowerCase();
