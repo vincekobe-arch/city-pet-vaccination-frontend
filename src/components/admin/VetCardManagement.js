@@ -81,31 +81,6 @@ const user = getUser();
     loadData();
   }, []);
 
-  useEffect(() => {
-  if (loading || hasAnimated) return;
-  const targets = {
-    totalVetCards: parseInt(totalVetCards) || 0,
-    withoutCards: petsWithoutCards.length || 0,
-    coverage: parseInt(averagePercentage) || 0,
-  };
-  if (Object.values(targets).every(v => v === 0)) return;
-  setHasAnimated(true);
-  const duration = 1200;
-  const steps = 40;
-  let step = 0;
-  const timer = setInterval(() => {
-    step++;
-    const t = step >= steps ? 1 : step / steps;
-    setDisplayCounts({
-      totalVetCards: step >= steps ? targets.totalVetCards : Math.round(t * targets.totalVetCards),
-      withoutCards:  step >= steps ? targets.withoutCards  : Math.round(t * targets.withoutCards),
-      coverage:      step >= steps ? targets.coverage      : Math.round(t * targets.coverage),
-    });
-    if (step >= steps) clearInterval(timer);
-  }, duration / steps);
-  return () => clearInterval(timer);
-}, [loading, totalVetCards, petsWithoutCards.length, averagePercentage]);
-
 const loadData = async () => {
     try {
       setLoading(true);
@@ -165,6 +140,31 @@ const loadData = async () => {
   const totalPets = pets.length;
   const totalVetCards = petsWithCards.length;
   const averagePercentage = totalPets > 0 ? ((totalVetCards / totalPets) * 100).toFixed(0) : 0;
+
+  useEffect(() => {
+  if (loading || hasAnimated) return;
+  const targets = {
+    totalVetCards: parseInt(totalVetCards) || 0,
+    withoutCards: petsWithoutCards.length || 0,
+    coverage: parseInt(averagePercentage) || 0,
+  };
+  if (Object.values(targets).every(v => v === 0)) return;
+  setHasAnimated(true);
+  const duration = 1200;
+  const steps = 40;
+  let step = 0;
+  const timer = setInterval(() => {
+    step++;
+    const t = step >= steps ? 1 : step / steps;
+    setDisplayCounts({
+      totalVetCards: step >= steps ? targets.totalVetCards : Math.round(t * targets.totalVetCards),
+      withoutCards:  step >= steps ? targets.withoutCards  : Math.round(t * targets.withoutCards),
+      coverage:      step >= steps ? targets.coverage      : Math.round(t * targets.coverage),
+    });
+    if (step >= steps) clearInterval(timer);
+  }, duration / steps);
+  return () => clearInterval(timer);
+}, [loading, totalVetCards, petsWithoutCards.length, averagePercentage]);
 
   // Pagination calculations
 const totalPages = Math.ceil(petsWithCards.length / itemsPerPage);
