@@ -51,6 +51,14 @@ const PetStatus = () => {
   const [registerSuccess, setRegisterSuccess] = useState('');
   const [showDropdown, setShowDropdown] = useState(null);
   const [petWithRecords, setPetWithRecords] = useState(new Set());
+  const [activeTab, setActiveTab] = useState('active'); // 'active' | 'trash'
+  const [trashedPets, setTrashedPets] = useState([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [trashPage, setTrashPage] = useState(1);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showForceDeleteModal, setShowForceDeleteModal] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [forceDeleteLoading, setForceDeleteLoading] = useState(false);
 const [petVetCards, setPetVetCards] = useState([]);
 const [qrDataURL, setQrDataURL] = useState('');
 const [qrLoading, setQrLoading] = useState(false);
@@ -119,6 +127,72 @@ const cropAnimRef = useRef(null);
     return 'Sterilized by:';
   };
 
+    const getDaysUntilPermanentDelete = (deletedAt) => {
+    if (!deletedAt) return null;
+    const deleted = new Date(deletedAt);
+    const expiry = new Date(deleted.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const diff = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+    return Math.max(0, diff);
+  };
+
+  const loadTrash = async () => {
+    try {
+      setTrashLoading(true);
+      const res = await petAPI.trash();
+      setTrashedPets(res.data.pets || []);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setTrashLoading(false);
+    }
+  };
+
+  const handleRestorePet = (pet) => {
+    setSelectedPet(pet);
+    setShowRestoreModal(true);
+  };
+
+  const confirmRestorePet = async () => {
+    setRestoreLoading(true);
+    try {
+      await petAPI.restore(selectedPet.id);
+      await loadPets();
+      await loadTrash();
+      setShowRestoreModal(false);
+      setUpdateSuccess(`${selectedPet.name} has been restored successfully.`);
+      setTimeout(() => setUpdateSuccess(''), 3000);
+      setActiveTab('active');
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setRestoreLoading(false);
+    }
+  };
+
+  const handleForceDeletePet = (pet) => {
+    setSelectedPet(pet);
+    setShowForceDeleteModal(true);
+  };
+
+  const confirmForceDeletePet = async () => {
+    setForceDeleteLoading(true);
+    try {
+      await petAPI.forceDelete(selectedPet.id);
+      await loadTrash();
+      setShowForceDeleteModal(false);
+      setUpdateSuccess(`${selectedPet.name} has been permanently deleted.`);
+      setTimeout(() => setUpdateSuccess(''), 3000);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setForceDeleteLoading(false);
+    }
+  };
+
   const checkPetHasRecords = (pet) => {
   const hasVaccinations = pet.vaccination_count && pet.vaccination_count > 0;
   const hasSterilization = pet.sterilized === 1 || pet.sterilized === true;
@@ -129,6 +203,7 @@ const cropAnimRef = useRef(null);
   useEffect(() => {
     loadPets();
     fetchOwnerId();
+    loadTrash();
   }, []);
  
 useEffect(() => {
@@ -757,7 +832,7 @@ useEffect(() => {
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <div>
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
+              <div className="d-flex align-items-center" style={{ gap: '0.75rem' }}>
                 <i 
                   className="fas fa-paw" 
                   style={{ 
@@ -767,7 +842,86 @@ useEffect(() => {
                   }}
                 ></i>
                 <h2 className="mobile-page-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>My Pets</h2>
-                
+                {/* Tab Dropdown */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setShowDropdown(showDropdown === 'tab' ? null : 'tab')}
+                    style={{
+                      background: activeTab === 'trash' ? '#dc3545' : '#f0f0f0',
+                      border: 'none',
+                      borderRadius: '20px',
+                      padding: '0.3rem 0.85rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.82rem',
+                      fontWeight: '700',
+                      color: activeTab === 'trash' ? '#fff' : '#555',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    {activeTab === 'active' ? (
+                      <><i className="fas fa-check-circle" style={{ color: '#198754' }}></i> Active</>
+                    ) : (
+                      <><i className="fas fa-trash"></i> Trash {trashedPets.length > 0 && <span style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '10px', padding: '0 5px' }}>{trashedPets.length}</span>}</>
+                    )}
+                    <i className="fas fa-chevron-down" style={{ fontSize: '0.65rem', opacity: 0.7 }}></i>
+                  </button>
+
+                  {showDropdown === 'tab' && (
+                    <>
+                      <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+                      <div style={{
+                        position: 'absolute',
+                        top: '110%',
+                        left: 0,
+                        background: '#fff',
+                        border: '1px solid #e0e0e0',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        minWidth: '150px',
+                        zIndex: 1000,
+                        overflow: 'hidden'
+                      }}>
+                        <button
+                          onClick={() => { setActiveTab('active'); setShowDropdown(null); setCurrentPage(1); }}
+                          style={{
+                            width: '100%', padding: '0.75rem 1rem', border: 'none',
+                            background: activeTab === 'active' ? '#f0fdf4' : '#fff',
+                            textAlign: 'left', cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem',
+                            color: activeTab === 'active' ? '#198754' : '#333',
+                            fontWeight: activeTab === 'active' ? '700' : '500'
+                          }}
+                        >
+                          <i className="fas fa-check-circle" style={{ color: '#198754', width: '16px' }}></i>
+                          Active
+                          <span style={{ marginLeft: 'auto', background: '#e8f5e9', color: '#198754', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: '700' }}>{pets.length}</span>
+                        </button>
+                        <button
+                          onClick={() => { setActiveTab('trash'); setShowDropdown(null); setTrashPage(1); loadTrash(); }}
+                          style={{
+                            width: '100%', padding: '0.75rem 1rem', border: 'none',
+                            borderTop: '1px solid #f0f0f0',
+                            background: activeTab === 'trash' ? '#fff5f5' : '#fff',
+                            textAlign: 'left', cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem',
+                            color: activeTab === 'trash' ? '#dc3545' : '#333',
+                            fontWeight: activeTab === 'trash' ? '700' : '500'
+                          }}
+                        >
+                          <i className="fas fa-trash" style={{ color: '#dc3545', width: '16px' }}></i>
+                          Trash
+                          {trashedPets.length > 0 && (
+                            <span style={{ marginLeft: 'auto', background: '#fde8e8', color: '#dc3545', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: '700' }}>{trashedPets.length}</span>
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
               
             </div>
@@ -1481,6 +1635,172 @@ useEffect(() => {
         )}
         </>
       )}
+
+      {/* ===== TRASH VIEW ===== */}
+      {activeTab === 'trash' && (
+        <>
+          {trashLoading ? (
+            <Row style={{ flex: '1 1 auto' }}>
+              <Col className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
+                <Spinner animation="border" style={{ color: '#dc3545', width: '3rem', height: '3rem' }} />
+              </Col>
+            </Row>
+          ) : trashedPets.length === 0 ? (
+            <Row style={{ flex: '1 1 auto' }}>
+              <Col>
+                <Card className="text-center py-5 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+                  <Card.Body>
+                    <i className="fas fa-trash text-muted mb-3" style={{ fontSize: '3.5rem', color: '#e0e0e0' }}></i>
+                    <h4 className="text-muted mb-2">Trash is Empty</h4>
+                    <p className="text-muted mb-0">Removed pets will appear here for 30 days before being permanently deleted.</p>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          ) : (
+            <>
+              <div className="mb-3 px-1">
+                <small style={{ color: '#dc3545', fontWeight: '600' }}>
+                  <i className="fas fa-info-circle me-1"></i>
+                  Pets in trash are automatically permanently deleted after 30 days.
+                </small>
+              </div>
+              <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
+                {trashedPets.slice((trashPage - 1) * itemsPerPage, trashPage * itemsPerPage).map((pet, index) => {
+                  const daysLeft = getDaysUntilPermanentDelete(pet.deleted_at);
+                  return (
+                    <Col key={pet.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + index * 0.08}s backwards` }}>
+                      <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(220,53,69,0.1)', opacity: 0.88, overflow: 'hidden' }}>
+                        <Card.Header className="d-flex align-items-center" style={{ background: 'linear-gradient(135deg, #fff5f5 0%, #fde8e8 100%)', borderBottom: '2px solid #dc3545', borderRadius: '20px 20px 0 0' }}>
+                          <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0, overflow: 'hidden' }}>
+                            <img src={getPetImage(pet.species, pet.photo_url)} alt={pet.species} style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '12px', filter: 'grayscale(60%)' }} onError={(e) => e.target.src = '/pet-default.png'} />
+                          </div>
+                          <div className="flex-grow-1">
+                            <h5 className="mb-0" style={{ fontWeight: '700', color: '#555', textDecoration: 'line-through' }}>{pet.name}</h5>
+                            <small className="text-muted" style={{ fontSize: '0.8rem' }}>
+                              <i className="fas fa-id-card me-1"></i>{pet.registration_number}
+                            </small>
+                          </div>
+                          <Badge bg={daysLeft <= 5 ? 'danger' : daysLeft <= 10 ? 'warning' : 'secondary'} style={{ fontSize: '0.7rem' }}>
+                            {daysLeft}d left
+                          </Badge>
+                        </Card.Header>
+                        <Card.Body style={{ padding: '1.25rem' }}>
+                          <Row className="mb-2">
+                            <Col xs={6}>
+                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Species</small>
+                              <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.species}</div>
+                            </Col>
+                            <Col xs={6}>
+                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Breed</small>
+                              <div style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.breed || 'Mixed'}</div>
+                            </Col>
+                          </Row>
+                          <Row className="mb-3">
+                            <Col xs={6}>
+                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Gender</small>
+                              <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.gender}</div>
+                            </Col>
+                            <Col xs={6}>
+                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Deleted</small>
+                              <div style={{ fontWeight: '600', color: '#dc3545', fontSize: '0.82rem' }}>{pet.deleted_at ? new Date(pet.deleted_at).toLocaleDateString() : '—'}</div>
+                            </Col>
+                          </Row>
+                          <div className="d-flex gap-2">
+                            <button
+                              onClick={() => handleRestorePet(pet)}
+                              style={{ flex: 1, background: '#198754', border: 'none', borderRadius: '8px', padding: '0.55rem', color: '#fff', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.background = '#157347'}
+                              onMouseOut={(e) => e.currentTarget.style.background = '#198754'}
+                            >
+                              <i className="fas fa-undo me-1"></i>Restore
+                            </button>
+                            <button
+                              onClick={() => handleForceDeletePet(pet)}
+                              style={{ flex: 1, background: '#dc3545', border: 'none', borderRadius: '8px', padding: '0.55rem', color: '#fff', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.background = '#bb2d3b'}
+                              onMouseOut={(e) => e.currentTarget.style.background = '#dc3545'}
+                            >
+                              <i className="fas fa-times me-1"></i>Delete Forever
+                            </button>
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  );
+                })}
+              </Row>
+              {trashedPets.length > itemsPerPage && (
+                <Row className="mt-4">
+                  <Col className="d-flex justify-content-between align-items-center">
+                    <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
+                      Page <strong>{trashPage}</strong> of <strong>{Math.ceil(trashedPets.length / itemsPerPage)}</strong>
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => setTrashPage(p => Math.max(p - 1, 1))} disabled={trashPage === 1} style={{ background: trashPage === 1 ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: trashPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: trashPage === 1 ? '#adb5bd' : '#333' }}>
+                        <i className="fas fa-chevron-left"></i>
+                      </button>
+                      <button onClick={() => setTrashPage(p => Math.min(p + 1, Math.ceil(trashedPets.length / itemsPerPage)))} disabled={trashPage === Math.ceil(trashedPets.length / itemsPerPage)} style={{ background: trashPage === Math.ceil(trashedPets.length / itemsPerPage) ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: trashPage === Math.ceil(trashedPets.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontWeight: '600', color: trashPage === Math.ceil(trashedPets.length / itemsPerPage) ? '#adb5bd' : '#333' }}>
+                        <i className="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  </Col>
+                </Row>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* ===== RESTORE MODAL ===== */}
+      <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #198754' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-undo text-success me-2"></i>Restore Pet
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {selectedPet && (
+            <p style={{ fontSize: '1rem' }}>
+              Restore <strong style={{ color: '#198754' }}>{selectedPet.name}</strong> back to your active pets?
+            </p>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
+          <Button variant="success" onClick={confirmRestorePet} disabled={restoreLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>
+            {restoreLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-undo me-1"></i>Restore</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ===== FORCE DELETE MODAL ===== */}
+      <Modal show={showForceDeleteModal} onHide={() => setShowForceDeleteModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dc3545' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-exclamation-triangle text-danger me-2"></i>Permanently Delete
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {selectedPet && (
+            <>
+              <p style={{ fontSize: '1rem' }}>
+                Permanently delete <strong style={{ color: '#dc3545' }}>{selectedPet.name}</strong>? This cannot be undone.
+              </p>
+              <Alert variant="danger" className="mb-0">
+                <i className="fas fa-skull-crossbones me-2"></i>
+                <strong>Warning:</strong> All records associated with this pet will be permanently erased from the system.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowForceDeleteModal(false)} disabled={forceDeleteLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
+          <Button variant="danger" onClick={confirmForceDeletePet} disabled={forceDeleteLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>
+            {forceDeleteLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-times me-1"></i>Delete Forever</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Register Pet Modal */}
 <Modal 
