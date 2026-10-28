@@ -23,6 +23,7 @@
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [floatingSuccess, setFloatingSuccess] = useState('');
 
     const [showPetSearchModal, setShowPetSearchModal] = useState(false);
 const [petSearchTerm, setPetSearchTerm] = useState('');
@@ -518,7 +519,7 @@ useEffect(() => {
         } else if (recordToDelete.recordType === 'microchip') {
           await microchipAPI.forceDelete(recordToDelete.id);
         }
-        setSuccess('Record permanently deleted.');
+        setFloatingSuccess('Record permanently deleted.');
       } else {
         // Soft delete (move to trash)
         if (recordToDelete.recordType === 'vaccination') {
@@ -530,12 +531,12 @@ useEffect(() => {
         } else if (recordToDelete.recordType === 'microchip') {
           await microchipAPI.delete(recordToDelete.id);
         }
-        setSuccess('Record moved to trash. It will be automatically removed after 30 days.');
+        setFloatingSuccess('Record moved to trash. It will be automatically removed after 30 days.');
       }
       setShowDeleteModal(false);
       setRecordToDelete(null);
       loadData();
-      setTimeout(() => setSuccess(''), 6000);
+      setTimeout(() => setFloatingSuccess(''), 6000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -751,10 +752,10 @@ setError('');
             }
           }
 
-          setSuccess('Record updated successfully!');
           handleCloseModal();
           loadData();
-          setTimeout(() => setSuccess(''), 5000);
+          setFloatingSuccess('Record updated successfully!');
+          setTimeout(() => setFloatingSuccess(''), 5000);
         } catch (err) {
           const { message } = handleAPIError(err);
           setError(message);
@@ -909,7 +910,13 @@ setError('');
         
         handleCloseModal();
         loadData();
-        setTimeout(() => setSuccess(''), 5000);
+        setFloatingSuccess(
+          formData.record_type === 'vaccination' ? 'Vaccination record added successfully!' :
+          formData.record_type === 'deworming' ? 'Deworming record added successfully!' :
+          formData.record_type === 'sterilization' ? 'Sterilization record added successfully!' :
+          'Microchip record added successfully!'
+        );
+        setTimeout(() => setFloatingSuccess(''), 5000);
       } catch (err) {
         const { message, data } = handleAPIError(err);
         
@@ -957,11 +964,11 @@ const handleRestoreConfirm = async () => {
     } else if (recordToRestore.recordType === 'microchip') {
       await microchipAPI.restore(recordToRestore.id);
     }
-    setSuccess('Record restored successfully!');
     setShowRestoreModal(false);
     setRecordToRestore(null);
     loadData();
-    setTimeout(() => setSuccess(''), 5000);
+    setFloatingSuccess('Record restored successfully!');
+    setTimeout(() => setFloatingSuccess(''), 5000);
   } catch (err) {
     const { message } = handleAPIError(err);
     setError(message);
@@ -1071,7 +1078,46 @@ const getSelectedPet = () => {
     return (
       <>
         <style>{styles}</style>
-        <Container fluid className="py-4 record-management-page" style={{ backgroundColor: '#ffffffff', transition: 'all 0.3s ease' }}>
+        {floatingSuccess && (
+  <div style={{
+    position: 'fixed',
+    top: '24px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 99999,
+    minWidth: '320px',
+    maxWidth: '480px',
+    animation: 'dropDown 0.4s ease-out',
+    pointerEvents: 'auto'
+  }}>
+    <Alert
+      variant="success"
+      dismissible
+      onClose={() => setFloatingSuccess('')}
+      style={{
+        borderRadius: '14px',
+        border: '2px solid #198754',
+        background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
+        color: '#fff',
+        fontWeight: '600',
+        boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        padding: '1rem 1.25rem',
+        marginBottom: 0
+      }}
+    >
+      <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+      <div>
+        <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
+        <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{floatingSuccess}</div>
+      </div>
+    </Alert>
+  </div>
+)}
+        <Container 
+        fluid className="py-4 record-management-page" style={{ backgroundColor: '#ffffffff', transition: 'all 0.3s ease' }}>
           <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
             <Col>
               <div>
@@ -3616,9 +3662,9 @@ const getSelectedPet = () => {
             <i className="fas fa-arrow-left me-2" />Back to Edit
           </Button>
           <Button disabled={formLoading} className="border-0"
-            onClick={async () => {
+            onClick={() => {
               setShowConfirmRecordModal(false);
-              await handleSubmit({ preventDefault: () => {} });
+              handleSubmit({ preventDefault: () => {} });
             }}
             style={{ background: formLoading ? '#6c757d' : '#000000', color: '#ffffff', borderRadius: '10px', padding: '0.75rem 1.75rem', fontWeight: '700', transition: 'all 0.3s' }}
             onMouseOver={e => { if (!formLoading) e.currentTarget.style.background = '#333'; }}
