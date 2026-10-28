@@ -186,160 +186,234 @@ export default function MapStatus() {
     setIsPrinting(true);
 
     const isPos = report.status === 'positive_rabies';
+    const accentColor = isPos ? '#cc0000' : '#c8a000';
+    const accentFill  = isPos ? 'rgba(204,0,0,0.12)' : 'rgba(200,160,0,0.12)';
 
-    // Load jsPDF + html2canvas from CDN if not already present
+    // Load jsPDF
     const loadScript = (src, check) => new Promise((res) => {
       if (check()) return res();
       const s = document.createElement('script');
-      s.src = src;
-      s.onload = res;
+      s.src = src; s.onload = res;
       document.head.appendChild(s);
     });
+    await loadScript(
+      'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+      () => !!(window.jspdf?.jsPDF || window.jsPDF)
+    );
+    const jsPDF = window.jspdf?.jsPDF || window.jsPDF;
 
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js', () => !!window.html2canvas);
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js', () => !!(window.jspdf || window.jsPDF));
+    // ── Canvas dimensions (A4 landscape @ 2x) ──
+    const PDF_W    = 1122, PDF_H = 794;
+    const HEADER_H = 54,   INFOBAR_H = 30, FOOTER_H = 22;
+    const MAP_H    = PDF_H - HEADER_H - INFOBAR_H - FOOTER_H;
+    const MAP_W    = PDF_W;
+    const S        = 2; // retina scale for canvas
+    const CW       = PDF_W * S, CH = PDF_H * S;
 
-    const jsPDF = (window.jspdf?.jsPDF) || window.jsPDF;
+    const canvas = document.createElement('canvas');
+    canvas.width = CW; canvas.height = CH;
+    const ctx = canvas.getContext('2d');
 
-    // Build hidden offscreen container (A4 landscape: 1122x794px @ 96dpi)
-    const PRINT_W = 1122;
-    const PRINT_H = 794;
-    const HEADER_H = 44;
-    const INFOBAR_H = 28;
-    const FOOTER_H = 18;
-    const MAP_H = PRINT_H - HEADER_H - INFOBAR_H - FOOTER_H;
+    // White bg
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, CW, CH);
 
-    const old = document.getElementById('rabies-pdf-area');
-    if (old) old.remove();
-
-    const container = document.createElement('div');
-    container.id = 'rabies-pdf-area';
-    container.style.cssText = `
-      position: fixed; left: -9999px; top: 0;
-      width: ${PRINT_W}px; height: ${PRINT_H}px;
-      background: #fff; z-index: 99999;
-      display: flex; flex-direction: column;
-      font-family: "Segoe UI", Arial, sans-serif;
-      overflow: hidden;
-    `;
-
-    // Top bar
-    const topBar = document.createElement('div');
-    topBar.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:0 28px;border-bottom:2px solid #222;flex-shrink:0;background:#fff;height:${HEADER_H}px;box-sizing:border-box;`;
-    const printDate = new Date().toLocaleString('en-PH', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-    topBar.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:1px;">
-        <div style="font-size:0.95rem;font-weight:700;color:#111;">
-          ${isPos ? 'Positive Rabies — 1km Danger Zone Report' : 'Suspected Rabies — 1km Alert Zone Report'}
-        </div>
-        <div style="font-size:0.65rem;color:#555;">Muntinlupa City Animal Rabies Control System</div>
-      </div>
-      <div style="font-size:0.65rem;color:#999;">${printDate}&nbsp;&nbsp;PetUnity</div>`;
-
-    // Info bar
-    const infoBar = document.createElement('div');
-    infoBar.style.cssText = `display:flex;gap:2rem;padding:0 28px;background:#f7f7f7;border-bottom:1px solid #ddd;flex-shrink:0;font-size:0.7rem;color:#333;align-items:center;height:${INFOBAR_H}px;box-sizing:border-box;flex-wrap:nowrap;overflow:hidden;`;
-    infoBar.innerHTML = `
-      <div><span style="font-weight:700;color:#888;text-transform:uppercase;font-size:0.6rem;letter-spacing:0.4px;">Barangay&nbsp;</span>${report.barangay_name || '—'}</div>
-      <div style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><span style="font-weight:700;color:#888;text-transform:uppercase;font-size:0.6rem;letter-spacing:0.4px;">Address&nbsp;</span>${report.address || '—'}</div>`;
-
-    // Map wrapper
-    const mapWrapper = document.createElement('div');
-    mapWrapper.style.cssText = `position:relative;width:${PRINT_W}px;height:${MAP_H}px;flex-shrink:0;overflow:hidden;`;
-    const mapDiv = document.createElement('div');
-    mapDiv.id = 'pdf-map-inner';
-    mapDiv.style.cssText = `width:${PRINT_W}px;height:${MAP_H}px;`;
-    mapWrapper.appendChild(mapDiv);
-
-    // Footer
-    const footer = document.createElement('div');
-    footer.style.cssText = `padding:0 28px;border-top:1px solid #ddd;display:flex;justify-content:space-between;flex-shrink:0;font-size:0.6rem;color:#aaa;background:#fff;height:${FOOTER_H}px;box-sizing:border-box;align-items:center;`;
-    footer.innerHTML = `<span>Muntinlupa City Animal Rabies Control System — Confidential</span><span>${window.location.hostname}</span>`;
-
-    container.appendChild(topBar);
-    container.appendChild(infoBar);
-    container.appendChild(mapWrapper);
-    container.appendChild(footer);
-    document.body.appendChild(container);
-
-    // Init map inside container
-    await new Promise((resolve) => {
-      const google = window.google;
-      const pMap = new google.maps.Map(mapDiv, {
-        center: { lat, lng },
-        zoom: 15,
-        disableDefaultUI: true,
-        gestureHandling: 'none',
-        keyboardShortcuts: false,
-        clickableIcons: false,
-        styles: [
-          { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9e8f5' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-          { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#e0e0e0' }] },
-          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-          { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#555' }] },
-        ],
-      });
-
-      new google.maps.Circle({
-        map: pMap,
-        center: { lat, lng },
-        radius: 1000,
-        strokeColor:   isPos ? '#cc0000' : '#c8a000',
-        strokeOpacity: 0.9,
-        strokeWeight:  2.5,
-        fillColor:     isPos ? '#cc0000' : '#c8a000',
-        fillOpacity:   0.10,
-        clickable: false,
-      });
-
-      new google.maps.Marker({
-        position: { lat, lng },
-        map: pMap,
-        clickable: false,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 7,
-          fillColor:   isPos ? '#b40000' : '#a07800',
-          fillOpacity: 0.9,
-          strokeColor: '#fff',
-          strokeWeight: 2,
-        },
-      });
-
-      let done = false;
-      const finish = () => { if (!done) { done = true; setTimeout(resolve, 800); } };
-      google.maps.event.addListenerOnce(pMap, 'tilesloaded', finish);
-      setTimeout(finish, 8000);
+    // ── Fetch Static Map image via blob (avoids CORS taint) ──
+    const ZOOM   = 14;
+    const reqW   = 640, reqH = 640; // max allowed by Static Maps
+    const params = new URLSearchParams({
+      center:  `${lat},${lng}`,
+      zoom:    String(ZOOM),
+      size:    `${reqW}x${reqH}`,
+      scale:   '2',
+      maptype: 'roadmap',
+      key:     GOOGLE_MAPS_KEY,
     });
+    // style params appended manually (URLSearchParams dedupes keys)
+    const styleParams = '&style=feature:poi|element:labels|visibility:off'
+      + '&style=feature:transit|visibility:off'
+      + '&style=feature:administrative.land_parcel|visibility:off';
+    const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?${params}${styleParams}`;
 
-    // Capture with html2canvas then generate PDF
+    // Try fetching via no-cors blob (works if your API key has no referrer restriction,
+    // otherwise falls back to drawing without the map tile)
+    const mapImg = await fetch(staticUrl)
+      .then(r => r.blob())
+      .then(blob => new Promise((res, rej) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+        img.onload = () => { URL.revokeObjectURL(url); res(img); };
+        img.onerror = rej;
+        img.src = url;
+      }))
+      .catch(() => null);
+
+    // ── Map area ──
+    const mapY = (HEADER_H + INFOBAR_H) * S;
+
+    if (mapImg) {
+      ctx.drawImage(mapImg, 0, mapY, MAP_W * S, MAP_H * S);
+    } else {
+      // Fallback light grey map placeholder
+      ctx.fillStyle = '#e8eaed';
+      ctx.fillRect(0, mapY, MAP_W * S, MAP_H * S);
+      // Draw simple grid lines to look map-like
+      ctx.strokeStyle = '#d0d3d8';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < MAP_W * S; x += 80) {
+        ctx.beginPath(); ctx.moveTo(x, mapY); ctx.lineTo(x, mapY + MAP_H * S); ctx.stroke();
+      }
+      for (let y = mapY; y < mapY + MAP_H * S; y += 80) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(MAP_W * S, y); ctx.stroke();
+      }
+      ctx.fillStyle = '#bbb';
+      ctx.font = `${11 * S}px "Segoe UI", Arial, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('Map tiles unavailable — check API key restrictions', MAP_W * S / 2, mapY + MAP_H * S / 2);
+    }
+
+    // ── 1km circle overlay ──
+    const metersPerPx = (156543.03392 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, ZOOM);
+    // Static map scale=2 means the image is 1280×1280px for a 640×640 tile set
+    // drawn onto MAP_W*S × MAP_H*S canvas; scale accordingly
+    const imgNativePx = reqW * 2; // 1280 (scale=2)
+    const imgDrawPx   = MAP_W * S;
+    const pxScale     = imgDrawPx / imgNativePx;
+    const radiusPx    = (1000 / metersPerPx) * 2 * pxScale; // *2 because scale=2
+
+    const cx = MAP_W * S / 2;
+    const cy = mapY + MAP_H * S / 2;
+
+    // Filled circle
+    ctx.beginPath();
+    ctx.arc(cx, cy, radiusPx, 0, 2 * Math.PI);
+    ctx.fillStyle = accentFill;
+    ctx.fill();
+    // Stroke
+    ctx.beginPath();
+    ctx.arc(cx, cy, radiusPx, 0, 2 * Math.PI);
+    ctx.strokeStyle = accentColor;
+    ctx.lineWidth   = 5;
+    ctx.setLineDash([]);
+    ctx.stroke();
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 10, 0, 2 * Math.PI);
+    ctx.fillStyle = accentColor;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 10, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Zone label (above circle)
+    const labelY = cy - radiusPx - 14 * S;
+    const labelText = isPos ? '⚠  1 km Danger Zone' : '🔍  1 km Alert Zone';
+    ctx.font = `bold ${12 * S}px "Segoe UI", Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    // pill background
+    const tw = ctx.measureText(labelText).width + 24 * S;
+    const th = 18 * S;
+    ctx.fillStyle = isPos ? 'rgba(180,0,0,0.82)' : 'rgba(160,120,0,0.82)';
+    roundRect(ctx, cx - tw / 2, labelY - th * 0.75, tw, th, 6 * S);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(labelText, cx, labelY);
+
+    // ── Header ──
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, CW, HEADER_H * S);
+    // accent left bar
+    ctx.fillStyle = isPos ? '#cc0000' : '#c8a000';
+    ctx.fillRect(0, 0, 5 * S, HEADER_H * S);
+    // border bottom
+    ctx.fillStyle = '#222';
+    ctx.fillRect(0, HEADER_H * S - 2, CW, 2);
+
+    ctx.fillStyle = '#111';
+    ctx.font = `bold ${15 * S}px "Segoe UI", Arial, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      isPos ? 'Positive Rabies — 1km Danger Zone Report'
+            : 'Suspected Rabies — 1km Alert Zone Report',
+      20 * S, 22 * S
+    );
+    ctx.fillStyle = '#666';
+    ctx.font = `${9.5 * S}px "Segoe UI", Arial, sans-serif`;
+    ctx.fillText('Muntinlupa City Animal Rabies Control System', 20 * S, 38 * S);
+
+    const printDate = new Date().toLocaleString('en-PH', {
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+    ctx.fillStyle = '#999';
+    ctx.font = `${9 * S}px "Segoe UI", Arial, sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(`${printDate}   PetUnity`, (PDF_W - 20) * S, 30 * S);
+
+    // ── Info bar ──
+    const ibY = HEADER_H * S;
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(0, ibY, CW, INFOBAR_H * S);
+    ctx.fillStyle = '#ddd';
+    ctx.fillRect(0, ibY + INFOBAR_H * S - 1, CW, 1);
+
+    ctx.textAlign = 'left';
+    const drawInfoPair = (label, value, x) => {
+      ctx.font = `bold ${8 * S}px "Segoe UI", Arial, sans-serif`;
+      ctx.fillStyle = '#999';
+      ctx.fillText(label, x * S, ibY + 19 * S);
+      const lw = ctx.measureText(label).width;
+      ctx.font = `${9.5 * S}px "Segoe UI", Arial, sans-serif`;
+      ctx.fillStyle = '#333';
+      ctx.fillText(`  ${value}`, x * S + lw, ibY + 19 * S);
+    };
+    drawInfoPair('BARANGAY', report.barangay_name || '—', 20);
+    drawInfoPair('ADDRESS',  report.address        || '—', 200);
+
+    // ── Footer ──
+    const ftY = (HEADER_H + INFOBAR_H + MAP_H) * S;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, ftY, CW, FOOTER_H * S);
+    ctx.fillStyle = '#e0e0e0';
+    ctx.fillRect(0, ftY, CW, 1);
+    ctx.font = `${8 * S}px "Segoe UI", Arial, sans-serif`;
+    ctx.fillStyle = '#bbb';
+    ctx.textAlign = 'left';
+    ctx.fillText('Muntinlupa City Animal Rabies Control System — Confidential', 20 * S, ftY + 14 * S);
+    ctx.textAlign = 'right';
+    ctx.fillText(window.location.hostname, (PDF_W - 20) * S, ftY + 14 * S);
+
+    // ── Export PDF ──
     try {
-      const canvas = await window.html2canvas(container, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 1.5,
-        width: PRINT_W,
-        height: PRINT_H,
-        windowWidth: PRINT_W,
-        windowHeight: PRINT_H,
-        logging: false,
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [PRINT_W, PRINT_H] });
-      pdf.addImage(imgData, 'JPEG', 0, 0, PRINT_W, PRINT_H);
-
-      const fileName = `rabies-zone-report-${report.barangay_name || 'report'}-${new Date().toISOString().slice(0,10)}.pdf`;
-      pdf.save(fileName);
+      const imgData = canvas.toDataURL('image/jpeg', 0.97);
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [PDF_W, PDF_H] });
+      pdf.addImage(imgData, 'JPEG', 0, 0, PDF_W, PDF_H);
+      const safeBarangay = (report.barangay_name || 'report').replace(/\s+/g, '-');
+      const safeDate = new Date().toISOString().slice(0, 10);
+      pdf.save(`rabies-zone-report-${safeBarangay}-${safeDate}.pdf`);
     } catch (err) {
       console.error('PDF generation failed:', err);
     } finally {
-      container.remove();
       setIsPrinting(false);
     }
   };
+
+  // Helper: rounded rectangle path
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
   
   const navigate = useNavigate();
 
