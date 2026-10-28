@@ -156,11 +156,11 @@ const cropAnimRef = useRef(null);
 
   const confirmRestorePet = async () => {
     setRestoreLoading(true);
+    setShowRestoreModal(false);
     try {
       await petAPI.restore(selectedPet.id);
       await loadPets();
       await loadTrash();
-      setShowRestoreModal(false);
       setUpdateSuccess(`${selectedPet.name} has been restored successfully.`);
       setTimeout(() => setUpdateSuccess(''), 3000);
       setActiveTab('active');
@@ -179,10 +179,10 @@ const cropAnimRef = useRef(null);
 
   const confirmForceDeletePet = async () => {
     setForceDeleteLoading(true);
+    setShowForceDeleteModal(false);
     try {
       await petAPI.forceDelete(selectedPet.id);
       await loadTrash();
-      setShowForceDeleteModal(false);
       setUpdateSuccess(`${selectedPet.name} has been permanently deleted.`);
       setTimeout(() => setUpdateSuccess(''), 3000);
     } catch (err) {
@@ -642,11 +642,11 @@ useEffect(() => {
   const confirmDeletePet = async () => {
     setDeleteLoading(true);
     setError('');
+    setShowDeleteModal(false);
 
     try {
       await petAPI.delete(selectedPet.id);
       await loadPets();
-      setShowDeleteModal(false);
       setUpdateSuccess(`${selectedPet.name} has been removed successfully.`);
       setTimeout(() => setUpdateSuccess(''), 3000);
     } catch (err) {
@@ -670,15 +670,12 @@ useEffect(() => {
     setUpdateLoading(true);
     setUpdateError('');
     setUpdateSuccess('');
+    setShowEditModal(false);
 
     try {
       await petAPI.update(selectedPet.id, editFormData);
       setUpdateSuccess('Pet information updated successfully!');
       await loadPets();
-      setTimeout(() => {
-        setShowEditModal(false);
-        setUpdateSuccess('');
-      }, 2000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setUpdateError(message);
@@ -774,6 +771,7 @@ useEffect(() => {
     setRegisterLoading(true);
     setRegisterError('');
     setRegisterSuccess('');
+    setShowRegisterModal(false);
 
     if (!registerFormData.name.trim()) {
       setRegisterError('Pet name is required');
@@ -810,11 +808,6 @@ useEffect(() => {
       setRegisterSuccess(`${registerFormData.name} has been successfully registered! Registration number: ${response.data.pet.registration_number}`);
       
       await loadPets();
-      
-      setTimeout(() => {
-        setShowRegisterModal(false);
-        setRegisterSuccess('');
-      }, 2500);
     } catch (err) {
       const { message } = handleAPIError(err);
       setRegisterError(message);
