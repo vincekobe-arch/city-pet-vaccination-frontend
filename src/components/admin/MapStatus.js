@@ -219,7 +219,7 @@ export default function MapStatus() {
     ctx.fillRect(0, 0, CW, CH);
 
     // ── Fetch Static Map image via blob (avoids CORS taint) ──
-    const ZOOM   = 14;
+    const ZOOM   = 15;
     const reqW   = 640, reqH = 640; // max allowed by Static Maps
     const params = new URLSearchParams({
       center:  `${lat},${lng}`,
@@ -237,16 +237,30 @@ export default function MapStatus() {
 
     // Try fetching via no-cors blob (works if your API key has no referrer restriction,
     // otherwise falls back to drawing without the map tile)
-    const mapImg = await fetch(staticUrl)
-      .then(r => r.blob())
-      .then(blob => new Promise((res, rej) => {
-        const img = new Image();
-        const url = URL.createObjectURL(blob);
-        img.onload = () => { URL.revokeObjectURL(url); res(img); };
-        img.onerror = rej;
-        img.src = url;
-      }))
-      .catch(() => null);
+    // Try with CORS first, fall back to no-CORS if it fails
+    const mapImg = await new Promise((resolve) => {
+      const img1 = new Image();
+      img1.crossOrigin = 'anonymous';
+      const timeout = setTimeout(() => {
+        // Final fallback: try without crossOrigin (won't be tainted if same-origin or allowed)
+        const img2 = new Image();
+        const t2 = setTimeout(() => resolve(null), 10000);
+        img2.onload = () => { clearTimeout(t2); resolve(img2); };
+        img2.onerror = () => { clearTimeout(t2); resolve(null); };
+        img2.src = staticUrl + '&_t=' + Date.now();
+      }, 8000);
+      img1.onload = () => { clearTimeout(timeout); resolve(img1); };
+      img1.onerror = () => {
+        clearTimeout(timeout);
+        // Retry without crossOrigin
+        const img2 = new Image();
+        const t2 = setTimeout(() => resolve(null), 10000);
+        img2.onload = () => { clearTimeout(t2); resolve(img2); };
+        img2.onerror = () => { clearTimeout(t2); resolve(null); };
+        img2.src = staticUrl;
+      };
+      img1.src = staticUrl;
+    });
 
     // ── Map area ──
     const mapY = (HEADER_H + INFOBAR_H) * S;
@@ -387,7 +401,21 @@ export default function MapStatus() {
 
     // ── Export PDF ──
     try {
-      const imgData = canvas.toDataURL('image/jpeg', 0.97);
+      let imgData;
+      try {
+        imgData = canvas.toDataURL('image/jpeg', 0.97);
+      } catch (taintErr) {
+        // Canvas tainted fallback — export without map image
+        const ctx2 = canvas.getContext('2d');
+        ctx2.fillStyle = '#e8eaed';
+        const mapY2 = (54 + 30) * 2;
+        ctx2.fillRect(0, mapY2, canvas.width, canvas.height - mapY2 - 22 * 2);
+        ctx2.fillStyle = '#999';
+        ctx2.font = `${11 * 2}px Arial`;
+        ctx2.textAlign = 'center';
+        ctx2.fillText('Map unavailable — CORS restriction', canvas.width / 2, mapY2 + (canvas.height - mapY2) / 2);
+        imgData = canvas.toDataURL('image/jpeg', 0.97);
+      }
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [PDF_W, PDF_H] });
       pdf.addImage(imgData, 'JPEG', 0, 0, PDF_W, PDF_H);
       const safeBarangay = (report.barangay_name || 'report').replace(/\s+/g, '-');
