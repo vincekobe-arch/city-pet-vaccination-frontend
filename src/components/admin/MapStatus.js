@@ -220,7 +220,7 @@ export default function MapStatus() {
 
     // ── Fetch Static Map image via blob (avoids CORS taint) ──
     const ZOOM   = 14;
-    const reqW   = 640, reqH = 640; // max allowed by Static Maps
+    const reqW   = 640, reqH = 400; // landscape ratio to match PDF
     const params = new URLSearchParams({
       center:  `${lat},${lng}`,
       zoom:    String(ZOOM),
@@ -291,13 +291,20 @@ export default function MapStatus() {
     const metersPerPx = (156543.03392 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, ZOOM);
     // Static map scale=2 means the image is 1280×1280px for a 640×640 tile set
     // drawn onto MAP_W*S × MAP_H*S canvas; scale accordingly
-    const imgNativePx = reqW * 2; // 1280 (scale=2)
-    const imgDrawPx   = MAP_W * S;
-    const pxScale     = imgDrawPx / imgNativePx;
-    const radiusPx    = (1000 / metersPerPx) * 2 * pxScale; // *2 because scale=2
+    // Image native size with scale=2: 1280x800 (640x400 * 2)
+    // Canvas map area: MAP_W*S wide, MAP_H*S tall
+    // Use width-based scale for radius (horizontal reference)
+    const imgNativeW  = reqW * 2; // 1280px
+    const imgNativeH  = reqH * 2; // 800px
+    const pxScaleX    = (MAP_W * S) / imgNativeW;
+    const pxScaleY    = (MAP_H * S) / imgNativeH;
+    // Average scale for circle radius (keeps it round)
+    const pxScale     = (pxScaleX + pxScaleY) / 2;
+    const radiusPx    = (1000 / metersPerPx) * 2 * pxScale;
 
-    const cx = MAP_W * S / 2;
-    const cy = mapY + MAP_H * S / 2;
+    // Center of the map image on canvas
+    const cx = (MAP_W * S) / 2;
+    const cy = mapY + (MAP_H * S) / 2;
 
     // Filled circle
     ctx.beginPath();
