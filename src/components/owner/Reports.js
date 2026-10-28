@@ -398,6 +398,7 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [floatingMsg, setFloatingMsg] = useState('');
 
   // Modal states
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -624,9 +625,10 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
       imageFiles.forEach((file) => fd.append('images[]', file));
 
       await reportsAPI.create(fd);
-      setSuccessMsg('Report submitted successfully! The admin will review it shortly.');
+      setFloatingMsg('Report submitted successfully! The admin will review it shortly.');
       await loadReports();
-      setTimeout(() => { setShowSubmitModal(false); setSuccessMsg(''); }, 2500);
+      setShowSubmitModal(false);
+      setTimeout(() => setFloatingMsg(''), 4000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setSubmitError(message);
@@ -653,8 +655,8 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
       await reportsAPI.delete(selectedReport.id);
       await loadReports();
       setShowDeleteModal(false);
-      setSuccessMsg('Report has been withdrawn successfully.');
-      setTimeout(() => setSuccessMsg(''), 3000);
+      setFloatingMsg('Report has been withdrawn successfully.');
+      setTimeout(() => setFloatingMsg(''), 4000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -757,15 +759,43 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
           </Row>
         )}
 
-        {successMsg && (
-          <Row className="mb-4">
-            <Col>
-              <Alert variant="success" dismissible onClose={() => setSuccessMsg('')}
-                style={{ borderRadius: '12px', border: '2px solid #198754', background: 'rgba(25, 135, 84, 0.1)', color: '#198754' }}>
-                <i className="fas fa-check-circle me-2"></i>{successMsg}
-              </Alert>
-            </Col>
-          </Row>
+        {floatingMsg && (
+          <div style={{
+            position: 'fixed',
+            top: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 99999,
+            minWidth: '320px',
+            maxWidth: '480px',
+            animation: 'dropDown 0.4s ease-out',
+            pointerEvents: 'auto'
+          }}>
+            <Alert
+              variant="success"
+              dismissible
+              onClose={() => setFloatingMsg('')}
+              style={{
+                borderRadius: '14px',
+                border: '2px solid #198754',
+                background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
+                color: '#fff',
+                fontWeight: '600',
+                boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '1rem 1.25rem',
+                marginBottom: 0
+              }}
+            >
+              <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
+              <div>
+                <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
+                <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{floatingMsg}</div>
+              </div>
+            </Alert>
+          </div>
         )}
 
         {/* Content */}
