@@ -332,19 +332,20 @@ const location = useLocation();
   };
 
   const confirmUpdate = async () => {
-    if (!actionTarget) return;
+    if (!actionTarget || updateLoading) return;
     setUpdateLoading(true);
+    setShowUpdateModal(false);
     try {
       await reportsAPI.update(actionTarget.report.id, { status: actionTarget.next, admin_notes: adminNotes });
       const label = STATUS_CONFIG[actionTarget.next]?.label || actionTarget.next;
       setSuccess(`Report marked as "${label}" successfully.`);
-      await loadData();
-      setShowUpdateModal(false);
       setActionTarget(null);
+      await loadData();
       setTimeout(() => setSuccess(''), 3500);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
+      setShowUpdateModal(true);
     } finally {
       setUpdateLoading(false);
     }
@@ -430,6 +431,7 @@ const location = useLocation();
   };
 
   const handleGenerateSubmit = async () => {
+    if (generateLoading) return;
     if (!generateForm.barangay_id)         { setGenerateError('Please select a barangay by pinning a location on the map.'); return; }
     if (!generateForm.address.trim())      { setGenerateError('Address is required.');        return; }
     if (!generateForm.reporter_name?.trim()) { setGenerateError('Reporter name is required.'); return; }
@@ -1070,8 +1072,8 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
               style={{ borderRadius: '8px', padding: '0.65rem 1.5rem', fontWeight: '600' }}>
               Cancel
             </Button>
-            <Button onClick={confirmUpdate} disabled={updateLoading} className="border-0"
-              style={{ background: '#ffc107', color: '#000', borderRadius: '8px', padding: '0.65rem 1.5rem', fontWeight: '700', boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
+            <Button onClick={() => { if (!updateLoading) confirmUpdate(); }} disabled={updateLoading} className="border-0"
+              style={{ background: updateLoading ? '#6c757d' : '#ffc107', color: updateLoading ? '#fff' : '#000', borderRadius: '8px', padding: '0.65rem 1.5rem', fontWeight: '700', boxShadow: '0 4px 12px rgba(255,193,7,0.4)', transition: 'all 0.2s' }}>
               {updateLoading
                 ? <><Spinner size="sm" animation="border" className="me-2" />Updating...</>
                 : <><i className="fas fa-check me-2" />Confirm Update</>
@@ -1200,7 +1202,7 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
             style={{ borderRadius: '8px', fontWeight: '600', padding: '0.65rem 1.5rem' }}>
             Cancel
           </Button>
-          <Button onClick={handleGenerateSubmit} disabled={generateLoading}
+          <Button onClick={() => { if (!generateLoading) handleGenerateSubmit(); }} disabled={generateLoading}
             style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', padding: '0.65rem 1.75rem', boxShadow: '0 4px 14px rgba(255,193,7,0.35)', transition: 'all 0.2s' }}
             onMouseOver={e => e.currentTarget.style.background = '#ffb300'}
             onMouseOut={e  => e.currentTarget.style.background = '#ffc107'}>
