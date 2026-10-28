@@ -525,25 +525,6 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
                 {/* ── Stats + Charts ── */}
         <Row className="mb-4 g-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
 
-          {/* Pill stats */}
-          <Col xs={12}>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {[
-                { label: 'Total',     count: reports.length,                                                                                 color: '#333',    bg: '#f8f9fa',               border: '#e9ecef' },
-                { label: 'Pending',   count: reports.filter(r => r.status === 'pending').length,                                             color: '#856404', bg: 'rgba(255,193,7,0.12)',  border: 'rgba(255,193,7,0.4)' },
-                { label: 'Ongoing',   count: reports.filter(r => ['ongoing','suspected_rabies','positive_rabies'].includes(r.status)).length, color: '#055160', bg: 'rgba(13,202,240,0.1)',  border: 'rgba(13,202,240,0.4)' },
-                { label: 'Rabies',    count: reports.filter(r => r.status === 'suspected_rabies' || r.status === 'positive_rabies').length,   color: '#8b0000', bg: 'rgba(224,0,0,0.08)',    border: 'rgba(224,0,0,0.3)' },
-                { label: 'Resolved',  count: reports.filter(r => r.status === 'resolved').length,                                            color: '#0a4f2e', bg: 'rgba(25,135,84,0.08)',  border: 'rgba(25,135,84,0.3)' },
-                { label: 'Avg/Month', count: getAvgRabiesPerMonth(reports),                                                                  color: '#333',    bg: 'rgba(108,117,125,0.08)', border: 'rgba(108,117,125,0.25)' },
-              ].map(s => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 1rem', borderRadius: '40px', background: s.bg, border: `1.5px solid ${s.border}`, animation: 'fadeInUp 0.4s ease-out backwards' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.label}</span>
-                  <span style={{ fontSize: '1.1rem', fontWeight: '800', color: s.color, lineHeight: 1 }}>{loading ? '—' : s.count}</span>
-                </div>
-              ))}
-            </div>
-          </Col>
-
           {/* Status bar chart */}
           <Col md={5}>
             <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
