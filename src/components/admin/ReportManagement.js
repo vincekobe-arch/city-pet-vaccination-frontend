@@ -1233,7 +1233,7 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
             minWidth: '200px',
             zIndex: 1050,
             overflow: 'hidden',
-      
+            zoom: '0.75',
           }}>
             {(() => {
               const report = reports.find(r => r.id === showDropdown);
