@@ -1055,7 +1055,8 @@ useEffect(() => {
         </Row>
       ) : (
         <>
-        <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
+        {activeTab === 'active' && 
+                <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
           {pets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((pet, index) => (
 <Col key={pet.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + (index * 0.1)}s backwards` }}>              
 <Card 
@@ -1495,10 +1496,8 @@ useEffect(() => {
               </Card>
             </Col>
           ))}
-        </Row>
-
         {/* Pagination */}
-        {pets.length > itemsPerPage && (
+        {activeTab === 'active' && pets.length > itemsPerPage && (
           <Row className="mt-4 pet-pagination">
             <Col className="d-flex justify-content-between align-items-center">
               <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
@@ -1633,6 +1632,7 @@ useEffect(() => {
             </Col>
           </Row>
         )}
+        </Row>}
         </>
       )}
 
