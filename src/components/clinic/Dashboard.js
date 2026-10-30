@@ -37,7 +37,12 @@ const ClinicDashboard = () => {
       50% { transform: translateY(-10px); }
     }
 
+    .clinic-dashboard-page { zoom: 0.75; }
+    @media (min-width: 1600px) { .clinic-dashboard-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .clinic-dashboard-page { zoom: 1; } }
+
     @media (max-width: 768px) {
+      .clinic-dashboard-page { zoom: 1; }
       .mobile-title {
         font-size: 1.5rem !important;
       }
@@ -311,7 +316,7 @@ const ClinicDashboard = () => {
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 clinic-dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
 
         {/* Page Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -367,7 +372,7 @@ const ClinicDashboard = () => {
             <Row className="mb-4">
 
               {/* Total Records */}
-              <Col xs={6} md={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
                 <Card
                   className="border-0 h-100"
                   style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -395,7 +400,7 @@ const ClinicDashboard = () => {
               </Col>
 
               {/* Pets Served */}
-              <Col xs={6} md={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
+              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
                 <Card
                   className="border-0 h-100"
                   style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -423,7 +428,7 @@ const ClinicDashboard = () => {
               </Col>
 
               {/* Vaccinations */}
-              <Col xs={6} md={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.3s backwards' }}>
+              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.3s backwards' }}>
                 <Card
                   className="border-0 h-100"
                   style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -451,7 +456,7 @@ const ClinicDashboard = () => {
               </Col>
 
               {/* Sterilizations */}
-              <Col xs={6} md={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
+              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
                 <Card
                   className="border-0 h-100"
                   style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -483,7 +488,7 @@ const ClinicDashboard = () => {
             <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
 
               {/* Upcoming Appointments */}
-              <Col lg={6} className="mb-4">
+              <Col xs={12} lg={6} className="mb-4">
                 <Card
                   className="border-0 h-100"
                   style={{
@@ -520,7 +525,7 @@ const ClinicDashboard = () => {
                       </h5>
                     </div>
                   </Card.Header>
-                  <Card.Body className="mobile-card-body" style={{ padding: '1.5rem', height: '380px', overflowY: 'auto' }}>
+                  <Card.Body className="mobile-card-body" style={{ padding: '1.5rem', minHeight: '280px', maxHeight: '420px', overflowY: 'auto' }}>
                     {(() => {
                       const today = new Date(); today.setHours(0,0,0,0);
                       const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
@@ -634,7 +639,7 @@ const ClinicDashboard = () => {
               </Col>
 
               {/* Recent Records */}
-              <Col lg={6} className="mb-4">
+              <Col xs={12} lg={6} className="mb-4">
                 <Card
                   className="h-100 border-0"
                   style={{
@@ -659,7 +664,7 @@ const ClinicDashboard = () => {
                   </Card.Header>
                   <Card.Body
                     className="mobile-card-body"
-                    style={{ padding: '2rem', height: '380px', overflowY: 'auto' }}
+                    style={{ padding: '2rem', minHeight: '280px', maxHeight: '420px', overflowY: 'auto' }}
                   >
                     {dashboardData.recentRecords.length === 0 ? (
                       <div className="text-center py-5">
