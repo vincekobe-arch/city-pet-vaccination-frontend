@@ -121,6 +121,60 @@ const ClinicDashboard = () => {
       .mobile-vaccination-item {
         margin-bottom: 0.75rem !important;
       }
+      .appt-pet-icon {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 7px !important;
+      }
+      .appt-pet-icon img {
+        width: 20px !important;
+        height: 20px !important;
+      }
+      .appt-pet-name {
+        font-size: 0.78rem !important;
+      }
+      .appt-pet-sub {
+        font-size: 0.68rem !important;
+      }
+      .appt-pet-date {
+        font-size: 0.64rem !important;
+      }
+      .appt-badge {
+        font-size: 0.6rem !important;
+        padding: 0.2rem 0.4rem !important;
+      }
+      .appt-item {
+        padding: 0.6rem 0.75rem !important;
+        margin-bottom: 0.5rem !important;
+      }
+      .recent-pet-icon {
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 8px !important;
+        margin-right: 10px !important;
+      }
+      .recent-pet-icon img {
+        width: 24px !important;
+        height: 24px !important;
+      }
+      .recent-pet-name {
+        font-size: 0.82rem !important;
+      }
+      .recent-record-badge {
+        font-size: 0.6rem !important;
+        padding: 0.2rem 0.4rem !important;
+      }
+      .recent-record-item {
+        padding: 0.75rem !important;
+        margin-bottom: 0.6rem !important;
+      }
+      .recent-record-meta {
+        font-size: 0.65rem !important;
+        gap: 6px !important;
+      }
+      .recent-record-detail {
+        font-size: 0.68rem !important;
+      }
     }
   `;
 
@@ -574,7 +628,7 @@ const ClinicDashboard = () => {
                         return (
                           <div
                             key={`${record.type}-${record.id}`}
-                            className="mobile-record-item"
+                            className="mobile-record-item appt-item"
                             style={{
                               padding: '1rem',
                               borderRadius: '12px',
@@ -590,7 +644,7 @@ const ClinicDashboard = () => {
                             <div className="d-flex align-items-center justify-content-between">
                               <div className="d-flex align-items-center" style={{ gap: '0.75rem', flex: 1, minWidth: 0 }}>
                                 {/* Icon */}
-                                <div style={{
+                                <div className="appt-pet-icon" style={{
                                   width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0,
                                   background: isVaccination ? 'rgba(255,193,7,0.15)' : 'rgba(23,162,184,0.15)',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -606,14 +660,14 @@ const ClinicDashboard = () => {
 
                                 {/* Info */}
                                 <div style={{ minWidth: 0 }}>
-                                  <div style={{ fontWeight: '700', color: '#333', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div className="appt-pet-name" style={{ fontWeight: '700', color: '#333', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {record.pet_name}
                                   </div>
-                                  <div style={{ fontSize: '0.78rem', color: '#666', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div className="appt-pet-sub" style={{ fontSize: '0.78rem', color: '#666', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     <i className={`fas ${isVaccination ? 'fa-syringe' : 'fa-pills'} me-1`} style={{ color: isVaccination ? '#ffc107' : '#17a2b8' }} />
                                     {isVaccination ? (record.vaccine_name || 'Vaccination') : (record.deworming_name || 'Deworming')}
                                   </div>
-                                  <div style={{ fontSize: '0.74rem', color: '#999', marginTop: '2px' }}>
+                                  <div className="appt-pet-date" style={{ fontSize: '0.74rem', color: '#999', marginTop: '2px' }}>
                                     <i className="fas fa-calendar me-1" style={{ color: accentColor }} />
                                     {new Date(record.next_due_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
                                   </div>
@@ -621,7 +675,7 @@ const ClinicDashboard = () => {
                               </div>
 
                               {/* Urgency badge */}
-                              <Badge style={{
+                              <Badge className="appt-badge" style={{
                                 background: accentColor, color: isOverdue || (!isToday && !isUrgent) ? '#fff' : '#000',
                                 fontWeight: '700', fontSize: '0.72rem',
                                 padding: '0.35rem 0.65rem', borderRadius: '20px',
@@ -681,7 +735,7 @@ const ClinicDashboard = () => {
                           return (
                             <div
                               key={`${record.recordType}-${record.id}`}
-                              className="mobile-record-item"
+                              className="mobile-record-item recent-record-item"
                               style={{
                                 padding: '1.25rem',
                                 borderRadius: '12px',
@@ -705,6 +759,7 @@ const ClinicDashboard = () => {
                               <div className="d-flex align-items-start">
                                 {/* Pet icon */}
                                 <div
+                                  className="recent-pet-icon"
                                   style={{
                                     width: '50px',
                                     height: '50px',
@@ -734,12 +789,13 @@ const ClinicDashboard = () => {
                                 <div className="flex-grow-1">
                                   <div className="d-flex justify-content-between align-items-start">
                                     <h6
-                                      className="mb-1 mobile-record-name"
+                                      className="mb-1 mobile-record-name recent-pet-name"
                                       style={{ fontWeight: '700', color: '#333333', fontSize: '1.05rem' }}
                                     >
                                       {record.pet_name}
                                     </h6>
                                     <Badge
+                                      className="recent-record-badge"
                                       style={{
                                         background: meta.color,
                                         fontSize: '0.72rem',
@@ -756,7 +812,7 @@ const ClinicDashboard = () => {
                                   </div>
 
                                   <div
-                                    className="d-flex flex-wrap align-items-center mobile-record-info"
+                                    className="d-flex flex-wrap align-items-center mobile-record-info recent-record-meta"
                                     style={{ gap: '10px', marginTop: '4px' }}
                                   >
                                     <small className="text-muted" style={{ fontWeight: '500' }}>
@@ -776,7 +832,7 @@ const ClinicDashboard = () => {
                                   </div>
 
                                   {/* Record-specific detail */}
-                                  <div style={{ marginTop: '6px' }}>
+                                  <div className="recent-record-detail" style={{ marginTop: '6px' }}>
                                     <small style={{ color: '#555', fontWeight: '600' }}>
                                       {record.recordType === 'vaccination' && record.vaccine_name && (
                                         <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }} />{record.vaccine_name}</>
