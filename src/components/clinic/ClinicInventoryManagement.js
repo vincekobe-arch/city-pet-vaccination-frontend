@@ -21,20 +21,20 @@ const getAuthHeaders = () => {
 
 
 const clinicInventoryAPI = {
-  getAll:      ()         => api.get('/clinic/inventory').then(r => r.data),
-  getByType:   (type)     => api.get(`/clinic/inventory/type/${type}`).then(r => r.data),
-  getLowStock: ()         => api.get('/clinic/inventory/low-stock').then(r => r.data),
-  show:        (id)       => api.get(`/clinic/inventory/show/${id}`).then(r => r.data),
-  getBatches:  (id)       => api.get(`/clinic/inventory/batches/${id}`).then(r => r.data),
-  create:      (data)     => api.post('/clinic/inventory/create', data).then(r => r.data),
-  update:      (id, data) => api.put(`/clinic/inventory/update/${id}`, data).then(r => r.data),
-  restock:     (id, data) => api.put(`/clinic/inventory/restock/${id}`, data).then(r => r.data),
-  updateBatch: (id, data) => api.put(`/clinic/inventory/batch/update/${id}`, data).then(r => r.data),
-  deleteBatch: (id)       => api.delete(`/clinic/inventory/batch/delete/${id}`).then(r => r.data),
-  deleteItem:  (id)       => api.delete(`/clinic/inventory/delete/${id}`).then(r => r.data),
+  getAll:      ()         => api.get('/clinic/inventory').then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  getByType:   (type)     => api.get(`/clinic/inventory/type/${type}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  getLowStock: ()         => api.get('/clinic/inventory/low-stock').then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  show:        (id)       => api.get(`/clinic/inventory/show/${id}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  getBatches:  (id)       => api.get(`/clinic/inventory/batches/${id}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  create:      (data)     => api.post('/clinic/inventory/create', data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  update:      (id, data) => api.put(`/clinic/inventory/update/${id}`, data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  restock:     (id, data) => api.post(`/clinic/inventory/restock/${id}`, data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  updateBatch: (id, data) => api.put(`/clinic/inventory/batch/update/${id}`, data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  deleteBatch: (id)       => api.delete(`/clinic/inventory/batch/delete/${id}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  deleteItem:  (id)       => api.delete(`/clinic/inventory/delete/${id}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
 };
 
-const handleAPIError = (res) => ({ message: res?.error || res?.message || 'An error occurred.' });
+const handleAPIError = (res) => ({ message: res?.error || res?.message || res?.data?.error || 'An error occurred.' });
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -644,7 +644,6 @@ onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentT
                               <td style={{ padding: '1rem 0.8rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                 <div style={{ position: 'relative', display: 'inline-block' }}>
                                   <button
-                                    ref={showDropdown === item.id ? dropdownButtonRef : null}
                                     onClick={(e) => {
                                       if (showDropdown === item.id) { setShowDropdown(null); return; }
                                       const rect = e.currentTarget.getBoundingClientRect();
