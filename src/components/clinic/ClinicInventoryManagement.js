@@ -28,7 +28,7 @@ const clinicInventoryAPI = {
   getBatches:  (id)       => api.get(`/clinic/inventory/batches/${id}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
   create:      (data)     => api.post('/clinic/inventory/create', data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
   update:      (id, data) => api.put(`/clinic/inventory/update/${id}`, data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
-  restock:     (id, data) => api.post(`/clinic/inventory/restock/${id}`, data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
+  restock:     (id, data) => api.put(`/clinic/inventory/restock/${id}`, data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
   updateBatch: (id, data) => api.put(`/clinic/inventory/batch/update/${id}`, data).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
   deleteBatch: (id)       => api.delete(`/clinic/inventory/batch/delete/${id}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
   deleteItem:  (id)       => api.delete(`/clinic/inventory/delete/${id}`).then(r => r.data).catch(e => ({ success: false, error: e?.response?.data?.error || e.message })),
