@@ -90,6 +90,28 @@ const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
     }
+    .clinic-records-page { zoom: 0.75; }
+    @media (min-width: 1600px) { .clinic-records-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .clinic-records-page { zoom: 1; } }
+    @media (max-width: 768px) {
+      .clinic-records-page { zoom: 1; }
+      .rec-title { font-size: 1.4rem !important; }
+      .rec-stat-number { font-size: 1.4rem !important; }
+      .rec-stat-label { font-size: 0.6rem !important; }
+      .rec-stat-desc { display: none !important; }
+      .rec-stat-icon { width: 36px !important; height: 36px !important; border-radius: 10px !important; }
+      .rec-stat-icon img { width: 22px !important; height: 22px !important; }
+      .rec-table th { font-size: 0.7rem !important; padding: 0.5rem 0.4rem !important; }
+      .rec-table td { font-size: 0.72rem !important; padding: 0.5rem 0.4rem !important; }
+      .rec-table .col-hide { display: none !important; }
+      .rec-filter-search { font-size: 0.8rem !important; }
+      .rec-add-btn { padding: 0.4rem 0.8rem !important; font-size: 0.8rem !important; }
+      .rec-card-header h5 { font-size: 0.9rem !important; }
+      .rec-card-body { padding: 1rem !important; }
+      .rec-type-card { min-width: 140px !important; padding: 1rem !important; }
+      .rec-type-card img { width: 36px !important; height: 36px !important; }
+      .rec-type-card div { font-size: 0.9rem !important; }
+    }
   `;
 
   const [formData, setFormData] = useState({
@@ -824,7 +846,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 clinic-records-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -899,7 +921,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
             { label: 'Sterilization', count: sterilizations.filter(r => r.is_mine == 1).length, icon: '/sterilization.png', faIcon: 'fas fa-cut', accent: '#28a745', accentAlpha: 'rgba(40,167,69,0.12)', description: 'Sterilization Records', delay: '0.3s' },
             { label: 'Microchip', count: microchips.filter(r => r.is_mine == 1).length, icon: '/microchip.png', faIcon: 'fas fa-microchip', accent: '#4361ee', accentAlpha: 'rgba(67,97,238,0.12)', description: 'Microchip Records', delay: '0.4s' },
           ].map(({ label, count, icon, faIcon, accent, accentAlpha, description, delay }, i) => (
-            <Col md={6} lg={3} className="mb-3" key={i} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+            <Col xs={12} sm={6} lg={3} className="mb-3" key={i} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
               <Card
                 className="border-0 h-100"
                 style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -910,14 +932,14 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                 <Card.Body style={{ padding: '1.5rem', background: 'transparent' }}>
                   <div className="d-flex align-items-center justify-content-between">
                     <div>
-                      <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
-                      <h2 style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{count}</h2>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <p className="rec-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
+                      <h2 className="rec-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{count}</h2>
+                      <div className="rec-stat-desc" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
                         <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>{description}</span>
                       </div>
                     </div>
-                    <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: accentAlpha, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div className="rec-stat-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: accentAlpha, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <img src={icon} alt={label} style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
                       <i className={faIcon} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
                     </div>
@@ -930,7 +952,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
 
         {/* Filters */}
         <Row className="mb-4 g-2" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-          <Col xs={12} md={6}>
+          <Col xs={12} md={5}>
             <InputGroup style={{ borderRadius: '12px', overflow: 'hidden', height: '46px' }}>
               <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
                 <i className="fas fa-search"></i>
@@ -943,14 +965,14 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
               )}
             </InputGroup>
           </Col>
-          <Col xs={4} md={2}>
+          <Col xs={6} sm={4} md={2}>
             <Form.Select value={filterSpecies} onChange={(e) => setFilterSpecies(e.target.value)} style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
               <option value="all">All</option>
               <option value="dog">Dogs</option>
               <option value="cat">Cats</option>
             </Form.Select>
           </Col>
-          <Col xs={4} md={2}>
+          <Col xs={6} sm={4} md={2}>
             <Form.Select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
               <option value="all">All ({vaccinations.filter(r => r.is_mine == 1).length + dewormings.filter(r => r.is_mine == 1).length + sterilizations.filter(r => r.is_mine == 1).length + microchips.filter(r => r.is_mine == 1).length})</option>
               <option value="vaccination">Vaccination ({filteredVaccinations.filter(r => r.is_mine == 1).length})</option>
@@ -959,7 +981,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
               <option value="microchip">Microchip ({filteredMicrochips.filter(r => r.is_mine == 1).length})</option>
             </Form.Select>
           </Col>
-          <Col xs={4} md={2}>
+          <Col xs={12} sm={4} md={2}>
             <div style={{ position: 'relative' }}>
               <Form.Select
                 value={filterStatus}
@@ -987,7 +1009,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
         <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
           <Col>
             <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-              <Card.Header style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
+              <Card.Header className="rec-card-header" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
                     <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }}></i>
@@ -997,7 +1019,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                     {activeTab === 'sterilization' && `Sterilization Records (${filteredSterilizations.length})`}
                     {activeTab === 'microchip' && `Microchip Records (${filteredMicrochips.length})`}
                   </h5>
-                  <Button onClick={handleOpenModal} className="border-0"
+                  <Button onClick={handleOpenModal} className="border-0 rec-add-btn"
                     style={{ background: '#ffc107', color: '#000000', padding: '0.5rem 1.5rem', borderRadius: '8px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.4)', transition: 'all 0.3s' }}
                     onMouseOver={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.background = '#ffb300'; }}
                     onMouseOut={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.background = '#ffc107'; }}
@@ -1006,7 +1028,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                   </Button>
                 </div>
               </Card.Header>
-              <Card.Body style={{ padding: '2rem' }}>
+              <Card.Body className="rec-card-body" style={{ padding: '2rem' }}>
                 {loading ? (
                   <div className="text-center py-5">
                     <Spinner animation="border" variant="warning" />
@@ -1020,17 +1042,17 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                   </div>
                 ) : (
                   <div className="table-responsive">
-                    <Table hover style={{ marginBottom: 0 }}>
+                    <Table hover className="rec-table" style={{ marginBottom: 0 }}>
                       <thead style={{ background: '#f8f9fa' }}>
                         <tr>
                           {activeTab === 'all' && <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Type</th>}
                           <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Record Details</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Weight</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Veterinarian</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
-                          {filterStatus === 'trash' && <th style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expires In</th>}
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet</th>
+                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Details</th>
+                          <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Weight</th>
+                          <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Veterinarian</th>
+                          <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
+                          {filterStatus === 'trash' && <th className="col-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expires In</th>}
                           <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
@@ -1089,19 +1111,19 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                                   </>
                                 )}
                               </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                 {record.weight ? <span style={{ fontWeight: '500', color: '#555' }}>{record.weight} kg</span> : <span className="text-muted">-</span>}
                               </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                 <small style={{ fontWeight: '500', color: '#555' }}>{record.veterinarian_name || 'Not specified'}</small>
                               </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                 <span style={{ fontSize: '0.85rem', fontWeight: '500', padding: '0.3rem 0.6rem', borderRadius: '6px', color: record.is_mine == 1 ? '#28a745' : '#6c757d', background: record.is_mine == 1 ? 'rgba(40,167,69,0.1)' : 'rgba(108,117,125,0.1)' }}>
                                   {record.recorded_by || 'City Vet Muntinlupa'}
                                 </span>
                               </td>
                               {filterStatus === 'trash' && (
-                                <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                   {(() => { const d = getDaysRemaining(record.deleted_at); return d !== null && (
                                     <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
                                       <i className="fas fa-clock me-1"></i>{d}d left
@@ -1134,7 +1156,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
           <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
             <Col>
               <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-                <Card.Body style={{ padding: '2rem' }}>
+                <Card.Body className="rec-card-body" style={{ padding: '2rem' }}>
                   {filteredMicrochips.length === 0 ? (
                     <div className="text-center py-5">
                       <i className="fas fa-microchip" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
@@ -1250,6 +1272,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                     <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'thin', scrollbarColor: '#dee2e6 #f8f9fa', WebkitOverflowScrolling: 'touch' }} className="record-type-scroll">
                       <div
                         onClick={() => handleRecordTypeSelect('vaccination')}
+                        className="rec-type-card"
                         style={{ minWidth: '200px', flex: '0 0 auto', padding: '1.5rem', border: formData.record_type === 'vaccination' ? '3px solid #ffc107' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'vaccination' ? '#fff9e6' : '#ffffff', transition: 'all 0.3s' }}
                       >
                         <img src="/vaccine.png" alt="Vaccination" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
@@ -1258,6 +1281,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                       </div>
                       <div
                         onClick={() => handleRecordTypeSelect('deworming')}
+                        className="rec-type-card"
                         style={{ minWidth: '200px', flex: '0 0 auto', padding: '1.5rem', border: formData.record_type === 'deworming' ? '3px solid #17a2b8' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'deworming' ? '#e6f7f9' : '#ffffff', transition: 'all 0.3s' }}
                       >
                         <img src="/deworm.png" alt="Deworming" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
@@ -1266,6 +1290,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                       </div>
                       <div
                         onClick={() => handleRecordTypeSelect('sterilization')}
+                        className="rec-type-card"
                         style={{ minWidth: '200px', flex: '0 0 auto', padding: '1.5rem', border: formData.record_type === 'sterilization' ? '3px solid #28a745' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'sterilization' ? '#e6f9e9' : '#ffffff', transition: 'all 0.3s' }}
                       >
                         <img src="/sterilization.png" alt="Sterilization" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
@@ -1274,6 +1299,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                       </div>
                       <div
                         onClick={() => handleRecordTypeSelect('microchip')}
+                        className="rec-type-card"
                         style={{ minWidth: '200px', flex: '0 0 auto', padding: '1.5rem', border: formData.record_type === 'microchip' ? '3px solid #4361ee' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'microchip' ? '#eef0ff' : '#ffffff', transition: 'all 0.3s' }}
                       >
                         <img src="/microchip.png" alt="Microchip" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />

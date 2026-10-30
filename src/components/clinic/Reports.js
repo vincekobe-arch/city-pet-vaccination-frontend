@@ -247,6 +247,20 @@ const ClinicReports = () => {
   const styles = `
     @keyframes dropDown { 0%{opacity:0;transform:translateY(-30px)} 100%{opacity:1;transform:translateY(0)} }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .clinic-reports-page { zoom: 0.75; }
+    @media (min-width: 1600px) { .clinic-reports-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .clinic-reports-page { zoom: 1; } }
+    @media (max-width: 768px) {
+      .clinic-reports-page { zoom: 1; }
+      .rep-title { font-size: 1.3rem !important; }
+      .rep-subtitle { font-size: 0.78rem !important; }
+      .rep-header-btn { padding: 0.5rem 0.9rem !important; font-size: 0.8rem !important; border-radius: 8px !important; }
+      .rep-header-row { flex-direction: column !important; align-items: flex-start !important; gap: 0.75rem !important; }
+      .rep-card-body { padding: 1rem !important; }
+      .rep-card-header { padding: 0.85rem 1rem !important; }
+      .rep-card-icon { width: 44px !important; height: 44px !important; font-size: 1.3rem !important; }
+      .rep-modal-body { padding: 1.25rem !important; }
+    }
   `;
 
   useEffect(() => { loadData(); }, []);
@@ -419,24 +433,24 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#fff', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 clinic-reports-page" style={{ backgroundColor: '#fff', minHeight: '100vh' }}>
 
         {/* Header */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
           <Col>
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="rep-header-row d-flex justify-content-between align-items-center flex-wrap" style={{ gap: '0.75rem' }}>
               <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
                 <i className="fas fa-biohazard" style={{ fontSize: '1.5rem', color: '#ffc107', animation: 'float 3s ease-in-out infinite' }}></i>
                 <div>
-                  <h2 style={{ fontWeight: '700', color: '#333', fontSize: '2rem', marginBottom: 0 }}>Rabies Case Reports</h2>
-                  <small style={{ color: '#888', fontWeight: '500' }}>Report confirmed or suspected rabies cases</small>
+                  <h2 className="rep-title" style={{ fontWeight: '700', color: '#333', fontSize: '2rem', marginBottom: 0 }}>Rabies Case Reports</h2>
+                  <small className="rep-subtitle" style={{ color: '#888', fontWeight: '500' }}>Report confirmed or suspected rabies cases</small>
                 </div>
               </div>
               {reports.length > 0 && (
-                <Button onClick={handleOpenModal} className="border-0"
+                <Button onClick={handleOpenModal} className="border-0 rep-header-btn"
                   style={{ background: '#ffc107', color: '#000', padding: '0.75rem 1.5rem', borderRadius: '12px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.4)', transition: 'all 0.3s' }}
-  onMouseOver={e => { e.currentTarget.style.background = '#ffb300'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-  onMouseOut={e  => { e.currentTarget.style.background = '#ffc107'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                  onMouseOver={e => { e.currentTarget.style.background = '#ffb300'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseOut={e  => { e.currentTarget.style.background = '#ffc107'; e.currentTarget.style.transform = 'translateY(0)'; }}>
                   <i className="fas fa-plus me-2"></i>Report Rabies Case
                 </Button>
               )}
@@ -463,7 +477,7 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
               <i className="fas fa-biohazard text-muted mb-4" style={{ fontSize:'4rem', color:'#e0e0e0' }}></i>
               <h4 className="text-muted mb-3">No Rabies Cases Reported Yet</h4>
               <p className="text-muted mb-4">Report confirmed rabies cases to alert the community and trigger immediate response.</p>
-              <Button onClick={handleOpenModal} className="border-0"
+              <Button onClick={handleOpenModal} className="border-0 rep-header-btn"
                 style={{ background:'#ffc107', color:'#000', padding:'0.875rem 2rem', borderRadius:'12px', fontWeight:'700', boxShadow:'0 4px 15px rgba(255,193,7,0.4)' }}>
                 <i className="fas fa-plus me-2"></i>Report First Rabies Case
               </Button>
@@ -473,7 +487,7 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
           <>
             <Row>
               {paginatedReports.map((report, idx) => (
-                <Col key={report.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + idx * 0.08}s backwards` }}>
+                <Col key={report.id} xs={12} sm={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + idx * 0.08}s backwards` }}>
                   <Card className="h-100 border-0" style={{ borderRadius:'20px', boxShadow:'0 4px 20px rgba(0,0,0,0.08)', transition:'all 0.3s', overflow:'hidden', position:'relative' }}
                     onMouseOver={e => { e.currentTarget.style.transform='translateY(-5px)'; e.currentTarget.style.boxShadow='0 10px 30px rgba(255,193,7,0.2)'; }}
 onMouseOut={e  => { e.currentTarget.style.transform='translateY(0)';    e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.08)'; }}>
@@ -524,9 +538,9 @@ onMouseOut={e  => { e.currentTarget.style.transform='translateY(0)';    e.curren
                       )}
                     </div>
 
-                    <Card.Header style={{ background:'linear-gradient(135deg,#fffdf0,#fff3cd)', borderBottom:'2px solid #ffc107', paddingRight:'3.5rem', borderRadius:'20px 20px 0 0' }}>
+                    <Card.Header className="rep-card-header" style={{ background:'linear-gradient(135deg,#fffdf0,#fff3cd)', borderBottom:'2px solid #ffc107', paddingRight:'3.5rem', borderRadius:'20px 20px 0 0' }}>
                       <div className="d-flex align-items-center gap-3">
-                        <div style={{ width:'60px', height:'60px', borderRadius:'14px', background:'rgba(220,53,69,0.1)', border:'2px solid rgba(220,53,69,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.8rem' }}>
+                        <div className="rep-card-icon" style={{ width:'60px', height:'60px', borderRadius:'14px', background:'rgba(220,53,69,0.1)', border:'2px solid rgba(220,53,69,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.8rem' }}>
                           🦠
                         </div>
                         <div>
@@ -536,7 +550,7 @@ onMouseOut={e  => { e.currentTarget.style.transform='translateY(0)';    e.curren
                       </div>
                     </Card.Header>
 
-                    <Card.Body style={{ padding:'1.25rem' }}>
+                    <Card.Body className="rep-card-body" style={{ padding:'1.25rem' }}>
                       <div className="mb-3">
                         <StatusBadge status={report.status} />
                       </div>
@@ -601,7 +615,7 @@ onMouseOut={e  => { if(currentPage!==page)e.currentTarget.style.borderColor='#de
             </Modal.Title>
           </Modal.Header>
           <Form onSubmit={handleSubmit}>
-            <Modal.Body style={{ maxHeight:'70vh', overflowY:'auto', padding:'2rem' }}>
+            <Modal.Body className="rep-modal-body" style={{ maxHeight:'70vh', overflowY:'auto', padding:'2rem' }}>
               {submitError && <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{submitError}</Alert>}
 
               <Alert variant="danger" className="mb-4" style={{ borderRadius:'12px', background:'rgba(255,193,7,0.08)', border:'2px solid rgba(255,193,7,0.3)', color:'#856404' }}>
@@ -773,10 +787,10 @@ onMouseOut={e  => { if(currentPage!==page)e.currentTarget.style.borderColor='#de
           <Modal.Header closeButton style={{ background:'linear-gradient(135deg,#fffdf0,#fff3cd)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
     <Modal.Title style={{ fontWeight:'700', color:'#856404' }}>🦠 Rabies Case Details</Modal.Title>
           </Modal.Header>
-          <Modal.Body style={{ padding:'2rem' }}>
+          <Modal.Body className="rep-modal-body" style={{ padding:'2rem' }}>
             {selectedReport && (
               <Row>
-                <Col md={6}>
+                <Col xs={12} md={6}>
                   <Card className="border-0 mb-3" style={{ borderRadius:'14px', boxShadow:'0 2px 10px rgba(0,0,0,0.07)' }}>
                     <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'14px 14px 0 0' }}>
       <h6 className="mb-0" style={{ fontWeight:'700', color:'#333' }}><i className="fas fa-info-circle me-2" style={{ color:'#ffc107' }}></i>Report Information</h6>
@@ -802,7 +816,7 @@ onMouseOut={e  => { if(currentPage!==page)e.currentTarget.style.borderColor='#de
                     </Card.Body>
                   </Card>
                 </Col>
-                <Col md={6}>
+                <Col xs={12} md={6}>
                   {selectedReport.description && (
                     <Card className="border-0 mb-3" style={{ borderRadius:'14px', boxShadow:'0 2px 10px rgba(0,0,0,0.07)' }}>
                       <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'14px 14px 0 0' }}>
@@ -847,7 +861,7 @@ onMouseOut={e  => { if(currentPage!==page)e.currentTarget.style.borderColor='#de
             </Modal.Title>
           </Modal.Header>
           <Form onSubmit={confirmEdit}>
-            <Modal.Body style={{ maxHeight:'70vh', overflowY:'auto', padding:'2rem' }}>
+            <Modal.Body className="rep-modal-body" style={{ maxHeight:'70vh', overflowY:'auto', padding:'2rem' }}>
               {editError && <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{editError}</Alert>}
 
               <Alert variant="danger" className="mb-4" style={{ borderRadius:'12px', background:'rgba(255,193,7,0.08)', border:'2px solid rgba(255,193,7,0.3)', color:'#856404' }}>

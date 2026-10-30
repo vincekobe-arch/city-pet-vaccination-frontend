@@ -369,13 +369,21 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
     @keyframes dropDown { 0%{opacity:0;transform:translateY(-16px)} 100%{opacity:1;transform:translateY(0)} }
     @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
     .cinv-row:hover { background: rgba(255,193,7,0.04) !important; }
-
+    .cinv-page { zoom: 0.75; }
+    @media (min-width: 1600px) { .cinv-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .cinv-page { zoom: 1; } }
     @media (max-width: 768px) {
-      .cinv-title { font-size: 1.4rem !important; }
-      .cinv-table th, .cinv-table td { font-size: 0.7rem !important; padding: 0.35rem 0.2rem !important; }
-      .cinv-table .mobile-hide { display: none !important; }
+      .cinv-page { zoom: 1; }
+      .cinv-title { font-size: 1.3rem !important; }
+      .cinv-subtitle { font-size: 0.78rem !important; }
       .cinv-stat-label { font-size: 0.55rem !important; }
-      .cinv-stat-number { font-size: 1rem !important; }
+      .cinv-stat-number { font-size: 1.1rem !important; }
+      .cinv-stat-icon { width: 36px !important; height: 36px !important; border-radius: 8px !important; }
+      .cinv-stat-icon i { font-size: 1rem !important; }
+      .cinv-table th, .cinv-table td { font-size: 0.7rem !important; padding: 0.35rem 0.3rem !important; }
+      .cinv-table .mobile-hide { display: none !important; }
+      .cinv-add-btn { padding: 0.4rem 0.8rem !important; font-size: 0.8rem !important; }
+      .cinv-filter-row .col-search { margin-bottom: 0.5rem; }
     }
   `;
 
@@ -383,7 +391,7 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 cinv-page" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
 
         {/* ── Header ── */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -394,7 +402,7 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
                 <h2 className="cinv-title" style={{ fontWeight: '700', color: '#333', fontSize: '1.9rem', marginBottom: 0 }}>
                   Clinic Inventory
                 </h2>
-                <small style={{ color: '#888', fontWeight: '500' }}>
+                <small className="cinv-subtitle" style={{ color: '#888', fontWeight: '500' }}>
                   Manage vaccines, dewormers, medicines & equipment
                 </small>
               </div>
@@ -455,15 +463,14 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
         )}
 
         {/* ── Stat Cards ── */}
-        <Row className="mb-4" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px', animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+        <Row className="mb-4 g-2" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
           {[
             { label: 'Total Items',  value: totalItems,    color: '#ffc107', bg: 'rgba(255,193,7,0.1)',   icon: 'fa-boxes'               },
-
             { label: 'Total Stock',  value: totalStock,    color: '#0d6efd', bg: 'rgba(13,110,253,0.1)',  icon: 'fa-cubes'               },
             { label: 'Low Stock',    value: lowStockItems, color: '#ffc107', bg: 'rgba(255,193,7,0.1)',   icon: 'fa-exclamation-triangle' },
             { label: 'Out of Stock', value: outOfStock,    color: '#dc3545', bg: 'rgba(220,53,69,0.1)',   icon: 'fa-times-circle'        },
           ].map(s => (
-            <div key={s.label} style={{ flex: '1 1 0', padding: '0 6px', minWidth: 0 }}>
+            <Col key={s.label} xs={6} lg={3}>
               <Card className="border-0 h-100"
                 style={{ borderRadius: '16px', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', overflow: 'hidden' }}
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 6px 20px ${s.bg}`; e.currentTarget.style.borderColor = s.color; }}
@@ -478,19 +485,19 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
                         {loading ? '—' : s.value}
                       </h2>
                     </div>
-                    <div style={{ width: '50px', height: '50px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div className="cinv-stat-icon" style={{ width: '50px', height: '50px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <i className={`fas ${s.icon}`} style={{ fontSize: '1.25rem', color: s.color }} />
                     </div>
                   </div>
                 </Card.Body>
               </Card>
-            </div>
+            </Col>
           ))}
         </Row>
 
         {/* ── Search & Filter ── */}
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.15s backwards' }}>
-          <Col md={4}>
+        <Row className="mb-4 g-2 cinv-filter-row" style={{ animation: 'dropDown 0.4s ease-out 0.15s backwards' }}>
+          <Col xs={12} md={4} className="col-search">
             <InputGroup style={{ borderRadius: '12px', overflow: 'hidden' }}>
               <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
                 <i className="fas fa-search" />
@@ -509,7 +516,7 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
               )}
             </InputGroup>
           </Col>
-          <Col md={3}>
+          <Col xs={12} md={3}>
             <Form.Select
               value={filterType}
               onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
@@ -537,7 +544,7 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
 
                     Stock Levels ({filtered.length} items)
                   </h5>
-                  <Button onClick={() => setShowAddModal(true)} className="border-0"
+                  <Button onClick={() => setShowAddModal(true)} className="border-0 cinv-add-btn"
                     style={{ background: '#ffc107', color: '#000', padding: '0.5rem 1.5rem', borderRadius: '8px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.35)', transition: 'all 0.3s' }}
 onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = '#ffb300'; }}
 onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = '#ffc107'; }}>
