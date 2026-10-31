@@ -91,8 +91,10 @@ export const petAPI = {
   trash: () => api.get('/pets/trash'),
   restore: (id) => api.put(`/pets/restore/${id}`),
   forceDelete: (id) => api.delete(`/pets/force-delete/${id}`),
-uploadPhoto: (id, formData) => api.post(`/pets/upload-photo/${id}`, formData),
-};
+uploadPhoto: (id, formData) => {
+  console.log('📸 Upload token:', localStorage.getItem('pet_vaccination_token'));
+  return api.post(`/pets/upload-photo/${id}`, formData);
+},};
 
 // Owner API
 export const ownerAPI = {
