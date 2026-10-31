@@ -522,15 +522,11 @@ useEffect(() => {
   const getPetImage = (species, photoUrl = null) => {
     if (photoUrl) {
       if (photoUrl.startsWith('http')) return photoUrl;
-      const serverBase = window.location.hostname === 'localhost'
-        ? 'http://localhost/city-pet-vaccination-frontend/public'
-        : 'https://petunity-muntinlupacity.com';
-      return `${serverBase}${photoUrl}`;
+      return `https://petunity-muntinlupacity.com${photoUrl}`;
     }
-    const timestamp = new Date().getTime();
-    if (species === 'dog') return `/dog.png?v=${timestamp}`;
-    else if (species === 'cat') return `/cat.png?v=${timestamp}`;
-    return `/pet-default.png?v=${timestamp}`;
+    if (species === 'dog') return `/dog.png`;
+    else if (species === 'cat') return `/cat.png`;
+    return `/pet-default.png`;
   };
 
   const handlePetPhotoUpload = async (petId, file) => {
