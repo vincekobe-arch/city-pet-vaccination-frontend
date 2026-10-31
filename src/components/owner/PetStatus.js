@@ -522,7 +522,7 @@ useEffect(() => {
   const getPetImage = (species, photoUrl = null) => {
     if (photoUrl) {
       if (photoUrl.startsWith('http')) return photoUrl;
-      return `https://petunity-muntinlupacity.com${photoUrl}`;
+      return `https://www.petunity-muntinlupacity.com${photoUrl}`;
     }
     if (species === 'dog') return `/dog.png`;
     else if (species === 'cat') return `/cat.png`;
