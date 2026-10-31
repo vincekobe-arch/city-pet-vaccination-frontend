@@ -569,6 +569,11 @@ useEffect(() => {
     ctx.drawImage(srcCanvas, 0, 0, SIZE, SIZE);
 
     outCanvas.toBlob(async (blob) => {
+      if (!blob) {
+        setError('Failed to process image. Please try again.');
+        setPhotoUploading(false);
+        return;
+      }
       try {
         const croppedFile = new File([blob], cropModal.file.name, { type: 'image/jpeg' });
         const formData = new FormData();
@@ -577,14 +582,13 @@ useEffect(() => {
         await petAPI.uploadPhoto(cropModal.petId, formData);
         await loadPets();
         setCropModal(null);
-        setPhotoPreview(null);
       } catch (err) {
         const { message } = handleAPIError(err);
         setError(message);
       } finally {
         setPhotoUploading(false);
       }
-    }, 'image/jpeg', 0.92);
+    }, 'image/jpeg', 0.85);
   } catch (err) {
     setError('Failed to process image.');
     setPhotoUploading(false);
@@ -3039,9 +3043,8 @@ useEffect(() => {
           const file = e.target.files[0];
           const petId = e.target.dataset.petId;
           if (file && petId) {
-            handlePetPhotoUpload(petId, file).then(() => {
-              setPhotoPreview(null);
-            });
+            handlePetPhotoUpload(petId, file);
+            setPhotoPreview(null);
           }
           e.target.value = '';
         }}
