@@ -523,7 +523,7 @@ useEffect(() => {
       if (photoUrl.startsWith('http')) return photoUrl;
       const serverBase = window.location.hostname === 'localhost'
         ? 'http://localhost/city-pet-vaccination-frontend/public'
-        : 'https://api.petunity-muntinlupacity.com';
+        : 'https://petunity-muntinlupacity.com';
       return `${serverBase}${photoUrl}`;
     }
     const timestamp = new Date().getTime();
