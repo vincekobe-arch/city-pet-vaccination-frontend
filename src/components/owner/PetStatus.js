@@ -521,7 +521,10 @@ useEffect(() => {
   const getPetImage = (species, photoUrl = null) => {
     if (photoUrl) {
       if (photoUrl.startsWith('http')) return photoUrl;
-      return photoUrl; // served directly by Vite from /public folder
+      const serverBase = window.location.hostname === 'localhost'
+        ? 'http://localhost/city-pet-vaccination-frontend/public'
+        : 'https://api.petunity-muntinlupacity.com';
+      return `${serverBase}${photoUrl}`;
     }
     const timestamp = new Date().getTime();
     if (species === 'dog') return `/dog.png?v=${timestamp}`;

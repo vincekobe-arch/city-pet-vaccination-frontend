@@ -25,6 +25,10 @@ api.interceptors.request.use(
     } else {
       console.warn('⚠️ No token found in localStorage');
     }
+    // Let browser set Content-Type automatically for FormData (includes boundary)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => {
@@ -87,9 +91,7 @@ export const petAPI = {
   trash: () => api.get('/pets/trash'),
   restore: (id) => api.put(`/pets/restore/${id}`),
   forceDelete: (id) => api.delete(`/pets/force-delete/${id}`),
-uploadPhoto: (id, formData) => api.post(`/pets/upload-photo/${id}`, formData, {
-  headers: { 'Content-Type': 'multipart/form-data' }
-}),
+uploadPhoto: (id, formData) => api.post(`/pets/upload-photo/${id}`, formData),
 };
 
 // Owner API
