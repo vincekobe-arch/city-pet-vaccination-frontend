@@ -449,13 +449,14 @@ useEffect(() => {
     }
   };
 
-  const loadPets = async () => {
+   const loadPets = async () => {
     try {
       setLoading(true);
       const [petsResponse, vetCardsResponse] = await Promise.all([
         petAPI.getAll(),
         vetCardAPI.getAll()
       ]);
+      console.log('🐾 Pets data:', petsResponse.data.pets?.map(p => ({ id: p.id, name: p.name, photo_url: p.photo_url })));
       setPets(petsResponse.data.pets || []);
       setPetVetCards(vetCardsResponse.data.vet_cards || []);
     } catch (err) {
