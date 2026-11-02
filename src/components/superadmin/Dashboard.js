@@ -2,6 +2,42 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Alert, Badge } from 'react-bootstrap';
 import { barangayAPI, officialAPI, ownerAPI, petAPI, vaccinationAPI, dewormingAPI, sterilizationAPI, scheduleAPI, vetCardAPI, handleAPIError } from '../../services/api';
 
+const AnimatedStatValue = ({ value, loading }) => {
+  const [displayValue, setDisplayValue] = React.useState(0);
+  const hasAnimatedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (loading || hasAnimatedRef.current || value === 0) return;
+    hasAnimatedRef.current = true;
+    const duration = 1200;
+    const steps = 40;
+    const increment = value / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const current = step >= steps ? value : Math.round(increment * step);
+      setDisplayValue(current);
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [loading, value]);
+
+  if (loading) {
+    return (
+      <span style={{
+        display: 'inline-block', width: '3ch', height: '1em',
+        borderRadius: '6px',
+        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+        backgroundSize: '800px 100%',
+        animation: 'shimmer 1.4s ease-in-out infinite',
+        verticalAlign: 'middle'
+      }} />
+    );
+  }
+  return displayValue;
+};
+
+
 const SuperAdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
   statistics: {
@@ -432,6 +468,10 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
     }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
   `;
 
   return (
@@ -497,8 +537,9 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
                 <div className="d-flex align-items-center justify-content-between">
                   <div>
                     <p style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
-                    <h2 style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{count}</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <h2 style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>
+                      <AnimatedStatValue value={count} loading={loading} />
+                    </h2>                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
                       <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>{description}</span>
                     </div>
