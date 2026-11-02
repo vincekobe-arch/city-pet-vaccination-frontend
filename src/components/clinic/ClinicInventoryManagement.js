@@ -66,6 +66,42 @@ const TYPE_ORDER = { vaccination: 3, deworming: 1, medicine: 2, microchip: 0, eq
 const ITEMS_PER_PAGE = 8;
 const ZOOM = 0.75;
 
+// ─── Animated count-up for stat cards ───────────────────────────────────────
+function AnimatedStatValue({ value, loading }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const hasAnimatedRef = useRef(false);
+
+  useEffect(() => {
+    if (loading || hasAnimatedRef.current || value === 0) return;
+    hasAnimatedRef.current = true;
+    const duration = 1200;
+    const steps = 40;
+    const increment = value / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const current = step >= steps ? value : Math.round(increment * step);
+      setDisplayValue(current);
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [loading, value]);
+
+  if (loading) {
+    return (
+      <span style={{
+        display: 'inline-block', width: '2.2ch', height: '1em',
+        borderRadius: '6px',
+        background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+        backgroundSize: '800px 100%',
+        animation: 'shimmer 1.4s ease-in-out infinite',
+        verticalAlign: 'middle'
+      }} />
+    );
+  }
+  return displayValue;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function ClinicInventoryManagement() {
   const [inventory, setInventory]   = useState([]);
@@ -368,6 +404,7 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
   const styles = `
     @keyframes dropDown { 0%{opacity:0;transform:translateY(-16px)} 100%{opacity:1;transform:translateY(0)} }
     @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    @keyframes shimmer  { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
     .cinv-row:hover { background: rgba(255,193,7,0.04) !important; }
     .cinv-page { zoom: 0.75; }
     @media (min-width: 1600px) { .cinv-page { zoom: 0.9; } }
@@ -481,8 +518,8 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
                   <div className="d-flex align-items-center justify-content-between">
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <p className="cinv-stat-label" style={{ fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '0.4rem' }}>{s.label}</p>
-                      <h2 className="cinv-stat-number" style={{ fontSize: '2.4rem', fontWeight: '700', color: '#111', lineHeight: 1, marginBottom: 0 }}>
-                        {loading ? '—' : s.value}
+                      <h2 className="cinv-stat-number" style={{ fontSize: '2.4rem', fontWeight: '700', color: '#111', lineHeight: 1, marginBottom: 0, fontVariantNumeric: 'tabular-nums' }}>
+                        <AnimatedStatValue value={s.value} loading={loading} />
                       </h2>
                     </div>
                     <div className="cinv-stat-icon" style={{ width: '50px', height: '50px', borderRadius: '12px', background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
