@@ -37,23 +37,25 @@ const EditProfile = ({ darkMode }) => {
   }, []);
 
   const isClinic = user?.role === 'private_clinic';
-  const isAdmin = user?.role === 'barangay_official' || user?.role === 'super_admin';
+  const isAdmin = user?.role === 'barangay_official';
+const isSuperAdmin = user?.role === 'super_admin';
 
   const verificationStatus = user?.verification_status;
   const isVerificationLocked =
     user?.role === 'pet_owner' &&
     ['pending', 'semi_verified', 'fully_verified'].includes(verificationStatus);
 
-  const profileFieldsDisabled = isAdmin || isClinic || isVerificationLocked;
+  const profileFieldsDisabled = isAdmin || isClinic || isSuperAdmin || isVerificationLocked;
 
   const lockedHint =
-    isAdmin || isClinic
+    isAdmin || isClinic || isSuperAdmin
       ? 'Profile info cannot be changed for this account type.'
       : isVerificationLocked
       ? `Your account is ${verificationStatus.replace(/_/g, ' ')} — only your password can be changed.`
       : null;
 
   const from = location.state?.from || (
+    user?.role === 'super_admin' ? '/super-admin/dashboard' :
     user?.role === 'barangay_official' ? '/admin/dashboard' :
     user?.role === 'pet_owner' ? '/owner/dashboard' :
     '/clinic/dashboard'
@@ -128,8 +130,8 @@ const EditProfile = ({ darkMode }) => {
     if (formData.new_password !== formData.confirm_password) { setFieldErrors(p => ({ ...p, confirm_password: 'Passwords do not match' })); return; }
   }
 
-  // For admin/clinic with no password change, nothing to submit
-  if ((isAdmin || isClinic) && !changingPassword) {
+  // For admin/clinic/super_admin with no password change, nothing to submit
+  if ((isAdmin || isClinic || isSuperAdmin) && !changingPassword) {
     setError('Please fill in the password fields to save changes.');
     return;
   }
@@ -159,7 +161,7 @@ const EditProfile = ({ darkMode }) => {
     let endpoint;
     if (isClinic) {
       endpoint = `/clinics/change-password`;
-    } else if (isAdmin) {
+    } else if (isAdmin || isSuperAdmin) {
       endpoint = `/officials/change-password`;
     } else {
       endpoint = `/owners/${user.id}`;
@@ -592,6 +594,64 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength=
                     {pwStrengthLabel()} Password
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Reset to default password — super admin only */}
+            {isSuperAdmin && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{
+                  background: 'rgba(239,68,68,0.06)',
+                  border: '1.5px dashed rgba(239,68,68,0.3)',
+                  borderRadius: '12px',
+                  padding: '0.9rem 1rem',
+                  marginBottom: '0.75rem',
+                  fontSize: '0.82rem',
+                  color: '#ef4444',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  <i className="fas fa-exclamation-triangle" />
+                  This will reset your password to <strong style={{ marginLeft: '4px' }}>"password"</strong>. Use only if locked out.
+                </div>
+                <Button
+                  type="button"
+                  disabled={loading}
+                  onClick={async () => {
+                    if (!window.confirm('Reset your password to "password"? You will need to change it after logging back in.')) return;
+                    setLoading(true);
+                    setError('');
+                    setSuccess('');
+                    try {
+                      await api.put('/officials/change-password', {
+                        current_password: formData.current_password || 'password',
+                        password: 'password',
+                      });
+                      setSuccess('Password has been reset to "password". Please log in again with the new password.');
+                      setFormData(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
+                    } catch (err) {
+                      setError(err.response?.data?.error || 'Reset failed. Make sure your current password is correct.');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="w-100 border-0"
+                  style={{
+                    height: '46px',
+                    borderRadius: '12px',
+                    background: 'rgba(239,68,68,0.1)',
+                    color: '#ef4444',
+                    fontWeight: '700',
+                    fontSize: '0.88rem',
+                    border: '1.5px solid rgba(239,68,68,0.3)',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; }}
+                  onMouseOut={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+                >
+                  <i className="fas fa-undo me-2" />Reset Password to Default
+                </Button>
               </div>
             )}
 

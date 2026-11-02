@@ -1377,6 +1377,27 @@ const streamRef = useRef(null);
                     ) : null;
                   })()}
 
+                  {/* Update Password — super admin only */}
+                  {user.role === 'super_admin' && (
+                    <button
+                      onClick={() => {
+                        closeDropdown();
+                        setSidebarAnim('sidebar-slide-out');
+                        setMobileNavAnim('mobile-nav-slide-out');
+                        setMobileTopAnim('mobile-top-slide-out');
+                        setTimeout(() => {
+                          navigate('/edit-profile', { state: { from: location.pathname } });
+                        }, 260);
+                      }}
+                      style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'transparent', border: 'none', borderRadius: '8px', color: textColor, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background 0.2s', marginBottom: '0.2rem' }}
+                      onMouseOver={e => e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
+                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <i className="fas fa-key" style={{ fontSize: '0.75rem', width: '16px', textAlign: 'center' }} />
+                      Update Password
+                    </button>
+                  )}
+
                   {/* Edit Profile */}
                   {(user.role === 'barangay_official' || user.role === 'pet_owner' || user.role === 'private_clinic') && (
                     <button
