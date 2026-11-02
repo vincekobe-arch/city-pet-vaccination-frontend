@@ -2,6 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, Modal, Form, InputGroup } from 'react-bootstrap';
 import { petAPI, ownerAPI, microchipAPI, handleAPIError } from '../../services/api';
 
+const AnimatedStatValue = ({ value, loading, darkMode }) => {
+  const [displayValue, setDisplayValue] = React.useState(0);
+  const hasAnimatedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (loading || hasAnimatedRef.current || value === 0) return;
+    hasAnimatedRef.current = true;
+    const duration = 1200;
+    const steps = 40;
+    const increment = value / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const current = step >= steps ? value : Math.round(increment * step);
+      setDisplayValue(current);
+      if (step >= steps) clearInterval(timer);
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [loading, value]);
+
+  if (loading) {
+    return (
+      <span style={{
+        display: 'inline-block', width: '2.2ch', height: '1em',
+        borderRadius: '6px',
+        background: darkMode
+          ? 'linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%)'
+          : 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+        backgroundSize: '800px 100%',
+        animation: 'shimmer 1.4s ease-in-out infinite',
+        verticalAlign: 'middle'
+      }} />
+    );
+  }
+  return displayValue;
+};
+
 const SuperPetManagement = ({ darkMode }) => {
   const [pets, setPets] = useState([]);
   const [owners, setOwners] = useState([]);
@@ -37,6 +74,10 @@ const itemsPerPage = 5;
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
     }
     @media (max-width: 768px) {
       .mobile-title { font-size: 1.5rem !important; }
@@ -369,9 +410,10 @@ const itemsPerPage = 5;
                 fontWeight: '700',
                 color: darkMode ? '#f0f0f0' : '#111111',
                 lineHeight: 1,
-                marginBottom: '0.75rem'
+                marginBottom: '0.75rem',
+                fontVariantNumeric: 'tabular-nums'
               }}>
-                {count}
+                <AnimatedStatValue value={count} loading={loading} darkMode={darkMode} />
               </h2>
               <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{
