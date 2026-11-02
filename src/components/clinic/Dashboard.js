@@ -36,6 +36,20 @@ const ClinicDashboard = () => {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
     }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    @keyframes fadeInUp {
+      0%   { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
+    }
 
     .clinic-dashboard-page { zoom: 0.75; }
     @media (min-width: 1600px) { .clinic-dashboard-page { zoom: 0.9; } }
@@ -415,131 +429,95 @@ const ClinicDashboard = () => {
           </Row>
         )}
 
+        {/* ── Statistics Cards ── */}
+        <Row className="mb-4">
+          {[
+            { label: 'Total Records',   value: totalRecords,                          accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',  img: '/vaccine.png',       fallback: 'fa-file-medical', description: 'All Medical Records',    delay: '0.1s' },
+            { label: 'Pets Served',     value: totalPetsServed,                       accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', img: '/paw.png',           fallback: 'fa-paw',          description: 'Unique Pets',            delay: '0.2s' },
+            { label: 'Vaccinations',    value: dashboardData.vaccinations.length,     accent: '#dc3545', accentAlpha: 'rgba(220,53,69,0.12)',  img: '/vaccine.png',       fallback: 'fa-syringe',      description: 'Vaccination Records',    delay: '0.3s' },
+            { label: 'Sterilizations',  value: dashboardData.sterilizations.length,   accent: '#198754', accentAlpha: 'rgba(25,135,84,0.12)',  img: '/sterilization.png', fallback: 'fa-cut',          description: 'Sterilization Records',  delay: '0.4s' },
+          ].map(({ label, value, accent, accentAlpha, img, fallback, description, delay }) => {
+            const [displayCount, setDisplayCount] = React.useState(0);
+            const [hasAnimated, setHasAnimated] = React.useState(false);
+            React.useEffect(() => {
+              if (loading || hasAnimated || value === 0) return;
+              setHasAnimated(true);
+              const steps = 40, duration = 1200;
+              const increment = value / steps;
+              let step = 0;
+              const timer = setInterval(() => {
+                step++;
+                setDisplayCount(step >= steps ? value : Math.round(increment * step));
+                if (step >= steps) clearInterval(timer);
+              }, duration / steps);
+              return () => clearInterval(timer);
+            }, [loading, value]);
+
+            return (
+              <Col key={label} xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+                <Card
+                  className="border-0 h-100"
+                  style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${accentAlpha}`; e.currentTarget.style.borderColor = accent; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#f0f0f0'; }}
+                >
+                  <div style={{ height: '3px', background: accent, borderRadius: '16px 16px 0 0' }} />
+                  <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
+                    <div className="d-flex align-items-center justify-content-between">
+                      <div>
+                        <p className="mobile-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
+                        <h2 className="mobile-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem', fontVariantNumeric: 'tabular-nums', minWidth: '3ch' }}>
+                          {loading ? (
+                            <span style={{ display: 'inline-block', width: '3ch', height: '1em', borderRadius: '6px', background: '#f0f0f0', animation: 'shimmer 1.4s ease-in-out infinite', verticalAlign: 'middle' }} />
+                          ) : displayCount}
+                        </h2>
+                        <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
+                          <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>{description}</span>
+                        </div>
+                      </div>
+                      <div className="mobile-stat-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: accentAlpha, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <img src={img} alt={label} style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                        <i className={`fas ${fallback}`} style={{ fontSize: '1.4rem', color: accent, display: 'none' }} />
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+
         {loading ? (
-          <div className="text-center py-5">
-            <Spinner animation="border" variant="warning" />
-            <p className="mt-3 text-muted">Loading dashboard...</p>
-          </div>
+          <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
+            {[0, 1].map(i => (
+              <Col key={i} xs={12} lg={6} className="mb-4">
+                <Card className="border-0 h-100" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+                  <div style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+                    <div className="skeleton" style={{ width: '180px', height: '18px' }} />
+                  </div>
+                  <Card.Body style={{ padding: '1rem', minHeight: '320px', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    {Array.from({ length: 5 }).map((_, j) => (
+                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: '#f9f9f9', border: '1px solid #f0f0f0' }}>
+                        <div className="skeleton" style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div className="skeleton" style={{ width: '55%', height: '12px' }} />
+                          <div className="skeleton" style={{ width: '40%', height: '10px' }} />
+                        </div>
+                        <div className="skeleton" style={{ width: '48px', height: '16px', borderRadius: '20px', flexShrink: 0 }} />
+                      </div>
+                    ))}
+                  </Card.Body>
+                </Card>
+              </Col>
+            ))}
+          </Row>
         ) : (
           <>
-            {/* ── Statistics Cards ── */}
-            <Row className="mb-4">
-
-              {/* Total Records */}
-              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
-                <Card
-                  className="border-0 h-100"
-                  style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(255,193,7,0.12)'; e.currentTarget.style.borderColor = '#ffc107'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#f0f0f0'; }}
-                >
-                  <div style={{ height: '3px', background: '#ffc107', borderRadius: '16px 16px 0 0' }} />
-                  <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <div>
-                        <p className="mobile-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>Total Records</p>
-                        <h2 className="mobile-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{totalRecords}</h2>
-                        <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ffc107' }} />
-                          <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>All Medical Records</span>
-                        </div>
-                      </div>
-                      <div className="mobile-stat-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(255,193,7,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <img src="/vaccine.png" alt="Records" style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                        <i className="fas fa-file-medical" style={{ fontSize: '1.4rem', color: '#ffc107', display: 'none' }} />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              {/* Pets Served */}
-              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
-                <Card
-                  className="border-0 h-100"
-                  style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(13,202,240,0.12)'; e.currentTarget.style.borderColor = '#0dcaf0'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#f0f0f0'; }}
-                >
-                  <div style={{ height: '3px', background: '#0dcaf0', borderRadius: '16px 16px 0 0' }} />
-                  <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <div>
-                        <p className="mobile-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>Pets Served</p>
-                        <h2 className="mobile-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{totalPetsServed}</h2>
-                        <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#0dcaf0' }} />
-                          <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>Unique Pets</span>
-                        </div>
-                      </div>
-                      <div className="mobile-stat-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(13,202,240,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <img src="/paw.png" alt="Pets Served" style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                        <i className="fas fa-paw" style={{ fontSize: '1.4rem', color: '#0dcaf0', display: 'none' }} />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              {/* Vaccinations */}
-              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.3s backwards' }}>
-                <Card
-                  className="border-0 h-100"
-                  style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(220,53,69,0.12)'; e.currentTarget.style.borderColor = '#dc3545'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#f0f0f0'; }}
-                >
-                  <div style={{ height: '3px', background: '#dc3545', borderRadius: '16px 16px 0 0' }} />
-                  <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <div>
-                        <p className="mobile-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>Vaccinations</p>
-                        <h2 className="mobile-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{dashboardData.vaccinations.length}</h2>
-                        <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#dc3545' }} />
-                          <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>Vaccination Records</span>
-                        </div>
-                      </div>
-                      <div className="mobile-stat-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(220,53,69,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <img src="/vaccine.png" alt="Vaccinations" style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                        <i className="fas fa-syringe" style={{ fontSize: '1.4rem', color: '#dc3545', display: 'none' }} />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              {/* Sterilizations */}
-              <Col xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-                <Card
-                  className="border-0 h-100"
-                  style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(25,135,84,0.12)'; e.currentTarget.style.borderColor = '#198754'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.06)'; e.currentTarget.style.borderColor = '#f0f0f0'; }}
-                >
-                  <div style={{ height: '3px', background: '#198754', borderRadius: '16px 16px 0 0' }} />
-                  <Card.Body className="mobile-card-padding" style={{ padding: '1.5rem', background: 'transparent' }}>
-                    <div className="d-flex align-items-center justify-content-between">
-                      <div>
-                        <p className="mobile-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>Sterilizations</p>
-                        <h2 className="mobile-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{dashboardData.sterilizations.length}</h2>
-                        <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#198754' }} />
-                          <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>Sterilization Records</span>
-                        </div>
-                      </div>
-                      <div className="mobile-stat-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(25,135,84,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <img src="/sterilization.png" alt="Sterilizations" style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                        <i className="fas fa-cut" style={{ fontSize: '1.4rem', color: '#198754', display: 'none' }} />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-
-            {/* ── Bottom Row: Vaccination by Species + Recent Records ── */}
+            {/* ── Bottom Row: Upcoming Appointments + Recent Records ── */}
             <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
+
+              
 
               {/* Upcoming Appointments */}
               <Col xs={12} lg={6} className="mb-4">
