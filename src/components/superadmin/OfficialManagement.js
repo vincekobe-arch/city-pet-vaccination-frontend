@@ -14,6 +14,8 @@ const OfficialManagement = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -311,11 +313,17 @@ const itemsPerPage = 5;
       setFormLoading(false);
     }
   };
-  const handleRestoreOfficial = async (official) => {
+  const handleRestoreOfficial = (official) => {
+    setSelectedOfficial(official);
+    setShowRestoreModal(true);
+  };
+
+  const handleConfirmRestore = async () => {
     setFormLoading(true);
     try {
-      await officialAPI.restore(official.id);
+      await officialAPI.restore(selectedOfficial.id);
       setSuccess('Official restored successfully!');
+      setShowRestoreModal(false);
       loadData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -326,12 +334,17 @@ const itemsPerPage = 5;
     }
   };
 
-  const handleResetPassword = async (official) => {
-    if (!window.confirm(`Reset password of ${official.first_name} to "admin123"?`)) return;
+  const handleResetPassword = (official) => {
+    setSelectedOfficial(official);
+    setShowResetPasswordModal(true);
+  };
+
+  const handleConfirmResetPassword = async () => {
     setFormLoading(true);
     try {
-      await officialAPI.resetAdminPassword(official.id);
-      setSuccess(`Password of ${official.first_name} reset to admin123 successfully!`);
+      await officialAPI.resetAdminPassword(selectedOfficial.id);
+      setSuccess(`Password of ${selectedOfficial.first_name} reset to admin123 successfully!`);
+      setShowResetPasswordModal(false);
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -340,6 +353,7 @@ const itemsPerPage = 5;
       setFormLoading(false);
     }
   };
+
 
   // Filtering logic
   const filteredOfficials = officials.filter(official => {
@@ -1964,6 +1978,139 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Restore Confirmation Modal */}
+      <Modal
+        show={showRestoreModal}
+        onHide={() => setShowRestoreModal(false)}
+        centered
+        style={{ zoom: '0.75' }}
+      >
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #198754' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-undo text-success me-2"></i>
+            Confirm Restore
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {selectedOfficial && (
+            <>
+              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                Are you sure you want to restore this admin?
+              </p>
+              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #198754' }}>
+                <div className="mb-2">
+                  <span style={{ fontWeight: '500', color: '#555' }}>
+                    <i className="fas fa-user-tie me-1" style={{ color: '#198754' }}></i>
+                    Admin
+                  </span>
+                </div>
+                <strong style={{ fontSize: '1.1rem' }}>
+                  {selectedOfficial.first_name} {selectedOfficial.middle_name && selectedOfficial.middle_name + ' '}{selectedOfficial.last_name}
+                </strong>
+                <br />
+                <small className="text-muted">
+                  <i className="fas fa-at me-1"></i>
+                  {selectedOfficial.username}
+                </small>
+              </div>
+              <Alert variant="success" className="mt-3 mb-0" style={{ background: 'rgba(25,135,84,0.1)', border: '1px solid rgba(25,135,84,0.3)', color: '#198754' }}>
+                <i className="fas fa-info-circle me-2"></i>
+                This admin will be reactivated and can log in again.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button
+            variant="secondary"
+            onClick={() => setShowRestoreModal(false)}
+            disabled={formLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmRestore}
+            disabled={formLoading}
+            className="border-0"
+            style={{ background: '#198754', color: '#ffffff', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600', boxShadow: '0 4px 15px rgba(25,135,84,0.3)' }}
+          >
+            {formLoading ? (
+              <><Spinner size="sm" animation="border" className="me-2" />Restoring...</>
+            ) : (
+              <><i className="fas fa-undo me-2"></i>Restore Admin</>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Reset Password Confirmation Modal */}
+      <Modal
+        show={showResetPasswordModal}
+        onHide={() => setShowResetPasswordModal(false)}
+        centered
+        style={{ zoom: '0.75' }}
+      >
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #0d6efd' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-key text-primary me-2"></i>
+            Confirm Password Reset
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {selectedOfficial && (
+            <>
+              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                Are you sure you want to reset this admin's password?
+              </p>
+              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #0d6efd' }}>
+                <div className="mb-2">
+                  <span style={{ fontWeight: '500', color: '#555' }}>
+                    <i className="fas fa-user-tie me-1" style={{ color: '#0d6efd' }}></i>
+                    Admin
+                  </span>
+                </div>
+                <strong style={{ fontSize: '1.1rem' }}>
+                  {selectedOfficial.first_name} {selectedOfficial.middle_name && selectedOfficial.middle_name + ' '}{selectedOfficial.last_name}
+                </strong>
+                <br />
+                <small className="text-muted">
+                  <i className="fas fa-at me-1"></i>
+                  {selectedOfficial.username}
+                </small>
+              </div>
+              <Alert variant="primary" className="mt-3 mb-0" style={{ background: 'rgba(13,110,253,0.1)', border: '1px solid rgba(13,110,253,0.3)', color: '#0d6efd' }}>
+                <i className="fas fa-info-circle me-2"></i>
+                Password will be reset to <strong>admin123</strong>. The admin should change it after logging in.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button
+            variant="secondary"
+            onClick={() => setShowResetPasswordModal(false)}
+            disabled={formLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmResetPassword}
+            disabled={formLoading}
+            className="border-0"
+            style={{ background: '#0d6efd', color: '#ffffff', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600', boxShadow: '0 4px 15px rgba(13,110,253,0.3)' }}
+          >
+            {formLoading ? (
+              <><Spinner size="sm" animation="border" className="me-2" />Resetting...</>
+            ) : (
+              <><i className="fas fa-key me-2"></i>Reset Password</>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       </Container>
     </>
   );
