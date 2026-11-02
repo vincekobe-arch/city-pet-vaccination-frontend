@@ -370,8 +370,8 @@ const isSuperAdmin = user?.role === 'super_admin';
 
           <Form onSubmit={handleSubmit}>
 
-            {/* Profile info — hidden for clinic */}
-            {!isClinic && (
+            {/* Profile info — hidden for clinic and super admin */}
+            {!isClinic && !isSuperAdmin && (
   <>
     <SectionLabel icon="fa-address-card" label="Profile Information" />
     {lockedHint && (
@@ -471,7 +471,7 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength=
             )}
 
             {/* Read-only email for clinic */}
-            {isClinic && (
+            {isClinic && !isSuperAdmin && (
               <>
                 <SectionLabel icon="fa-user-circle" label="Account" />
                 <Form.Group className="mb-3">
