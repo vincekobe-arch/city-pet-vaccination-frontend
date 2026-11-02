@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI, handleAPIError } from '../../services/api';
+import ForgotPasswordModal from './ForgotPasswordModal';
 import { setAuth } from '../../utils/auth';
 
 const Login = ({ onLogin }) => {
@@ -15,6 +16,7 @@ const Login = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [focusedField, setFocusedField] = useState(null);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -544,6 +546,23 @@ if (onLogin) {
                     </div>
                   </Form.Group>
 
+                  {/* Forgot Password link */}
+                  <div className="text-end mb-3" style={{ marginTop: '-0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotModal(true)}
+                      style={{
+                        background: 'none', border: 'none', padding: 0,
+                        color: '#ffc107', fontWeight: 600, fontSize: '0.875rem',
+                        cursor: 'pointer', transition: 'all 0.3s',
+                      }}
+                      onMouseOver={e => { e.currentTarget.style.color = '#ffb300'; e.currentTarget.style.textDecoration = 'underline'; }}
+                      onMouseOut={e  => { e.currentTarget.style.color = '#ffc107'; e.currentTarget.style.textDecoration = 'none'; }}
+                    >
+                      <i className="fas fa-question-circle me-1" />Forgot Password?
+                    </button>
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-100 mb-4 border-0"
@@ -634,6 +653,7 @@ if (onLogin) {
           </Col>
         </Row>
       </Container>
+      <ForgotPasswordModal show={showForgotModal} onHide={() => setShowForgotModal(false)} />
     </div>
   );
 };
