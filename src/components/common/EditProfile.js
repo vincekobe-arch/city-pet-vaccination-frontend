@@ -186,7 +186,7 @@ const isSuperAdmin = user?.role === 'super_admin';
   const border = darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
   const inputBg = darkMode ? '#1a1a1a' : '#f8f9fa';
 
-  const inputStyle = (fieldName) => ({
+  const inputStyle = (fieldName, disabled = false) => ({
     height: '50px',
     borderRadius: '12px',
     border: fieldErrors[fieldName]
@@ -195,12 +195,14 @@ const isSuperAdmin = user?.role === 'super_admin';
       ? '2px solid #ffc107'
       : `1.5px solid ${border}`,
     fontSize: '0.9rem',
-    background: inputBg,
-    color: textColor,
+    background: disabled ? (darkMode ? '#161616' : '#e9ecef') : inputBg,
+    color: disabled ? subText : textColor,
     fontWeight: '500',
     transition: 'all 0.2s',
     paddingLeft: '14px',
     paddingRight: '14px',
+    cursor: disabled ? 'not-allowed' : 'auto',
+    opacity: disabled ? 0.7 : 1,
   });
 
   const labelStyle = {
@@ -388,7 +390,7 @@ const isSuperAdmin = user?.role === 'super_admin';
                   </Form.Label>
                   <Form.Control
                     type="email" value={user?.email || ''} readOnly
-                    style={{ ...inputStyle('email'), background: darkMode ? '#1a1a1a' : '#e9ecef', color: subText, cursor: 'not-allowed' }}
+                    style={inputStyle('email', true)}
                   />
                   <small style={{ color: subText, fontSize: '0.75rem', marginTop: '3px', display: 'block' }}>
                     <i className="fas fa-lock me-1" />Email cannot be changed
@@ -407,7 +409,7 @@ const isSuperAdmin = user?.role === 'super_admin';
                         onChange={handleChange} onFocus={() => setFocusedField('first_name')}
                         onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
                         onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); }}
-placeholder="First name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('first_name')}
+placeholder="First name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('first_name', profileFieldsDisabled)}
                       />
                       <FieldError msg={fieldErrors.first_name} />
                     </Form.Group>
@@ -423,7 +425,7 @@ placeholder="First name" disabled={loading || profileFieldsDisabled} maxLength={
                         onChange={handleChange} onFocus={() => setFocusedField('middle_name')}
                         onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
                         onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); }}
-placeholder="Optional" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('middle_name')}
+placeholder={profileFieldsDisabled ? '' : 'Optional'} disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('middle_name', profileFieldsDisabled)}
                       />
                     <FieldError msg={fieldErrors.middle_name} />
                     </Form.Group>
@@ -439,7 +441,7 @@ placeholder="Optional" disabled={loading || profileFieldsDisabled} maxLength={30
                         onChange={handleChange} onFocus={() => setFocusedField('last_name')}
                         onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
                         onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); }}
-placeholder="Last name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('last_name')}
+placeholder="Last name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('last_name', profileFieldsDisabled)}
                       />
                       <FieldError msg={fieldErrors.last_name} />
                     </Form.Group>
@@ -457,8 +459,8 @@ placeholder="Last name" disabled={loading || profileFieldsDisabled} maxLength={3
 placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength={11}
                     onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
                     style={{
-                      ...inputStyle('phone'),
-                      border: fieldErrors.phone
+                      ...inputStyle('phone', profileFieldsDisabled),
+                      border: profileFieldsDisabled ? `1.5px solid ${border}` : fieldErrors.phone
                         ? '2px solid #ef4444'
                         : (formData.phone && !fieldErrors.phone && /^09\d{9}$/.test(formData.phone))
                         ? '2px solid #10b981'
@@ -481,7 +483,7 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength=
                   </Form.Label>
                   <Form.Control
                     type="email" value={user?.email || ''} readOnly
-                    style={{ ...inputStyle('email'), background: darkMode ? '#1a1a1a' : '#e9ecef', color: subText, cursor: 'not-allowed' }}
+                    style={inputStyle('email', true)}
                   />
                   <small style={{ color: subText, fontSize: '0.75rem', marginTop: '3px', display: 'block' }}>
                     <i className="fas fa-lock me-1" />Email cannot be changed
