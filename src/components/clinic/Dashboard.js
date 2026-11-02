@@ -50,6 +50,12 @@ const ClinicDashboard = () => {
       animation: shimmer 1.4s ease-in-out infinite;
       border-radius: 8px;
     }
+    .skeleton-dark {
+      background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
+    }
 
     .clinic-dashboard-page { zoom: 0.75; }
     @media (min-width: 1600px) { .clinic-dashboard-page { zoom: 0.9; } }
@@ -490,21 +496,25 @@ const ClinicDashboard = () => {
 
         {loading ? (
           <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-            {[0, 1].map(i => (
+            {[
+              { accent: '#ffc107', label: 'Upcoming Appointments' },
+              { accent: '#ffc107', label: 'Recent Records' },
+            ].map(({ accent, label }, i) => (
               <Col key={i} xs={12} lg={6} className="mb-4">
-                <Card className="border-0 h-100" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-                  <div style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+                <Card className="border-0 h-100" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: '#ffffff' }}>
+                  <div style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: `2px solid ${accent}`, borderRadius: '20px 20px 0 0' }}>
                     <div className="skeleton" style={{ width: '180px', height: '18px' }} />
                   </div>
                   <Card.Body style={{ padding: '1rem', minHeight: '320px', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                     {Array.from({ length: 5 }).map((_, j) => (
-                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: '#f9f9f9', border: '1px solid #f0f0f0' }}>
-                        <div className="skeleton" style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
+                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: '#f9f9f9', border: '1px solid #f0f0f0', animation: `fadeInUp 0.35s ease-out ${j * 0.06}s backwards` }}>
+                        <div className="skeleton" style={{ width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0 }} />
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           <div className="skeleton" style={{ width: '55%', height: '12px' }} />
                           <div className="skeleton" style={{ width: '40%', height: '10px' }} />
+                          <div className="skeleton" style={{ width: '30%', height: '9px' }} />
                         </div>
-                        <div className="skeleton" style={{ width: '48px', height: '16px', borderRadius: '20px', flexShrink: 0 }} />
+                        <div className="skeleton" style={{ width: '52px', height: '20px', borderRadius: '20px', flexShrink: 0 }} />
                       </div>
                     ))}
                   </Card.Body>
