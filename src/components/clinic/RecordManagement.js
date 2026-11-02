@@ -90,6 +90,10 @@ const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
     }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
     .clinic-records-page { zoom: 0.75; }
     @media (min-width: 1600px) { .clinic-records-page { zoom: 0.9; } }
     @media (min-width: 1920px) { .clinic-records-page { zoom: 1; } }
@@ -920,7 +924,24 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
             { label: 'Deworming', count: dewormings.filter(r => r.is_mine == 1).length, icon: '/deworm.png', faIcon: 'fas fa-pills', accent: '#17a2b8', accentAlpha: 'rgba(23,162,184,0.12)', description: 'Deworming Records', delay: '0.2s' },
             { label: 'Sterilization', count: sterilizations.filter(r => r.is_mine == 1).length, icon: '/sterilization.png', faIcon: 'fas fa-cut', accent: '#28a745', accentAlpha: 'rgba(40,167,69,0.12)', description: 'Sterilization Records', delay: '0.3s' },
             { label: 'Microchip', count: microchips.filter(r => r.is_mine == 1).length, icon: '/microchip.png', faIcon: 'fas fa-microchip', accent: '#4361ee', accentAlpha: 'rgba(67,97,238,0.12)', description: 'Microchip Records', delay: '0.4s' },
-          ].map(({ label, count, icon, faIcon, accent, accentAlpha, description, delay }, i) => (
+          ].map(({ label, count, icon, faIcon, accent, accentAlpha, description, delay }, i) => {
+            const [displayCount, setDisplayCount] = React.useState(0);
+            const [hasAnimated, setHasAnimated] = React.useState(false);
+            React.useEffect(() => {
+              if (loading || hasAnimated || count === 0) return;
+              setHasAnimated(true);
+              const steps = 40, duration = 1200;
+              const increment = count / steps;
+              let step = 0;
+              const timer = setInterval(() => {
+                step++;
+                setDisplayCount(step >= steps ? count : Math.round(increment * step));
+                if (step >= steps) clearInterval(timer);
+              }, duration / steps);
+              return () => clearInterval(timer);
+            }, [loading, count]);
+
+            return (
             <Col xs={12} sm={6} lg={3} className="mb-3" key={i} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
               <Card
                 className="border-0 h-100"
@@ -933,7 +954,11 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                   <div className="d-flex align-items-center justify-content-between">
                     <div>
                       <p className="rec-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
-                      <h2 className="rec-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem' }}>{count}</h2>
+                      <h2 className="rec-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem', fontVariantNumeric: 'tabular-nums', minWidth: '3ch' }}>
+                        {loading ? (
+                          <span style={{ display: 'inline-block', width: '3ch', height: '1em', borderRadius: '6px', background: '#f0f0f0', animation: 'shimmer 1.4s ease-in-out infinite', verticalAlign: 'middle' }} />
+                        ) : displayCount}
+                      </h2>
                       <div className="rec-stat-desc" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: accent }} />
                         <span style={{ fontSize: '0.75rem', color: '#aaaaaa', fontWeight: '500' }}>{description}</span>
@@ -947,7 +972,8 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                 </Card.Body>
               </Card>
             </Col>
-          ))}
+            );
+          })}
         </Row>
 
         {/* Filters */}
