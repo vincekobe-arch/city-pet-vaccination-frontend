@@ -626,8 +626,7 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength=
                     setError('');
                     setSuccess('');
                     try {
-                      await api.put('/officials/change-password', {
-                        current_password: formData.current_password || 'password',
+                      await api.put('/officials/reset-password', {
                         password: 'password',
                       });
                       setSuccess('Password has been reset to "password". Please log in again with the new password.');
