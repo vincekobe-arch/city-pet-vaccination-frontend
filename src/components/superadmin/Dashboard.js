@@ -472,6 +472,12 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
       0%   { background-position: -400px 0; }
       100% { background-position: 400px 0; }
     }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
+    }
   `;
 
   return (
@@ -584,7 +590,19 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
               </h5>
             </Card.Header>
             <Card.Body style={{ padding: '2rem' }}>
-              {dashboardData.recentAdminActivity.length === 0 ? (
+              {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '1.25rem', borderRadius: '12px', background: '#ffffff', border: '1px solid #e9ecef' }}>
+                      <div className="skeleton" style={{ width: '50px', height: '50px', borderRadius: '12px', flexShrink: 0 }} />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div className="skeleton" style={{ width: '70%', height: '13px' }} />
+                        <div className="skeleton" style={{ width: '40%', height: '11px' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : dashboardData.recentAdminActivity.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-user-shield text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
                   <h6 style={{ color: '#666666', fontWeight: '600' }}>No admin activity yet</h6>
@@ -686,7 +704,19 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
               </h5>
             </Card.Header>
             <Card.Body style={{ padding: '2rem' }}>
-              {dashboardData.recentActivity.length === 0 ? (
+              {loading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '15px', padding: '1.25rem', borderRadius: '12px', background: '#ffffff', border: '1px solid #e9ecef' }}>
+                      <div className="skeleton" style={{ width: '50px', height: '50px', borderRadius: '12px', flexShrink: 0 }} />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div className="skeleton" style={{ width: '70%', height: '13px' }} />
+                        <div className="skeleton" style={{ width: '40%', height: '11px' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : dashboardData.recentActivity.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-history text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
                   <h6 style={{ color: '#666666', fontWeight: '600' }}>No recent activity</h6>
