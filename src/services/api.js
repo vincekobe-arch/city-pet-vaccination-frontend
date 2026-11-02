@@ -302,6 +302,7 @@ export const officialAPI = {
   update: (id, data) => api.put(`/officials/update/${id}`, data),
   delete: (id) => api.delete(`/officials/delete/${id}`),
   restore: (id) => api.put(`/officials/restore/${id}`),
+  resetAdminPassword: (id) => api.put(`/officials/reset-admin-password/${id}`),
   getStatistics: () => api.get('/officials/statistics'),
 };
 

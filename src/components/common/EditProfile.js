@@ -288,6 +288,10 @@ const isSuperAdmin = user?.role === 'super_admin';
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-8px); }
         }
+        @keyframes waveDots {
+          0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+          30% { transform: translateY(-6px); opacity: 1; }
+        }
         .edit-profile-page {
           animation: slideInFromRight 0.45s cubic-bezier(0.4,0,0.2,1);
         }
@@ -668,9 +672,15 @@ placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength=
               onMouseOver={e => { if (!loading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(255,193,7,0.5)'; } }}
               onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,193,7,0.35)'; }}
             >
-              {loading
-                ? <><Spinner as="span" animation="border" size="sm" className="me-2" />Saving…</>
-                : <><i className="fas fa-save me-2" />Save Changes</>}
+              {loading ? (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '1rem' }}>
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0s' }} />
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.15s' }} />
+                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
+                </span>
+              ) : (
+                <><i className="fas fa-save me-2" />Save Changes</>
+              )}
             </Button>
 
           </Form>

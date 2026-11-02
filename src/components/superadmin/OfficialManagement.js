@@ -326,6 +326,21 @@ const itemsPerPage = 5;
     }
   };
 
+  const handleResetPassword = async (official) => {
+    if (!window.confirm(`Reset password of ${official.first_name} to "admin123"?`)) return;
+    setFormLoading(true);
+    try {
+      await officialAPI.resetAdminPassword(official.id);
+      setSuccess(`Password of ${official.first_name} reset to admin123 successfully!`);
+      setTimeout(() => setSuccess(''), 4000);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   // Filtering logic
   const filteredOfficials = officials.filter(official => {
     const matchesBarangay = filterBarangay 
@@ -767,6 +782,33 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
           
           {official.is_active === 1 ? (
             <>
+              <button
+                onClick={() => {
+                  setShowDropdown(null);
+                  handleResetPassword(official);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  border: 'none',
+                  background: '#ffffff',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  fontSize: '0.9rem',
+                  color: '#0d6efd',
+                  fontWeight: '500',
+                  borderTop: '1px solid #f0f0f0',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#f0f4ff'}
+                onMouseOut={(e) => e.target.style.background = '#ffffff'}
+              >
+                <i className="fas fa-key" style={{ width: '18px', textAlign: 'center', color: '#0d6efd' }} />
+                <span>Reset Password</span>
+              </button>
               <button
                 onClick={() => {
                   setShowDropdown(null);
