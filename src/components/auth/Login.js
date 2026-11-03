@@ -454,7 +454,7 @@ if (onLogin) {
                         <i className="fas fa-exclamation-circle me-3 mt-1" style={{ fontSize:'1.2rem', color:'#ef4444' }} />
                         <div style={{ flex:1 }}>
                           <div style={{ fontWeight:'600', marginBottom:'0.25rem' }}>Login Failed</div>
-                          <div style={{ fontSize:'0.9rem', color:'#fca5a5' }}>{error}</div>
+                          <div style={{ fontSize:'0.9rem', color:'#1a1a1a' }}>{error}</div>
                         </div>
                       </div>
                     </Alert>
