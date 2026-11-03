@@ -2468,7 +2468,7 @@ useEffect(() => {
       </Modal>
 
       {/* Edit Pet Modal */}
-<Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" centered style={{ zoom: '0.75' }}>
+<Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" style={{ zoom: '0.75' }}>
   <Modal.Header 
   closeButton
   style={{
