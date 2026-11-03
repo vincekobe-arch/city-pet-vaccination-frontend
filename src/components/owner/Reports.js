@@ -174,7 +174,6 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
 
     const infoWindowInst = new google.maps.InfoWindow();
     infoWindowRef.current = infoWindowInst;
-    map.addListener('click', () => infoWindowInst.close());
 
     if (lat && lng) {
       markerRef.current = new google.maps.Marker({ position: { lat, lng }, map });
