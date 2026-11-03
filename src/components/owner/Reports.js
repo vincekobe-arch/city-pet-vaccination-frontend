@@ -141,17 +141,18 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
       [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
     ];
 
-    const isInsideMuntinlupa = (lat, lng) => {
-      if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
-      let inside = false;
-      for (let i = 0, j = BOUNDARY.length - 1; i < BOUNDARY.length; j = i++) {
-        const xi = BOUNDARY[i][1], yi = BOUNDARY[i][0];
-        const xj = BOUNDARY[j][1], yj = BOUNDARY[j][0];
-        const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-      }
-      return inside;
-    };
+            const isInsideMuntinlupa = (lat, lng) => {
+          if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
+          let inside = false;
+          for (let i = 0, j = BOUNDARY.length - 1; i < BOUNDARY.length; j = i++) {
+            const pLat_i = BOUNDARY[i][0], pLng_i = BOUNDARY[i][1];
+            const pLat_j = BOUNDARY[j][0], pLng_j = BOUNDARY[j][1];
+            const intersect = ((pLng_i > lng) !== (pLng_j > lng)) &&
+              (lat < (pLat_j - pLat_i) * (lng - pLng_i) / (pLng_j - pLng_i) + pLat_i);
+            if (intersect) inside = !inside;
+          }
+          return inside;
+        };
 
     const map = new google.maps.Map(mapRef.current, {
       center: { lat: defaultLat, lng: defaultLng },
@@ -336,9 +337,10 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
                     if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
                     let inside = false;
                     for (let i = 0, j = muntinlupaPolygonCoords.length - 1; i < muntinlupaPolygonCoords.length; j = i++) {
-                      const xi = muntinlupaPolygonCoords[i][0], yi = muntinlupaPolygonCoords[i][1];
-                      const xj = muntinlupaPolygonCoords[j][0], yj = muntinlupaPolygonCoords[j][1];
-                      const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+                      const pLat_i = muntinlupaPolygonCoords[i][0], pLng_i = muntinlupaPolygonCoords[i][1];
+                      const pLat_j = muntinlupaPolygonCoords[j][0], pLng_j = muntinlupaPolygonCoords[j][1];
+                      const intersect = ((pLng_i > lng) !== (pLng_j > lng)) &&
+                        (lat < (pLat_j - pLat_i) * (lng - pLng_i) / (pLng_j - pLng_i) + pLat_i);
                       if (intersect) inside = !inside;
                     }
                     return inside;
