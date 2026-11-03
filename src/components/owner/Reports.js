@@ -60,12 +60,19 @@ const getStatusBadge = (status) => {
 
 const getReportType = (value) => REPORT_TYPES.find(t => t.value === value) || REPORT_TYPES[3];
 // ─── Load Leaflet from CDN (no npm install needed) ───
-const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
+const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError, visible }) => {
   const mapRef    = useRef(null);
   const mapObj       = useRef(null);
   const markerRef    = useRef(null);
   const infoWindowRef = useRef(null);
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!mapObj.current || !window.google) return;
+    setTimeout(() => {
+      window.google.maps.event.trigger(mapObj.current, 'resize');
+    }, 200);
+  }, [visible]);
   const [mapError, setMapError] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -213,6 +220,9 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
     }
 
     mapObj.current = map;
+    setTimeout(() => {
+      if (window.google) window.google.maps.event.trigger(map, 'resize');
+    }, 300);
     return () => { mapObj.current = null; markerRef.current = null; };
   // eslint-disable-next-line
   }, [ready]);
@@ -1276,6 +1286,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                     <LeafletMap
                       lat={formLat}
                       lng={formLng}
+                      visible={showSubmitModal}
                       onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
                       onAddressResolve={(address) => {
                         setFormData(prev => ({ ...prev, address }));
@@ -1593,6 +1604,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                             lat={parseFloat(selectedReport.latitude)}
                             lng={parseFloat(selectedReport.longitude)}
                             readOnly={true}
+                            visible={showDetailsModal}
                           />
                         </div>
                       </Card.Body>
