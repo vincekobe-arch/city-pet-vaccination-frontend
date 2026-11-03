@@ -2468,7 +2468,7 @@ useEffect(() => {
       </Modal>
 
       {/* Edit Pet Modal */}
-<Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+<Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" centered style={{ zoom: '0.75' }}>
   <Modal.Header 
   closeButton
   style={{
@@ -2478,7 +2478,7 @@ useEffect(() => {
   }}
 >
   <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-    <i className="fas fa-eye me-2"></i>
+    <i className="fas fa-edit me-2"></i>
     Edit Pet Information: {selectedPet?.name}
   </Modal.Title>
 </Modal.Header>
