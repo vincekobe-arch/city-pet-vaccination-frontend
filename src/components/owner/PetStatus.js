@@ -26,6 +26,8 @@ const PetStatus = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [updateError, setUpdateError] = useState('');
   const [updateSuccess, setUpdateSuccess] = useState('');
+  
+  const [originalEditData, setOriginalEditData] = useState({});
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -623,7 +625,7 @@ useEffect(() => {
 
   const handleEditPet = (pet) => {
   setSelectedPet(pet);
-  setEditFormData({
+  const initial = {
     name: pet.name,
     breed: pet.breed || '',
     birth_date: pet.birth_date && pet.birth_date !== '0000-00-00' ? pet.birth_date : '',
@@ -632,7 +634,9 @@ useEffect(() => {
     sterilized: pet.sterilized || false,
     sterilized_by: pet.sterilized_by || '',
     sterilization_date: pet.sterilization_date || ''
-  });
+  };
+  setEditFormData(initial);
+  setOriginalEditData(initial);
   setUpdateError('');
   setUpdateSuccess('');
   setShowEditModal(true);
@@ -771,7 +775,9 @@ useEffect(() => {
     }
   };
 
-  const handleRegisterPet = async (e) => {
+  const hasEditChanges = JSON.stringify(editFormData) !== JSON.stringify(originalEditData);
+
+const handleRegisterPet = async (e) => {
     e.preventDefault();
     setRegisterLoading(true);
     setRegisterError('');
@@ -2696,15 +2702,15 @@ useEffect(() => {
       </Button>
       <Button 
         type="submit"
-        disabled={updateLoading}
+        disabled={updateLoading || !hasEditChanges}
         className="border-0"
         style={{
-          background: updateLoading ? '#6c757d' : '#ffc107',
+          background: updateLoading || !hasEditChanges ? '#6c757d' : '#ffc107',
           color: '#000000',
           borderRadius: '8px',
           padding: '0.75rem 1.5rem',
           fontWeight: '700',
-          boxShadow: updateLoading ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)',
+          boxShadow: updateLoading || !hasEditChanges ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)',
           transition: 'all 0.3s'
         }}
         onMouseOver={(e) => {
