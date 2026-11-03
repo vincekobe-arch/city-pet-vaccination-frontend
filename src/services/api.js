@@ -43,7 +43,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       console.error('❌ 401 Unauthorized - Token invalid or expired');
       const publicPaths = ['/', '/login', '/register'];
-      if (!publicPaths.includes(window.location.pathname)) {
+      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
+      if (!publicPaths.includes(window.location.pathname) && !isAuthEndpoint) {
         const errorCode = error.response?.data?.code;
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
