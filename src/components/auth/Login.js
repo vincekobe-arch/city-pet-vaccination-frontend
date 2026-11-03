@@ -182,7 +182,16 @@ if (onLogin) {
       const res = await authAPI.forgotPasswordSend(fpEmail.trim().toLowerCase());
       setFpMaskedEmail(res.data.masked_email || fpEmail);
       setFpSuccess('Verification code sent!'); setFpStep('otp'); fpStartResendCooldown();
-    } catch (err) { setFpError(err.response?.data?.error || 'Failed to send code.'); }
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 404) {
+        setFpError('No account found with that email or username.');
+      } else if (status === 429) {
+        setFpError('Too many attempts. Please try again later.');
+      } else {
+        setFpError(err.response?.data?.error || 'Failed to send code. Please try again.');
+      }
+    }
     finally { setFpLoading(false); }
   };
   const fpHandleVerifyOtp = async () => {
