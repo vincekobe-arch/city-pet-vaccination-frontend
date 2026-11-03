@@ -49,7 +49,10 @@ api.interceptors.response.use(
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         if (errorCode === 'SESSION_INVALIDATED') {
-          alert('You have been logged out because your account was logged in from another device.');
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          window.dispatchEvent(new CustomEvent('session_invalidated'));
+          return Promise.reject(error);
         }
         window.location.href = '/login';
       }

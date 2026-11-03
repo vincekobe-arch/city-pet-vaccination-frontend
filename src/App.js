@@ -53,6 +53,7 @@ import ClinicInventoryManagement from './components/clinic/ClinicInventoryManage
 
 import EditProfile from './components/common/EditProfile';
 import { getToken, getUser, removeAuth } from './utils/auth';
+import SessionInvalidatedModal from './components/common/SessionInvalidatedModal';
 
 // Scroll to Top Component
 function ScrollToTop() {
@@ -244,7 +245,8 @@ function App() {
         }}
       >
         {/* Main layout: sidebar + content side by side */}
-        <SidebarLayout user={user} onLogout={handleLogout} darkMode={darkMode} setDarkMode={setDarkMode} handleLogin={handleLogin} />
+        <SessionInvalidatedModal />
+      <SidebarLayout user={user} onLogout={handleLogout} darkMode={darkMode} setDarkMode={setDarkMode} handleLogin={handleLogin} />
       </div>
     </Router>
   );
