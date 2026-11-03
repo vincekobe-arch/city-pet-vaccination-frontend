@@ -257,9 +257,10 @@ if (onLogin) {
         @keyframes pulse    { 0%,100%{opacity:0.6} 50%{opacity:1} }
         @keyframes float    { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-10px)} }
         @keyframes waveDots { 0%,60%,100%{transform:translateY(0);opacity:0.5} 30%{transform:translateY(-6px);opacity:1} }
-        @keyframes slideInRight  { 0%{opacity:0;transform:translateX(40px)} 100%{opacity:1;transform:translateX(0)} }
-        @keyframes slideOutLeft  { 0%{opacity:1;transform:translateX(0)}     100%{opacity:0;transform:translateX(-40px)} }
-        @keyframes slideInLeft   { 0%{opacity:0;transform:translateX(-40px)} 100%{opacity:1;transform:translateX(0)} }
+        @keyframes slideInRight { 0%{opacity:0;transform:translateX(32px) scale(0.98)} 100%{opacity:1;transform:translateX(0) scale(1)} }
+        @keyframes slideOutLeft { 0%{opacity:1;transform:translateX(0) scale(1)}        100%{opacity:0;transform:translateX(-32px) scale(0.98)} }
+        @keyframes slideInLeft  { 0%{opacity:0;transform:translateX(-32px) scale(0.98)} 100%{opacity:1;transform:translateX(0) scale(1)} }
+        @keyframes fadeSlideUp  { 0%{opacity:0;transform:translateY(16px)} 100%{opacity:1;transform:translateY(0)} }
         @media (max-width:991px) { .login-container { padding:1.5rem 1rem !important; align-items:center !important; } }
         @media (max-width:576px) { .login-card-body { padding:1.5rem !important; } }
         input::placeholder { color:rgba(0,0,0,0.4) !important; }
@@ -283,16 +284,17 @@ if (onLogin) {
 
           {/* ── Left branding ── */}
           <Col
-            lg={isForgot ? 0 : 6}
+            lg={6}
             className="d-none d-lg-block pe-5"
             style={{
-              transition: 'all 0.55s cubic-bezier(0.4,0,0.2,1)',
+              transition: 'opacity 0.55s cubic-bezier(0.4,0,0.2,1), transform 0.55s cubic-bezier(0.4,0,0.2,1), max-width 0.55s cubic-bezier(0.4,0,0.2,1), flex 0.55s cubic-bezier(0.4,0,0.2,1), padding 0.55s cubic-bezier(0.4,0,0.2,1)',
               overflow: 'hidden',
-              maxWidth: isForgot ? '0%' : undefined,
-              padding:  isForgot ? '0' : undefined,
-              opacity:  isForgot ? 0 : 1,
+              maxWidth: isForgot ? '0%' : '50%',
+              flex: isForgot ? '0 0 0%' : '0 0 50%',
+              padding: isForgot ? '0' : undefined,
+              opacity: isForgot ? 0 : 1,
+              transform: isForgot ? 'translateX(-24px)' : 'translateX(0)',
               pointerEvents: isForgot ? 'none' : 'auto',
-              flex: isForgot ? '0 0 0%' : undefined,
             }}
           >
             <div style={{ animation: 'dropDown 0.8s ease-out' }}>
@@ -320,18 +322,26 @@ if (onLogin) {
 
           {/* ── Right card (Login / Forgot) ── */}
           <Col
-            lg={isForgot ? 6 : 6}
-            xl={isForgot ? 5 : 5}
+            lg={6}
+            xl={5}
             style={{
-              transition: 'all 0.55s cubic-bezier(0.4,0,0.2,1)',
+              transition: 'margin 0.55s cubic-bezier(0.4,0,0.2,1), max-width 0.55s cubic-bezier(0.4,0,0.2,1)',
               margin: isForgot ? '0 auto' : undefined,
             }}
           >
             <Card className="shadow-lg border-0" style={{ borderRadius:'24px', background:'#ffffff', border:'1px solid rgba(0,0,0,0.08)', boxShadow:'0 20px 60px rgba(0,0,0,0.1)', animation:'dropDown 0.8s ease-out 0.3s backwards', overflow:'hidden' }}>
-              <Card.Body className="p-4 p-sm-5" style={{ minHeight: 420 }}>
+              <Card.Body className="p-4 p-sm-5" style={{ minHeight: 420, position: 'relative', overflow: 'hidden' }}>
 
                 {/* ════ LOGIN PANEL ════ */}
-                <div style={{ display: isForgot ? 'none' : 'block', animation: isForgot ? undefined : 'slideInLeft 0.4s ease-out' }}>
+                <div style={{
+                  position: isForgot ? 'absolute' : 'relative',
+                  top: 0, left: 0, right: 0,
+                  opacity: isForgot ? 0 : 1,
+                  transform: isForgot ? 'translateX(-28px) scale(0.97)' : 'translateX(0) scale(1)',
+                  transition: 'opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: isForgot ? 'none' : 'auto',
+                  padding: isForgot ? '2rem 0.5rem' : undefined,
+                }}>
                   <Button variant="link" onClick={() => navigate('/')} className="p-0 mb-4 text-decoration-none"
                     style={{ color:'#555', fontSize:'0.9rem', fontWeight:'500', transition:'all 0.3s', display:'inline-flex', alignItems:'center' }}
                     onMouseOver={e => { e.currentTarget.style.color='#ffc107'; e.currentTarget.style.transform='translateX(-5px)'; }}
@@ -432,7 +442,14 @@ if (onLogin) {
                 </div>
 
                 {/* ════ FORGOT PASSWORD PANEL ════ */}
-                <div style={{ display: isForgot ? 'block' : 'none', animation: isForgot ? 'slideInRight 0.45s cubic-bezier(0.4,0,0.2,1)' : undefined }}>
+                <div style={{
+                  position: isForgot ? 'relative' : 'absolute',
+                  top: 0, left: 0, right: 0,
+                  opacity: isForgot ? 1 : 0,
+                  transform: isForgot ? 'translateX(0) scale(1)' : 'translateX(28px) scale(0.97)',
+                  transition: 'opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1)',
+                  pointerEvents: isForgot ? 'auto' : 'none',
+                }}>
 
                   {/* Progress dots */}
                   {fpStep !== 'done' && (
