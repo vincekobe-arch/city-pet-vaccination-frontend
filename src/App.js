@@ -209,7 +209,7 @@ function App() {
 
   const handleLogin = (userData) => {
     setIsLoggingIn(true);
-    setTimeout(() => { setUser(userData); setIsLoggingIn(false); }, 1500);
+    setTimeout(() => { setUser(userData); setIsLoggingIn(false); }, 500);
   };
 
   const handleLogout = () => { removeAuth(); setUser(null); };
@@ -218,6 +218,16 @@ function App() {
     document.body.style.background = darkMode ? '#0f0f0f' : '#ffffff';
     document.body.style.transition = 'background 0.3s ease';
   }, [darkMode]);
+
+  // Keep Hostinger API warm
+  useEffect(() => {
+    const ping = () => fetch('https://api.petunity-muntinlupacity.com/', {
+      method: 'GET', cache: 'no-store'
+    }).catch(() => {});
+    ping();
+    const interval = setInterval(ping, 4 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (isLoggingIn) return <Loading message="Welcome back! Setting up your dashboard..." />;
 
