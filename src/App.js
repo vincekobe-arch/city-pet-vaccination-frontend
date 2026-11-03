@@ -209,7 +209,7 @@ function App() {
 
   const handleLogin = (userData) => {
     setIsLoggingIn(true);
-    setTimeout(() => { setUser(userData); setIsLoggingIn(false); }, 500);
+    setTimeout(() => { setUser(userData); setIsLoggingIn(false); }, 1500);
   };
 
   const handleLogout = () => { removeAuth(); setUser(null); };
