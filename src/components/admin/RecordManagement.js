@@ -2598,8 +2598,14 @@ const getSelectedPet = () => {
     <Col md={12}>
       <Form.Group className="mb-3">
         <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-          Select Batch <span style={{ color: '#dc3545' }}>*</span>
+          {modalMode === 'edit' ? 'Change Batch (Optional)' : <>Select Batch <span style={{ color: '#dc3545' }}>*</span></>}
         </Form.Label>
+        {modalMode === 'edit' && !selectedVaccineBatch && (
+          <div style={{ fontSize: '0.82rem', color: '#856404', padding: '0.6rem 0.75rem', background: '#fff9e6', borderRadius: '8px', border: '1px solid #ffc107', marginBottom: '0.6rem' }}>
+            <i className="fas fa-info-circle me-1"></i>
+            No batch currently selected — the original batch may have been deleted or expired. You may optionally select a new batch below, or leave unselected to keep no batch assigned.
+          </div>
+        )}
                               {loadingBatches ? (
                                 <div style={{ fontSize: '0.82rem', color: '#aaa', padding: '0.5rem' }}>
                                   <i className="fas fa-spinner fa-spin me-1" /> Loading batches...
