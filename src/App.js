@@ -233,6 +233,32 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Proactively detect if this session was invalidated elsewhere
+  useEffect(() => {
+    if (!user) return;
+
+    const checkSession = () => authAPI.getProfile().catch(() => {});
+
+    // Check right away on mount/login
+    checkSession();
+
+    // Keep checking periodically while the tab is open
+    const interval = setInterval(checkSession, 30 * 1000);
+
+    // Also check immediately whenever the user switches back to this tab —
+    // this is what removes the "feels like I need to reload" effect,
+    // since background tabs get throttled and may delay the interval
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') checkSession();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [user]);
+
     // Proactively detect if this session was invalidated elsewhere,
   // so the modal appears even if the user is idle (no reload needed)
   useEffect(() => {
