@@ -57,6 +57,7 @@ import ClinicInventoryManagement from './components/clinic/ClinicInventoryManage
 import EditProfile from './components/common/EditProfile';
 import { getToken, getUser, removeAuth } from './utils/auth';
 import SessionInvalidatedModal from './components/common/SessionInvalidatedModal';
+import IdleTimeoutManager from './components/common/IdleTimeoutManager';
 
 // Scroll to Top Component
 function ScrollToTop() {
@@ -218,6 +219,7 @@ function App() {
 
   const handleLogout = () => { removeAuth(); setUser(null); };
 
+
   useEffect(() => {
     document.body.style.background = darkMode ? '#0f0f0f' : '#ffffff';
     document.body.style.transition = 'background 0.3s ease';
@@ -259,14 +261,6 @@ function App() {
     };
   }, [user]);
 
-    // Proactively detect if this session was invalidated elsewhere,
-  // so the modal appears even if the user is idle (no reload needed)
-  useEffect(() => {
-    if (!user) return;
-    const checkSession = () => authAPI.getProfile().catch(() => {});
-    const interval = setInterval(checkSession, 30 * 1000); // every 30s
-    return () => clearInterval(interval);
-  }, [user]);
 
   if (isLoggingIn) return <Loading message="Welcome back! Setting up your dashboard..." />;
 
@@ -284,6 +278,7 @@ function App() {
       >
         {/* Main layout: sidebar + content side by side */}
         <SessionInvalidatedModal />
+        {user && <IdleTimeoutManager user={user} onLogout={handleLogout} />}
       <SidebarLayout user={user} onLogout={handleLogout} darkMode={darkMode} setDarkMode={setDarkMode} handleLogin={handleLogin} />
       </div>
     </Router>
