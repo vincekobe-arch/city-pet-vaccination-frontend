@@ -176,8 +176,7 @@ if (onLogin) {
     }, 1000);
   };
   const fpHandleSendCode = async () => {
-    if (!fpEmail.trim()) { setFpError('Please enter your email.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fpEmail)) { setFpError('Invalid email format.'); return; }
+    if (!fpEmail.trim()) { setFpError('Please enter your email or username.'); return; }
     setFpLoading(true); setFpError('');
     try {
       const res = await authAPI.forgotPasswordSend(fpEmail.trim().toLowerCase());
@@ -472,13 +471,13 @@ if (onLogin) {
                       {fpError && <div style={{ background:'rgba(239,68,68,0.08)', border:'1.5px solid rgba(239,68,68,0.25)', borderRadius:12, padding:'0.7rem 1rem', marginBottom:'1rem', color:'#ef4444', fontSize:'0.85rem', display:'flex', gap:8, alignItems:'center' }}><i className="fas fa-exclamation-circle" />{fpError}</div>}
                       <div style={{ marginBottom:'1.25rem' }}>
                         <label style={{ fontWeight:600, fontSize:'0.875rem', color:'#1a1a1a', display:'flex', alignItems:'center', marginBottom:'0.5rem' }}>
-                          <i className="fas fa-envelope me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Email Address
+                          <i className="fas fa-user me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />Email or Username
                         </label>
-                        <input type="email" value={fpEmail}
+                        <input type="text" value={fpEmail}
                           onChange={e => { setFpEmail(e.target.value); if (fpError) setFpError(''); }}
                           onFocus={() => setFpFocused('email')} onBlur={() => setFpFocused(null)}
                           onKeyDown={e => e.key === 'Enter' && fpHandleSendCode()}
-                          placeholder="yourname@gmail.com" disabled={fpLoading}
+                          placeholder="Enter your email or username" disabled={fpLoading}
                           style={fpInp('email')}
                         />
                       </div>

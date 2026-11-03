@@ -351,8 +351,8 @@ export const verificationAPI = {
 // Auth API
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
-  forgotPasswordSend:   (email)        => api.post('/auth/forgot-password', { step: 'send_code',   email }),
-  forgotPasswordVerify: (email, code)  => api.post('/auth/forgot-password', { step: 'verify_code', email, code }),
+  forgotPasswordSend:   (identifier)        => api.post('/auth/forgot-password', { step: 'send_code',   identifier }),
+  forgotPasswordVerify: (email, code)       => api.post('/auth/forgot-password', { step: 'verify_code', email, code }),
   forgotPasswordReset:  (email, code, new_password) => api.post('/auth/forgot-password', { step: 'reset', email, code, new_password }),
   register: (userData) => api.post('/auth/register', userData),
   getProfile: () => api.get('/auth/profile'),
