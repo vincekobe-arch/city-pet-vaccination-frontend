@@ -60,190 +60,175 @@ const getStatusBadge = (status) => {
 
 const getReportType = (value) => REPORT_TYPES.find(t => t.value === value) || REPORT_TYPES[3];
 // ─── Load Leaflet from CDN (no npm install needed) ───
-const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError, visible }) => {
-  const mapRef       = useRef(null);
-  const mapObj       = useRef(null);
-  const markerRef    = useRef(null);
-  const infoWindowRef = useRef(null);
+const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
+  const mapRef    = useRef(null);
+  const mapObj    = useRef(null);
+  const markerRef = useRef(null);
   const [ready, setReady] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [mapError, setMapError] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Delay mount so the modal is fully visible before we init the map
-  useEffect(() => {
-    if (visible) {
-      setMounted(false);
-      mapObj.current = null;
-      markerRef.current = null;
-      const t = setTimeout(() => setMounted(true), 400);
-      return () => clearTimeout(t);
-    } else {
-      setMounted(false);
-      mapObj.current = null;
-      markerRef.current = null;
-    }
-  }, [visible]);
-
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
-    setTimeout(() => {
-      if (mapObj.current && window.google) {
-        window.google.maps.event.trigger(mapObj.current, 'resize');
-      }
-    }, 300);
+    setTimeout(() => mapObj.current && mapObj.current.invalidateSize(), 300);
   };
 
   useEffect(() => {
-    if (window.google && window.google.maps) { setReady(true); return; }
-    let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
-    if (!script) {
-      script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}`;
-      script.async = true;
-      script.defer = true;
-      document.head.appendChild(script);
-    }
-    const onLoad = () => setReady(true);
-    script.addEventListener('load', onLoad);
-    return () => script.removeEventListener('load', onLoad);
+    if (window.L) { setReady(true); return; }
+    const link  = document.createElement('link');
+    link.rel    = 'stylesheet';
+    link.href   = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+    const script    = document.createElement('script');
+    script.src      = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload   = () => setReady(true);
+    script.onerror  = () => setMapError('Failed to load map.');
+    document.head.appendChild(script);
   }, []);
 
   useEffect(() => {
-    if (!ready || !mounted || !mapRef.current || mapObj.current) return;
-    const google = window.google;
+    if (!ready || !mapRef.current || mapObj.current) return;
     const defaultLat = lat || 14.4081;
     const defaultLng = lng || 121.0415;
 
-    const BOUNDARY = [
-      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-      [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-      [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-      [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-      [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-      [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-      [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-      [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-      [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-      [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-      [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-      [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-      [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-      [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-      [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-      [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-      [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-      [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-      [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-      [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-      [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-      [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-      [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-    ];
+    const muntinlupaBounds = window.L.latLngBounds(
+      [14.3400, 120.9700],
+      [14.5000, 121.1200]
+    );
 
-            const isInsideMuntinlupa = (lat, lng) => {
-          if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
-          let inside = false;
-          for (let i = 0, j = BOUNDARY.length - 1; i < BOUNDARY.length; j = i++) {
-            const pLat_i = BOUNDARY[i][0], pLng_i = BOUNDARY[i][1];
-            const pLat_j = BOUNDARY[j][0], pLng_j = BOUNDARY[j][1];
-            const intersect = ((pLng_i > lng) !== (pLng_j > lng)) &&
-              (lat < (pLat_j - pLat_i) * (lng - pLng_i) / (pLng_j - pLng_i) + pLat_i);
-            if (intersect) inside = !inside;
-          }
-          return inside;
-        };
-
-    const map = new google.maps.Map(mapRef.current, {
-      center: { lat: defaultLat, lng: defaultLng },
-      zoom: 13,
+    const map = window.L.map(mapRef.current, {
       minZoom: 12,
       maxZoom: 22,
-      gestureHandling: 'greedy',
-      zoomControl: false,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      restriction: {
-        latLngBounds: { north: 14.50, south: 14.34, west: 120.97, east: 121.12 },
-        strictBounds: false,
-      },
-      styles: [
-        { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
-        { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
-        { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
-        { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-        { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#dadada' }] },
-        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9e8f5' }] },
-      ],
-    });
+      maxBounds: muntinlupaBounds,
+      maxBoundsViscosity: 0.7
+    }).setView([defaultLat, defaultLng], 13);
 
-    new google.maps.Polygon({
-      paths: BOUNDARY.map(([lat, lng]) => ({ lat, lng })),
-      strokeColor: '#ffc107',
-      strokeOpacity: 0.8,
-      strokeWeight: 2.5,
-      fillColor: '#ffc107',
-      fillOpacity: 0,
-      map,
-    });
-
-    const infoWindowInst = new google.maps.InfoWindow();
-    infoWindowRef.current = infoWindowInst;
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 22,
+      maxNativeZoom: 19
+    }).addTo(map);
 
     if (lat && lng) {
-      markerRef.current = new google.maps.Marker({ position: { lat, lng }, map });
+      markerRef.current = window.L.marker([lat, lng]).addTo(map);
     }
 
+    const muntinlupaPolygonCoords = [
+      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
+    ];
+    const isInsideMuntinlupa = (lat, lng) => {
+      if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
+      let inside = false;
+      for (let i = 0, j = muntinlupaPolygonCoords.length - 1; i < muntinlupaPolygonCoords.length; j = i++) {
+        const xi = muntinlupaPolygonCoords[i][0], yi = muntinlupaPolygonCoords[i][1];
+        const xj = muntinlupaPolygonCoords[j][0], yj = muntinlupaPolygonCoords[j][1];
+        const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    };
+
     if (!readOnly) {
-      map.addListener('click', (e) => {
-        let pinLat = e.latLng.lat();
-        let pinLng = e.latLng.lng();
-        if (!isInsideMuntinlupa(pinLat, pinLng)) {
+      map.on('click', (e) => {
+        const { lat: clickLat, lng: clickLng } = e.latlng;
+        let pinLat = clickLat;
+        let pinLng = clickLng;
+        if (!isInsideMuntinlupa(clickLat, clickLng)) {
+          // Snap to nearest polygon point
           let minDist = Infinity;
-          BOUNDARY.forEach(([pLat, pLng]) => {
-            const dist = Math.pow(pinLat - pLat, 2) + Math.pow(pinLng - pLng, 2);
+          muntinlupaPolygonCoords.forEach(([pLat, pLng]) => {
+            const dist = Math.pow(clickLat - pLat, 2) + Math.pow(clickLng - pLng, 2);
             if (dist < minDist) { minDist = dist; pinLat = pLat; pinLng = pLng; }
           });
         }
         if (markerRef.current) {
-          markerRef.current.setPosition({ lat: pinLat, lng: pinLng });
+          markerRef.current.setLatLng([pinLat, pinLng]);
         } else {
-          markerRef.current = new google.maps.Marker({ position: { lat: pinLat, lng: pinLng }, map });
+          markerRef.current = window.L.marker([pinLat, pinLng]).addTo(map);
         }
         onLocationSelect && onLocationSelect(pinLat, pinLng);
         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pinLat}&lon=${pinLng}&zoom=17&addressdetails=1`)
           .then(r => r.json())
           .then(data => {
             const plusCode = data.extratags?.['ref:Global'] || data.extratags?.plus_code || null;
-            const display = plusCode
-              ? `${plusCode} ${data.address?.city || 'Muntinlupa'}, ${data.address?.state || 'Metro Manila'}`
-              : (data.display_name || '');
+            const display  = plusCode ? `${plusCode} ${data.address?.city || 'Muntinlupa'}, ${data.address?.state || 'Metro Manila'}` : (data.display_name || '');
             onAddressResolve && onAddressResolve(display, plusCode, pinLat, pinLng);
-            const addrStr = [data.address?.suburb, data.address?.village, data.address?.quarter, data.address?.neighbourhood]
-              .map(s => (s || '').toLowerCase()).join(' ');
+            const suburb   = (data.address?.suburb   || '').toLowerCase();
+            const village  = (data.address?.village  || '').toLowerCase();
+            const quarter  = (data.address?.quarter  || '').toLowerCase();
+            const neighbourhood = (data.address?.neighbourhood || '').toLowerCase();
+            const addrStr  = `${suburb} ${village} ${quarter} ${neighbourhood}`;
             onBarangayDetect && onBarangayDetect(addrStr);
           })
           .catch(() => {});
+        
       });
     }
 
+    const boundary = [
+      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
+    ];
+    window.L.polygon(boundary, {
+      color: '#ffc107', weight: 2.5, opacity: 0.8,
+      fillColor: '#ffc107', fillOpacity: 0, dashArray: '6,4',
+    }).addTo(map);
+
     mapObj.current = map;
-    setTimeout(() => {
-      if (window.google) window.google.maps.event.trigger(map, 'resize');
-    }, 300);
-    return () => { mapObj.current = null; markerRef.current = null; };
+    setTimeout(() => map.invalidateSize(), 300);
+    return () => { map.remove(); mapObj.current = null; markerRef.current = null; };
   // eslint-disable-next-line
-  }, [ready, mounted]);
+  }, [ready]);
 
   useEffect(() => {
     if (!mapObj.current || !lat || !lng) return;
-    const google = window.google;
     if (markerRef.current) {
-      markerRef.current.setPosition({ lat, lng });
+      markerRef.current.setLatLng([lat, lng]);
     } else {
-      markerRef.current = new google.maps.Marker({ position: { lat, lng }, map: mapObj.current });
+      markerRef.current = window.L.marker([lat, lng]).addTo(mapObj.current);
     }
   }, [lat, lng]);
 
@@ -292,8 +277,9 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
       </button>
 
       <div ref={mapRef} style={{
-        height: isFullscreen ? 'calc(100vh - 3rem)' : (readOnly ? '250px' : '400px'),
+        height: isFullscreen ? '100%' : (readOnly ? '250px' : '400px'),
         width: '100%',
+        aspectRatio: isFullscreen ? 'auto' : (readOnly ? 'auto' : '1 / 1'),
         borderRadius: '8px',
         border: '2px solid #dee2e6',
         flex: isFullscreen ? 1 : 'auto',
@@ -337,10 +323,9 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
                     if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
                     let inside = false;
                     for (let i = 0, j = muntinlupaPolygonCoords.length - 1; i < muntinlupaPolygonCoords.length; j = i++) {
-                      const pLat_i = muntinlupaPolygonCoords[i][0], pLng_i = muntinlupaPolygonCoords[i][1];
-                      const pLat_j = muntinlupaPolygonCoords[j][0], pLng_j = muntinlupaPolygonCoords[j][1];
-                      const intersect = ((pLng_i > lng) !== (pLng_j > lng)) &&
-                        (lat < (pLat_j - pLat_i) * (lng - pLng_i) / (pLng_j - pLng_i) + pLat_i);
+                      const xi = muntinlupaPolygonCoords[i][0], yi = muntinlupaPolygonCoords[i][1];
+                      const xj = muntinlupaPolygonCoords[j][0], yj = muntinlupaPolygonCoords[j][1];
+                      const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
                       if (intersect) inside = !inside;
                     }
                     return inside;
@@ -350,12 +335,11 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
                     return;
                   }
                   if (mapObj.current) {
-                    mapObj.current.setCenter({ lat: latitude, lng: longitude });
-                    mapObj.current.setZoom(16);
+                    mapObj.current.setView([latitude, longitude], 16);
                     if (markerRef.current) {
-                      markerRef.current.setPosition({ lat: latitude, lng: longitude });
+                      markerRef.current.setLatLng([latitude, longitude]);
                     } else {
-                      markerRef.current = new window.google.maps.Marker({ position: { lat: latitude, lng: longitude }, map: mapObj.current });
+                      markerRef.current = window.L.marker([latitude, longitude]).addTo(mapObj.current);
                     }
                     onLocationSelect && onLocationSelect(latitude, longitude);
                     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=17&addressdetails=1`)
@@ -1297,7 +1281,6 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                     <LeafletMap
                       lat={formLat}
                       lng={formLng}
-                      visible={showSubmitModal}
                       onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
                       onAddressResolve={(address) => {
                         setFormData(prev => ({ ...prev, address }));
@@ -1317,7 +1300,10 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                       <div style={{ marginTop:'0.5rem', padding:'0.5rem 0.75rem', background:'rgba(25,135,84,0.08)', borderRadius:'8px', border:'1px solid rgba(25,135,84,0.2)', fontSize:'0.82rem', color:'#198754' }}>
                         <i className="fas fa-check-circle me-1"></i>
                         Location pinned: {formLat.toFixed(6)}, {formLng.toFixed(6)}
-    
+                        <button onClick={() => { setFormLat(null); setFormLng(null); }}
+                          style={{ background:'none', border:'none', color:'#dc3545', fontSize:'0.78rem', marginLeft:'0.75rem', cursor:'pointer', padding:0 }}>
+                          <i className="fas fa-times me-1"></i>Clear
+                        </button>
                       </div>
                     )}
                   </Form.Group>
@@ -1605,7 +1591,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                       </Card.Header>
                       <Card.Body style={{ padding:'1rem' }}>
                         <div style={{ position: 'relative' }}>
-                          {!window.google && (
+                          {!window.L && (
                             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', borderRadius: '8px', zIndex: 1 }}>
                               <Spinner animation="border" size="sm" style={{ color: '#ffc107' }} />
                               <span className="ms-2" style={{ fontSize: '0.9rem', color: '#666' }}>Loading map...</span>
@@ -1615,7 +1601,6 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                             lat={parseFloat(selectedReport.latitude)}
                             lng={parseFloat(selectedReport.longitude)}
                             readOnly={true}
-                            visible={showDetailsModal}
                           />
                         </div>
                       </Card.Body>
