@@ -3,10 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
+import { authAPI } from './services/api';
+
 // Common Components
 import Sidebar from './components/common/Sidebar';   // ← renamed from Navbar
 import Footer from './components/common/Footer';
 import Loading from './components/common/Loading';
+
 
 // Landing Page
 import LandingPage from './components/LandingPage';
@@ -229,6 +232,15 @@ function App() {
     const interval = setInterval(ping, 4 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+    // Proactively detect if this session was invalidated elsewhere,
+  // so the modal appears even if the user is idle (no reload needed)
+  useEffect(() => {
+    if (!user) return;
+    const checkSession = () => authAPI.getProfile().catch(() => {});
+    const interval = setInterval(checkSession, 30 * 1000); // every 30s
+    return () => clearInterval(interval);
+  }, [user]);
 
   if (isLoggingIn) return <Loading message="Welcome back! Setting up your dashboard..." />;
 

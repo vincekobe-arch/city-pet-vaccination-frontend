@@ -52,7 +52,10 @@ api.interceptors.response.use(
           localStorage.removeItem(TOKEN_KEY);
           localStorage.removeItem(USER_KEY);
           window.dispatchEvent(new CustomEvent('session_invalidated'));
-          return Promise.reject(error);
+          // Never resolve/reject — this prevents every caller's own .catch()
+          // (and whatever toast logic lives there) from firing. The modal
+          // is now the single source of truth for this error.
+          return new Promise(() => {});
         }
         window.location.href = '/login';
       }
