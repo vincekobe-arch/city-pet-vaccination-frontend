@@ -61,20 +61,29 @@ const getStatusBadge = (status) => {
 const getReportType = (value) => REPORT_TYPES.find(t => t.value === value) || REPORT_TYPES[3];
 // ─── Load Leaflet from CDN (no npm install needed) ───
 const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError, visible }) => {
-  const mapRef    = useRef(null);
+  const mapRef       = useRef(null);
   const mapObj       = useRef(null);
   const markerRef    = useRef(null);
   const infoWindowRef = useRef(null);
   const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    if (!mapObj.current || !window.google) return;
-    setTimeout(() => {
-      window.google.maps.event.trigger(mapObj.current, 'resize');
-    }, 200);
-  }, [visible]);
+  const [mounted, setMounted] = useState(false);
   const [mapError, setMapError] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Delay mount so the modal is fully visible before we init the map
+  useEffect(() => {
+    if (visible) {
+      setMounted(false);
+      mapObj.current = null;
+      markerRef.current = null;
+      const t = setTimeout(() => setMounted(true), 400);
+      return () => clearTimeout(t);
+    } else {
+      setMounted(false);
+      mapObj.current = null;
+      markerRef.current = null;
+    }
+  }, [visible]);
 
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
@@ -101,7 +110,7 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
   }, []);
 
   useEffect(() => {
-    if (!ready || !mapRef.current || mapObj.current) return;
+    if (!ready || !mounted || !mapRef.current || mapObj.current) return;
     const google = window.google;
     const defaultLat = lat || 14.4081;
     const defaultLng = lng || 121.0415;
@@ -225,7 +234,7 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
     }, 300);
     return () => { mapObj.current = null; markerRef.current = null; };
   // eslint-disable-next-line
-  }, [ready]);
+  }, [ready, mounted]);
 
   useEffect(() => {
     if (!mapObj.current || !lat || !lng) return;
@@ -1594,7 +1603,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                       </Card.Header>
                       <Card.Body style={{ padding:'1rem' }}>
                         <div style={{ position: 'relative' }}>
-                          {!window.L && (
+                          {!window.google && (
                             <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', borderRadius: '8px', zIndex: 1 }}>
                               <Spinner animation="border" size="sm" style={{ color: '#ffc107' }} />
                               <span className="ms-2" style={{ fontSize: '0.9rem', color: '#666' }}>Loading map...</span>
