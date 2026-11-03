@@ -145,9 +145,9 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
       if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
       let inside = false;
       for (let i = 0, j = BOUNDARY.length - 1; i < BOUNDARY.length; j = i++) {
-        const xi = BOUNDARY[i][0], yi = BOUNDARY[i][1];
-        const xj = BOUNDARY[j][0], yj = BOUNDARY[j][1];
-        const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+        const xi = BOUNDARY[i][1], yi = BOUNDARY[i][0];
+        const xj = BOUNDARY[j][1], yj = BOUNDARY[j][0];
+        const intersect = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi);
         if (intersect) inside = !inside;
       }
       return inside;
