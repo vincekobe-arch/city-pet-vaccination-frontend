@@ -22,8 +22,6 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('🔑 Token attached to request:', token.substring(0, 20) + '...');
-    } else {
-      console.warn('⚠️ No token found in localStorage');
     }
     // Let browser set Content-Type automatically for FormData (includes boundary)
     if (config.data instanceof FormData) {
@@ -40,11 +38,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      console.error('❌ 401 Unauthorized - Token invalid or expired');
+    const isAuthEndpoint = error.config?.url?.includes('/auth/login')
+      || error.config?.url?.includes('/auth/register')
+      || error.config?.url?.includes('/auth/forgot-password');
+
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       const publicPaths = ['/', '/login', '/register'];
-      const isAuthEndpoint = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
-      if (!publicPaths.includes(window.location.pathname) && !isAuthEndpoint) {
+      if (!publicPaths.includes(window.location.pathname)) {
         const errorCode = error.response?.data?.code;
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
