@@ -15,6 +15,25 @@ const Login = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [focusedField, setFocusedField] = useState(null);
+  const [banSecondsLeft, setBanSecondsLeft] = useState(0);
+
+  // Countdown timer for login ban
+  useEffect(() => {
+    if (banSecondsLeft <= 0) return;
+    const timer = setInterval(() => {
+      setBanSecondsLeft(prev => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [banSecondsLeft]);
+
+  const formatBanTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
   const [showForgotModal, setShowForgotModal] = useState(
     () => sessionStorage.getItem('fp_open') === 'true'
   );
@@ -79,16 +98,25 @@ if (onLogin) {
     } catch (err) {
       console.error('Login error:', err);
       const { message } = handleAPIError(err);
-      
-      if (err.response?.status === 401) {
-        setError('Invalid username or password. Please try again.');
+      const resData = err.response?.data;
+
+      if (err.response?.status === 429 || resData?.banned) {
+        // Start or restore the countdown
+        const secs = resData?.seconds_left ?? 600;
+        setBanSecondsLeft(secs);
+      } else if (err.response?.status === 401) {
+        const left = resData?.attempts_left;
+        const suffix = typeof left === 'number' && left > 0
+          ? ` (${left} attempt${left === 1 ? '' : 's'} remaining)`
+          : left === 0 ? ' — account is now temporarily locked.' : '';
+        setError('Invalid username or password. Please try again.' + suffix);
       } else if (err.response?.status === 403) {
         setError('Your account has been deactivated. Please contact support.');
       } else {
         setError(message || 'Login failed. Please check your credentials and try again.');
       }
-      
-      setFormData(prev => ({ 
+
+      setFormData(prev => ({
         username: prev.username,
         password: ''
       }));
@@ -404,7 +432,22 @@ if (onLogin) {
                     <p style={{ fontSize:'0.95rem', color:'#9ca3af' }}>Enter your credentials to continue</p>
                   </div>
 
-                  {error && (
+                  {banSecondsLeft > 0 && (
+                    <Alert variant="warning" className="mb-4"
+                      style={{ borderRadius:'16px', border:'2px solid rgba(245,158,11,0.4)', background:'rgba(245,158,11,0.1)', color:'#000', animation:'dropDown 0.3s ease-out' }}>
+                      <div className="d-flex align-items-start">
+                        <i className="fas fa-clock me-3 mt-1" style={{ fontSize:'1.2rem', color:'#f59e0b' }} />
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontWeight:'700', marginBottom:'0.25rem', color:'#92400e' }}>Account Temporarily Locked</div>
+                          <div style={{ fontSize:'0.9rem', color:'#78350f' }}>
+                            Too many failed attempts. Try again in{' '}
+                            <span style={{ fontWeight:'800', fontSize:'1rem', color:'#b45309' }}>{formatBanTime(banSecondsLeft)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Alert>
+                  )}
+                  {error && banSecondsLeft <= 0 && (
                     <Alert variant="danger" dismissible onClose={() => setError('')} className="mb-4"
                       style={{ borderRadius:'16px', border:'2px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#000', animation:'dropDown 0.3s ease-out' }}>
                       <div className="d-flex align-items-start">
@@ -459,7 +502,7 @@ if (onLogin) {
                       </button>
                     </div>
 
-                    <Button type="submit" className="w-100 mb-4 border-0" size="lg" disabled={loading}
+                    <Button type="submit" className="w-100 mb-4 border-0" size="lg" disabled={loading || banSecondsLeft > 0}
                       style={{ height:'56px', borderRadius:'16px', background:loading ? '#6b7280' : 'linear-gradient(135deg,#ffc107 0%,#ffb300 100%)', color:'#000', fontWeight:'700', fontSize:'1.05rem', transition:'all 0.3s', boxShadow:loading ? 'none' : '0 8px 24px rgba(255,193,7,0.4)' }}
                       onMouseOver={e => { if (!loading) { e.target.style.transform='translateY(-2px)'; e.target.style.boxShadow='0 12px 32px rgba(255,193,7,0.6)'; } }}
                       onMouseOut={e  => { e.target.style.transform='translateY(0)'; e.target.style.boxShadow='0 8px 24px rgba(255,193,7,0.4)'; }}
