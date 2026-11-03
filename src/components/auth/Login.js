@@ -15,7 +15,9 @@ const Login = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [focusedField, setFocusedField] = useState(null);
-  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(
+    () => sessionStorage.getItem('fp_open') === 'true'
+  );
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -96,10 +98,18 @@ if (onLogin) {
   };
 
     // Forgot password state lifted into Login
-  const [fpStep, setFpStep]               = React.useState('email');
-  const [fpEmail, setFpEmail]             = React.useState('');
-  const [fpMaskedEmail, setFpMaskedEmail] = React.useState('');
-  const [fpOtp, setFpOtp]                 = React.useState('');
+  const [fpStep, setFpStep]               = React.useState(
+    () => sessionStorage.getItem('fp_step') || 'email'
+  );
+  const [fpEmail, setFpEmail]             = React.useState(
+    () => sessionStorage.getItem('fp_email') || ''
+  );
+  const [fpMaskedEmail, setFpMaskedEmail] = React.useState(
+    () => sessionStorage.getItem('fp_masked_email') || ''
+  );
+  const [fpOtp, setFpOtp]                 = React.useState(
+    () => sessionStorage.getItem('fp_otp') || ''
+  );
   const [fpNewPw, setFpNewPw]             = React.useState('');
   const [fpConfirmPw, setFpConfirmPw]     = React.useState('');
   const [fpShowNewPw, setFpShowNewPw]     = React.useState(false);
@@ -113,6 +123,20 @@ if (onLogin) {
   const [fpFocused, setFpFocused]         = React.useState(null);
   const fpOtpRefs = React.useRef([]);
 
+  // Persist forgot password session so reload restores state
+  React.useEffect(() => {
+    sessionStorage.setItem('fp_open', showForgotModal ? 'true' : 'false');
+  }, [showForgotModal]);
+
+  React.useEffect(() => {
+    if (showForgotModal) {
+      sessionStorage.setItem('fp_step', fpStep);
+      sessionStorage.setItem('fp_email', fpEmail);
+      sessionStorage.setItem('fp_masked_email', fpMaskedEmail);
+      sessionStorage.setItem('fp_otp', fpOtp);
+    }
+  }, [fpStep, fpEmail, fpMaskedEmail, fpOtp, showForgotModal]);
+
   const isForgot = showForgotModal; // alias for readability
 
   const resetFp = () => {
@@ -120,6 +144,11 @@ if (onLogin) {
     setFpNewPw(''); setFpConfirmPw(''); setFpError(''); setFpSuccess('');
     setFpLoading(false); setFpPwErrors([]); setFpConfirmErr('');
     setFpResendCooldown(0); setFpFocused(null);
+    sessionStorage.removeItem('fp_open');
+    sessionStorage.removeItem('fp_step');
+    sessionStorage.removeItem('fp_email');
+    sessionStorage.removeItem('fp_masked_email');
+    sessionStorage.removeItem('fp_otp');
   };
 
   const closeFp = () => { resetFp(); setShowForgotModal(false); };
@@ -213,7 +242,15 @@ if (onLogin) {
     if (errs.length > 0) { setFpError('Password does not meet the requirements.'); return; }
     if (fpNewPw !== fpConfirmPw) { setFpConfirmErr('Passwords do not match.'); return; }
     setFpLoading(true); setFpError(''); setFpConfirmErr('');
-    try { await authAPI.forgotPasswordReset(fpEmail, fpOtp, fpNewPw); setFpStep('done'); }
+    try {
+      await authAPI.forgotPasswordReset(fpEmail, fpOtp, fpNewPw);
+      setFpStep('done');
+      sessionStorage.removeItem('fp_open');
+      sessionStorage.removeItem('fp_step');
+      sessionStorage.removeItem('fp_email');
+      sessionStorage.removeItem('fp_masked_email');
+      sessionStorage.removeItem('fp_otp');
+    }
     catch (err) {
       const d = err.response?.data;
       setFpError(d?.error === 'same_password' ? (d.message || 'This is your current password.') : (d?.error || 'Reset failed.'));
@@ -491,7 +528,7 @@ if (onLogin) {
                         />
                       </div>
                       <button onClick={fpHandleSendCode} disabled={fpLoading || !fpEmail.trim()} style={fpBtn(fpLoading || !fpEmail.trim())}>
-                        {fpLoading ? <WaveDots /> : <><i className="fas fa-paper-plane me-2" />Send Verification Code</>}
+                        {fpLoading ? <WaveDots /> : <><i className="fas fa-paper-plane me-2" />Submit</>}
                       </button>
                       <div className="text-center mt-3">
                         <button onClick={closeFp} style={{ background:'none', border:'none', color:'#9ca3af', fontSize:'0.82rem', cursor:'pointer' }}>
