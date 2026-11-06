@@ -260,9 +260,46 @@ if (onLogin) {
   const fpHandleVerifyOtp = async () => {
     if (fpOtp.length !== 6) { setFpError('Please enter the 6-digit code.'); return; }
     setFpLoading(true); setFpError('');
-    try { await authAPI.forgotPasswordVerify(fpRealEmail, fpOtp); setFpSuccess(''); setFpStep('reset'); }
-    catch (err) { setFpError(err.response?.data?.error || 'Invalid or expired code.'); }
-    finally { setFpLoading(false); }
+    try {
+      await authAPI.forgotPasswordVerify(fpRealEmail, fpOtp);
+      setFpSuccess(''); setFpStep('reset');
+    } catch (err) {
+      const resData = err.response?.data;
+      if (resData?.max_attempts) {
+        // Force back to email step and auto-trigger resend
+        setFpOtp('');
+        setFpError('');
+        setFpSuccess('');
+        setFpStep('email');
+        setTimeout(async () => {
+          setFpLoading(true);
+          try {
+            const res = await authAPI.forgotPasswordSend(fpEmail.trim().toLowerCase());
+            setFpMaskedEmail(res.data.masked_email || fpEmail);
+            setFpRealEmail(res.data.real_email || fpEmail.trim().toLowerCase());
+            setFpStep('otp');
+            setFpSuccess('Too many incorrect attempts. A new code has been sent!');
+            fpStartResendCooldown();
+          } catch (resendErr) {
+            setFpError(resendErr.response?.data?.error || 'Failed to resend code. Please try again.');
+            setFpStep('email');
+          } finally {
+            setFpLoading(false);
+          }
+        }, 300);
+      } else {
+        const left = resData?.attempts_left;
+        const suffix = typeof left === 'number'
+          ? ` (${left} attempt${left === 1 ? '' : 's'} remaining)`
+          : '';
+        setFpError((resData?.error || 'Invalid or expired code.') + suffix);
+        setFpOtp('');
+        // Refocus first OTP box
+        setTimeout(() => fpOtpRefs.current[0]?.focus(), 100);
+      }
+    } finally {
+      setFpLoading(false);
+    }
   };
   const fpHandleResend = async () => {
     if (fpResendCooldown > 0) return;

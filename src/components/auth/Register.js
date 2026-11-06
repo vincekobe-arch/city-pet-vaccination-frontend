@@ -296,9 +296,9 @@ const handleOtpPaste = (e) => {
         email: formData.email, verification_code: verificationCode,
         username: formData.username, password: formData.password,
         first_name: formData.first_name, middle_name: formData.middle_name,
-        last_name: formData.last_name, birthdate: formData.birthdate,
-        gender: formData.gender === 'Other' ? formData.genderOther.trim() : formData.gender,
         last_name: formData.suffix.trim() ? `${formData.last_name} ${formData.suffix.trim()}` : formData.last_name,
+        birthdate: formData.birthdate,
+        gender: formData.gender === 'Other' ? formData.genderOther.trim() : formData.gender,
         phone: `+63${formData.phone}`,
       }, { headers: { 'Content-Type': 'application/json' } });
 
@@ -306,14 +306,52 @@ const handleOtpPaste = (e) => {
         setSuccess('Registration successful! Redirecting to your dashboard...');
         setAuth(res.data.token, res.data.user);
         sessionStorage.removeItem(STORAGE_KEY);
-        sessionStorage.setItem('showVerifyPrompt', '1'); // triggers the verify prompt on first dashboard load
+        sessionStorage.setItem('showVerifyPrompt', '1');
         setTimeout(() => {
           window.location.replace('/owner/dashboard');
         }, 2000);
       } else { throw new Error(res.data.error || 'Registration failed'); }
     } catch (err) {
-      setError(err.response?.data?.error || 'Verification failed');
-      setLoading(false);
+      const resData = err.response?.data;
+
+      if (resData?.max_attempts) {
+        // Too many wrong attempts — auto resend a new code
+        setVerificationCode('');
+        setError('');
+        setSuccess('');
+        setLoading(true);
+        try {
+          await axios.post(`${API_BASE_URL}/auth/register.php`, {
+            username: formData.username, email: formData.email,
+            password: formData.password, first_name: formData.first_name,
+            middle_name: formData.middle_name, last_name: formData.last_name,
+            birthdate: formData.birthdate, gender: formData.gender,
+            phone: `+63${formData.phone}`,
+          }, { headers: { 'Content-Type': 'application/json' } });
+
+          setSuccess('Too many incorrect attempts. A new verification code has been sent to your email!');
+          setResendCooldown(60);
+          const iv = setInterval(() => {
+            setResendCooldown(prev => { if (prev <= 1) { clearInterval(iv); return 0; } return prev - 1; });
+          }, 1000);
+          // Refocus first OTP box
+          setTimeout(() => otpRefs.current[0]?.focus(), 100);
+        } catch (resendErr) {
+          setError(resendErr.response?.data?.error || 'Too many attempts. Failed to resend code. Please go back and try again.');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        const left = resData?.attempts_left;
+        const suffix = typeof left === 'number'
+          ? ` (${left} attempt${left === 1 ? '' : 's'} remaining)`
+          : '';
+        setError((resData?.error || 'Verification failed.') + suffix);
+        setVerificationCode('');
+        // Refocus first OTP box
+        setTimeout(() => otpRefs.current[0]?.focus(), 100);
+        setLoading(false);
+      }
     }
   };
 
