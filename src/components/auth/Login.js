@@ -624,6 +624,11 @@ if (onLogin) {
                           <i className="fas fa-arrow-left me-1" />Change Email
                         </button>
                       </div>
+                      <div className="text-center mt-2">
+                        <button onClick={closeFp} style={{ background:'none', border:'none', color:'#9ca3af', fontSize:'0.82rem', cursor:'pointer' }}>
+                          <i className="fas fa-times me-1" />Back to Sign In
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -694,6 +699,11 @@ if (onLogin) {
                       <button onClick={fpHandleReset} disabled={fpLoading || fpPwErrors.length > 0 || !fpNewPw || !fpConfirmPw || !!fpConfirmErr} style={fpBtn(fpLoading || fpPwErrors.length > 0 || !fpNewPw || !fpConfirmPw || !!fpConfirmErr)}>
                         {fpLoading ? <WaveDots /> : <><i className="fas fa-save me-2" />Reset Password</>}
                       </button>
+                      <div className="text-center mt-3">
+                        <button onClick={closeFp} style={{ background:'none', border:'none', color:'#9ca3af', fontSize:'0.82rem', cursor:'pointer' }}>
+                          <i className="fas fa-times me-1" />Back to Sign In
+                        </button>
+                      </div>
                     </div>
                   )}
 
