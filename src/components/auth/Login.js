@@ -254,7 +254,7 @@ if (onLogin) {
   const fpHandleVerifyOtp = async () => {
     if (fpOtp.length !== 6) { setFpError('Please enter the 6-digit code.'); return; }
     setFpLoading(true); setFpError('');
-    try { await authAPI.forgotPasswordVerify(fpEmail, fpOtp); setFpSuccess(''); setFpStep('reset'); }
+    try { await authAPI.forgotPasswordVerify(fpEmail.trim().toLowerCase(), fpOtp); setFpSuccess(''); setFpStep('reset'); }
     catch (err) { setFpError(err.response?.data?.error || 'Invalid or expired code.'); }
     finally { setFpLoading(false); }
   };
@@ -271,7 +271,7 @@ if (onLogin) {
     if (fpNewPw !== fpConfirmPw) { setFpConfirmErr('Passwords do not match.'); return; }
     setFpLoading(true); setFpError(''); setFpConfirmErr('');
     try {
-      await authAPI.forgotPasswordReset(fpEmail, fpOtp, fpNewPw);
+      await authAPI.forgotPasswordReset(fpEmail.trim().toLowerCase(), fpOtp, fpNewPw);
       setFpStep('done');
       sessionStorage.removeItem('fp_open');
       sessionStorage.removeItem('fp_step');
