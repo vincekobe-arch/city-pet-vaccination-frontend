@@ -135,6 +135,9 @@ if (onLogin) {
   const [fpMaskedEmail, setFpMaskedEmail] = React.useState(
     () => sessionStorage.getItem('fp_masked_email') || ''
   );
+  const [fpRealEmail, setFpRealEmail] = React.useState(
+    () => sessionStorage.getItem('fp_real_email') || ''
+  );
   const [fpOtp, setFpOtp]                 = React.useState(
     () => sessionStorage.getItem('fp_otp') || ''
   );
@@ -161,14 +164,15 @@ if (onLogin) {
       sessionStorage.setItem('fp_step', fpStep);
       sessionStorage.setItem('fp_email', fpEmail);
       sessionStorage.setItem('fp_masked_email', fpMaskedEmail);
+      sessionStorage.setItem('fp_real_email', fpRealEmail);
       sessionStorage.setItem('fp_otp', fpOtp);
     }
-  }, [fpStep, fpEmail, fpMaskedEmail, fpOtp, showForgotModal]);
+  }, [fpStep, fpEmail, fpMaskedEmail, fpRealEmail, fpOtp, showForgotModal]);
 
   const isForgot = showForgotModal; // alias for readability
 
   const resetFp = () => {
-    setFpStep('email'); setFpEmail(''); setFpMaskedEmail(''); setFpOtp('');
+    setFpStep('email'); setFpEmail(''); setFpMaskedEmail(''); setFpRealEmail(''); setFpOtp('');
     setFpNewPw(''); setFpConfirmPw(''); setFpError(''); setFpSuccess('');
     setFpLoading(false); setFpPwErrors([]); setFpConfirmErr('');
     setFpResendCooldown(0); setFpFocused(null);
@@ -176,6 +180,7 @@ if (onLogin) {
     sessionStorage.removeItem('fp_step');
     sessionStorage.removeItem('fp_email');
     sessionStorage.removeItem('fp_masked_email');
+    sessionStorage.removeItem('fp_real_email');
     sessionStorage.removeItem('fp_otp');
   };
 
@@ -238,6 +243,7 @@ if (onLogin) {
     try {
       const res = await authAPI.forgotPasswordSend(fpEmail.trim().toLowerCase());
       setFpMaskedEmail(res.data.masked_email || fpEmail);
+      setFpRealEmail(res.data.real_email || fpEmail.trim().toLowerCase());
       setFpSuccess('Verification code sent!'); setFpStep('otp'); fpStartResendCooldown();
     } catch (err) {
       const status = err.response?.status;
@@ -254,7 +260,7 @@ if (onLogin) {
   const fpHandleVerifyOtp = async () => {
     if (fpOtp.length !== 6) { setFpError('Please enter the 6-digit code.'); return; }
     setFpLoading(true); setFpError('');
-    try { await authAPI.forgotPasswordVerify(fpEmail.trim().toLowerCase(), fpOtp); setFpSuccess(''); setFpStep('reset'); }
+    try { await authAPI.forgotPasswordVerify(fpRealEmail, fpOtp); setFpSuccess(''); setFpStep('reset'); }
     catch (err) { setFpError(err.response?.data?.error || 'Invalid or expired code.'); }
     finally { setFpLoading(false); }
   };
@@ -271,7 +277,7 @@ if (onLogin) {
     if (fpNewPw !== fpConfirmPw) { setFpConfirmErr('Passwords do not match.'); return; }
     setFpLoading(true); setFpError(''); setFpConfirmErr('');
     try {
-      await authAPI.forgotPasswordReset(fpEmail.trim().toLowerCase(), fpOtp, fpNewPw);
+      await authAPI.forgotPasswordReset(fpRealEmail, fpOtp, fpNewPw);
       setFpStep('done');
       sessionStorage.removeItem('fp_open');
       sessionStorage.removeItem('fp_step');
