@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, Modal, Form, InputGroup } from 'react-bootstrap';
-import { petAPI, ownerAPI, microchipAPI, handleAPIError } from '../../services/api';
+import { petAPI, microchipAPI, handleAPIError } from '../../services/api';
 
 
 const PetStatCard = ({ label, count, img, accent, accentAlpha, delay, darkMode, loading }) => {
@@ -100,8 +100,8 @@ const PetStatCard = ({ label, count, img, accent, accentAlpha, delay, darkMode, 
 };
 
 const PetManagement = ({ darkMode }) => {
-  const [pets, setPets] = useState([]);
-  const [owners, setOwners] = useState([]);
+ 
+const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -222,23 +222,37 @@ const itemsPerPage = 5;
     loadData();
   }, []);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [petsRes, ownersRes] = await Promise.all([
-        petAPI.getAll(),
-        ownerAPI.getAll()
-      ]);
-      
-      setPets(petsRes.data.pets || []);
-      setOwners(ownersRes.data.owners || []);
-    } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
-    } finally {
-      setLoading(false);
+  const CACHE_KEY = '__pets__';
+const CACHE_TTL = 60_000;
+
+const loadData = async () => {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const { ts, pets } = JSON.parse(raw);
+      if (Date.now() - ts < CACHE_TTL) {
+        setPets(pets);
+        setLoading(false);
+        return;
+      }
     }
-  };
+  } catch {}
+
+  try {
+    setLoading(true);
+    const petsRes = await petAPI.getAll();
+    const pets = petsRes.data.pets || [];
+    setPets(pets);
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), pets }));
+    } catch {}
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleViewPet = async (pet) => {
     setSelectedPet(pet);
