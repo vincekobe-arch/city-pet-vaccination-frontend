@@ -1448,133 +1448,99 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
                 </div>
               ) : (
                 <div className="table-responsive" style={{ overflow: 'visible' }}>
-<Table hover className="sched-table" style={{ marginBottom: 0 }}>
-                    <thead style={{ background: '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '10%' }}>Type</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Event Details</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Location</th>
-                        <th className="mobile-hide-datetime" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Date & Time</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Venue</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '10%' }}>Capacity</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '10%' }}>Status</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '8%' }}>Actions</th>
-                      </tr>
-                    </thead>
+<Table hover className="sched-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                    <thead>
+  <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Event Details</th>
+    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Location</th>
+    <th className="mobile-hide-datetime" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date & Time</th>
+    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Venue</th>
+    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Capacity</th>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
+  </tr>
+</thead>
                     <tbody>
   {paginatedSchedules.map(schedule => (
-                        <tr 
-                          key={`${schedule.type}-${schedule.id}`}
-                          style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <span style={{ fontWeight: '500', color: '#555' }}>
-    {schedule.type === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-    {schedule.type === 'seminar' && <><i className="fas fa-chalkboard-teacher me-1" style={{ color: '#6f42c1' }}></i>Seminar</>}
-    {schedule.type === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-    {schedule.type === 'other' && (
-      <>
-        <i className="fas fa-calendar me-1" style={{ color: '#343a40' }}></i>
-        {schedule.other_event_type || 'Other'}
-      </>
-    )}
-    {schedule.type === 'microchip' && (
-      <><i className="fas fa-microchip me-1" style={{ color: '#6c757d' }}></i>Microchip</>
-    )}
-  </span>
-</td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <div>
-                              <strong style={{ fontSize: '0.95rem', color: '#333' }}>{schedule.title}</strong>
-                              {schedule.description && (
-                                <>
-                                  <br />
-                                  <small className="text-muted">{schedule.description.substring(0, 60)}...</small>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                          <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <span style={{ fontWeight: '500', color: '#555' }}>{getBarangayName(schedule.barangay_id)}</span>
-                          </td>
-                          <td className="mobile-hide-datetime" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div>
-    <strong style={{ color: '#333' }}>{new Date(schedule.scheduled_date).toLocaleDateString()}</strong>
-    <br />
-    <small className="text-muted">{schedule.start_time} - {schedule.end_time}</small>
-  </div>
-</td>
-                          <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <small style={{ fontWeight: '500', color: '#555' }}>{schedule.venue}</small>
-                          </td>
-                          <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  {schedule.type === 'vaccination' ? (
-    <div>
-      <strong style={{ color: '#333' }}>{schedule.current_registrations || 0}</strong>
-      <small className="text-muted">/{getTotalVaccineShots(schedule)}</small>
-      <br />
-    </div>
-  ) : schedule.max_capacity ? (
-                              <div>
-                                <strong style={{ color: '#333' }}>{schedule.current_registrations || 0}</strong>
-                                <small className="text-muted">/{schedule.max_capacity}</small>
-                              </div>
-                            ) : (
-                              <span className="text-muted">-</span>
-                            )}
-                          </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            {schedule.status === 'cancelled' && (
-                              <span style={{ fontWeight: '600', color: '#dc3545' }}>Cancelled</span>
-                            )}
-                            {schedule.status === 'completed' && (
-                              <span style={{ fontWeight: '600', color: '#6c757d' }}>Completed</span>
-                            )}
-                            {schedule.status === 'ongoing' && (
-                              <span style={{ fontWeight: '600', color: '#28a745' }}>Ongoing</span>
-                            )}
-                            {schedule.status === 'scheduled' && (() => {
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              const scheduleDate = new Date(schedule.scheduled_date);
-                              scheduleDate.setHours(0, 0, 0, 0);
-                              
-                              if (scheduleDate < today) {
-                                return <span style={{ fontWeight: '600', color: '#ffc107' }}>Past Due</span>;
-                              }
-                              return <span style={{ fontWeight: '600', color: '#007bff' }}>Upcoming</span>;
-                            })()}
-                          </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === schedule.id ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === schedule.id) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
-      setShowDropdown(schedule.id);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={e  => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
-</td>
-                        </tr>
-                      ))}
-                      {/* Empty rows to maintain fixed height */}
-                      {Array.from({ length: emptyRows }).map((_, index) => (
-  <tr key={`empty-${index}`} style={{ height: '73px', pointerEvents: 'none', background: 'transparent' }}>
-                          <td colSpan="8" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                            <div style={{ visibility: 'hidden' }}>Empty</div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
+    <tr
+      key={`${schedule.type}-${schedule.id}`}
+      style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
+      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+        <span style={{ fontWeight: '500', color: '#555' }}>
+          {schedule.type === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
+          {schedule.type === 'seminar' && <><i className="fas fa-chalkboard-teacher me-1" style={{ color: '#6f42c1' }}></i>Seminar</>}
+          {schedule.type === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
+          {schedule.type === 'other' && <><i className="fas fa-calendar me-1" style={{ color: '#343a40' }}></i>{schedule.other_event_type || 'Other'}</>}
+          {schedule.type === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#6c757d' }}></i>Microchip</>}
+        </span>
+      </td>
+      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+        <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{schedule.title}</strong>
+        {schedule.description && (
+          <small style={{ color: '#aaa', fontWeight: '500' }}>{schedule.description.substring(0, 60)}...</small>
+        )}
+      </td>
+      <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+        <span style={{ fontWeight: '500', color: '#555' }}>{getBarangayName(schedule.barangay_id)}</span>
+      </td>
+      <td className="mobile-hide-datetime" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+        <strong style={{ color: '#333', display: 'block' }}>{new Date(schedule.scheduled_date).toLocaleDateString()}</strong>
+        <small style={{ color: '#aaa', fontWeight: '500' }}>{schedule.start_time} - {schedule.end_time}</small>
+      </td>
+      <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+        <small style={{ fontWeight: '500', color: '#555' }}>{schedule.venue}</small>
+      </td>
+      <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+        {schedule.type === 'vaccination' ? (
+          <div>
+            <strong style={{ color: '#333' }}>{schedule.current_registrations || 0}</strong>
+            <small className="text-muted">/{getTotalVaccineShots(schedule)}</small>
+          </div>
+        ) : schedule.max_capacity ? (
+          <div>
+            <strong style={{ color: '#333' }}>{schedule.current_registrations || 0}</strong>
+            <small className="text-muted">/{schedule.max_capacity}</small>
+          </div>
+        ) : (
+          <span className="text-muted">-</span>
+        )}
+      </td>
+      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+        {schedule.status === 'cancelled' && <span style={{ fontWeight: '600', color: '#dc3545' }}>Cancelled</span>}
+        {schedule.status === 'completed' && <span style={{ fontWeight: '600', color: '#6c757d' }}>Completed</span>}
+        {schedule.status === 'ongoing' && <span style={{ fontWeight: '600', color: '#28a745' }}>Ongoing</span>}
+        {schedule.status === 'scheduled' && (() => {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const scheduleDate = new Date(schedule.scheduled_date); scheduleDate.setHours(0, 0, 0, 0);
+          return scheduleDate < today
+            ? <span style={{ fontWeight: '600', color: '#ffc107' }}>Past Due</span>
+            : <span style={{ fontWeight: '600', color: '#007bff' }}>Upcoming</span>;
+        })()}
+      </td>
+      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+        <button
+          ref={showDropdown === schedule.id ? dropdownButtonRef : null}
+          onClick={(e) => {
+            if (showDropdown === schedule.id) { setShowDropdown(null); return; }
+            const rect = e.currentTarget.getBoundingClientRect();
+            dropdownButtonRef.current = e.currentTarget;
+            setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
+            setShowDropdown(schedule.id);
+          }}
+          style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+          onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+          onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+        >
+          <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
                   </Table>
                 </div>
               )}
