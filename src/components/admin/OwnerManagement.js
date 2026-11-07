@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, InputGroup, Form, Modal, ListGroup } from 'react-bootstrap';
-import api, { ownerAPI, petAPI, handleAPIError } from '../../services/api';
+
+import api, { ownerAPI, handleAPIError } from '../../services/api';
 
 const AdminOwnerManagement = () => {
   const [owners, setOwners] = useState([]);
-  const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,29 +133,42 @@ const AdminOwnerManagement = () => {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const CACHE_KEY = '__owners__';
+const CACHE_TTL = 60_000;
+
+const loadData = async (bustCache = false) => {
+  if (!bustCache) {
     try {
-      setLoading(true);
-      const [ownersRes, petsRes] = await Promise.all([
-        ownerAPI.getAll(),
-        petAPI.getAll()
-      ]);
-      
-      console.log('Owners Response:', ownersRes.data);
-      console.log('Pets Response:', petsRes.data);
-      
-      setOwners(ownersRes.data.owners || []);
-      setPets(petsRes.data.pets || []);
-    } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const { ts, owners } = JSON.parse(raw);
+        if (Date.now() - ts < CACHE_TTL) {
+          setOwners(owners);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {}
+  }
+
+  try {
+    setLoading(true);
+    const ownersRes = await ownerAPI.getAll();
+    const owners = ownersRes.data.owners || [];
+    setOwners(owners);
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), owners }));
+    } catch {}
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const activeOwners = owners.filter(o => o.is_active);
-  const totalPets = pets.length;
+  const totalPets = owners.reduce((sum, o) => sum + parseInt(o.total_pets ?? 0), 0);
 
   useEffect(() => {
     if (loading || hasAnimated) return;
@@ -184,28 +197,22 @@ const AdminOwnerManagement = () => {
   }, [loading, activeOwners.length, totalPets]);
 
   const handleViewOwner = async (owner) => {
-    setSelectedOwner(owner);
-    setViewLoading(true);
-    setShowViewModal(true);
-    setShowDropdown(null);
-    setModalCurrentPage(1); // Reset to first page
-    
-    try {
-      const userPets = owner.pet_owner_id 
-        ? pets.filter(pet => parseInt(pet.owner_id) === parseInt(owner.pet_owner_id))
-        : [];
-      
-      console.log('Owner:', owner);
-      console.log('Filtered Pets:', userPets);
-      
-      setOwnerPets(userPets);
-    } catch (err) {
-      console.error('Error filtering pets:', err);
-      setOwnerPets([]);
-    } finally {
-      setViewLoading(false);
-    }
-  };
+  setSelectedOwner(owner);
+  setOwnerPets([]);
+  setViewLoading(true);
+  setShowViewModal(true);
+  setShowDropdown(null);
+  setModalCurrentPage(1);
+
+  try {
+    const res = await ownerAPI.show(owner.user_id);
+    setOwnerPets(res.data.owner?.pets || []);
+  } catch {
+    setOwnerPets([]);
+  } finally {
+    setViewLoading(false);
+  }
+};
 
   const handleOpenVerifModal = async (owner) => {
     setVerifOwner(owner);
@@ -231,14 +238,7 @@ const AdminOwnerManagement = () => {
     try {
       await ownerAPI_verify(verifOwner.user_id, status);
       setVerifSuccess(`Status updated to: ${VERIF_CONFIG[status]?.label}`);
-      const [ownersRes, petsRes] = await Promise.all([
-        ownerAPI.getAll(),
-        petAPI.getAll()
-      ]);
-      const freshOwners = ownersRes.data.owners || [];
-      const freshPets   = petsRes.data.pets   || [];
-      setOwners(freshOwners);
-      setPets(freshPets);
+      await loadData(true); // bust cache, owners only
       // Sync verifOwner with the fresh data so images reflect immediately
       try {
         const singleRes = await ownerAPI.getByUserId(verifOwner.user_id);
@@ -256,13 +256,7 @@ const AdminOwnerManagement = () => {
     }
   };
 
-  const getOwnerPetCount = (owner) => {
-    if (owner.total_pets !== undefined) {
-      return parseInt(owner.total_pets);
-    }
-    if (!owner.pet_owner_id) return 0;
-    return pets.filter(pet => parseInt(pet.owner_id) === parseInt(owner.pet_owner_id)).length;
-  };
+  const getOwnerPetCount = (owner) => parseInt(owner.total_pets ?? 0);
 
   const calculateAge = (birthDate) => {
     if (!birthDate || birthDate === '0000-00-00') return 'N/A';
