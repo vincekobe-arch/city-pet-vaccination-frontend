@@ -473,7 +473,7 @@ const matchStatus   = filterStatus === 'all' ||
     : r.status === filterStatus);
 const matchBarangay = filterBarangay === 'all' || String(r.barangay_id) === filterBarangay;
 const matchSource   = filterSource   === 'all' || (filterSource === 'community' ? !parseInt(r.reported_by_clinic) : parseInt(r.reported_by_clinic));
-const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus) || !['declined', 'resolved'].includes(r.status);
+const matchArchive  = ['declined', 'ongoing', 'resolved', 'suspected_rabies', 'positive_rabies'].includes(filterStatus) || !['declined', 'resolved'].includes(r.status);
   return matchSearch && matchType && matchStatus && matchBarangay && matchSource && matchArchive;
 });
 
@@ -631,6 +631,7 @@ const matchArchive  = ['declined', 'ongoing', 'resolved'].includes(filterStatus)
   <option value="all">All</option>
   <option value="pending">Pending</option>
   <option value="ongoing">Ongoing</option>
+  <option value="resolved">Resolved</option>
   <option value="declined">Declined</option>
 </Form.Select>
           </Col>
