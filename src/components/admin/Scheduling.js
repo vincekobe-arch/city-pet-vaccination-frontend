@@ -3194,7 +3194,7 @@ return (
                     ) : filtered.map((r, idx) => (
                       <tr key={r.registration_id || idx}>
                         <td style={{ padding: '0.75rem', color: '#888' }}>{idx + 1}</td>
-                        <td style={{ padding: '0.75rem', fontWeight: '500' }}>{r.owner_name}</td>
+                        <td style={{ padding: '0.75rem', fontWeight: '500' }}>{r.first_name && r.last_name ? `${r.first_name} ${r.last_name}` : r.first_name || r.last_name || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -3218,7 +3218,7 @@ return (
                     <div key={owner.user_id || idx} style={{ border: '1px solid #dee2e6', borderRadius: '10px', marginBottom: '0.75rem', overflow: 'hidden' }}>
                       <div style={{ padding: '0.85rem 1rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <strong>{owner.owner_name || owner.full_name || owner.name || `Owner #${owner.user_id}`}</strong>
+                          <strong>{owner.first_name && owner.last_name ? `${owner.first_name} ${owner.last_name}` : owner.first_name || owner.last_name || `Owner #${owner.user_id}`}</strong>
                           <span className="ms-2" style={{ fontSize: '0.8rem', color: '#888' }}>{owner.pets?.length || 0} pet(s)</span>
                         </div>
                         <button
