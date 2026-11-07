@@ -283,7 +283,9 @@ const AdminDashboard = ({ darkMode }) => {
 
   const loadDashboardData = async () => {
   const cached = getCached();
-  if (cached) { setDashboardData(cached); setLoading(false); return; }
+  if (cached && cached.statistics?.total_owners > 0 || cached && cached.statistics?.upcoming_schedules > 0) {
+    setDashboardData(cached); setLoading(false); return;
+  }
 
   try {
     setLoading(true);
@@ -295,8 +297,8 @@ const AdminDashboard = ({ darkMode }) => {
     const result = {
       statistics: {
         total_pets:         pets.length,
-        total_owners:       Number(data.owners?.total        ?? 0),
-        upcoming_schedules: Number(data.upcoming_schedules   ?? 0),
+        total_owners:       Number(data.owners?.total ?? data.owners ?? 0),
+        upcoming_schedules: Number(data.upcoming_schedules ?? 0),
       },
       recentPets:   pets.slice(0, 5),
       pets,
