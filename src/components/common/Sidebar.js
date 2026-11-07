@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Navbar as BootstrapNavbar, Nav, Container, Modal, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import api from '../../services/api';
+import api, { dashboardAPI } from '../../services/api';
 import { getUser } from '../../utils/auth';
 import VerifyAccountModal from '../owner/VerifyAccountModal';
-import api, { dashboardAPI } from '../../services/api';
 
 
 
