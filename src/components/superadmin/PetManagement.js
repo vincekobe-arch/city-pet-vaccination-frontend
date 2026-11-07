@@ -180,8 +180,8 @@ const itemsPerPage = 5;
     try {
       setLoading(true);
       const [petsRes, ownersRes] = await Promise.all([
-        petAPI.getAll(),
-        ownerAPI.getAll()
+        petAPI.getAllUnpaginated(),
+        ownerAPI.getAllUnpaginated()
       ]);
       
       setPets(petsRes.data.pets || []);

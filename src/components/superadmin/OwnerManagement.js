@@ -154,12 +154,9 @@ const SuperAdminOwnerManagement = () => {
     try {
       setLoading(true);
       const [ownersRes, petsRes] = await Promise.all([
-        ownerAPI.getAll(),
-        petAPI.getAll()
+        ownerAPI.getAllUnpaginated(),
+        petAPI.getAllUnpaginated()
       ]);
-      
-      console.log('Owners Response:', ownersRes.data);
-      console.log('Pets Response:', petsRes.data);
       
       setOwners(ownersRes.data.owners || []);
       setPets(petsRes.data.pets || []);
@@ -220,8 +217,8 @@ const SuperAdminOwnerManagement = () => {
       await ownerAPI_verify(verifOwner.user_id, status);
       setVerifSuccess(`Community status updated to: ${VERIF_CONFIG[status]?.label}`);
       const [ownersRes, petsRes] = await Promise.all([
-        ownerAPI.getAll(),
-        petAPI.getAll()
+        ownerAPI.getAllUnpaginated(),
+        petAPI.getAllUnpaginated()
       ]);
       const freshOwners = ownersRes.data.owners || [];
       const freshPets   = petsRes.data.pets   || [];
