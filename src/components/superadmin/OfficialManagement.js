@@ -620,7 +620,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
   style={{
     borderRadius: '20px',
     boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-    overflow: 'hidden'
+    overflow: 'visible'
   }}
 >
             <Card.Header
@@ -664,7 +664,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                 </Button>
               </div>
             </Card.Header>
-            <Card.Body style={{ padding: '2rem' }}>
+            <Card.Body style={{ padding: '2rem', overflow: 'visible' }}>
               {loading ? (
                 <div className="text-center py-5">
                   <Spinner animation="border" variant="warning" />
