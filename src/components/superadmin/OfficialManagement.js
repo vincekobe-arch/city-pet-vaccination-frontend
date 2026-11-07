@@ -709,7 +709,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                                         <thead>
                       <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
                         <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Name</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Email / Username</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Email</th>
                         <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Birthdate</th>
                         <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Office Role</th>
                         <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact</th>
@@ -745,9 +745,6 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                             <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
                               <i className="fas fa-envelope me-1" style={{ color: '#ffc107' }}></i>
                               {official.email}
-                            </small>
-                            <small style={{ color: '#888', fontWeight: '500', marginTop: '0.2rem', display: 'block' }}>
-                              <i className="fas fa-at me-1"></i>{official.username}
                             </small>
                           </td>
                           <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
