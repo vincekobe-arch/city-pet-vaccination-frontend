@@ -1632,7 +1632,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
       if (showDropdown === `vac-${record.id}`) { setShowDropdown(null); return; }
       const rect = e.currentTarget.getBoundingClientRect();
       dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top + rect.height / 2, left: rect.left - 185 });
+      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
       setShowDropdown(`vac-${record.id}`);
     }}
     style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -1710,7 +1710,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
       if (showDropdown === `dew-${record.id}`) { setShowDropdown(null); return; }
       const rect = e.currentTarget.getBoundingClientRect();
       dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top + rect.height / 2, left: rect.left - 185 });
+      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
       setShowDropdown(`dew-${record.id}`);
     }}
     style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -1769,7 +1769,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
       if (showDropdown === `ster-${record.id}`) { setShowDropdown(null); return; }
       const rect = e.currentTarget.getBoundingClientRect();
       dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top + rect.height / 2, left: rect.left - 185 });
+      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
       setShowDropdown(`ster-${record.id}`);
     }}
     style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -1826,7 +1826,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
       if (showDropdown === `mic-${record.id}`) { setShowDropdown(null); return; }
       const rect = e.currentTarget.getBoundingClientRect();
       dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top + rect.height / 2, left: rect.left - 185 });
+      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
       setShowDropdown(`mic-${record.id}`);
     }}
     style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -1929,7 +1929,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
       if (showDropdown === `vac-tab-${vaccination.id}`) { setShowDropdown(null); return; }
       const rect = e.currentTarget.getBoundingClientRect();
       dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top + rect.height / 2, left: rect.left - 185 });
+      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
       setShowDropdown(`vac-tab-${vaccination.id}`);
     }}
     style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -2019,7 +2019,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
       if (showDropdown === `ster-tab-${sterilization.id}`) { setShowDropdown(null); return; }
       const rect = e.currentTarget.getBoundingClientRect();
       dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top + rect.height / 2, left: rect.left - 185 });
+      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
       setShowDropdown(`ster-tab-${sterilization.id}`);
     }}
     style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -2106,7 +2106,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
       if (showDropdown === `mic-tab-${microchip.id}`) { setShowDropdown(null); return; }
       const rect = e.currentTarget.getBoundingClientRect();
       dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top + rect.height / 2, left: rect.left - 185 });
+      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
       setShowDropdown(`mic-tab-${microchip.id}`);
     }}
     style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -3675,17 +3675,16 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
     />
           <div style={{
             position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            transform: 'translateY(-50%)',
-            background: '#ffffff',
-            border: '1px solid #e0e0e0',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            minWidth: '170px',
-            zIndex: 1050,
-            overflow: 'hidden',
-            zoom: '0.75',
+top: dropdownPos.top,
+left: dropdownPos.left,
+transform: 'translateY(-50%)',
+background: '#ffffff',
+border: '1px solid #e0e0e0',
+borderRadius: '12px',
+boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+minWidth: '170px',
+zIndex: 1050,
+overflow: 'hidden',
           }}>
             {(() => {
               const id = showDropdown;
