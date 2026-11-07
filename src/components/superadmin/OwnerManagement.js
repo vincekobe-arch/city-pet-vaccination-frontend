@@ -544,15 +544,15 @@ const SuperAdminOwnerManagement = () => {
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <Table hover className="mobile-table-wrap" style={{ marginBottom: 0, tableLayout: 'fixed', width: '100%' }}>
-                    <thead style={{ background: '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Name</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Contact Details</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Address</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Total Pets</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Status</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '13%' }}>Actions</th>
+                  <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                    <thead>
+                      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Name</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact Details</th>
+                        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Address</th>
+                        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Total Pets</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -571,125 +571,94 @@ const SuperAdminOwnerManagement = () => {
                               const displayPhone = owner.po_phone || owner.phone;
                               
                               return (
-                                <tr 
-                                  key={owner.user_id || owner.id}
-                                  style={{
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                  }}
-                                >
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                      <strong style={{ fontSize: '1rem', color: '#333' }}>{displayFirstName}</strong>
-                                      {(() => {
-                                        const vs = owner.verification_status;
-                                        if (!vs || vs === 'not_verified') return null;
-                                        const cfg = {
-                                          pending:        { icon: 'fa-hourglass-half', color: '#fd7e14' },
-                                          semi_verified:  { icon: 'fa-shield-alt',     color: '#0d6efd' },
-                                          fully_verified: { icon: 'fa-check-circle',   color: '#198754' },
-                                        }[vs];
-                                        if (!cfg) return null;
-                                        return (
-                                          <i
-                                            className={`fas ${cfg.icon}`}
-                                            title={vs.replace('_', ' ')}
-                                            style={{ fontSize: '0.75rem', color: cfg.color, flexShrink: 0 }}
-                                          />
-                                        );
-                                      })()}
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <small style={{ fontWeight: '500', color: '#555' }}>
-                                      <i className="fas fa-phone me-1"></i>
-                                      {displayPhone || 'N/A'}
-                                    </small>
-                                  </td>
-                                  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <small style={{ fontWeight: '500', color: '#555' }}>{owner.address || 'Not provided'}</small>
-                                  </td>
-                                  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '600', color: petCount > 0 ? '#007bff' : '#6c757d' }}>
-                                      {petCount}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
-                                      {null}
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: owner.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${owner.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.7rem', fontWeight: '700', color: owner.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
-                                        <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
-                                        {owner.is_active ? 'Active' : 'Inactive'}
-                                      </span>
-                                      {(() => {
-                                        const ll = owner.last_login;
-                                        if (!ll) return (
-                                          <span style={{ fontSize: '0.65rem', color: '#bbb', fontStyle: 'italic', marginTop: '0.1rem' }}>Never signed in</span>
-                                        );
-                                        const diffMs  = Date.now() - new Date(ll).getTime();
-                                        const diffDay = Math.floor(diffMs / 86400000);
-                                        const diffWk  = Math.floor(diffDay / 7);
-                                        const diffMo  = Math.floor(diffDay / 30);
-                                        let label, color;
-                                        if (diffDay === 0)      { label = 'Today';           color = '#198754'; }
-                                        else if (diffDay === 1) { label = 'Yesterday';        color = '#198754'; }
-                                        else if (diffDay < 7)   { label = `${diffDay}d ago`;  color = '#198754'; }
-                                        else if (diffDay < 30)  { label = `${diffWk}w ago`;   color = '#e6a817'; }
-                                        else if (diffMo < 3)    { label = `${diffMo}mo ago`;  color = '#fd7e14'; }
-                                        else                    { label = `${diffMo}mo ago`;  color = '#dc3545'; }
-                                        return (
-                                          <span style={{ fontSize: '0.65rem', color, fontWeight: '600', whiteSpace: 'nowrap', marginTop: '0.1rem' }}>
-                                            <i className="fas fa-clock me-1" style={{ fontSize: '0.58rem' }} />{label}
-                                          </span>
-                                        );
-                                      })()}
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '13%' }}>
-                                    <div style={{ position: 'relative', display: 'inline-block' }}>
-                                      <button
-                                        ref={showDropdown === owner.user_id ? dropdownButtonRef : null}
-                                        onClick={(e) => {
-                                          if (showDropdown === owner.user_id) {
-                                            setShowDropdown(null);
-                                          } else {
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                              dropdownButtonRef.current = e.currentTarget;
-                                              setDropdownPos({
-                                                top: rect.top / ZOOM + (rect.height / ZOOM) / 2,
-                                                left: (rect.left / ZOOM) - 185,
-                                              });
-                                            setShowDropdown(owner.user_id);
-                                          }
-                                        }}
-                                        style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                                      >
-                                        <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-                                      </button>
-                                    </div>
-                                  </td>
+                                <tr
+                                    key={owner.user_id || owner.id}
+                                    style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                  >
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>
+    {displayFirstName} {displayLastName}
+    {(() => {
+      const vs = owner.verification_status;
+      if (!vs || vs === 'not_verified') return null;
+      const cfg = {
+        pending:        { icon: 'fa-hourglass-half', color: '#fd7e14' },
+        semi_verified:  { icon: 'fa-shield-alt',     color: '#0d6efd' },
+        fully_verified: { icon: 'fa-check-circle',   color: '#198754' },
+      }[vs];
+      if (!cfg) return null;
+      return <i className={`fas ${cfg.icon} ms-1`} title={vs.replace('_', ' ')} style={{ fontSize: '0.75rem', color: cfg.color }} />;
+    })()}
+  </strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}>
+    <i className="fas fa-venus-mars me-1"></i>{owner.gender || '—'}
+  </small>
+</td>
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+  <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
+    <i className="fas fa-phone me-1" style={{ color: '#ffc107' }}></i>
+    {displayPhone || '—'}
+  </small>
+</td>
+                                  <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+  <span style={{ fontWeight: '500', color: '#555', fontSize: '0.9rem' }}>
+    {owner.address || <span className="text-muted">—</span>}
+  </span>
+</td>
+                                  <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+  <span style={{ fontSize: '1rem', fontWeight: '700', color: petCount > 0 ? '#0d6efd' : '#aaa' }}>
+    {petCount}
+  </span>
+</td>
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: owner.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${owner.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.75rem', fontWeight: '700', color: owner.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
+    <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
+    {owner.is_active ? 'Active' : 'Inactive'}
+  </span>
+  {(() => {
+    const ll = owner.last_login;
+    if (!ll) return <div style={{ fontSize: '0.65rem', color: '#bbb', fontStyle: 'italic', marginTop: '0.25rem' }}>Never signed in</div>;
+    const diffMs  = Date.now() - new Date(ll).getTime();
+    const diffDay = Math.floor(diffMs / 86400000);
+    const diffWk  = Math.floor(diffDay / 7);
+    const diffMo  = Math.floor(diffDay / 30);
+    let label, color;
+    if (diffDay === 0)      { label = 'Today';          color = '#198754'; }
+    else if (diffDay === 1) { label = 'Yesterday';       color = '#198754'; }
+    else if (diffDay < 7)   { label = `${diffDay}d ago`; color = '#198754'; }
+    else if (diffDay < 30)  { label = `${diffWk}w ago`;  color = '#e6a817'; }
+    else if (diffMo < 3)    { label = `${diffMo}mo ago`; color = '#fd7e14'; }
+    else                    { label = `${diffMo}mo ago`; color = '#dc3545'; }
+    return <div style={{ fontSize: '0.65rem', color, fontWeight: '600', whiteSpace: 'nowrap', marginTop: '0.25rem' }}><i className="fas fa-clock me-1" style={{ fontSize: '0.58rem' }} />{label}</div>;
+  })()}
+</td>
+                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+  <div style={{ position: 'relative' }}>
+    <button
+      ref={showDropdown === owner.user_id ? dropdownButtonRef : null}
+      onClick={(e) => {
+        if (showDropdown === owner.user_id) {
+          setShowDropdown(null);
+        } else {
+          const rect = e.currentTarget.getBoundingClientRect();
+          dropdownButtonRef.current = e.currentTarget;
+          setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
+          setShowDropdown(owner.user_id);
+        }
+      }}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+  </div>
+</td>
                                 </tr>
                               );
                             })}
-                            {/* Empty rows to maintain fixed height */}
-                            {Array.from({ length: emptyRows }).map((_, index) => (
-                              <tr key={`empty-${index}`} style={{ pointerEvents: 'none' }}>
-                                <td style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-                                <td style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-                                <td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-                                <td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-                                <td style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-                                <td style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-                              </tr>
-                            ))}
                           </>
                         );
                       })()}
