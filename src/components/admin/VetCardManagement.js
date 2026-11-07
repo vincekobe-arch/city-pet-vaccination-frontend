@@ -132,6 +132,12 @@ const loadData = async (bustCache = false) => {
   };
 
   const hasActiveVetCard = (petId) => {
+    // Check pets array first (from pets endpoint with has_vet_card field)
+    const pet = pets.find(p => p.id === petId);
+    if (pet && pet.has_vet_card !== undefined) {
+      return pet.has_vet_card == 1 || pet.has_vet_card === true;
+    }
+    // Fallback to vetCards array
     return vetCards.some(card => 
       card.pet_id === petId && 
       (card.is_active === 1 || card.is_active === '1' || card.is_active === true)
