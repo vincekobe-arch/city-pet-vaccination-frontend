@@ -1105,6 +1105,7 @@ const getSelectedPet = () => {
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
     const paginatedRecords = currentRecords.slice(startIdx, endIdx);
+const emptyRows = Math.max(0, itemsPerPage - paginatedRecords.length);
     
 
     return (
