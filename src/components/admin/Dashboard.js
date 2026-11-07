@@ -295,8 +295,8 @@ const AdminDashboard = ({ darkMode }) => {
     const result = {
       statistics: {
         total_pets:         pets.length,
-        total_owners:       data.owners?.total        ?? 0,
-        upcoming_schedules: data.upcoming_schedules   ?? 0,
+        total_owners:       Number(data.owners?.total        ?? 0),
+        upcoming_schedules: Number(data.upcoming_schedules   ?? 0),
       },
       recentPets:   pets.slice(0, 5),
       pets,
@@ -535,7 +535,7 @@ const AdminDashboard = ({ darkMode }) => {
 <Row className="mb-4">
   {[
     { label: 'Total Pets',  count: dashboardData.statistics.total_pets,        img: '/paw.png',    accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',  fallbackIcon: 'fa-paw',          description: 'Registered Pets',  delay: '0.1s' },
-    { label: 'Pet Owners',  count: dashboardData.statistics.total_owners,       img: '/users.png',  accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users',        description: 'Total Owners',     delay: '0.2s' },
+    { label: 'Communities', count: dashboardData.statistics.total_owners,       img: '/users.png',  accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users',        description: 'Total Communities',     delay: '0.2s' },
     { label: 'Events',      count: dashboardData.statistics.upcoming_schedules, img: '/events.png', accent: '#dc3545', accentAlpha: 'rgba(220,53,69,0.12)',  fallbackIcon: 'fa-calendar-alt', description: 'Upcoming Events',  delay: '0.3s' },
   ].map(props => (
     <StatCard key={props.label} {...props} darkMode={darkMode} loading={loading} />
