@@ -90,7 +90,7 @@ export const handleAPIError = (error) => {
 // Pet API
 export const petAPI = {
   getAll: (page = 1, limit = 5) => api.get(`/pets?page=${page}&limit=${limit}`),
-  getAllUnpaginated: () => api.get('/pets'),
+  getAllUnpaginated: () => api.get('/pets?limit=9999&page=1'),
   getById: (id) => api.get(`/pets/show/${id}`),
   getByOwner: (ownerId) => api.get(`/pets/owner/${ownerId}`),
   create: (data) => api.post('/pets/create', data),
