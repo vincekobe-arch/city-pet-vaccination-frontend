@@ -103,8 +103,11 @@ const PetManagement = ({ darkMode }) => {
  
 const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [totalPets, setTotalPets] = useState(0);
+  const [pageCache, setPageCache] = useState({});
   
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
@@ -115,9 +118,9 @@ const [pets, setPets] = useState([]);
   const [filterSpecies, setFilterSpecies] = useState('all');
   const [filterStatus, setFilterStatus] = useState('active');
   
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 5;
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(totalPets / itemsPerPage);
 
 
   const styles = `
@@ -222,37 +225,41 @@ const itemsPerPage = 5;
     loadData();
   }, []);
 
-  const CACHE_KEY = '__pets__';
-const CACHE_TTL = 60_000;
+  useEffect(() => {
+    if (currentPage > 1) loadPage(currentPage);
+  }, [currentPage]);
 
-const loadData = async () => {
-  try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    if (raw) {
-      const { ts, pets } = JSON.parse(raw);
-      if (Date.now() - ts < CACHE_TTL) {
-        setPets(pets);
-        setLoading(false);
-        return;
-      }
-    }
-  } catch {}
+  const CACHE_TTL = 60_000;
 
+const loadPage = async (page, force = false) => {
+  // Serve from in-memory cache if fresh
+  const cached = pageCache[page];
+  if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
+    setPets(cached.pets);
+    setTotalPets(cached.total);
+    return;
+  }
+
+  page === 1 ? setLoading(true) : setPageLoading(true);
   try {
-    setLoading(true);
-    const petsRes = await petAPI.getAll();
-    const pets = petsRes.data.pets || [];
-    setPets(pets);
-    try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), pets }));
-    } catch {}
+    const res = await petAPI.getAll(page, itemsPerPage);
+    const newPets  = res.data.pets  || [];
+    const total    = res.data.total ?? newPets.length;
+
+    // Store only this page — previous page is evicted automatically
+    setPageCache(prev => ({ [page]: { pets: newPets, total, ts: Date.now() } }));
+    setPets(newPets);
+    setTotalPets(total);
   } catch (err) {
     const { message } = handleAPIError(err);
     setError(message);
   } finally {
     setLoading(false);
+    setPageLoading(false);
   }
 };
+
+const loadData = () => loadPage(1);
 
   const handleViewPet = async (pet) => {
     setSelectedPet(pet);
@@ -314,6 +321,7 @@ const loadData = async () => {
     }
   };
 
+  // Filtering is now local to the current page only
   const filteredPets = pets.filter(pet => {
     const matchesSearch = 
       (pet.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -331,7 +339,7 @@ const loadData = async () => {
     return matchesSearch && matchesSpecies && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredPets.length / itemsPerPage);
+
   const activePets = pets.filter(p => p.is_active);
 
   return (
@@ -505,7 +513,7 @@ const loadData = async () => {
               </h5>
             </Card.Header>
             <Card.Body className="mobile-card-body" style={{ padding: '2rem', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}>
-              {loading ? (
+              {loading || pageLoading ? (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
     {/* Skeleton table header */}
     <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: darkMode ? '#1e1e1e' : '#f8f9fa', marginBottom: '0.25rem' }}>
@@ -575,9 +583,7 @@ const loadData = async () => {
                     </thead>
                     <tbody>
                       {(() => {
-                        const startIdx = (currentPage - 1) * itemsPerPage;
-                        const endIdx = currentPage * itemsPerPage;
-                        const currentPagePets = filteredPets.slice(startIdx, endIdx);
+                        const currentPagePets = filteredPets;
                         const emptyRows = itemsPerPage - currentPagePets.length;
                         
                         return (
@@ -720,7 +726,7 @@ const loadData = async () => {
       </Row>
 
       {/* Pagination */}
-      {filteredPets.length > itemsPerPage && (
+      {totalPets > itemsPerPage && (
   <Row className="mt-4 mobile-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
     <Col className="d-flex justify-content-between align-items-center">
       {/* Left: Page X of Y */}
