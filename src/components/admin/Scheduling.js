@@ -45,9 +45,7 @@ const [filterStatus, setFilterStatus] = useState('upcoming');
   const [expandedOwners, setExpandedOwners] = useState({});
 
   const [showDropdown, setShowDropdown] = useState(null);
-  const dropdownButtonRef = useRef(null);
-const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-const ZOOM = 0.75;
+  
 
 const schedTypeChartRef    = useRef(null);
 const schedTypeChartObj    = useRef(null);
@@ -374,16 +372,7 @@ useEffect(() => {
   setCurrentPage(1);
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
 
-useEffect(() => {
-  if (showDropdown === null) return;
-  const updatePos = () => {
-    if (!dropdownButtonRef.current) return;
-    const rect = dropdownButtonRef.current.getBoundingClientRect();
-    setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
-  };
-  window.addEventListener('scroll', updatePos, true);
-  return () => window.removeEventListener('scroll', updatePos, true);
-}, [showDropdown]);
+
 
   const loadData = async () => {
   try {
@@ -1522,21 +1511,41 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
         })()}
       </td>
       <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        <button
-          ref={showDropdown === schedule.id ? dropdownButtonRef : null}
-          onClick={(e) => {
-            if (showDropdown === schedule.id) { setShowDropdown(null); return; }
-            const rect = e.currentTarget.getBoundingClientRect();
-            dropdownButtonRef.current = e.currentTarget;
-            setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
-            setShowDropdown(schedule.id);
-          }}
-          style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-          onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-          onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+  <button
+    onClick={() => setShowDropdown(showDropdown === `sched-${schedule.id}` ? null : `sched-${schedule.id}`)}
+    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+  >
+    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+  </button>
+  {showDropdown === `sched-${schedule.id}` && (
+    <>
+      <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+      <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '185px', zIndex: 1050, overflow: 'hidden' }}>
+        <button onClick={() => { setShowDropdown(null); handleOpenViewModal(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+          <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span>
         </button>
+        {(user?.role === 'super_admin' || user?.role === 'barangay_official') && (
+          <button onClick={() => { setShowDropdown(null); loadAllRegistrations(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+            <i className="fas fa-users" style={{ width: '18px', textAlign: 'center', color: '#ffc107' }}></i><span>View All Registrations</span>
+          </button>
+        )}
+        {schedule.status !== 'ongoing' && schedule.status !== 'completed' && (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
+          <>
+            <button onClick={() => { setShowDropdown(null); handleOpenModal('edit', schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+              <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Event</span>
+            </button>
+            <button onClick={() => { setShowDropdown(null); handleDeleteClick(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#fff5f5'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+              <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Event</span>
+            </button>
+          </>
+        )}
+      </div>
+    </>
+  )}
+</div>
       </td>
     </tr>
   ))}
@@ -2927,81 +2936,7 @@ return (
       </Modal>
     </Container>
 
-    {showDropdown !== null && (
-      <>
-        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
-        <div style={{
-          position: 'fixed',
-          top: dropdownPos.top,
-          left: dropdownPos.left,
-          transform: 'translateY(-50%)',
-          background: '#ffffff',
-          border: '1px solid #e0e0e0',
-          borderRadius: '12px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-          minWidth: '185px',
-          zIndex: 1050,
-          overflow: 'hidden',
-          zoom: '0.75',
-        }}>
-          {(() => {
-            const schedule = schedules.find(s => s.id === showDropdown);
-            if (!schedule) return null;
-            return (
-              <>
-                <button
-                  onClick={() => { setShowDropdown(null); handleOpenViewModal(schedule); }}
-                  style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', transition: 'background 0.2s' }}
-                  onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                  onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
-                >
-                  <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                  <span>View Details</span>
-                </button>
 
-                {(user?.role === 'super_admin' || user?.role === 'barangay_official') && (
-                  <button
-                    onClick={() => { setShowDropdown(null); loadAllRegistrations(schedule); }}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                    onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
-                  >
-                    <i className="fas fa-users" style={{ width: '18px', textAlign: 'center', color: '#ffc107' }}></i>
-                    <span>View All Registrations</span>
-                  </button>
-                )}
-
-                {schedule.status !== 'ongoing' &&
-                 schedule.status !== 'completed' &&
-                 (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
-                  <>
-                    <button
-                      onClick={() => { setShowDropdown(null); handleOpenModal('edit', schedule); }}
-                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                      onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                      onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
-                    >
-                      <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                      <span>Edit Event</span>
-                    </button>
-
-                    <button
-                      onClick={() => { setShowDropdown(null); handleDeleteClick(schedule); }}
-                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                      onMouseOver={e => e.currentTarget.style.background = '#fff5f5'}
-                      onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
-                    >
-                      <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                      <span>Delete Event</span>
-                    </button>
-                  </>
-                )}
-              </>
-            );
-          })()}
-        </div>
-      </>
-    )}
     {/* ── Review & Confirm Schedule Modal ── */}
 <Modal show={showConfirmScheduleModal} onHide={() => setShowConfirmScheduleModal(false)} centered style={{ zoom: '0.75' }}>
   <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
