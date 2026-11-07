@@ -295,8 +295,8 @@ const AdminDashboard = ({ darkMode }) => {
     const result = {
       statistics: {
         total_pets:         pets.length,
-        total_owners:       data.owners?.total ?? 0,
-        upcoming_schedules: 0, // loaded separately if needed
+        total_owners:       data.owners?.total        ?? 0,
+        upcoming_schedules: data.upcoming_schedules   ?? 0,
       },
       recentPets:   pets.slice(0, 5),
       pets,
