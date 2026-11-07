@@ -427,7 +427,7 @@ if (onLogin) {
                   <span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
                 </h1>
               </div>
-              <div style={{ animation:'dropDown 0.8s ease-out 0.6s backwards', display:'flex', justifyContent:'center', marginTop:'1rem' }}>
+              <div style={{ animation:'dropDown 0.8s ease-out 0.6s backwards', display:'flex', justifyContent:'center', marginTop:'1rem', overflow:'hidden' }}>
                 <img src="/ads2.png" alt="PetUnity" style={{ width:'100%', maxWidth:'420px', height:'auto', objectFit:'contain' }} />
               </div>
             </div>
