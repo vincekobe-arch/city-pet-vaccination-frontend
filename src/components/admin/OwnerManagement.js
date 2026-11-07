@@ -6,7 +6,10 @@ import api, { ownerAPI, handleAPIError } from '../../services/api';
 const AdminOwnerManagement = () => {
   const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState('');
+  const [totalOwners, setTotalOwners] = useState(0);
+  const [pageCache, setPageCache] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [filterVerif, setFilterVerif] = useState('all');
   const [filterActive, setFilterActive] = useState('1');
@@ -56,9 +59,9 @@ const AdminOwnerManagement = () => {
   const [modalCurrentPage, setModalCurrentPage] = useState(1);
   const petsPerPage = 5;
   
-  // Pagination state for main table
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const mainTotalPages = Math.ceil(totalOwners / itemsPerPage);
 
   const [displayCounts, setDisplayCounts] = useState({ activeOwners: 0, totalPets: 0, average: 0 });
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -133,40 +136,40 @@ const AdminOwnerManagement = () => {
     loadData();
   }, []);
 
-  const CACHE_KEY = '__owners__';
-const CACHE_TTL = 60_000;
+  useEffect(() => {
+    if (currentPage > 1) loadPage(currentPage);
+  }, [currentPage]);
 
-const loadData = async (bustCache = false) => {
-  if (!bustCache) {
-    try {
-      const raw = sessionStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const { ts, owners } = JSON.parse(raw);
-        if (Date.now() - ts < CACHE_TTL) {
-          setOwners(owners);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch {}
+  const CACHE_TTL = 60_000;
+
+const loadPage = async (page, bustCache = false) => {
+  const cached = pageCache[page];
+  if (!bustCache && cached && Date.now() - cached.ts < CACHE_TTL) {
+    setOwners(cached.owners);
+    setTotalOwners(cached.total);
+    return;
   }
 
+  page === 1 ? setLoading(true) : setPageLoading(true);
   try {
-    setLoading(true);
-    const ownersRes = await ownerAPI.getAll();
-    const owners = ownersRes.data.owners || [];
-    setOwners(owners);
-    try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), owners }));
-    } catch {}
+    const res = await ownerAPI.getAll(page, itemsPerPage);
+    const newOwners = res.data.owners || [];
+    const total     = res.data.total ?? newOwners.length;
+    setPageCache({ [page]: { owners: newOwners, total, ts: Date.now() } });
+    setOwners(newOwners);
+    setTotalOwners(total);
   } catch (err) {
     const { message } = handleAPIError(err);
     setError(message);
   } finally {
     setLoading(false);
+    setPageLoading(false);
   }
 };
 
+const loadData = (bustCache = false) => loadPage(1, bustCache);
+
+  // Stats are derived from current page only — accurate totals come from the backend
   const activeOwners = owners.filter(o => o.is_active);
   const totalPets = owners.reduce((sum, o) => sum + parseInt(o.total_pets ?? 0), 0);
 
@@ -414,7 +417,7 @@ const loadData = async (bustCache = false) => {
                       fontVariantNumeric: 'tabular-nums',
                       minWidth: '3ch'
                     }}>
-                      {loading ? (
+                      {loading || pageLoading ? (
                         <span style={{
                           display: 'inline-block', width: '3ch', height: '1em',
                           borderRadius: '6px',
@@ -541,7 +544,7 @@ const loadData = async (bustCache = false) => {
             >
               <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
                 <i className="fas fa-users me-2" style={{ color: '#ffc107' }}></i>
-                Communities ({filteredOwners.length})
+                Communities ({totalOwners})
               </h5>
             </Card.Header>
             <Card.Body className="mobile-card-body" style={{ padding: '2rem' }}>
@@ -620,9 +623,7 @@ const loadData = async (bustCache = false) => {
                     </thead>
                     <tbody>
                       {(() => {
-                        const startIdx = (currentPage - 1) * itemsPerPage;
-                        const endIdx = currentPage * itemsPerPage;
-                        const currentPageOwners = filteredOwners.slice(startIdx, endIdx);
+                        const currentPageOwners = filteredOwners;
                         const emptyRows = itemsPerPage - currentPageOwners.length;
                         
                         return (
@@ -765,11 +766,11 @@ const loadData = async (bustCache = false) => {
         </Col>
       </Row>
       {/* Pagination */}
-      {filteredOwners.length > itemsPerPage && (
+      {totalOwners > itemsPerPage && (
         <Row className="mt-4 mobile-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
           <Col className="d-flex justify-content-between align-items-center">
             <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-              Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{Math.ceil(filteredOwners.length / itemsPerPage)}</strong>
+              Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{mainTotalPages}</strong>
             </span>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button
@@ -803,7 +804,7 @@ const loadData = async (bustCache = false) => {
               </button>
 
               {(() => {
-                const totalPages = Math.ceil(filteredOwners.length / itemsPerPage);
+                const totalPages = mainTotalPages;
                 const pages = [];
                 
                 if (totalPages <= 3) {
@@ -872,26 +873,26 @@ const loadData = async (bustCache = false) => {
 
               <button
                 className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredOwners.length / itemsPerPage)))}
-                disabled={currentPage === Math.ceil(filteredOwners.length / itemsPerPage)}
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, mainTotalPages))}
+                  disabled={currentPage === mainTotalPages}
                 style={{
-                  background: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? '#e9ecef' : '#ffffff',
+                  background: currentPage === mainTotalPages ? '#e9ecef' : '#ffffff',
                   border: '2px solid #dee2e6',
                   borderRadius: '8px',
                   padding: '0.5rem 0.75rem',
                   cursor: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? 'not-allowed' : 'pointer',
                   fontWeight: '600',
-                  color: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? '#adb5bd' : '#333333',
+                  color: currentPage === mainTotalPages ? '#adb5bd' : '#333333',
                   transition: 'all 0.2s'
                 }}
                 onMouseOver={(e) => {
-                  if (currentPage !== Math.ceil(filteredOwners.length / itemsPerPage)) {
+                  if (currentPage !== mainTotalPages) {
                     e.target.style.background = '#f8f9fa';
                     e.target.style.borderColor = '#ffc107';
                   }
                 }}
                 onMouseOut={(e) => {
-                  if (currentPage !== Math.ceil(filteredOwners.length / itemsPerPage)) {
+                  if (currentPage !== mainTotalPages) {
                     e.target.style.background = '#ffffff';
                     e.target.style.borderColor = '#dee2e6';
                   }

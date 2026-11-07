@@ -90,6 +90,7 @@ export const handleAPIError = (error) => {
 // Pet API
 export const petAPI = {
   getAll: (page = 1, limit = 5) => api.get(`/pets?page=${page}&limit=${limit}`),
+  getAllUnpaginated: () => api.get('/pets'),
   getById: (id) => api.get(`/pets/show/${id}`),
   getByOwner: (ownerId) => api.get(`/pets/owner/${ownerId}`),
   create: (data) => api.post('/pets/create', data),
@@ -105,7 +106,7 @@ uploadPhoto: (id, formData) => {
 
 // Owner API
 export const ownerAPI = {
-  getAll: () => api.get('/owners'),
+  getAll: (page = 1, limit = 5) => api.get(`/owners?page=${page}&limit=${limit}`),
   getById: (id) => api.get(`/owners/show/${id}`),
   getByUserId: (userId) => api.get(`/owners/user/${userId}`),
   create: (data) => api.post('/owners/create', data),

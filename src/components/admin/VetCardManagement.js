@@ -81,23 +81,47 @@ const user = getUser();
     loadData();
   }, []);
 
-const loadData = async () => {
+const CACHE_KEY = '__vetcards__';
+const CACHE_TTL = 60_000;
+
+const loadData = async (bustCache = false) => {
+  if (!bustCache) {
     try {
-      setLoading(true);
-      const [vetCardsRes, petsRes] = await Promise.all([
-        vetCardAPI.getAll(),
-        petAPI.getAll()
-      ]);
-      
-      setVetCards(vetCardsRes.data.vet_cards || []);
-      setPets(petsRes.data.pets || []);
-    } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const raw = sessionStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const { ts, vetCards, pets } = JSON.parse(raw);
+        if (Date.now() - ts < CACHE_TTL) {
+          setVetCards(vetCards);
+          setPets(pets);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch {}
+  }
+
+  try {
+    setLoading(true);
+    const [vetCardsRes, petsRes] = await Promise.all([
+      vetCardAPI.getAll(),
+      petAPI.getAllUnpaginated()
+    ]);
+    const newVetCards = vetCardsRes.data.vet_cards || [];
+    const newPets     = petsRes.data.pets || [];
+    setVetCards(newVetCards);
+    setPets(newPets);
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+        ts: Date.now(), vetCards: newVetCards, pets: newPets
+      }));
+    } catch {}
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleViewVetCard = (petId) => {
     window.open(`/vet-card-view/${petId}`, '_blank');
