@@ -119,8 +119,11 @@ const [pets, setPets] = useState([]);
   const [filterStatus, setFilterStatus] = useState('active');
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  const totalPages = Math.ceil(totalPets / itemsPerPage);
+const itemsPerPage = 5;
+const totalPages = Math.ceil(totalPets / itemsPerPage);
+
+const [stats, setStats] = useState({ total: 0, dogs: 0, cats: 0 });
+const [statsLoading, setStatsLoading] = useState(true);
 
 
   const styles = `
@@ -221,9 +224,28 @@ const [pets, setPets] = useState([]);
   `}
 `;
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const loadStats = async () => {
+  setStatsLoading(true);
+  try {
+    const res = await petAPI.getAllUnpaginated();
+    const all = res.data.pets || [];
+    const active = all.filter(p => p.is_active);
+    setStats({
+      total: active.length,
+      dogs:  active.filter(p => p.species === 'dog').length,
+      cats:  active.filter(p => p.species === 'cat').length,
+    });
+  } catch {
+    // fail silently — stats are non-critical
+  } finally {
+    setStatsLoading(false);
+  }
+};
+
+useEffect(() => {
+  loadData();
+  loadStats();
+}, []);
 
   useEffect(() => {
     if (currentPage > 1) loadPage(currentPage);
@@ -410,11 +432,11 @@ const loadData = () => loadPage(1);
       {/* Statistics Cards */}
 <Row className="mb-4">
   {[
-    { label: 'Total Pets', count: activePets.length,                                    img: '/paw.png',      accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',   delay: '0.1s' },
-    { label: 'Dogs',       count: activePets.filter(p => p.species === 'dog').length,   img: '/dog_face.png', accent: '#FF6B6B', accentAlpha: 'rgba(255,107,107,0.12)', delay: '0.2s' },
-    { label: 'Cats',       count: activePets.filter(p => p.species === 'cat').length,   img: '/cat_face.png', accent: '#4ECDC4', accentAlpha: 'rgba(78,205,196,0.12)',  delay: '0.3s' },
+    { label: 'Total Pets', count: stats.total, img: '/paw.png',      accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',   delay: '0.1s' },
+    { label: 'Dogs',       count: stats.dogs,  img: '/dog_face.png', accent: '#FF6B6B', accentAlpha: 'rgba(255,107,107,0.12)', delay: '0.2s' },
+    { label: 'Cats',       count: stats.cats,  img: '/cat_face.png', accent: '#4ECDC4', accentAlpha: 'rgba(78,205,196,0.12)',  delay: '0.3s' },
   ].map(props => (
-    <PetStatCard key={props.label} {...props} darkMode={darkMode} loading={loading} />
+    <PetStatCard key={props.label} {...props} darkMode={darkMode} loading={statsLoading} />
   ))}
 </Row>
 
