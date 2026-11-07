@@ -3216,15 +3216,18 @@ return (
                   const isExpanded = !!expandedOwners[owner.user_id];
                   return (
                     <div key={owner.user_id || idx} style={{ border: '1px solid #dee2e6', borderRadius: '10px', marginBottom: '0.75rem', overflow: 'hidden' }}>
-                      <div
-                        onClick={() => setExpandedOwners(prev => ({ ...prev, [owner.user_id]: !prev[owner.user_id] }))}
-                        style={{ padding: '0.85rem 1rem', background: '#f8f9fa', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                      >
+                      <div style={{ padding: '0.85rem 1rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <strong>{owner.owner_name}</strong>
                           <span className="ms-2" style={{ fontSize: '0.8rem', color: '#888' }}>{owner.pets?.length || 0} pet(s)</span>
                         </div>
-                        <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`} style={{ color: '#aaa', fontSize: '0.8rem' }}></i>
+                        <button
+                          onClick={() => setExpandedOwners(prev => ({ ...prev, [owner.user_id]: !prev[owner.user_id] }))}
+                          style={{ background: isExpanded ? '#6c757d' : '#ffc107', color: isExpanded ? '#fff' : '#000', border: 'none', borderRadius: '6px', padding: '0.35rem 0.85rem', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
+                        >
+                          <i className={`fas fa-${isExpanded ? 'eye-slash' : 'eye'} me-1`}></i>
+                          {isExpanded ? 'Hide Pets' : 'View Pets'}
+                        </button>
                       </div>
                       {isExpanded && (
                         <div style={{ padding: '0.5rem 1rem 0.75rem' }}>
