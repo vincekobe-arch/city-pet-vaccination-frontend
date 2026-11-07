@@ -65,6 +65,8 @@ const AdminOwnerManagement = () => {
 
   const [displayCounts, setDisplayCounts] = useState({ activeOwners: 0, totalPets: 0, average: 0 });
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [statsData, setStatsData] = useState({ activeOwners: 0, totalPets: 0, average: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
 
   const styles = `
     @keyframes dropDown {
@@ -132,8 +134,25 @@ const AdminOwnerManagement = () => {
     }
   `;
 
+  const loadStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await ownerAPI.getStatistics();
+      const s = res.data.statistics || res.data || {};
+      const active  = parseInt(s.active_owners  ?? s.total_owners ?? 0);
+      const pets    = parseInt(s.total_pets      ?? 0);
+      const avg     = active > 0 ? parseFloat((pets / active).toFixed(1)) : 0;
+      setStatsData({ activeOwners: active, totalPets: pets, average: avg });
+    } catch {
+      // fail silently — stats are non-critical
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadStats();
   }, []);
 
   useEffect(() => {
@@ -169,17 +188,12 @@ const loadPage = async (page, bustCache = false) => {
 
 const loadData = (bustCache = false) => loadPage(1, bustCache);
 
-  // Stats are derived from current page only — accurate totals come from the backend
-  const activeOwners = owners.filter(o => o.is_active);
-  const totalPets = owners.reduce((sum, o) => sum + parseInt(o.total_pets ?? 0), 0);
-
   useEffect(() => {
-    if (loading || hasAnimated) return;
-    const avgVal = activeOwners.length > 0 ? parseFloat((totalPets / activeOwners.length).toFixed(1)) : 0;
+    if (statsLoading || hasAnimated) return;
     const targets = {
-      activeOwners: activeOwners.length,
-      totalPets: totalPets,
-      average: avgVal,
+      activeOwners: statsData.activeOwners,
+      totalPets:    statsData.totalPets,
+      average:      statsData.average,
     };
     if (Object.values(targets).every(v => v === 0)) return;
     setHasAnimated(true);
@@ -208,7 +222,7 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
   setModalCurrentPage(1);
 
   try {
-    const res = await ownerAPI.show(owner.user_id);
+    const res = await ownerAPI.getByUserId(owner.user_id);
     setOwnerPets(res.data.owner?.pets || []);
   } catch {
     setOwnerPets([]);
@@ -417,7 +431,7 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                       fontVariantNumeric: 'tabular-nums',
                       minWidth: '3ch'
                     }}>
-                      {loading || pageLoading ? (
+                      {statsLoading ? (
                         <span style={{
                           display: 'inline-block', width: '3ch', height: '1em',
                           borderRadius: '6px',
