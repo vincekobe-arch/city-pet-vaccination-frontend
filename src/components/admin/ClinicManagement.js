@@ -1025,11 +1025,10 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
 
                             {/* Clinic Name */}
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <strong style={{ fontSize: '1rem', color: '#333' }}>{clinic.clinic_name}</strong>
-                              <br />
-                              <small className="text-muted"><i className="fas fa-user me-1"></i>{clinic.username}</small>
-                            </td>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{clinic.clinic_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}><i className="fas fa-user me-1"></i>{clinic.username}</small>
+</td>
 
                             {/* Code */}
                             <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -1044,16 +1043,11 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                             </td>
 
                             {/* Contact */}
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <small style={{ fontWeight: '500', color: '#555' }}>
-                                <i className="fas fa-envelope me-1"></i>{clinic.email}
-                              </small>
-                              {clinic.phone && (
-                                <><br /><small style={{ fontWeight: '500', color: '#555' }}>
-                                  <i className="fas fa-phone me-1"></i>{clinic.phone}
-                                </small></>
-                              )}
-                            </td>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+  <small style={{ fontWeight: '500', color: '#555' }}>
+    <i className="fas fa-envelope me-1"></i>{clinic.email}
+  </small>
+</td>
 
                             {/* Specialization */}
                             <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
