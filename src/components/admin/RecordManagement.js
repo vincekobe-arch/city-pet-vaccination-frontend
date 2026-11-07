@@ -1708,21 +1708,27 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
   </td>
 )}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === `dew-${record.id}` ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === `dew-${record.id}`) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
-      setShowDropdown(`dew-${record.id}`);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
+  <div style={{ position: 'relative', display: 'inline-block' }}>
+    <button
+      onClick={() => setShowDropdown(showDropdown === `dew-${record.id}` ? null : `dew-${record.id}`)}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+    {showDropdown === `dew-${record.id}` && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
+          <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
+          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+        </div>
+      </>
+    )}
+  </div>
 </td>
                                       </tr>
                                     );
@@ -1767,21 +1773,27 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
   </td>
 )}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === `ster-${record.id}` ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === `ster-${record.id}`) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
-      setShowDropdown(`ster-${record.id}`);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
+  <div style={{ position: 'relative', display: 'inline-block' }}>
+    <button
+      onClick={() => setShowDropdown(showDropdown === `ster-${record.id}` ? null : `ster-${record.id}`)}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+    {showDropdown === `ster-${record.id}` && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
+          <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
+          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+        </div>
+      </>
+    )}
+  </div>
 </td>
                                       </tr>
                                     );
@@ -1824,21 +1836,27 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   </td>
 )}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === `mic-${record.id}` ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === `mic-${record.id}`) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
-      setShowDropdown(`mic-${record.id}`);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
+  <div style={{ position: 'relative', display: 'inline-block' }}>
+    <button
+      onClick={() => setShowDropdown(showDropdown === `mic-${record.id}` ? null : `mic-${record.id}`)}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+    {showDropdown === `mic-${record.id}` && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
+          <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
+          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+        </div>
+      </>
+    )}
+  </div>
 </td>
                                       </tr>
                                     );
