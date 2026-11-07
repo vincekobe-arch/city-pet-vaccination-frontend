@@ -1785,28 +1785,41 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
             <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
               <Button variant="secondary" onClick={handleCloseModal} disabled={formLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
               <Button type="button" onClick={(e) => {
-  e.preventDefault();
-  // Run same validation as handleSubmit but stop before saving
-  if (!formData.record_type) return;
-  if (modalMode === 'create' && !getSelectedPet()) return;
-  if (formData.record_type === 'microchip' && !formData.microchip_number) return;
-  if (formData.record_type === 'microchip' && !formData.implant_site) return;
-  if (formData.record_type === 'microchip' && !formData.microchip_brand) return;
-  if (!formData.veterinarian_name.trim()) return;
-  setPendingSubmitEvent(e);
-  setShowConfirmRecordModal(true);
-}} disabled={
+                    e.preventDefault();
+                    // Run same validation as handleSubmit but stop before saving
+                    if (!formData.record_type) return;
+                    if (modalMode === 'create' && !getSelectedPet()) return;
+                    if (formData.record_type === 'microchip' && !formData.microchip_number) return;
+                    if (formData.record_type === 'microchip' && !formData.implant_site) return;
+                    if (formData.record_type === 'microchip' && !formData.microchip_brand) return;
+                    if (!formData.veterinarian_name.trim()) return;
+                    setPendingSubmitEvent(e);
+                    setShowConfirmRecordModal(true);
+                  }}               
+                  disabled={
                 formLoading ||
                 !formData.record_type ||
                 (modalMode === 'create' && !getSelectedPet()) ||
-                (formData.record_type === 'microchip' && !formData.microchip_number) ||
+                // Vaccination
+                (formData.record_type === 'vaccination' && !formData.vaccination_type_id) ||
+                (formData.record_type === 'vaccination' && modalMode === 'create' && !selectedVaccineBatch) ||
+                (formData.record_type === 'vaccination' && !formData.vaccination_date) ||
+                // Deworming
+                (formData.record_type === 'deworming' && !formData.deworming_type_id) ||
+                (formData.record_type === 'deworming' && modalMode === 'create' && !selectedDewormingBatch) ||
+                (formData.record_type === 'deworming' && !formData.deworming_date) ||
+                // Sterilization
+                (formData.record_type === 'sterilization' && !formData.sterilization_date) ||
+                // Microchip — note: implant_site and microchip_brand are required here (marked with * in the form)
+                (formData.record_type === 'microchip' && !formData.microchip_number?.trim()) ||
                 (formData.record_type === 'microchip' && !formData.implant_site) ||
-                (formData.record_type === 'microchip' && !formData.microchip_brand) ||
+                (formData.record_type === 'microchip' && !formData.microchip_brand?.trim()) ||
+                (formData.record_type === 'microchip' && !formData.implant_date) ||
                 (formData.record_type === 'microchip' && modalMode === 'create' && !selectedMicrochipBatch) ||
-                (formData.record_type === 'vaccination' && modalMode === 'create' && formData._inventory_vaccine_id && !selectedVaccineBatch) ||
-                (formData.record_type === 'deworming' && modalMode === 'create' && formData._inventory_dewormer_id && !selectedDewormingBatch)
-              || !formData.veterinarian_name.trim()
-              } className="border-0"
+                // Common
+                !formData.veterinarian_name.trim()
+              }
+               className="border-0"
                 style={{ background: formLoading || !formData.record_type || (modalMode === 'create' && !getSelectedPet()) || !formData.veterinarian_name.trim() ? '#6c757d' : '#ffc107', color: '#000000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', transition: 'all 0.3s' }}>
                 {formLoading ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : modalMode === 'edit' ? <><i className="fas fa-save me-2"></i>Save Changes</> : <><i className="fas fa-save me-2"></i>Add {formData.record_type ? getRecordTypeLabel(formData.record_type) : ''} Record</>}
               </Button>
