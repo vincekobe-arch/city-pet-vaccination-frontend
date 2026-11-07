@@ -668,7 +668,7 @@ useEffect(() => {
   const handleEditFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name === 'name') {
-      if (value && !/^[a-zA-Z.\s-]*$/.test(value)) return;
+      if (value && !/^[a-zA-Z\s-]*$/.test(value)) return;
     }
     setEditFormData(prev => ({
       ...prev,
@@ -737,7 +737,7 @@ useEffect(() => {
         gender: ''
       }));
     } else if (name === 'name') {
-      if (value && !/^[a-zA-Z.\s-]*$/.test(value)) return;
+      if (value && !/^[a-zA-Z\s-]*$/.test(value)) return;
       setRegisterFormData(prev => ({ ...prev, name: value }));
     } else {
       setRegisterFormData(prev => ({
