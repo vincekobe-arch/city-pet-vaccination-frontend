@@ -1089,7 +1089,13 @@ const handleDeleteClick = (item) => {
     <Button variant="secondary" onClick={() => setShowRestockModal(false)} disabled={restockLoading}
       style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
     <Button onClick={handleRestock}
-      disabled={restockLoading || !restockQty || parseInt(restockQty) <= 0 || !restockBatchNo.trim()}
+      disabled={
+        restockLoading ||
+        !restockQty ||
+        parseInt(restockQty) <= 0 ||
+        !restockBatchNo.trim() ||
+        (!['microchip', 'equipment'].includes(restockItem?.item_type) && !restockExpDate)
+      }
       style={{ background: '#28a745', border: 'none', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
       {restockLoading ? <><Spinner size="sm" animation="border" className="me-2" />Adding...</> : <><i className="fas fa-plus me-2" />Add Stock</>}
     </Button>

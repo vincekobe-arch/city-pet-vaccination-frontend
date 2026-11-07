@@ -1328,7 +1328,15 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
             <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
               <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={formLoading}
                 style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-              <Button type="submit" disabled={formLoading} className="border-0"
+              <Button type="submit" disabled={
+                formLoading ||
+                !formData.clinic_name.trim() ||
+                !formData.owner_name.trim() ||
+                !formData.email.trim() ||
+                (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) ||
+                (formData.phone && !/^\d{11}$/.test(formData.phone)) ||
+                !formData.username.trim()
+              } className="border-0"
                 style={{ background: formLoading ? '#6c757d' : '#ffc107', color: '#000000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.4)' }}>
                 {formLoading ? <><Spinner size="sm" animation="border" className="me-2" />Adding Clinic...</> : <><i className="fas fa-plus-circle me-2"></i>Add Clinic</>}
               </Button>
@@ -1463,7 +1471,13 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
             <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
               <Button variant="secondary" onClick={() => setShowEditModal(false)} disabled={formLoading}
                 style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-              <Button type="submit" disabled={formLoading} className="border-0"
+              <Button type="submit" disabled={
+                formLoading ||
+                !formData.clinic_name.trim() ||
+                !formData.owner_name.trim() ||
+                (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) ||
+                (formData.phone && !/^\d{11}$/.test(formData.phone))
+              } className="border-0"
                 style={{ background: formLoading ? '#6c757d' : '#0d6efd', color: '#ffffff', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', boxShadow: '0 4px 15px rgba(13,110,253,0.4)' }}>
                 {formLoading ? <><Spinner size="sm" animation="border" className="me-2" />Updating...</> : <><i className="fas fa-save me-2"></i>Update Clinic</>}
               </Button>

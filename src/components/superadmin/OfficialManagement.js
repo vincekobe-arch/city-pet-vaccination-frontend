@@ -1426,7 +1426,17 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
       </Button>
       <Button 
         type="submit"
-        disabled={formLoading}
+        disabled={
+          formLoading ||
+          !formData.first_name.trim() ||
+          !formData.last_name.trim() ||
+          !formData.birthdate ||
+          !formData.gender ||
+          !formData.office_role ||
+          (formData.office_role === 'Other' && !formData.office_role_custom?.trim()) ||
+          (formData.phone && !/^09\d{9}$/.test(formData.phone)) ||
+          Object.values(fieldErrors).some(e => !!e)
+        }
         className="border-0"
         style={{
           background: formLoading ? '#6c757d' : '#ffc107',
@@ -1741,7 +1751,17 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
       </Button>
       <Button 
         type="submit"
-        disabled={formLoading}
+        disabled={
+          formLoading ||
+          !formData.first_name.trim() ||
+          !formData.last_name.trim() ||
+          !formData.birthdate ||
+          !formData.gender ||
+          !formData.office_role ||
+          (formData.office_role === 'Other' && !formData.office_role_custom?.trim()) ||
+          (formData.phone && !/^09\d{9}$/.test(formData.phone)) ||
+          Object.values(fieldErrors).some(e => !!e)
+        }
         className="border-0"
         style={{
           background: formLoading ? '#6c757d' : '#ffc107',
