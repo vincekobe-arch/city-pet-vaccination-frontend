@@ -137,12 +137,12 @@ const AdminOwnerManagement = () => {
   const loadStats = async () => {
     setStatsLoading(true);
     try {
-      const res = await ownerAPI.getStatistics();
-      const s = res.data.statistics || res.data || {};
-      const active  = parseInt(s.active_owners  ?? s.total_owners ?? 0);
-      const pets    = parseInt(s.total_pets      ?? 0);
-      const avg     = active > 0 ? parseFloat((pets / active).toFixed(1)) : 0;
-      setStatsData({ activeOwners: active, totalPets: pets, average: avg });
+      const res = await ownerAPI.getAllUnpaginated();
+      const all    = res.data.owners || [];
+      const active = all.filter(o => o.is_active);
+      const pets   = active.reduce((sum, o) => sum + parseInt(o.total_pets ?? 0), 0);
+      const avg    = active.length > 0 ? parseFloat((pets / active.length).toFixed(1)) : 0;
+      setStatsData({ activeOwners: active.length, totalPets: pets, average: avg });
     } catch {
       // fail silently — stats are non-critical
     } finally {

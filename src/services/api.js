@@ -107,6 +107,7 @@ uploadPhoto: (id, formData) => {
 // Owner API
 export const ownerAPI = {
   getAll: (page = 1, limit = 5) => api.get(`/owners?page=${page}&limit=${limit}`),
+  getAllUnpaginated: () => api.get('/owners?limit=9999&page=1'),
   getById: (id) => api.get(`/owners/show/${id}`),
   getByUserId: (userId) => api.get(`/owners/user/${userId}`),
   create: (data) => api.post('/owners/create', data),
