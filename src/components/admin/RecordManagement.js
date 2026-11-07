@@ -164,11 +164,14 @@ const [filterClinic, setFilterClinic] = useState('city_vet');
     const user = getUser();
 
     useEffect(() => {
-      loadData();
-      loadVaccinationTypes();
-      loadDewormingTypes();
-      loadInventoryVaccines();
-    }, [filterStatus]);
+  loadVaccinationTypes();
+  loadDewormingTypes();
+  loadInventoryVaccines();
+}, []); // runs once on mount only
+
+useEffect(() => {
+  loadData();
+}, [filterStatus]); // only records re-fetch on filter change
     useEffect(() => {
   setCurrentPage(1);
 }, [activeTab, filterSpecies, searchTerm, filterStatus, filterClinic]);
@@ -221,72 +224,101 @@ useEffect(() => {
       return () => clearInterval(timer);
     }, [loading, vaccinations.length, sterilizations.length, microchips.length]);
 
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const trashParam = filterStatus === 'trash' ? '?trash=1' : '';
-        const [vaccinationsRes, dewormingsRes, sterilizationsRes, microchipsRes, petsRes] = await Promise.all([
-          vaccinationAPI.getAll(trashParam),
-          dewormingAPI.getAll(trashParam),
-          sterilizationAPI.getAll(trashParam),
-          microchipAPI.getAll(trashParam),
-          petAPI.getAll()
-        ]);
-        console.log('Vaccinations Response:', vaccinationsRes.data);
-        console.log('Dewormings Response:', dewormingsRes.data);
-        console.log('Sterilizations Response:', sterilizationsRes.data);
-        console.log('Microchips Response:', microchipsRes.data);
-        console.log('Pets Response:', petsRes.data);
-        
-        setVaccinations(vaccinationsRes.data.vaccination_records || []);
-        setDewormings(dewormingsRes.data.deworming_records || []);
-        setSterilizations(sterilizationsRes.data.sterilization_records || []);
-        setMicrochips(microchipsRes.data.microchip_records || []);
-        setPets(petsRes.data.pets || []);
-        
-        
-      } catch (err) {
-        const { message } = handleAPIError(err);
-        setError(message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // After
+const CACHE_TTL = 60_000;
 
-    const loadVaccinationTypes = async () => {
-      try {
-        const response = await vaccinationAPI.getTypes();
-        setVaccinationTypes(response.data.vaccination_types || []);
-      } catch (err) {
-        console.error('Error loading vaccination types:', err);
+const loadData = async (bustCache = false) => {
+  const cacheKey = `__records_${filterStatus}__`;
+  if (!bustCache) {
+    try {
+      const raw = sessionStorage.getItem(cacheKey);
+      if (raw) {
+        const { ts, data } = JSON.parse(raw);
+        if (Date.now() - ts < CACHE_TTL) {
+          setVaccinations(data.vaccinations);
+          setDewormings(data.dewormings);
+          setSterilizations(data.sterilizations);
+          setMicrochips(data.microchips);
+          setPets(data.pets);
+          setLoading(false);
+          return;
+        }
       }
-    };
+    } catch {}
+  }
 
-    const loadDewormingTypes = async () => {
-      try {
-        const response = await dewormingAPI.getTypes();
-        setDewormingTypes(response.data.deworming_types || []);
-      } catch (err) {
-        console.error('Error loading deworming types:', err);
-      }
+  try {
+    setLoading(true);
+    const trashParam = filterStatus === 'trash' ? '?trash=1' : '';
+    const [vaccinationsRes, dewormingsRes, sterilizationsRes, microchipsRes, petsRes] = await Promise.all([
+      vaccinationAPI.getAll(trashParam),
+      dewormingAPI.getAll(trashParam),
+      sterilizationAPI.getAll(trashParam),
+      microchipAPI.getAll(trashParam),
+      petAPI.getAll()
+    ]);
+    const result = {
+      vaccinations: vaccinationsRes.data.vaccination_records || [],
+      dewormings:   dewormingsRes.data.deworming_records     || [],
+      sterilizations: sterilizationsRes.data.sterilization_records || [],
+      microchips:   microchipsRes.data.microchip_records     || [],
+      pets:         petsRes.data.pets                        || [],
     };
+    setVaccinations(result.vaccinations);
+    setDewormings(result.dewormings);
+    setSterilizations(result.sterilizations);
+    setMicrochips(result.microchips);
+    setPets(result.pets);
+    try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: result })); } catch {}
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
-    const loadInventoryVaccines = async () => {
-      try {
-        const { inventoryAPI } = await import('../../services/api');
-        const response = await inventoryAPI.getAll();
-        const allInventory = response.data.inventory || [];
-        setInventoryItems(allInventory);
-        inventoryItemsRef.current = allInventory;
-        // Store inventory ids for vaccination items with stock > 0
-        const vaccineInventory = allInventory
-          .filter(i => i.item_type === 'vaccination' && parseInt(i.current_stock) > 0)
-          .map(i => parseInt(i.id));
-        setInventoryVaccines(vaccineInventory);
-      } catch (err) {
-        console.error('Error loading inventory vaccines:', err);
+const loadVaccinationTypes = async () => {
+  try {
+    const raw = sessionStorage.getItem('__vac_types__');
+    if (raw) { const { ts, d } = JSON.parse(raw); if (Date.now() - ts < CACHE_TTL) { setVaccinationTypes(d); return; } }
+    const response = await vaccinationAPI.getTypes();
+    const d = response.data.vaccination_types || [];
+    setVaccinationTypes(d);
+    try { sessionStorage.setItem('__vac_types__', JSON.stringify({ ts: Date.now(), d })); } catch {}
+  } catch (err) { console.error('Error loading vaccination types:', err); }
+};
+
+const loadDewormingTypes = async () => {
+  try {
+    const raw = sessionStorage.getItem('__dew_types__');
+    if (raw) { const { ts, d } = JSON.parse(raw); if (Date.now() - ts < CACHE_TTL) { setDewormingTypes(d); return; } }
+    const response = await dewormingAPI.getTypes();
+    const d = response.data.deworming_types || [];
+    setDewormingTypes(d);
+    try { sessionStorage.setItem('__dew_types__', JSON.stringify({ ts: Date.now(), d })); } catch {}
+  } catch (err) { console.error('Error loading deworming types:', err); }
+};
+
+const loadInventoryVaccines = async () => {
+  try {
+    const raw = sessionStorage.getItem('__inventory__');
+    if (raw) {
+      const { ts, d } = JSON.parse(raw);
+      if (Date.now() - ts < CACHE_TTL) {
+        setInventoryItems(d); inventoryItemsRef.current = d;
+        setInventoryVaccines(d.filter(i => i.item_type === 'vaccination' && parseInt(i.current_stock) > 0).map(i => parseInt(i.id)));
+        return;
       }
-    };
+    }
+    const { inventoryAPI } = await import('../../services/api');
+    const response = await inventoryAPI.getAll();
+    const d = response.data.inventory || [];
+    setInventoryItems(d); inventoryItemsRef.current = d;
+    setInventoryVaccines(d.filter(i => i.item_type === 'vaccination' && parseInt(i.current_stock) > 0).map(i => parseInt(i.id)));
+    try { sessionStorage.setItem('__inventory__', JSON.stringify({ ts: Date.now(), d })); } catch {}
+  } catch (err) { console.error('Error loading inventory:', err); }
+};
 
     const loadVaccineBatches = async (inventoryId, currentBatchId = null) => {
       const { inventoryAPI } = await import('../../services/api');
@@ -535,7 +567,7 @@ useEffect(() => {
       }
       setShowDeleteModal(false);
       setRecordToDelete(null);
-      loadData();
+      loadData(true);
       setTimeout(() => setFloatingSuccess(''), 6000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -753,7 +785,7 @@ setError('');
           }
 
           handleCloseModal();
-          loadData();
+          loadData(true);
           setFloatingSuccess('Record updated successfully!');
           setTimeout(() => setFloatingSuccess(''), 5000);
         } catch (err) {
@@ -909,7 +941,7 @@ setError('');
         }
         
         handleCloseModal();
-        loadData();
+        loadData(true);
         setFloatingSuccess(
           formData.record_type === 'vaccination' ? 'Vaccination record added successfully!' :
           formData.record_type === 'deworming' ? 'Deworming record added successfully!' :
@@ -966,7 +998,7 @@ const handleRestoreConfirm = async () => {
     }
     setShowRestoreModal(false);
     setRecordToRestore(null);
-    loadData();
+    loadData(true);
     setFloatingSuccess('Record restored successfully!');
     setTimeout(() => setFloatingSuccess(''), 5000);
   } catch (err) {
