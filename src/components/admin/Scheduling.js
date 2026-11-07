@@ -38,6 +38,12 @@ const [filterStatus, setFilterStatus] = useState('upcoming');
   const [filterVaccineSpecies, setFilterVaccineSpecies] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   
+  const [showRegistrationsModal, setShowRegistrationsModal] = useState(false);
+  const [registrationsData, setRegistrationsData] = useState([]);
+  const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [registrationsSearchTerm, setRegistrationsSearchTerm] = useState('');
+  const [expandedOwners, setExpandedOwners] = useState({});
+
   const [showDropdown, setShowDropdown] = useState(null);
   const dropdownButtonRef = useRef(null);
 const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
@@ -622,6 +628,22 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
     }
 
     setShowModal(true);
+  };
+
+  const loadAllRegistrations = async (schedule) => {
+    setLoadingRegistrations(true);
+    setRegistrationsSearchTerm('');
+    setExpandedOwners({});
+    try {
+      const response = await api.get(`/schedules/registrations/${schedule.id}/${schedule.type}`);
+      setRegistrationsData(response.data.registrations || []);
+    } catch (err) {
+      console.error('Error loading registrations:', err);
+      setRegistrationsData([]);
+    } finally {
+      setLoadingRegistrations(false);
+    }
+    setShowRegistrationsModal(true);
   };
 
   const handleOpenViewModal = async (schedule) => {
@@ -1868,6 +1890,15 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
           )}
         </Modal.Body>
         <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          {selectedSchedule && (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
+            <Button
+              onClick={() => { handleCloseViewModal(); loadAllRegistrations(selectedSchedule); }}
+              className="border-0"
+              style={{ background: '#ffc107', color: '#000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700' }}
+            >
+              <i className="fas fa-users me-2"></i>View All Registrations
+            </Button>
+          )}
           <Button variant="secondary" onClick={handleCloseViewModal} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
             Close
           </Button>
@@ -2946,6 +2977,18 @@ return (
                   <span>View Details</span>
                 </button>
 
+                {(user?.role === 'super_admin' || user?.role === 'barangay_official') && (
+                  <button
+                    onClick={() => { setShowDropdown(null); loadAllRegistrations(schedule); }}
+                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
+                    onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
+                    onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
+                  >
+                    <i className="fas fa-users" style={{ width: '18px', textAlign: 'center', color: '#ffc107' }}></i>
+                    <span>View All Registrations</span>
+                  </button>
+                )}
+
                 {schedule.status !== 'ongoing' &&
                  schedule.status !== 'completed' &&
                  (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
@@ -3095,6 +3138,120 @@ return (
     </Button>
   </Modal.Footer>
 </Modal>
+      {/* All Registrations Modal */}
+      <Modal show={showRegistrationsModal} onHide={() => setShowRegistrationsModal(false)} size="lg" centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-users me-2" style={{ color: '#ffc107' }}></i>
+            All Registrations
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '1.5rem' }}>
+          <InputGroup className="mb-3">
+            <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
+              <i className="fas fa-search"></i>
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder="Search by owner or pet name..."
+              value={registrationsSearchTerm}
+              onChange={(e) => setRegistrationsSearchTerm(e.target.value)}
+              style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}
+            />
+          </InputGroup>
+
+          {loadingRegistrations ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="warning" />
+              <p className="mt-3 text-muted">Loading registrations...</p>
+            </div>
+          ) : registrationsData.length === 0 ? (
+            <div className="text-center py-5">
+              <i className="fas fa-users text-muted mb-3" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
+              <p className="text-muted">No registrations found.</p>
+            </div>
+          ) : (() => {
+            const term = registrationsSearchTerm.toLowerCase();
+            // Determine type from first item
+            const isPetBased = registrationsData.length > 0 && registrationsData[0].pets !== undefined;
+
+            if (!isPetBased) {
+              // Flat list for seminar / other
+              const filtered = registrationsData.filter(r =>
+                !term || r.owner_name?.toLowerCase().includes(term)
+              );
+              return (
+                <Table hover size="sm" style={{ marginBottom: 0 }}>
+                  <thead style={{ background: '#f8f9fa' }}>
+                    <tr>
+                      <th style={{ fontWeight: '600', padding: '0.75rem' }}>#</th>
+                      <th style={{ fontWeight: '600', padding: '0.75rem' }}>Owner Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr><td colSpan="2" className="text-center text-muted py-3">No results found.</td></tr>
+                    ) : filtered.map((r, idx) => (
+                      <tr key={r.registration_id || idx}>
+                        <td style={{ padding: '0.75rem', color: '#888' }}>{idx + 1}</td>
+                        <td style={{ padding: '0.75rem', fontWeight: '500' }}>{r.owner_name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              );
+            }
+
+            // Grouped list for vaccination / microchip / sterilization
+            const filtered = registrationsData.filter(r =>
+              !term ||
+              r.owner_name?.toLowerCase().includes(term) ||
+              r.pets?.some(p => p.pet_name?.toLowerCase().includes(term))
+            );
+            return (
+              <div>
+                {filtered.length === 0 ? (
+                  <p className="text-center text-muted py-3">No results found.</p>
+                ) : filtered.map((owner, idx) => {
+                  const isExpanded = !!expandedOwners[owner.user_id];
+                  return (
+                    <div key={owner.user_id || idx} style={{ border: '1px solid #dee2e6', borderRadius: '10px', marginBottom: '0.75rem', overflow: 'hidden' }}>
+                      <div
+                        onClick={() => setExpandedOwners(prev => ({ ...prev, [owner.user_id]: !prev[owner.user_id] }))}
+                        style={{ padding: '0.85rem 1rem', background: '#f8f9fa', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                      >
+                        <div>
+                          <strong>{owner.owner_name}</strong>
+                          <span className="ms-2" style={{ fontSize: '0.8rem', color: '#888' }}>{owner.pets?.length || 0} pet(s)</span>
+                        </div>
+                        <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`} style={{ color: '#aaa', fontSize: '0.8rem' }}></i>
+                      </div>
+                      {isExpanded && (
+                        <div style={{ padding: '0.5rem 1rem 0.75rem' }}>
+                          {owner.pets?.map((pet, pIdx) => (
+                            <div key={pet.pet_id || pIdx} style={{ padding: '0.5rem 0.75rem', background: '#fff', borderRadius: '6px', marginTop: '0.4rem', border: '1px solid #e9ecef', fontSize: '0.88rem' }}>
+                              <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>
+                              <strong>{pet.pet_name}</strong>
+                              {pet.species && <span className="ms-2" style={{ fontSize: '0.75rem', background: '#6c757d', color: '#fff', borderRadius: '4px', padding: '0.15rem 0.4rem' }}>{pet.species.toUpperCase()}</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1rem 1.5rem' }}>
+          <small className="text-muted me-auto">{registrationsData.length} registered</small>
+          <Button variant="secondary" onClick={() => setShowRegistrationsModal(false)} style={{ borderRadius: '8px', fontWeight: '600' }}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
     </>
   );
 };
