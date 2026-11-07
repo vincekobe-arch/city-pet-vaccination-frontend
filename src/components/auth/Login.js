@@ -427,10 +427,8 @@ if (onLogin) {
                   <span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
                 </h1>
               </div>
-              <div style={{ animation:'dropDown 0.8s ease-out 0.6s backwards', position:'relative', display:'flex', justifyContent:'center', marginTop:'1rem' }}>
-                <div style={{ position:'absolute', width:'160%', height:'160%', top:'-30%', left:'-30%', background:'radial-gradient(ellipse 55% 50% at 50% 52%, rgba(255,193,7,0.18) 0%, rgba(255,193,7,0.07) 50%, transparent 72%)', filter:'blur(38px)', zIndex:0 }} />
-                <div style={{ position:'absolute', width:'140%', height:'140%', top:'-20%', left:'-20%', background:'radial-gradient(ellipse 50% 45% at 52% 50%, rgba(255,193,7,0.10) 0%, transparent 65%)', filter:'blur(48px)', zIndex:0 }} />
-                <img src="/ads2.png" alt="PetUnity" style={{ position:'relative', zIndex:1, width:'100%', maxWidth:'420px', height:'auto', objectFit:'contain', filter:'drop-shadow(0 16px 32px rgba(255,193,7,0.18)) drop-shadow(0 6px 12px rgba(0,0,0,0.06))' }} />
+              <div style={{ animation:'dropDown 0.8s ease-out 0.6s backwards', display:'flex', justifyContent:'center', marginTop:'1rem', overflow:'hidden' }}>
+                <img src="/ads2.png" alt="PetUnity" style={{ width:'100%', maxWidth:'420px', height:'auto', objectFit:'contain' }} />
               </div>
             </div>
           </Col>
