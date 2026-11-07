@@ -548,8 +548,7 @@ const SuperAdminOwnerManagement = () => {
                     <thead>
                       <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
                         <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Name</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact Details</th>
-                        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Address</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact Details</th> 
                         <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Total Pets</th>
                         <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
                         <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
@@ -602,11 +601,7 @@ const SuperAdminOwnerManagement = () => {
     {displayPhone || '—'}
   </small>
 </td>
-                                  <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <span style={{ fontWeight: '500', color: '#555', fontSize: '0.9rem' }}>
-    {owner.address || <span className="text-muted">—</span>}
-  </span>
-</td>
+                                  
                                   <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <span style={{ fontSize: '1rem', fontWeight: '700', color: petCount > 0 ? '#0d6efd' : '#aaa' }}>
     {petCount}
