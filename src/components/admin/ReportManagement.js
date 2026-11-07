@@ -218,13 +218,9 @@ const location = useLocation();
 
   useEffect(() => {
   if (showDropdown === null) return;
-  const updatePos = () => {
-    if (!dropdownButtonRef.current) return;
-    const rect = dropdownButtonRef.current.getBoundingClientRect();
-    setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 215 });
-  };
-  window.addEventListener('scroll', updatePos, true);
-  return () => window.removeEventListener('scroll', updatePos, true);
+  const closeOnScroll = () => setShowDropdown(null);
+  window.addEventListener('scroll', closeOnScroll, true);
+  return () => window.removeEventListener('scroll', closeOnScroll, true);
 }, [showDropdown]);
 
   // Status bar chart
@@ -479,7 +475,7 @@ const matchArchive  = ['declined', 'ongoing', 'resolved', 'suspected_rabies', 'p
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const emptyRows  = itemsPerPage - paginated.length;
+  
 
   const pendingCount = reports.filter(r => r.status === 'pending').length;
   const ongoingCount = reports.filter(r => ['ongoing', 'suspected_rabies', 'positive_rabies'].includes(r.status)).length;
@@ -690,27 +686,27 @@ const matchArchive  = ['declined', 'ongoing', 'resolved', 'suspected_rabies', 'p
                   </div>
                 ) : (
                   <div className="table-responsive">
-                    <Table hover className="rpt-table" style={{ marginBottom: 0 }}>
-                      <thead style={{ background: '#f8f9fa' }}>
-                        <tr>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Type</th>
-                          <th className="mobile-hide-reporter" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Reporter</th>
-                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Barangay</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Status</th>
-                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-                        </tr>
-                      </thead>
+                    <Table hover className="rpt-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                      <thead>
+  <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
+    <th className="mobile-hide-reporter" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Reporter</th>
+    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Barangay</th>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
+  </tr>
+</thead>
                       <tbody>
                         {paginated.map((report) => {
                           const typeInfo = getReportType(report.report_type);
                           const actions  = getActionButtons(report);
                           return (
                             <tr key={report.id}
-                              style={{ transition: 'all 0.2s ease', cursor: 'default' }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,193,7,0.05)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                            >
+  style={{ transition: 'all 0.2s ease', cursor: 'default', borderBottom: '1px solid #f0f0f0' }}
+  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,193,7,0.05)'}
+  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+>
                               {/* Type */}
                               <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -766,14 +762,7 @@ const matchArchive  = ['declined', 'ongoing', 'resolved', 'suspected_rabies', 'p
                           );
                         })}
 
-                        {/* Empty rows to maintain fixed height */}
-                        {Array.from({ length: emptyRows }).map((_, i) => (
-                          <tr key={`empty-${i}`} style={{ height: '73px', pointerEvents: 'none' }}>
-                            <td colSpan="6" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6', background: 'transparent' }}>
-                              <div style={{ visibility: 'hidden' }}>Empty</div>
-                            </td>
-                          </tr>
-                        ))}
+                        
                       </tbody>
                     </Table>
                   </div>
