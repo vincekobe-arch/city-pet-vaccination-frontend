@@ -82,13 +82,9 @@ const ZOOM = 0.75;
 
 useEffect(() => {
   if (showDropdown === null) return;
-  const updatePos = () => {
-    if (!dropdownButtonRef.current) return;
-    const rect = dropdownButtonRef.current.getBoundingClientRect();
-    setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
-  };
-  window.addEventListener('scroll', updatePos, true);
-  return () => window.removeEventListener('scroll', updatePos, true);
+  const closeOnScroll = () => setShowDropdown(null);
+  window.addEventListener('scroll', closeOnScroll, true);
+  return () => window.removeEventListener('scroll', closeOnScroll, true);
 }, [showDropdown]);
   const [expiredBatchMap, setExpiredBatchMap] = useState({}); // { inventoryId: expiredCount }
 
@@ -724,7 +720,7 @@ const handleDeleteClick = (item) => {
                         {(() => {
                           const startIdx       = (currentPage - 1) * itemsPerPage;
                           const pageItems      = filtered.slice(startIdx, startIdx + itemsPerPage);
-                          const emptyRows      = itemsPerPage - pageItems.length;
+                          
                           return (
                             <>
                               {pageItems.map(item => {
@@ -823,12 +819,7 @@ const handleDeleteClick = (item) => {
                                   </tr>
                                 );
                               })}
-                              {/* Empty rows to keep fixed height */}
-                              {Array.from({ length: emptyRows }).map((_, i) => (
-                                <tr key={`empty-${i}`} style={{ height: '68px', pointerEvents: 'none' }}>
-                                  <td colSpan="7" style={{ borderBottom: '1px solid #f0f0f0', background: 'transparent' }} />
-                                </tr>
-                              ))}
+                              
                             </>
                           );
                         })()}
