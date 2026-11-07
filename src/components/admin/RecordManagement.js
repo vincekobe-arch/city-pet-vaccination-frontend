@@ -1413,13 +1413,13 @@ const getSelectedPet = () => {
         <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
           <Col>
             <Card 
-              className="border-0"
-              style={{
-                borderRadius: '20px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                overflow: 'hidden'
-              }}
-            >
+  className="border-0"
+  style={{
+    borderRadius: '20px',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+    overflow: 'visible'
+  }}
+>
               <Card.Header
                 className="mobile-card-header"
                 style={{
@@ -1485,7 +1485,7 @@ const getSelectedPet = () => {
                   </Button>
                 </div>
               </Card.Header>
-              <Card.Body className="mobile-card-body" style={{ padding: '2rem' }}>
+              <Card.Body className="mobile-card-body" style={{ padding: '2rem', overflow: 'visible' }}>
                 {loading ? (
                   <div className="table-responsive">
                     <Table className="mobile-table-wrap" style={{ marginBottom: 0, width: '100%' }}>
@@ -1555,8 +1555,8 @@ const getSelectedPet = () => {
                             </p>
                           </div>
                         ) : (
-                          <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                          <div className="table-responsive" style={{ overflow: 'visible' }}>
+  <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
                                 <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
@@ -1867,8 +1867,8 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                             </p>
                           </div>
                         ) : (
-                          <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                          <div className="table-responsive" style={{ overflow: 'visible' }}>
+  <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
                                 <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
@@ -1976,8 +1976,8 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                             </p>
                           </div>
                         ) : (
-                          <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                          <div className="table-responsive" style={{ overflow: 'visible' }}>
+  <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
                                 <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
@@ -2066,8 +2066,8 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                             <p className="text-muted">{searchTerm || filterSpecies !== 'all' ? 'Try adjusting your filters' : 'Microchip records will appear here'}</p>
                           </div>
                         ) : (
-                          <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                          <div className="table-responsive" style={{ overflow: 'visible' }}>
+  <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
                                 <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
