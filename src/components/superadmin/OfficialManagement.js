@@ -620,7 +620,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
   style={{
     borderRadius: '20px',
     boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-    overflow: 'visible'
+    overflow: 'hidden'
   }}
 >
             <Card.Header
@@ -705,15 +705,16 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                 </div>
               ) : (
                 <div className="table-responsive" style={{ overflow: 'visible' }}>
-  <Table hover style={{ marginBottom: 0 }}>
-                    <thead style={{ background: '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Name</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Birthdate</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Office Role</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Contact</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Status</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
+  <Table hover className="align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                                        <thead>
+                      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Name</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Email / Username</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Birthdate</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Office Role</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -722,7 +723,8 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                           key={official.id}
                           style={{
                             transition: 'all 0.2s ease',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f0f0f0'
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)';
@@ -731,45 +733,47 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                             e.currentTarget.style.background = 'transparent';
                           }}
                         >
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <strong style={{ fontSize: '1rem', color: '#333' }}>
-                              {official.first_name}
+                                                    <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+                            <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>
+                              {official.first_name} {official.middle_name ? official.middle_name + ' ' : ''}{official.last_name}
                             </strong>
+                            <small style={{ color: '#aaa', fontWeight: '500' }}>
+                              <i className="fas fa-venus-mars me-1"></i>{official.gender || '—'}
+                            </small>
                           </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <span style={{ fontWeight: '500', color: '#555' }}>
-                              {official.birthdate ? new Date(official.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}
+                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+                            <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
+                              <i className="fas fa-envelope me-1" style={{ color: '#ffc107' }}></i>
+                              {official.email}
+                            </small>
+                            <small style={{ color: '#888', fontWeight: '500', marginTop: '0.2rem', display: 'block' }}>
+                              <i className="fas fa-at me-1"></i>{official.username}
+                            </small>
+                          </td>
+                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                            <span style={{ fontWeight: '500', color: '#555', fontSize: '0.9rem' }}>
+                              {official.birthdate ? new Date(official.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : <span className="text-muted">—</span>}
                             </span>
                           </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <span style={{
-                              background: 'rgba(255,193,7,0.12)',
-                              color: '#856404',
-                              borderRadius: '20px',
-                              padding: '0.25rem 0.75rem',
-                              fontSize: '0.82rem',
-                              fontWeight: '600'
-                            }}>
-                              {official.office_role || <span className="text-muted">—</span>}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            {official.phone ? (
-                              <small style={{ fontWeight: '500', color: '#555' }}>
-                                <i className="fas fa-phone me-1"></i>
-                                {official.phone}
-                              </small>
-                            ) : (
-                              <span className="text-muted">—</span>
-                            )}
-                          </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: official.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${official.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.7rem', fontWeight: '700', color: official.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
-                                <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
-                                {official.is_active ? 'Active' : 'Inactive'}
+                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                            {official.office_role ? (
+                              <span style={{ background: 'rgba(255,193,7,0.12)', color: '#856404', borderRadius: '20px', padding: '0.3rem 0.85rem', fontSize: '0.78rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                                {official.office_role}
                               </span>
-                            </div>
+                            ) : <span className="text-muted">—</span>}
+                          </td>
+                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                            {official.phone ? (
+                              <span style={{ fontWeight: '500', color: '#555', fontSize: '0.9rem' }}>
+                                <i className="fas fa-phone me-1" style={{ color: '#ffc107' }}></i>{official.phone}
+                              </span>
+                            ) : <span className="text-muted">—</span>}
+                          </td>
+                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: official.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${official.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.75rem', fontWeight: '700', color: official.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
+                              <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
+                              {official.is_active ? 'Active' : 'Inactive'}
+                            </span>
                           </td>
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <div style={{ position: 'relative' }}>
