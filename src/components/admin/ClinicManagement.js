@@ -276,15 +276,11 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   useEffect(() => { setCurrentPage(1); }, [filterStatus, filterSpecialization, searchTerm]);
 
   useEffect(() => {
-    if (showDropdown === null) return;
-    const updatePos = () => {
-      if (!dropdownButtonRef.current) return;
-      const rect = dropdownButtonRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
-    };
-    window.addEventListener('scroll', updatePos, true);
-    return () => window.removeEventListener('scroll', updatePos, true);
-  }, [showDropdown]);
+  if (showDropdown === null) return;
+  const closeOnScroll = () => setShowDropdown(null);
+  window.addEventListener('scroll', closeOnScroll, true);
+  return () => window.removeEventListener('scroll', closeOnScroll, true);
+}, [showDropdown]);
 
   useEffect(() => {
     if (loading || hasAnimated) return;
@@ -584,7 +580,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   const totalPages = Math.ceil(filteredClinics.length / itemsPerPage);
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedClinics = filteredClinics.slice(startIdx, startIdx + itemsPerPage);
-  const emptyRows = itemsPerPage - paginatedClinics.length;
+  
 
   // (stats already declared above)
 
@@ -1009,28 +1005,24 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                   </div>
                 ) : (
                   <div className="table-responsive" style={{ overflow: 'visible' }}>
-                    <Table hover className="clinic-table" style={{ marginBottom: 0 }}>
-                      <thead style={{ background: '#f8f9fa' }}>
-                        <tr>
-                          {[
-                            { label: 'Clinic',         hide: false },
-                            { label: 'Code',           hide: true  },
-                            { label: 'Owner',          hide: true  },
-                            { label: 'Contact',        hide: false },
-                            { label: 'Specialization', hide: true  },
-                            { label: 'Status',         hide: false },
-                            { label: 'Actions',        hide: false },
-                          ].map(h => (
-                            <th key={h.label} className={h.hide ? 'mobile-hide' : ''} style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>{h.label}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedClinics.map(clinic => (
+  <Table hover className="clinic-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+    <thead>
+      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Clinic</th>
+        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Code</th>
+        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Owner</th>
+        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact</th>
+        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Specialization</th>
+        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {paginatedClinics.map(clinic => (
                           <tr key={clinic.id}
-                            style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,193,7,0.05)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+  style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,193,7,0.05)'}
+  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
 
                             {/* Clinic Name */}
                             <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -1097,15 +1089,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                             </td>
                           </tr>
                         ))}
-                        {Array.from({ length: emptyRows }).map((_, i) => (
-                          <tr key={`empty-${i}`} style={{ height: '73px', pointerEvents: 'none' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'transparent'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <td colSpan="7" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6', background: 'transparent' }}>
-                              <div style={{ visibility: 'hidden' }}>Empty</div>
-                            </td>
-                          </tr>
-                        ))}
+                        
                       </tbody>
                     </Table>
                   </div>
