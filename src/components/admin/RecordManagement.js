@@ -1105,7 +1105,7 @@ const getSelectedPet = () => {
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
     const paginatedRecords = currentRecords.slice(startIdx, endIdx);
-const emptyRows = Math.max(0, itemsPerPage - paginatedRecords.length);
+
     
 
     return (
@@ -1851,15 +1851,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                   }
                                   return null;
                                 })}
-                                {/* Empty rows to maintain fixed height */}
-                                {Array.from({ length: emptyRows }).map((_, index) => (
-                                  <tr key={`empty-${index}`} style={{ height: '73px', pointerEvents: 'none' }}>
-                                    <td colSpan="7" 
-                                    style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                                      <div style={{ visibility: 'hidden' }}>Empty</div>
-                                    </td>
-                                  </tr>
-                                ))}
+                                
                               </tbody>
                             </Table>
                           </div>
@@ -1959,14 +1951,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
 </td>
       </tr>
     ))}
-    {/* Empty rows to maintain fixed height */}
-    {Array.from({ length: emptyRows }).map((_, index) => (
-                                  <tr key={`empty-${index}`} style={{ height: '73px' }}>
-                                    <td colSpan="7" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                                      <div style={{ visibility: 'hidden' }}>Empty</div>
-                                    </td>
-                                  </tr>
-                                ))}
+    
                               
                               </tbody>
                             </Table>
@@ -2056,14 +2041,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
 </td>
       </tr>
     ))}
-    {/* Empty rows to maintain fixed height */}
-                                {Array.from({ length: emptyRows }).map((_, index) => (
-                                  <tr key={`empty-${index}`} style={{ height: '73px' }}>
-                                    <td colSpan="7" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                                      <div style={{ visibility: 'hidden' }}>Empty</div>
-                                    </td>
-                                  </tr>
-                                ))}
+    
                               
                               </tbody>
                             </Table>
@@ -2150,13 +2128,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
 </td>
                                   </tr>
                                 ))}
-                                {Array.from({ length: emptyRows }).map((_, index) => (
-                                  <tr key={`empty-${index}`} style={{ height: '73px' }}>
-                                    <td colSpan="8" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                                      <div style={{ visibility: 'hidden' }}>Empty</div>
-                                    </td>
-                                  </tr>
-                                ))}
+                                
                               </tbody>
                             </Table>
                           </div>
