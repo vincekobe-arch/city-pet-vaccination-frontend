@@ -3184,10 +3184,18 @@ const getSelectedPet = () => {
                   formLoading ||
                   !formData.record_type ||
                   (modalMode === 'create' && !getSelectedPet()) ||
+                  // Vaccination
+                  (formData.record_type === 'vaccination' && !formData.vaccination_type_id) ||
+                  (formData.record_type === 'vaccination' && modalMode === 'create' && !selectedVaccineBatch) ||
+                  (formData.record_type === 'vaccination' && !formData.vaccination_date) ||
+                  // Sterilization
+                  (formData.record_type === 'sterilization' && !formData.sterilization_date) ||
+                  // Microchip
                   (formData.record_type === 'microchip' && !formData.microchip_subtype) ||
-                  (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && !formData.microchip_number) ||
+                  (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && !formData.microchip_number?.trim()) ||
                   (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && modalMode === 'create' && !selectedMicrochipBatch) ||
-                  (formData.record_type === 'vaccination' && modalMode === 'create' && formData.vaccination_type_id && !selectedVaccineBatch) ||
+                  (formData.record_type === 'microchip' && !formData.implant_date) ||
+                  // Common required
                   !formData.veterinarian_name.trim()
                 }
                 className="border-0"
