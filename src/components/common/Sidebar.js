@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
 import VerifyAccountModal from '../owner/VerifyAccountModal';
+import api, { dashboardAPI } from '../../services/api';
 
 
 
@@ -294,58 +295,41 @@ const streamRef = useRef(null);
     }
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (user?.role === 'barangay_official') {
-      api.get('/owners').then(res => {
-        const owners = res.data.owners || [];
-        const pending = owners.filter(o => o.verification_status === 'pending').length;
-        setPendingVerifCount(pending);
-      }).catch(() => {});
+    useEffect(() => {
+    if (!user) return;
 
-      api.get('/reports').then(res => {
-        const reports = res.data.reports || [];
-        const pendingReports = reports.filter(r => r.status === 'pending').length;
-        setPendingReportCount(pendingReports);
-      }).catch(() => {});
-
-      api.get('/inventory').then(res => {
-        const items = res.data.inventory || [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const expiredItems = items.filter(item => {
-          // We'll count items that have at least one expired batch
-          // We don't have batch data here, so we fetch separately
-          return false;
-        });
-        // Fetch all batches to check expiry
-        Promise.all(items.map(item =>
-          api.get(`/inventory/batches/${item.id}`).then(r => r.data.batches || []).catch(() => [])
-        )).then(allBatches => {
-          const flat = allBatches.flat();
-          const expired = flat.filter(b => b.expiration_date && new Date(b.expiration_date) < today && parseInt(b.quantity) > 0).length;
-          setExpiredBatchCount(expired);
-        });
-      }).catch(() => {});
+    if (user.role === 'barangay_official') {
+      dashboardAPI.getBatch()
+        .then(({ data }) => {
+          setPendingVerifCount(data.owners?.pending_count ?? 0);
+          setPendingReportCount(data.pending_reports ?? 0);
+          setExpiredBatchCount(data.expired_batches ?? 0);
+        })
+        .catch(() => {});
     }
 
-    if (user?.role === 'private_clinic') {
+    if (user.role === 'private_clinic') {
       api.get('/clinic/inventory').then(res => {
         const items = res.data.inventory || [];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        Promise.all(items.map(item =>
-          api.get(`/clinic/inventory/batches/${item.id}`).then(r => r.data.batches || []).catch(() => [])
-        )).then(allBatches => {
-          const flat = allBatches.flat();
-          const expired = flat.filter(b =>
-            b.expiration_date && new Date(b.expiration_date) < today && parseInt(b.quantity) > 0
+        Promise.all(
+          items.map(item =>
+            api.get(`/clinic/inventory/batches/${item.id}`)
+               .then(r => r.data.batches || []).catch(() => [])
+          )
+        ).then(allBatches => {
+          const expired = allBatches.flat().filter(b =>
+            b.expiration_date &&
+            new Date(b.expiration_date) < today &&
+            parseInt(b.quantity) > 0
           ).length;
           setExpiredBatchCount(expired);
         });
       }).catch(() => {});
     }
 
-    if (user?.role === 'pet_owner') {
+    if (user.role === 'pet_owner') {
       ownerAPI.getByUserId(user.id).then(res => {
         const owner = res.data.owner;
         setOwnerProfile(owner);
@@ -358,7 +342,6 @@ const streamRef = useRef(null);
           phone:       owner.phone       || '',
         });
       }).catch(() => {});
-      
     }
   }, [user]);
 

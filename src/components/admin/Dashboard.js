@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Spinner, Alert, Badge, Table } from 'react-bootstrap';
-import { petAPI, ownerAPI, scheduleAPI, handleAPIError } from '../../services/api';
+import { dashboardAPI, handleAPIError } from '../../services/api';
+
+const CACHE_TTL = 60_000;
+const getCached = () => {
+  try {
+    const raw = sessionStorage.getItem('__dash__');
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    return Date.now() - ts > CACHE_TTL ? null : data;
+  } catch { return null; }
+};
+const setCache = (data) => {
+  try { sessionStorage.setItem('__dash__', JSON.stringify({ ts: Date.now(), data })); } catch {}
+};
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
 
@@ -269,67 +282,33 @@ const AdminDashboard = ({ darkMode }) => {
   }, []);
 
   const loadDashboardData = async () => {
+  const cached = getCached();
+  if (cached) { setDashboardData(cached); setLoading(false); return; }
+
   try {
     setLoading(true);
+    const { data } = await dashboardAPI.getBatch();
 
-    const results = await Promise.all([
-    petAPI.getAll(),
-    ownerAPI.getAll(),
-    scheduleAPI.getVaccinationSchedules().catch(() => ({ data: { schedules: [] } })),
-    scheduleAPI.getSeminarSchedules().catch(() => ({ data: { schedules: [] } })),
-    scheduleAPI.getSterilizationSchedules().catch(() => ({ data: { schedules: [] } })),
-    scheduleAPI.getMicrochipSchedules().catch(() => ({ data: { schedules: [] } })),
-    api.get('/reports').catch(() => ({ data: { reports: [] } }))
-  ]);
+    const pets    = data.pets    || [];
+    const reports = data.reports || [];
 
-  const [petsRes, ownersRes, vaccinationSchedulesRes, seminarSchedulesRes, sterilizationSchedulesRes, microchipSchedulesRes, reportsRes] = results;
-
-    const pets = petsRes.data.pets || [];
-    const owners = ownersRes.data.owners || [];
-    const vaccinationSchedules = vaccinationSchedulesRes.data.schedules || [];
-    const seminarSchedules = seminarSchedulesRes.data.schedules || [];
-    const sterilizationSchedules = sterilizationSchedulesRes.data.schedules || [];
-    const microchipSchedules = microchipSchedulesRes.data.schedules || [];
-    const allReports = reportsRes.data.reports || [];
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const upcomingVaccinations = vaccinationSchedules.filter(s =>
-      new Date(s.scheduled_date) >= today && s.status !== 'cancelled'
-    );
-    const upcomingSeminars = seminarSchedules.filter(s =>
-      new Date(s.scheduled_date) >= today && s.status !== 'cancelled'
-    );
-    const upcomingSterilizations = sterilizationSchedules.filter(s =>
-      new Date(s.scheduled_date) >= today && s.status !== 'cancelled'
-    );
-    const upcomingMicrochips = microchipSchedules.filter(s =>
-      new Date(s.scheduled_date) >= today && s.status !== 'cancelled'
-    );
-
-    const allUpcoming = [
-      ...upcomingVaccinations.map(s => ({ ...s, type: 'Vaccination' })),
-      ...upcomingSeminars.map(s => ({ ...s, type: 'Seminar' })),
-      ...upcomingSterilizations.map(s => ({ ...s, type: 'Sterilization' })),
-      ...upcomingMicrochips.map(s => ({ ...s, type: 'Microchip' }))
-    ].sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
-
-    setDashboardData({
+    const result = {
       statistics: {
-        total_pets: pets.length,
-        total_owners: owners.length,
-        upcoming_schedules: allUpcoming.length
+        total_pets:         pets.length,
+        total_owners:       data.owners?.total ?? 0,
+        upcoming_schedules: 0, // loaded separately if needed
       },
-      recentPets: pets.slice(0, 5),
-      upcomingSchedules: allUpcoming.slice(0, 5),
-      pets: pets,
-      recentReports: [...allReports].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5)
-    });
+      recentPets:   pets.slice(0, 5),
+      pets,
+      recentReports: [...reports]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 5),
+    };
 
+    setDashboardData(result);
+    setCache(result);
   } catch (err) {
-    const { message } = handleAPIError(err);
-    setError(message);
+    setError(handleAPIError(err).message);
   } finally {
     setLoading(false);
   }

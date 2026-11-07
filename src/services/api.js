@@ -245,6 +245,11 @@ export const scheduleAPI = {
       });
   }
 };
+
+// Dashboard batch — replaces 10+ sidebar + dashboard calls
+export const dashboardAPI = {
+  getBatch: () => api.get('/dashboard/batch'),
+};
 export const reportsAPI = {
   getAll: () => api.get('/reports'),
   getMyReports: () => api.get('/reports/my-reports'),
