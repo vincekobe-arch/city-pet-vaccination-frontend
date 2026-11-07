@@ -1806,11 +1806,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                         <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.implant_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div>
-    <strong style={{ fontSize: '1rem', color: '#333' }}>{record.pet_name}</strong><br />
-    <small className="text-muted" style={{ fontWeight: '500' }}><i className="fas fa-barcode me-1"></i>{record.registration_number}</small>
-  </div>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}><i className="fas fa-barcode me-1"></i>{record.registration_number}</small>
 </td>
 <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333', fontFamily: 'monospace' }}>{record.microchip_number}</strong>
