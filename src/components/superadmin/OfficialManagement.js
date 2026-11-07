@@ -995,14 +995,7 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
 </td>
                         </tr>
                       ))}
-                      {/* Empty rows to maintain fixed height */}
-                      {Array.from({ length: emptyRows }).map((_, index) => (
-                        <tr key={`empty-${index}`} style={{ height: '73px' }}>
-                          <td colSpan="6" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                            <div style={{ visibility: 'hidden' }}>Empty</div>
-                          </td>
-                        </tr>
-                      ))}
+                      
                     </tbody>
                   </Table>
                 </div>
