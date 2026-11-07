@@ -2808,13 +2808,29 @@ return (
   type="button"
   className="border-0"
   disabled={
-    formLoading || 
+    formLoading ||
     (modalMode === 'create' && !formData.schedule_type) ||
+    !formData.barangay_id ||
+    (formData.barangay_id === 'other' && !formData.custom_place?.trim()) ||
+    !formData.title?.trim() ||
+    !formData.scheduled_date ||
+    !formData.start_time ||
+    !formData.end_time ||
+    !formData.venue?.trim() ||
     (formData.schedule_type === 'vaccination' && (
       Object.keys(formData.vaccination_types).length === 0 ||
       Object.values(formData.vaccination_types).some(limit => !limit || parseInt(limit) <= 0)
     )) ||
-    (formData.schedule_type === 'sterilization' && formData.sterilization_species.length === 0)
+    (formData.schedule_type === 'sterilization' && (
+      formData.sterilization_species.length === 0 ||
+      !formData.max_capacity
+    )) ||
+    (formData.schedule_type === 'seminar' && !formData.max_capacity) ||
+    (formData.schedule_type === 'microchip' && (
+      formData.pet_types_allowed.length === 0 ||
+      !formData.max_capacity
+    )) ||
+    (formData.schedule_type === 'other' && !formData.other_event_type?.trim())
   }
   onClick={(e) => {
     e.preventDefault();
