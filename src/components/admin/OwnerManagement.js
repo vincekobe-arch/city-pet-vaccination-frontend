@@ -211,7 +211,7 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
       if (step >= steps) clearInterval(timer);
     }, duration / steps);
     return () => clearInterval(timer);
-  }, [loading, activeOwners.length, totalPets]);
+  }, [statsLoading, statsData.activeOwners, statsData.totalPets]);
 
   const handleViewOwner = async (owner) => {
   setSelectedOwner(owner);
