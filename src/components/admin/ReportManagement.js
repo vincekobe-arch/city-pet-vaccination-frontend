@@ -469,7 +469,7 @@ const matchStatus   = filterStatus === 'all' ||
     : r.status === filterStatus);
 const matchBarangay = filterBarangay === 'all' || String(r.barangay_id) === filterBarangay;
 const matchSource   = filterSource   === 'all' || (filterSource === 'community' ? !parseInt(r.reported_by_clinic) : parseInt(r.reported_by_clinic));
-const matchArchive  = ['declined', 'ongoing', 'resolved', 'suspected_rabies', 'positive_rabies'].includes(filterStatus) || !['declined', 'resolved'].includes(r.status);
+const matchArchive = true;
   return matchSearch && matchType && matchStatus && matchBarangay && matchSource && matchArchive;
 });
 
