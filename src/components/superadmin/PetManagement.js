@@ -571,17 +571,17 @@ const itemsPerPage = 5;
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <Table hover className="pet-table mobile-table-wrap" style={{ marginBottom: 0, width: '100%' }}>
+                  <Table hover className="pet-table mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                     <thead style={{ background: darkMode ? '#1e1e1e' : '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Species/Breed</th>
-                        <th style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '18%' }}>Pet Information</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Gender</th>
-                        <th style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Owner</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Registration Date</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Status</th>
-                        <th style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '13%' }}>Action</th>
-                      </tr>
+                      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Species/Breed</th>
+  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Gender</th>
+  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Owner</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Registration Date</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Action</th>
+</tr>
                     </thead>
                     <tbody>
                       {(() => {
@@ -605,20 +605,12 @@ const itemsPerPage = 5;
                         };
 
                         return (
-                          <tr 
-                            key={pet.id}
-                            style={{
-                              transition: 'all 0.2s ease',
-                              cursor: 'pointer',
-                              background: darkMode ? '#141414' : '#ffffff'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = darkMode ? 'rgba(255, 193, 7, 0.08)' : 'rgba(255, 193, 7, 0.05)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = darkMode ? '#141414' : '#ffffff';
-                            }}
-                          >
+                          <tr
+  key={pet.id}
+  style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+  onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? 'rgba(255, 193, 7, 0.08)' : 'rgba(255, 193, 7, 0.05)'; }}
+  onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? '#141414' : 'transparent'; }}
+>
                             <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
                               <div className="d-flex flex-column align-items-center">
                                 <img 
@@ -648,16 +640,13 @@ const itemsPerPage = 5;
                                 )}
                               </div>
                             </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '18%' }}>
-                              <div>
-                                <strong style={{ fontSize: '1rem', color: darkMode ? '#f0f0f0' : '#333' }}>{pet.name}</strong>
-                                <br />
-                                <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#6c757d' }}>
-                                  <i className="fas fa-barcode me-1"></i>
-                                  {pet.registration_number || 'N/A'}
-                                </small>
-                              </div>
-                            </td>
+                            <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: darkMode ? '#f0f0f0' : '#333', display: 'block' }}>{pet.name}</strong>
+  <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#aaa' }}>
+    <i className="fas fa-barcode me-1"></i>
+    {pet.registration_number || 'N/A'}
+  </small>
+</td>
                             <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
                               <span className="text-capitalize" style={{ fontWeight: '500' }}>
                                 {pet.gender === 'male' ? (
@@ -677,14 +666,12 @@ const itemsPerPage = 5;
                                   : new Date(pet.created_at).toLocaleDateString()}
                               </small>
                             </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
-                              <Badge 
-                                bg={pet.is_active ? 'success' : 'secondary'}
-                                style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                              >
-                                {pet.is_active ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </td>
+                            <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: pet.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${pet.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.75rem', fontWeight: '700', color: pet.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
+    <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
+    {pet.is_active ? 'Active' : 'Inactive'}
+  </span>
+</td>
                             <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '13%' }}>
                               <Button
                                 variant="link"
@@ -711,12 +698,6 @@ const itemsPerPage = 5;
                           </tr>
                         );
                       })}
-                      {/* Empty rows to maintain fixed height */}
-                      {Array.from({ length: emptyRows }).map((_, index) => (
-                        <tr key={`empty-${index}`} style={{ pointerEvents: 'none', height: '73px' }}>
-                          <td colSpan="7" style={{ height: '73px', borderBottom: darkMode ? '1px solid #2a2a2a' : '1px solid #dee2e6', background: darkMode ? '#141414' : '#ffffff', boxSizing: 'border-box' }}></td>
-                        </tr>
-                      ))}
                     </>
                   );
                 })()}
