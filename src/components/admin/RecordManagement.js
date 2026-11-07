@@ -38,9 +38,7 @@ const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [showDropdown, setShowDropdown] = useState(null);
-const dropdownButtonRef = useRef(null);
-const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-const ZOOM = 0.75;
+
   const [editingRecord, setEditingRecord] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
@@ -1626,21 +1624,27 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
   </td>
 )}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === `vac-${record.id}` ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === `vac-${record.id}`) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
-      setShowDropdown(`vac-${record.id}`);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
+  <div style={{ position: 'relative', display: 'inline-block' }}>
+    <button
+      onClick={() => setShowDropdown(showDropdown === `vac-${record.id}` ? null : `vac-${record.id}`)}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+    {showDropdown === `vac-${record.id}` && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
+          <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
+          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+        </div>
+      </>
+    )}
+  </div>
 </td>
                                       </tr>
                                     );
@@ -1923,21 +1927,27 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   </td>
 )}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === `vac-tab-${vaccination.id}` ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === `vac-tab-${vaccination.id}`) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
-      setShowDropdown(`vac-tab-${vaccination.id}`);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
+  <div style={{ position: 'relative', display: 'inline-block' }}>
+    <button
+      onClick={() => setShowDropdown(showDropdown === `vac-tab-${vaccination.id}` ? null : `vac-tab-${vaccination.id}`)}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+    {showDropdown === `vac-tab-${vaccination.id}` && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
+          <button onClick={() => { setShowDropdown(null); handleViewRecord(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
+          {vaccination.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {vaccination.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
+          {filterStatus === 'trash' && vaccination.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+        </div>
+      </>
+    )}
+  </div>
 </td>
       </tr>
     ))}
@@ -2013,21 +2023,27 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   </td>
 )}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === `ster-tab-${sterilization.id}` ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === `ster-tab-${sterilization.id}`) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
-      setShowDropdown(`ster-tab-${sterilization.id}`);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
+  <div style={{ position: 'relative', display: 'inline-block' }}>
+    <button
+      onClick={() => setShowDropdown(showDropdown === `ster-tab-${sterilization.id}` ? null : `ster-tab-${sterilization.id}`)}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+    {showDropdown === `ster-tab-${sterilization.id}` && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
+          <button onClick={() => { setShowDropdown(null); handleViewRecord(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
+          {sterilization.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {sterilization.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
+          {filterStatus === 'trash' && sterilization.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+        </div>
+      </>
+    )}
+  </div>
 </td>
       </tr>
     ))}
@@ -2100,21 +2116,27 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   </td>
 )}
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === `mic-tab-${microchip.id}` ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === `mic-tab-${microchip.id}`) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top * ZOOM + (rect.height * ZOOM) / 2, left: rect.left * ZOOM - 185 });
-      setShowDropdown(`mic-tab-${microchip.id}`);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
+  <div style={{ position: 'relative', display: 'inline-block' }}>
+    <button
+      onClick={() => setShowDropdown(showDropdown === `mic-tab-${microchip.id}` ? null : `mic-tab-${microchip.id}`)}
+      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+    >
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+    </button>
+    {showDropdown === `mic-tab-${microchip.id}` && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
+          <button onClick={() => { setShowDropdown(null); handleViewRecord(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
+          {microchip.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {microchip.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
+          {filterStatus === 'trash' && microchip.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+        </div>
+      </>
+    )}
+  </div>
 </td>
                                   </tr>
                                 ))}
@@ -3665,150 +3687,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         </Modal.Footer>
       </Modal>
 
-      {/* ── Ellipsis Dropdown Portal ── */}
-      {showDropdown !== null && (
-  <>
-    <div
-      onClick={() => setShowDropdown(null)}
-      onWheel={() => setShowDropdown(null)}
-      style={{ position: 'fixed', inset: 0, zIndex: 1049 }}
-    />
-          <div style={{
-            position: 'fixed',
-top: dropdownPos.top,
-left: dropdownPos.left,
-transform: 'translateY(-50%)',
-background: '#ffffff',
-border: '1px solid #e0e0e0',
-borderRadius: '12px',
-boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-minWidth: '170px',
-zIndex: 1050,
-overflow: 'hidden',
-          }}>
-            {(() => {
-              const id = showDropdown;
-              if (id.startsWith('vac-') && !id.startsWith('vac-tab-')) {
-                const record = vaccinations.find(r => `vac-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
-)}
-{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleRestoreClick(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
-)}
-              </>);
-              }
-              if (id.startsWith('vac-tab-')) {
-                const record = vaccinations.find(r => `vac-tab-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'vaccination')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
-)}
-                </>);
-              }
-              if (id.startsWith('dew-') && !id.startsWith('dew-tab-')) {
-                const record = dewormings.find(r => `dew-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
-)}
-{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleRestoreClick(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
-)}
-                </>);
-              }
-              if (id.startsWith('dew-tab-')) {
-                const record = dewormings.find(r => `dew-tab-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'deworming')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
-)}
-                </>);
-              }
-              if (id.startsWith('ster-') && !id.startsWith('ster-tab-')) {
-                const record = sterilizations.find(r => `ster-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
-)}
-{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleRestoreClick(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
-)}
-                </>);
-              }
-              if (id.startsWith('ster-tab-')) {
-                const record = sterilizations.find(r => `ster-tab-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'sterilization')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
-)}
-                </>);
-              }
-              if (id.startsWith('mic-') && !id.startsWith('mic-tab-')) {
-                const record = microchips.find(r => `mic-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>
-)}
-{filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleRestoreClick(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>
-)}
-                </>);
-              }
-              if (id.startsWith('mic-tab-')) {
-                const record = microchips.find(r => `mic-tab-${r.id}` === id);
-                if (!record) return null;
-                return (<>
-                  <button onClick={() => handleViewRecord(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleOpenEditModal(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>
-)}
-                  {record.recorded_by === 'City Vet Muntinlupa' && (
-  <button onClick={() => handleDeleteClick(record, 'microchip')} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Record</span></button>
-)}
-                </>);
-              }
-              return null;
-            })()}
-          </div>
-        </>
-      )}
+      
       </>
     );
   };
