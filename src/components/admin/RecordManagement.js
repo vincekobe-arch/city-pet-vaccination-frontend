@@ -1105,7 +1105,7 @@ const getSelectedPet = () => {
     const startIdx = (currentPage - 1) * itemsPerPage;
     const endIdx = startIdx + itemsPerPage;
     const paginatedRecords = currentRecords.slice(startIdx, endIdx);
-    const emptyRows = itemsPerPage - paginatedRecords.length;
+    
 
     return (
       <>
@@ -1567,17 +1567,17 @@ const getSelectedPet = () => {
                           </div>
                         ) : (
                           <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap" style={{ marginBottom: 0 }}>
+                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
-                                <tr>
-                                  <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Type</th>
-<th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
-<th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Record Details</th>
-<th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
-{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-                                </tr>
+                                <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Record Details</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
+  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
+</tr>
                               </thead>
                               <tbody>
                                 {paginatedRecords.map((record, index) => {
@@ -1585,9 +1585,9 @@ const getSelectedPet = () => {
                                     return (
                                       <tr 
                                         key={`vac-${record.id}`}
-                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
+onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
                                         <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
@@ -1598,15 +1598,11 @@ const getSelectedPet = () => {
                                         <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.vaccination_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div>
-    <strong style={{ fontSize: '1rem', color: '#333' }}>{record.pet_name}</strong>
-    <br />
-    <small className="text-muted" style={{ fontWeight: '500' }}>
-      <i className="fas fa-barcode me-1"></i>
-      {record.registration_number}
-    </small>
-  </div>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}>
+    <i className="fas fa-barcode me-1"></i>{record.registration_number}
+  </small>
 </td>
 <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{record.vaccine_name}</strong>
@@ -1661,9 +1657,9 @@ const getSelectedPet = () => {
                                     return (
                                       <tr 
                                         key={`dew-${record.id}`}
-                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
+onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
                                         <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
@@ -1674,15 +1670,11 @@ const getSelectedPet = () => {
                                         <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.deworming_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div>
-    <strong style={{ fontSize: '1rem', color: '#333' }}>{record.pet_name}</strong>
-    <br />
-    <small className="text-muted" style={{ fontWeight: '500' }}>
-      <i className="fas fa-barcode me-1"></i>
-      {record.registration_number}
-    </small>
-  </div>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}>
+    <i className="fas fa-barcode me-1"></i>{record.registration_number}
+  </small>
 </td>
 <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{record.deworming_name}</strong>
@@ -1743,9 +1735,9 @@ const getSelectedPet = () => {
                                     return (
                                       <tr 
                                         key={`ster-${record.id}`}
-                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
+onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
                                         <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
@@ -1756,15 +1748,11 @@ const getSelectedPet = () => {
                                         <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.sterilization_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div>
-    <strong style={{ fontSize: '1rem', color: '#333' }}>{record.pet_name}</strong>
-    <br />
-    <small className="text-muted" style={{ fontWeight: '500' }}>
-      <i className="fas fa-barcode me-1"></i>
-      {record.registration_number}
-    </small>
-  </div>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}>
+    <i className="fas fa-barcode me-1"></i>{record.registration_number}
+  </small>
 </td>
 <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <Badge bg="success" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>{record.procedure_type}</Badge>
@@ -1806,9 +1794,9 @@ const getSelectedPet = () => {
                                   else if (record.recordType === 'microchip') {
                                     return (
                                       <tr key={`mic-${record.id}`}
-                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(67, 97, 238, 0.05)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                                        style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(67, 97, 238, 0.05)'}
+onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                         <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
                                             <i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip
@@ -1895,17 +1883,17 @@ const getSelectedPet = () => {
                           </div>
                         ) : (
                           <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap" style={{ marginBottom: 0 }}>
+                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
-                                <tr>
-                                  <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-                                  <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
-                                  <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Vaccine Type</th>
-                                  <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Next Due</th>
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
-{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-                                </tr>
+                                <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Vaccine Type</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Next Due</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
+  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
+</tr>
                               </thead>
                               <tbody>
     {paginatedRecords.map(vaccination => (
@@ -1918,15 +1906,11 @@ const getSelectedPet = () => {
         <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(vaccination.vaccination_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div>
-    <strong style={{ fontSize: '1rem', color: '#333' }}>{vaccination.pet_name}</strong>
-    <br />
-    <small className="text-muted" style={{ fontWeight: '500' }}>
-      <i className="fas fa-barcode me-1"></i>
-      {vaccination.registration_number}
-    </small>
-  </div>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{vaccination.pet_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}>
+    <i className="fas fa-barcode me-1"></i>{vaccination.registration_number}
+  </small>
 </td>
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{vaccination.vaccine_name}</strong>
@@ -2009,16 +1993,16 @@ const getSelectedPet = () => {
                           </div>
                         ) : (
                           <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap" style={{ marginBottom: 0 }}>
+                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
-                                <tr>
-                                  <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Procedure Type</th>
-<th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
-{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-  </tr>
+                                <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Procedure Type</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
+  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
+</tr>
   </thead>
                               <tbody>
     {paginatedRecords.map(sterilization => (
@@ -2031,15 +2015,11 @@ const getSelectedPet = () => {
         <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(sterilization.sterilization_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div>
-    <strong style={{ fontSize: '1rem', color: '#333' }}>{sterilization.pet_name}</strong>
-    <br />
-    <small className="text-muted" style={{ fontWeight: '500' }}>
-      <i className="fas fa-barcode me-1"></i>
-      {sterilization.registration_number}
-    </small>
-  </div>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{sterilization.pet_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}>
+    <i className="fas fa-barcode me-1"></i>{sterilization.registration_number}
+  </small>
 </td>
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <Badge bg="success" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>{sterilization.procedure_type}</Badge>
@@ -2104,18 +2084,18 @@ const getSelectedPet = () => {
                           </div>
                         ) : (
                           <div className="table-responsive">
-                            <Table hover className="mobile-table-wrap" style={{ marginBottom: 0 }}>
+                            <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
-                                <tr>
-                                  <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Microchip Number</th>
-<th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Brand</th>
-<th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Implant Site</th>
-<th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
-{filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expiry</th>}
-<th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-                                </tr>
+                                <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Microchip Number</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Brand</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Implant Site</th>
+  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
+  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
+</tr>
                               </thead>
                               <tbody>
                                 {paginatedRecords.map(microchip => (
@@ -2125,9 +2105,9 @@ const getSelectedPet = () => {
                                     <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(microchip.implant_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <strong style={{ fontSize: '1rem', color: '#333' }}>{microchip.pet_name}</strong><br />
-  <small className="text-muted" style={{ fontWeight: '500' }}><i className="fas fa-barcode me-1"></i>{microchip.registration_number}</small>
+<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{microchip.pet_name}</strong>
+  <small style={{ color: '#aaa', fontWeight: '500' }}><i className="fas fa-barcode me-1"></i>{microchip.registration_number}</small>
 </td>
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333', fontFamily: 'monospace' }}>{microchip.microchip_number}</strong>
