@@ -181,12 +181,12 @@ export const vetCardAPI = {
 
 // Schedule API
 export const scheduleAPI = {
-  getVaccinationSchedules: () => api.get('/schedules/vaccination'),
-  getSeminarSchedules: () => api.get('/schedules/seminar'),
-  getSterilizationSchedules: () => api.get('/schedules/sterilization'),
-  getDewormingSchedules: () => api.get('/schedules/deworming'),
-  getOtherSchedules: () => api.get('/schedules/other'),
-  getMicrochipSchedules: () => api.get('/schedules/microchip'),
+  getVaccinationSchedules: (page = 1, limit = 50) => api.get(`/schedules/vaccination?page=${page}&limit=${limit}`),
+  getSeminarSchedules: (page = 1, limit = 50) => api.get(`/schedules/seminar?page=${page}&limit=${limit}`),
+  getSterilizationSchedules: (page = 1, limit = 50) => api.get(`/schedules/sterilization?page=${page}&limit=${limit}`),
+  getDewormingSchedules: (page = 1, limit = 50) => api.get(`/schedules/deworming?page=${page}&limit=${limit}`),
+  getOtherSchedules: (page = 1, limit = 50) => api.get(`/schedules/other?page=${page}&limit=${limit}`),
+  getMicrochipSchedules: (page = 1, limit = 50) => api.get(`/schedules/microchip?page=${page}&limit=${limit}`),
   getById: (id) => api.get(`/schedules/show/${id}`),
   create: (data) => api.post('/schedules/create', data),
   update: (id, data) => api.put(`/schedules/update/${id}`, data),

@@ -55,7 +55,11 @@ const [chartJsLoaded, setChartJsLoaded] = useState(!!window.Chart);
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
+const [pageLoading, setPageLoading] = useState(false);
+const [totalSchedules, setTotalSchedules] = useState(0);
+const [pageCache, setPageCache] = useState({});
 const itemsPerPage = 5;
+const CACHE_TTL = 60_000;
   
   const [formData, setFormData] = useState({
     schedule_type: '',
@@ -369,41 +373,60 @@ useEffect(() => {
   }
 }, [schedules]);
   useEffect(() => {
+  setPageCache({});
   setCurrentPage(1);
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
 
+useEffect(() => {
+  loadPage(currentPage);
+}, [currentPage, filterType, filterBarangay, filterStatus, searchTerm]);
 
 
-  const loadData = async () => {
+
+  const loadPage = async (page, force = false) => {
+  const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
+  const cached = pageCache[cacheKey];
+  if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
+    setSchedules(cached.schedules);
+    setTotalSchedules(cached.total);
+    return;
+  }
+
+  page === 1 ? setLoading(true) : setPageLoading(true);
+  // Clear current schedules immediately when changing pages to avoid stale flash
+  setSchedules([]);
+
   try {
-    setLoading(true);
+    const BIG = 999;
     const [vaccinationRes, seminarRes, sterilizationRes, otherRes, microchipRes] = await Promise.all([
-      scheduleAPI.getVaccinationSchedules().catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getSeminarSchedules().catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getSterilizationSchedules().catch(() => ({ data: { schedules: [] } })),
-      
-      scheduleAPI.getOtherSchedules().catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getMicrochipSchedules().catch(() => ({ data: { schedules: [] } }))
+      scheduleAPI.getVaccinationSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getSeminarSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getSterilizationSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getOtherSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getMicrochipSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
     ]);
-    
-    const vaccinationSchedules = (vaccinationRes.data.schedules || []).map(s => ({ ...s, type: 'vaccination' }));
-    const seminarSchedules = (seminarRes.data.schedules || []).map(s => ({ ...s, type: 'seminar' }));
-    const sterilizationSchedules = (sterilizationRes.data.schedules || []).map(s => ({ ...s, type: 'sterilization' }));
-    const otherSchedules = (otherRes.data.schedules || []).map(s => ({ ...s, type: 'other' }));
-    const microchipSchedules = (microchipRes.data.schedules || []).map(s => ({ ...s, type: 'microchip' }));
-    
-    const allSchedules = [...vaccinationSchedules, ...seminarSchedules, ...sterilizationSchedules, ...otherSchedules, ...microchipSchedules].sort((a, b) =>
-      new Date(a.scheduled_date) - new Date(b.scheduled_date)
-    );
-    
-    setSchedules(allSchedules);
-    } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    const all = [
+      ...(vaccinationRes.data.schedules || []).map(s => ({ ...s, type: 'vaccination' })),
+      ...(seminarRes.data.schedules || []).map(s => ({ ...s, type: 'seminar' })),
+      ...(sterilizationRes.data.schedules || []).map(s => ({ ...s, type: 'sterilization' })),
+      ...(otherRes.data.schedules || []).map(s => ({ ...s, type: 'other' })),
+      ...(microchipRes.data.schedules || []).map(s => ({ ...s, type: 'microchip' })),
+    ].sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+
+    setPageCache(prev => ({ ...prev, [cacheKey]: { schedules: all, total: all.length, ts: Date.now() } }));
+    setSchedules(all);
+    setTotalSchedules(all.length);
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setLoading(false);
+    setPageLoading(false);
+  }
+};
+
+const loadData = (force = false) => loadPage(currentPage, force);
 
   const loadBarangays = async () => {
     try {
@@ -983,7 +1006,8 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
       }
 
       handleCloseModal();
-      loadData();
+      setPageCache({});
+      loadPage(currentPage, true);
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -1010,8 +1034,8 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
       setSchedules(prev => prev.filter(s => !(s.id === scheduleToDelete.id && s.type === scheduleToDelete.type)));
       setSuccess(`${getScheduleTypeLabel(scheduleToDelete.type)} schedule deleted successfully!`);
       setTimeout(() => setSuccess(''), 5000);
-      // Also refresh from server in background
-      loadData();
+      setPageCache({});
+      loadPage(currentPage, true);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -1095,15 +1119,10 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
   return matchesType && matchesBarangay && matchesSearch && matchesStatus;
 });
 
-  // Use filteredSchedules directly - it already handles all filtering including status
-const displaySchedules = filteredSchedules;
-
-// Pagination calculations
+  const displaySchedules = filteredSchedules;
 const totalPages = Math.ceil(displaySchedules.length / itemsPerPage);
 const startIdx = (currentPage - 1) * itemsPerPage;
-const endIdx = startIdx + itemsPerPage;
-const paginatedSchedules = displaySchedules.slice(startIdx, endIdx);
-const emptyRows = itemsPerPage - paginatedSchedules.length;
+const paginatedSchedules = displaySchedules.slice(startIdx, startIdx + itemsPerPage);
 
   const filteredVaccinationTypes = vaccinationInventory.filter(item => {
   const matchesSpecies = filterVaccineSpecies === 'all' || item.species === filterVaccineSpecies || item.species === 'all';
@@ -1420,11 +1439,21 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
               </div>
             </Card.Header>
 <Card.Body className="sched-card-body" style={{ padding: '2rem' }}>
-              {loading ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" variant="primary" />
-                  <p className="mt-3 text-muted">Loading schedules...</p>
-                </div>
+              {loading || pageLoading ? (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+    <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa' }}>
+      {[12, 20, 15, 18, 12, 10, 8].map((w, i) => (
+        <div key={i} style={{ width: `${w}%`, height: '12px', borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
+      ))}
+    </div>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0f0f0' }}>
+        {[12, 20, 15, 18, 12, 10, 8].map((w, j) => (
+          <div key={j} style={{ width: `${w}%`, height: '13px', borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s ease-in-out infinite', flexShrink: 0 }} />
+        ))}
+      </div>
+    ))}
+  </div>
               ) : displaySchedules.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-calendar-times text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
