@@ -9,8 +9,11 @@ const Schedule = () => {
   const [vaccinationTypes, setVaccinationTypes] = useState([]);
   const [vaccinationInventory, setVaccinationInventory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+const [pageLoading, setPageLoading] = useState(false);
+const [error, setError] = useState('');
+const [success, setSuccess] = useState('');
+const [totalSchedules, setTotalSchedules] = useState(0);
+const [schedulePageCache, setSchedulePageCache] = useState({});
   
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -135,11 +138,23 @@ const itemsPerPage = 5;
   }, []);
 
   useEffect(() => {
-    loadData();
     loadBarangays();
     loadVaccinationTypes();
     loadInventory();
   }, []);
+
+  useEffect(() => {
+    loadPage(currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    setSchedulePageCache({});
+    if (currentPage === 1) {
+      loadPage(1, true);
+    } else {
+      setCurrentPage(1);
+    }
+  }, [filterType, filterBarangay, filterStatus, searchTerm]);
 
   useEffect(() => {
   if (window.Chart) { setChartJsLoaded(true); return; }
@@ -374,36 +389,45 @@ useEffect(() => {
 
 
 
-  const loadData = async () => {
+  const CACHE_TTL = 60_000;
+
+const loadPage = async (page, force = false) => {
+  const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
+  const cached = schedulePageCache[cacheKey];
+  if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
+    setSchedules(cached.schedules);
+    setTotalSchedules(cached.total);
+    return;
+  }
+
+  page === 1 ? setLoading(true) : setPageLoading(true);
   try {
-    setLoading(true);
-    const [vaccinationRes, seminarRes, sterilizationRes, otherRes, microchipRes] = await Promise.all([
-      scheduleAPI.getVaccinationSchedules().catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getSeminarSchedules().catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getSterilizationSchedules().catch(() => ({ data: { schedules: [] } })),
-      
-      scheduleAPI.getOtherSchedules().catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getMicrochipSchedules().catch(() => ({ data: { schedules: [] } }))
-    ]);
-    
-    const vaccinationSchedules = (vaccinationRes.data.schedules || []).map(s => ({ ...s, type: 'vaccination' }));
-    const seminarSchedules = (seminarRes.data.schedules || []).map(s => ({ ...s, type: 'seminar' }));
-    const sterilizationSchedules = (sterilizationRes.data.schedules || []).map(s => ({ ...s, type: 'sterilization' }));
-    const otherSchedules = (otherRes.data.schedules || []).map(s => ({ ...s, type: 'other' }));
-    const microchipSchedules = (microchipRes.data.schedules || []).map(s => ({ ...s, type: 'microchip' }));
-    
-    const allSchedules = [...vaccinationSchedules, ...seminarSchedules, ...sterilizationSchedules, ...otherSchedules, ...microchipSchedules].sort((a, b) =>
-      new Date(a.scheduled_date) - new Date(b.scheduled_date)
-    );
-    
-    setSchedules(allSchedules);
-    } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const params = new URLSearchParams({
+      page,
+      limit: itemsPerPage,
+      ...(filterType !== 'all'      && { type: filterType }),
+      ...(filterBarangay !== 'all'  && { barangay_id: filterBarangay }),
+      ...(filterStatus !== 'all'    && { status: filterStatus }),
+      ...(searchTerm                && { search: searchTerm }),
+    });
+
+    const res = await scheduleAPI.getAll(params.toString());
+    const newSchedules = res.data.schedules || [];
+    const total        = res.data.total ?? newSchedules.length;
+
+    setSchedulePageCache(prev => ({ ...prev, [cacheKey]: { schedules: newSchedules, total, ts: Date.now() } }));
+    setSchedules(newSchedules);
+    setTotalSchedules(total);
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setLoading(false);
+    setPageLoading(false);
+  }
+};
+
+const loadData = (force = false) => loadPage(1, force);
 
   const loadBarangays = async () => {
     try {
@@ -1099,11 +1123,8 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
 const displaySchedules = filteredSchedules;
 
 // Pagination calculations
-const totalPages = Math.ceil(displaySchedules.length / itemsPerPage);
-const startIdx = (currentPage - 1) * itemsPerPage;
-const endIdx = startIdx + itemsPerPage;
-const paginatedSchedules = displaySchedules.slice(startIdx, endIdx);
-const emptyRows = itemsPerPage - paginatedSchedules.length;
+const totalPages = Math.ceil(totalSchedules / itemsPerPage);
+const paginatedSchedules = schedules;
 
   const filteredVaccinationTypes = vaccinationInventory.filter(item => {
   const matchesSpecies = filterVaccineSpecies === 'all' || item.species === filterVaccineSpecies || item.species === 'all';
@@ -1559,7 +1580,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       </Row>
 
       {/* Pagination */}
-      {displaySchedules.length > itemsPerPage && (
+      {totalSchedules > itemsPerPage && (
         <Row className="mt-4 sched-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.7s backwards' }}>
           <Col className="d-flex justify-content-between align-items-center">
             <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>

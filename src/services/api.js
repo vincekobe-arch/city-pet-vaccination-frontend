@@ -181,6 +181,7 @@ export const vetCardAPI = {
 
 // Schedule API
 export const scheduleAPI = {
+  getAll: (params = '') => api.get(`/schedules?${params}`),
   getVaccinationSchedules: () => api.get('/schedules/vaccination'),
   getSeminarSchedules: () => api.get('/schedules/seminar'),
   getSterilizationSchedules: () => api.get('/schedules/sterilization'),
