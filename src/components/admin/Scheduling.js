@@ -83,6 +83,16 @@ const itemsPerPage = 5;
   const user = getUser();
   
   const styles = `
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: -400px 0; }
+      100% { background-position:  400px 0; }
+    }
     .schedule-page {
       zoom: 0.75;
       min-height: 100vh;
@@ -1095,36 +1105,12 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
   return badges[type] || <Badge bg="secondary">{type}</Badge>;
 };
 
- const filteredSchedules = schedules.filter(schedule => {
-  const matchesType = filterType === 'all' || schedule.type === filterType;
-  const matchesBarangay = filterBarangay === 'all' || schedule.barangay_id === parseInt(filterBarangay);
-  const matchesSearch = 
-    schedule.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    schedule.venue?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    schedule.barangay_name?.toLowerCase().includes(searchTerm.toLowerCase());
-  
-  // Status filtering
-  let matchesStatus = true;
-  
-  if (filterStatus === 'upcoming') {
-    // Upcoming: only scheduled status (not started yet)
-    matchesStatus = schedule.status === 'scheduled';
-  } else if (filterStatus === 'ongoing') {
-    matchesStatus = schedule.status === 'ongoing';
-  } else if (filterStatus === 'completed') {
-    matchesStatus = schedule.status === 'completed';
-  }
-  // 'all' shows everything (matchesStatus stays true)
-  
-  return matchesType && matchesBarangay && matchesSearch && matchesStatus;
-});
-
-  // Use filteredSchedules directly - it already handles all filtering including status
-const displaySchedules = filteredSchedules;
+// Server handles all filtering — schedules array IS the current page
+const displaySchedules = schedules;
+const paginatedSchedules = schedules;
 
 // Pagination calculations
 const totalPages = Math.ceil(totalSchedules / itemsPerPage);
-const paginatedSchedules = schedules;
 
   const filteredVaccinationTypes = vaccinationInventory.filter(item => {
   const matchesSpecies = filterVaccineSpecies === 'all' || item.species === filterVaccineSpecies || item.species === 'all';
@@ -1410,7 +1396,7 @@ const paginatedSchedules = schedules;
                   {filterStatus === 'all' ? 'All Schedules' : 
                    filterStatus === 'upcoming' ? 'Upcoming Events' : 
                    filterStatus === 'ongoing' ? 'Ongoing Schedules' : 
-                   'Completed Schedules'} ({displaySchedules.length})
+                   'Completed Schedules'} ({totalSchedules})
                 </h5>
                 <Button 
   onClick={() => handleOpenModal('create')}
@@ -1441,10 +1427,43 @@ const paginatedSchedules = schedules;
               </div>
             </Card.Header>
 <Card.Body className="sched-card-body" style={{ padding: '2rem' }}>
-              {loading ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" variant="primary" />
-                  <p className="mt-3 text-muted">Loading schedules...</p>
+              {loading || pageLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa', marginBottom: '0.25rem' }}>
+                    {[12, 20, 15, 18, 15, 10, 10].map((w, i) => (
+                      <div key={i} className="skeleton" style={{ width: `${w}%`, height: '12px', flexShrink: 0 }} />
+                    ))}
+                  </div>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0f0f0' }}>
+                      <div style={{ width: '12%', flexShrink: 0 }}>
+                        <div className="skeleton" style={{ width: '80%', height: '13px' }} />
+                      </div>
+                      <div style={{ width: '20%', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div className="skeleton" style={{ width: '90%', height: '13px' }} />
+                        <div className="skeleton" style={{ width: '60%', height: '10px' }} />
+                      </div>
+                      <div style={{ width: '15%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                        <div className="skeleton" style={{ width: '70%', height: '12px' }} />
+                      </div>
+                      <div style={{ width: '18%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+                        <div className="skeleton" style={{ width: '80%', height: '12px' }} />
+                        <div className="skeleton" style={{ width: '55%', height: '10px' }} />
+                      </div>
+                      <div style={{ width: '15%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                        <div className="skeleton" style={{ width: '65%', height: '12px' }} />
+                      </div>
+                      <div style={{ width: '10%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                        <div className="skeleton" style={{ width: '50%', height: '12px' }} />
+                      </div>
+                      <div style={{ width: '10%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                        <div className="skeleton" style={{ width: '40px', height: '24px', borderRadius: '20px' }} />
+                      </div>
+                      <div style={{ width: '5%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                        <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : displaySchedules.length === 0 ? (
                 <div className="text-center py-5">
