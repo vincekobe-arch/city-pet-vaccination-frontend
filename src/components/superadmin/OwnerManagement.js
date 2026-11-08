@@ -642,11 +642,12 @@ const SuperAdminOwnerManagement = () => {
         } else {
           const rect = e.currentTarget.getBoundingClientRect();
           dropdownButtonRef.current = e.currentTarget;
-          const dropdownHeight = 100;
-          const nearBottom = rect.bottom + dropdownHeight > window.innerHeight;
+          const menuItems = owners.find(o => o.user_id === owner.user_id)?.verification_status !== 'not_verified' ? 2 : 1;
+          const dropdownHeight = menuItems * 50;
+          const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
           setDropdownPos({
             top: nearBottom
-              ? rect.top / ZOOM - dropdownHeight / 2
+              ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
               : rect.top / ZOOM + (rect.height / ZOOM) / 2,
             left: (rect.left / ZOOM) - 185
           });
