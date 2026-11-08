@@ -384,6 +384,7 @@ useEffect(() => {
   }
 
   setLoading(true);
+  setSchedules([]); // clear table rows immediately to show skeleton
   try {
     const BIG = 999;
     const [vaccinationRes, seminarRes, sterilizationRes, otherRes, microchipRes] = await Promise.all([
