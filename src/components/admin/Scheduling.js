@@ -55,17 +55,7 @@ const [chartJsLoaded, setChartJsLoaded] = useState(!!window.Chart);
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
-const [pageLoading, setPageLoading] = useState(false);
-const [pageCache, setPageCache] = useState({});
 const itemsPerPage = 5;
-const CACHE_TTL = 60_000;
-
-const [tableSchedules, setTableSchedules] = useState([]);
-const [tableTotal, setTableTotal] = useState(0);
-const [tableLoading, setTableLoading] = useState(true);
-const [tablePageLoading, setTablePageLoading] = useState(false);
-const [tablePageCache, setTablePageCache] = useState({});
-const [debouncedSearch, setDebouncedSearch] = useState('');
   
   const [formData, setFormData] = useState({
     schedule_type: '',
@@ -112,10 +102,6 @@ const [debouncedSearch, setDebouncedSearch] = useState('');
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
-    }
-    @keyframes shimmer {
-      0%   { background-position: -400px 0; }
-      100% { background-position:  400px 0; }
     }
     @media (max-width: 768px) {
       .sched-title { font-size: 1.5rem !important; }
@@ -382,103 +368,42 @@ useEffect(() => {
     document.head.appendChild(script);
   }
 }, [schedules]);
-  // debounce search so we don't hit the server on every keystroke
-useEffect(() => {
-  const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
-  return () => clearTimeout(t);
-}, [searchTerm]);
-
-useEffect(() => {
+  useEffect(() => {
   setCurrentPage(1);
-  setTablePageCache({});
-}, [filterType, filterBarangay, filterStatus, debouncedSearch]);
+}, [filterType, filterBarangay, filterStatus, searchTerm]);
 
-const loadTableData = async (page) => {
-  const cacheKey = `${page}|${filterType}|${filterBarangay}|${filterStatus}|${debouncedSearch}`;
-  const cached = tablePageCache[cacheKey];
-  if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    setTableSchedules(cached.schedules);
-    setTableTotal(cached.total);
-    return;
-  }
 
-  if (Object.keys(tablePageCache).length === 0) setTableLoading(true);
-  else setTablePageLoading(true);
 
+  const loadData = async () => {
   try {
-    const filters = {};
-    if (filterType !== 'all') filters.type = filterType;
-    if (filterBarangay !== 'all') filters.barangay = filterBarangay;
-    if (filterStatus !== 'all') filters.status = filterStatus;
-    if (debouncedSearch) filters.search = debouncedSearch;
-
-    const res = await scheduleAPI.getAllSchedules(page, itemsPerPage, filters);
-    const rows = res.data.schedules || [];
-    const total = res.data.total ?? rows.length;
-    setTablePageCache(prev => ({ ...prev, [cacheKey]: { schedules: rows, total, ts: Date.now() } }));
-    setTableSchedules(rows);
-    setTableTotal(total);
-  } catch (err) {
-    const { message } = handleAPIError(err);
-    setError(message);
-  } finally {
-    setTableLoading(false);
-    setTablePageLoading(false);
-  }
-};
-
-useEffect(() => {
-  loadTableData(currentPage);
-}, [currentPage, filterType, filterBarangay, filterStatus, debouncedSearch]);
-
-// fetch the full record (used for View Details / Edit, since table rows are lightweight now)
-const fetchFullSchedule = async (schedule) => {
-  try {
-    const res = await api.get(`/schedules/show/${schedule.id}`);
-    return { ...schedule, ...res.data.schedule };
-  } catch {
-    return schedule;
-  }
-};
-
-
-
-  const loadData = async (force = false) => {
-  const cached = pageCache['all'];
-  if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
-    setSchedules(cached.schedules);
-    return;
-  }
-
-  setLoading(true);
-  setSchedules([]); // clear table rows immediately to show skeleton
-  try {
-    const BIG = 999;
+    setLoading(true);
     const [vaccinationRes, seminarRes, sterilizationRes, otherRes, microchipRes] = await Promise.all([
-      scheduleAPI.getVaccinationSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getSeminarSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getSterilizationSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getOtherSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
-      scheduleAPI.getMicrochipSchedules(1, BIG).catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getVaccinationSchedules().catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getSeminarSchedules().catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getSterilizationSchedules().catch(() => ({ data: { schedules: [] } })),
+      
+      scheduleAPI.getOtherSchedules().catch(() => ({ data: { schedules: [] } })),
+      scheduleAPI.getMicrochipSchedules().catch(() => ({ data: { schedules: [] } }))
     ]);
-
-    const all = [
-      ...(vaccinationRes.data.schedules || []).map(s => ({ ...s, type: 'vaccination' })),
-      ...(seminarRes.data.schedules || []).map(s => ({ ...s, type: 'seminar' })),
-      ...(sterilizationRes.data.schedules || []).map(s => ({ ...s, type: 'sterilization' })),
-      ...(otherRes.data.schedules || []).map(s => ({ ...s, type: 'other' })),
-      ...(microchipRes.data.schedules || []).map(s => ({ ...s, type: 'microchip' })),
-    ].sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
-
-    setPageCache({ all: { schedules: all, ts: Date.now() } });
-    setSchedules(all);
-  } catch (err) {
-    const { message } = handleAPIError(err);
-    setError(message);
-  } finally {
-    setLoading(false);
-  }
-};
+    
+    const vaccinationSchedules = (vaccinationRes.data.schedules || []).map(s => ({ ...s, type: 'vaccination' }));
+    const seminarSchedules = (seminarRes.data.schedules || []).map(s => ({ ...s, type: 'seminar' }));
+    const sterilizationSchedules = (sterilizationRes.data.schedules || []).map(s => ({ ...s, type: 'sterilization' }));
+    const otherSchedules = (otherRes.data.schedules || []).map(s => ({ ...s, type: 'other' }));
+    const microchipSchedules = (microchipRes.data.schedules || []).map(s => ({ ...s, type: 'microchip' }));
+    
+    const allSchedules = [...vaccinationSchedules, ...seminarSchedules, ...sterilizationSchedules, ...otherSchedules, ...microchipSchedules].sort((a, b) =>
+      new Date(a.scheduled_date) - new Date(b.scheduled_date)
+    );
+    
+    setSchedules(allSchedules);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadBarangays = async () => {
     try {
@@ -1058,8 +983,7 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
       }
 
       handleCloseModal();
-      setPageCache({});
-      loadData(true);
+      loadData();
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -1086,8 +1010,8 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
       setSchedules(prev => prev.filter(s => !(s.id === scheduleToDelete.id && s.type === scheduleToDelete.type)));
       setSuccess(`${getScheduleTypeLabel(scheduleToDelete.type)} schedule deleted successfully!`);
       setTimeout(() => setSuccess(''), 5000);
-      setPageCache({});
-      loadData(true);
+      // Also refresh from server in background
+      loadData();
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -1171,8 +1095,15 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
   return matchesType && matchesBarangay && matchesSearch && matchesStatus;
 });
 
-  const paginatedSchedules = tableSchedules;
-const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
+  // Use filteredSchedules directly - it already handles all filtering including status
+const displaySchedules = filteredSchedules;
+
+// Pagination calculations
+const totalPages = Math.ceil(displaySchedules.length / itemsPerPage);
+const startIdx = (currentPage - 1) * itemsPerPage;
+const endIdx = startIdx + itemsPerPage;
+const paginatedSchedules = displaySchedules.slice(startIdx, endIdx);
+const emptyRows = itemsPerPage - paginatedSchedules.length;
 
   const filteredVaccinationTypes = vaccinationInventory.filter(item => {
   const matchesSpecies = filterVaccineSpecies === 'all' || item.species === filterVaccineSpecies || item.species === 'all';
@@ -1458,7 +1389,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
                   {filterStatus === 'all' ? 'All Schedules' : 
                    filterStatus === 'upcoming' ? 'Upcoming Events' : 
                    filterStatus === 'ongoing' ? 'Ongoing Schedules' : 
-                   'Completed Schedules'} ({tableTotal})
+                   'Completed Schedules'} ({displaySchedules.length})
                 </h5>
                 <Button 
   onClick={() => handleOpenModal('create')}
@@ -1489,22 +1420,12 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
               </div>
             </Card.Header>
 <Card.Body className="sched-card-body" style={{ padding: '2rem' }}>
-              {tableLoading || tablePageLoading ? (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-    <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa' }}>
-      {[12, 20, 15, 18, 12, 10, 8].map((w, i) => (
-        <div key={i} style={{ width: `${w}%`, height: '12px', borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s ease-in-out infinite' }} />
-      ))}
-    </div>
-    {Array.from({ length: 5 }).map((_, i) => (
-      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0f0f0' }}>
-        {[12, 20, 15, 18, 12, 10, 8].map((w, j) => (
-          <div key={j} style={{ width: `${w}%`, height: '13px', borderRadius: '6px', background: 'linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s ease-in-out infinite', flexShrink: 0 }} />
-        ))}
-      </div>
-    ))}
-  </div>
-              ) : tableSchedules.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-5">
+                  <Spinner animation="border" variant="primary" />
+                  <p className="mt-3 text-muted">Loading schedules...</p>
+                </div>
+              ) : displaySchedules.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-calendar-times text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
                   <h5 style={{ color: '#666666', fontWeight: '600' }}>No Events Found</h5>
@@ -1579,7 +1500,6 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
       </td>
       <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
         {schedule.status === 'cancelled' && <Badge style={{ background: '#dc3545', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Cancelled</Badge>}
-        {schedule.status === 'cancelled' && <Badge style={{ background: '#dc3545', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Cancelled</Badge>}
         {schedule.status === 'completed' && <Badge style={{ background: '#6c757d', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Completed</Badge>}
         {schedule.status === 'ongoing' && <Badge style={{ background: '#28a745', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Ongoing</Badge>}
         {schedule.status === 'scheduled' && (() => {
@@ -1588,6 +1508,15 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
           return scheduleDate < today
             ? <Badge style={{ background: '#ffc107', color: '#000', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Past Due</Badge>
             : <Badge style={{ background: '#007bff', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Upcoming</Badge>;
+        })()}
+        {schedule.status === 'completed' && <span style={{ fontWeight: '600', color: '#6c757d' }}>Completed</span>}
+        {schedule.status === 'ongoing' && <span style={{ fontWeight: '600', color: '#28a745' }}>Ongoing</span>}
+        {schedule.status === 'scheduled' && (() => {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const scheduleDate = new Date(schedule.scheduled_date); scheduleDate.setHours(0, 0, 0, 0);
+          return scheduleDate < today
+            ? <span style={{ fontWeight: '600', color: '#ffc107' }}>Past Due</span>
+            : <span style={{ fontWeight: '600', color: '#007bff' }}>Upcoming</span>;
         })()}
       </td>
       <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
@@ -1604,7 +1533,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
     <>
       <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
       <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '185px', zIndex: 1050, overflow: 'hidden' }}>
-        <button onClick={async () => { setShowDropdown(null); const full = await fetchFullSchedule(schedule); handleOpenViewModal(full); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+        <button onClick={() => { setShowDropdown(null); handleOpenViewModal(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
           <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span>
         </button>
         {(user?.role === 'super_admin' || user?.role === 'barangay_official') && (
@@ -1614,7 +1543,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
         )}
         {schedule.status !== 'ongoing' && schedule.status !== 'completed' && (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
           <>
-            <button onClick={async () => { setShowDropdown(null); const full = await fetchFullSchedule(schedule); handleOpenModal('edit', full); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+            <button onClick={() => { setShowDropdown(null); handleOpenModal('edit', schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
               <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Event</span>
             </button>
             <button onClick={() => { setShowDropdown(null); handleDeleteClick(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#fff5f5'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
@@ -1639,7 +1568,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
       </Row>
 
       {/* Pagination */}
-      {tableTotal > itemsPerPage && (
+      {displaySchedules.length > itemsPerPage && (
         <Row className="mt-4 sched-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.7s backwards' }}>
           <Col className="d-flex justify-content-between align-items-center">
             <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
