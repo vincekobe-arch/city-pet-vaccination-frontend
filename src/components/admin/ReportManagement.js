@@ -689,8 +689,8 @@ const matchArchive = true;
                     <Table hover className="rpt-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                       <thead>
   <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
-    <th className="mobile-hide-reporter" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Reporter</th>
+    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
+    <th className="mobile-hide-reporter" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Reporter</th>
     <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Barangay</th>
     <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
     <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
@@ -708,7 +708,7 @@ const matchArchive = true;
   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
 >
                               {/* Type */}
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                              <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left' }}>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                                   <ReportTypeImg type={typeInfo} size={20} />
                                   <span style={{ fontWeight: '600', fontSize: '0.85rem', color: typeInfo.color }}>{typeInfo.label}</span>
@@ -716,9 +716,9 @@ const matchArchive = true;
                               </td>
 
                               {/* Reporter */}
-<td className="mobile-hide-reporter" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+<td className="mobile-hide-reporter" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left' }}>
   <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{report.reporter_name || 'N/A'}</strong>
-  <small className="text-muted" style={{ fontWeight: '500' }}>{report.phone_number || ''}</small>
+  <small style={{ color: '#aaa', fontWeight: '500' }}>{report.phone_number || ''}</small>
 </td>
 
                               {/* Barangay */}
