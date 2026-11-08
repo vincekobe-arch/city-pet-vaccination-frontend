@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table, InputGroup } from 'react-bootstrap';
 import api, { scheduleAPI, barangayAPI, vaccinationAPI, dewormingAPI, inventoryAPI, handleAPIError } from '../../services/api';
 import { getUser } from '../../utils/auth';
+import { flushSync } from 'react-dom';
 
 const Schedule = () => {
   const [schedules, setSchedules] = useState([]);
@@ -404,8 +405,12 @@ const loadPage = async (page, force = false) => {
   const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
   const cached = schedulePageCache[cacheKey];
 
-  page === 1 ? setLoading(true) : setPageLoading(true);
-  setSchedules([]);
+  // flushSync forces React to commit this render immediately (skeleton shows)
+  // BEFORE we serve from cache or await a fetch
+  flushSync(() => {
+    page === 1 ? setLoading(true) : setPageLoading(true);
+    setSchedules([]);
+  });
 
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
     setSchedules(cached.schedules);
