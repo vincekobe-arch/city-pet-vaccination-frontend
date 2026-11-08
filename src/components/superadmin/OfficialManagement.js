@@ -71,6 +71,9 @@ const OfficialManagement = () => {
   const [filterStatus, setFilterStatus] = useState('active');
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const dropdownButtonRef = useRef(null);
+  const ZOOM = 0.75;
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
@@ -83,6 +86,13 @@ const itemsPerPage = 5;
   useEffect(() => {
   setCurrentPage(1);
 }, [filterBarangay, filterStatus, searchTerm]);
+
+  useEffect(() => {
+    if (showDropdown === null) return;
+    const closeOnScroll = () => setShowDropdown(null);
+    window.addEventListener('scroll', closeOnScroll, true);
+    return () => window.removeEventListener('scroll', closeOnScroll, true);
+  }, [showDropdown]);
 
   const loadData = async () => {
     try {
@@ -775,7 +785,23 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
                           <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <div style={{ position: 'relative' }}>
     <button
-      onClick={() => setShowDropdown(showDropdown === official.id ? null : official.id)}
+      ref={showDropdown === official.id ? dropdownButtonRef : null}
+      onClick={(e) => {
+        if (showDropdown === official.id) { setShowDropdown(null); return; }
+        const rect = e.currentTarget.getBoundingClientRect();
+        dropdownButtonRef.current = e.currentTarget;
+        const isActive = official.is_active === 1;
+        const menuItems = isActive ? 4 : 2;
+        const dropdownHeight = menuItems * 50;
+        const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
+        setDropdownPos({
+          top: nearBottom
+            ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
+            : rect.top / ZOOM + (rect.height / ZOOM) / 2,
+          left: (rect.left / ZOOM) - 185
+        });
+        setShowDropdown(official.id);
+      }}
       style={{
         background: 'transparent',
         border: 'none',
@@ -788,206 +814,11 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
         justifyContent: 'center',
         margin: '0 auto'
       }}
-      onMouseOver={(e) => e.target.style.background = 'rgba(0,0,0,0.05)'}
-      onMouseOut={(e) => e.target.style.background = 'transparent'}
+      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
     >
-      <img 
-        src="/ellipsis.png" 
-        alt="Menu"
-        style={{ width: '20px', height: '20px', objectFit: 'contain' }}
-      />
+      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
     </button>
-    
-    {showDropdown === official.id && (
-      <>
-        <div
-          onClick={() => setShowDropdown(null)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999
-          }}
-        />
-        
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            right: '100%',
-            transform: 'translateY(-50%)',
-            marginRight: '0.25rem',
-            background: '#ffffff',
-            border: '1px solid #e0e0e0',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            minWidth: '170px',
-            zIndex: 1050,
-            overflow: 'hidden'
-          }}
-        >
-          <button
-            onClick={() => {
-              setShowDropdown(null);
-              handleViewOfficial(official);
-            }}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              border: 'none',
-              background: '#ffffff',
-              textAlign: 'left',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              fontSize: '0.9rem',
-              color: '#333333',
-              fontWeight: '500',
-              transition: 'background 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-            onMouseOut={(e) => e.target.style.background = '#ffffff'}
-          >
-            <img 
-              src="/view.png" 
-              alt="View"
-              style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-            />
-            <span>View Details</span>
-          </button>
-          
-          {official.is_active === 1 ? (
-            <>
-              <button
-                onClick={() => {
-                  setShowDropdown(null);
-                  handleResetPassword(official);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: 'none',
-                  background: '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  fontSize: '0.9rem',
-                  color: '#0d6efd',
-                  fontWeight: '500',
-                  borderTop: '1px solid #f0f0f0',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#f0f4ff'}
-                onMouseOut={(e) => e.target.style.background = '#ffffff'}
-              >
-                <i className="fas fa-key" style={{ width: '18px', textAlign: 'center', color: '#0d6efd' }} />
-                <span>Reset Password</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowDropdown(null);
-                  handleEditOfficial(official);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: 'none',
-                  background: '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  fontSize: '0.9rem',
-                  color: '#333333',
-                  fontWeight: '500',
-                  borderTop: '1px solid #f0f0f0',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-                onMouseOut={(e) => e.target.style.background = '#ffffff'}
-              >
-                <img 
-                  src="/edit(1).png" 
-                  alt="Edit"
-                  style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-                />
-                <span>Edit Admin</span>
-              </button>
-              
-              <button
-                onClick={() => {
-                  setShowDropdown(null);
-                  handleDeleteOfficial(official);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  border: 'none',
-                  background: '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  fontSize: '0.9rem',
-                  color: '#dc3545',
-                  fontWeight: '500',
-                  borderTop: '1px solid #f0f0f0',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#fff5f5'}
-                onMouseOut={(e) => e.target.style.background = '#ffffff'}
-              >
-                <img 
-                  src="/remove.png" 
-                  alt="Deactivate"
-                  style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-                />
-                <span>Deactivate</span>
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => {
-                setShowDropdown(null);
-                handleRestoreOfficial(official);
-              }}
-              style={{
-                width: '100%',
-                padding: '0.75rem 1rem',
-                border: 'none',
-                background: '#ffffff',
-                textAlign: 'left',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                fontSize: '0.9rem',
-                color: '#28a745',
-                fontWeight: '500',
-                borderTop: '1px solid #f0f0f0',
-                transition: 'background 0.2s'
-              }}
-              onMouseOver={(e) => e.target.style.background = '#f0fff4'}
-              onMouseOut={(e) => e.target.style.background = '#ffffff'}
-            >
-              <img 
-                src="/restore.png" 
-                alt="Restore"
-                style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-              />
-              <span>Restore Admin</span>
-            </button>
-          )}
-        </div>
-      </>
-    )}
   </div>
 </td>
                         </tr>
@@ -2190,6 +2021,74 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
       </Modal>
 
       </Container>
+      {showDropdown !== null && (
+        <>
+          <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+          <div style={{
+            position: 'fixed',
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            transform: 'translateY(-50%)',
+            background: '#ffffff',
+            border: '1px solid #e0e0e0',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            minWidth: '170px',
+            zIndex: 1050,
+            overflow: 'hidden',
+            zoom: '0.75',
+          }}>
+            {(() => {
+              const official = officials.find(o => o.id === showDropdown);
+              if (!official) return null;
+              return (
+                <>
+                  <button onClick={() => { setShowDropdown(null); handleViewOfficial(official); }}
+                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }}
+                    onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
+                    onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+                    <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                    <span>View Details</span>
+                  </button>
+                  {official.is_active === 1 ? (
+                    <>
+                      <button onClick={() => { setShowDropdown(null); handleResetPassword(official); }}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#0d6efd', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
+                        onMouseOver={e => e.currentTarget.style.background = '#f0f4ff'}
+                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+                        <i className="fas fa-key" style={{ width: '18px', textAlign: 'center', color: '#0d6efd' }} />
+                        <span>Reset Password</span>
+                      </button>
+                      <button onClick={() => { setShowDropdown(null); handleEditOfficial(official); }}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
+                        onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
+                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+                        <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                        <span>Edit Admin</span>
+                      </button>
+                      <button onClick={() => { setShowDropdown(null); handleDeleteOfficial(official); }}
+                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
+                        onMouseOver={e => e.currentTarget.style.background = '#fff5f5'}
+                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+                        <img src="/remove.png" alt="Deactivate" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                        <span>Deactivate</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => { setShowDropdown(null); handleRestoreOfficial(official); }}
+                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
+                      onMouseOver={e => e.currentTarget.style.background = '#f0fff4'}
+                      onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+                      <img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
+                      <span>Restore Admin</span>
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </>
+      )}
     </>
   );
 };
