@@ -216,7 +216,7 @@ const SuperPetManagement = ({ darkMode }) => {
       const newPets = petsRes.data.pets || [];
       const total  = petsRes.data.total ?? newPets.length;
 
-      setPageCache(prev => ({ ...prev, [cacheKey]: { pets: newPets, total, ts: Date.now() } }));
+      setPageCache({ [cacheKey]: { pets: newPets, total, ts: Date.now() } });
       setPets(newPets);
       setOwners(ownersRes.data.owners || []);
       setTotalPets(total);
