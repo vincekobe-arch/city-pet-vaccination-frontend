@@ -55,10 +55,7 @@ const [chartJsLoaded, setChartJsLoaded] = useState(!!window.Chart);
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
-const [pageLoading, setPageLoading] = useState(false);
-const [totalSchedules, setTotalSchedules] = useState(0);
 const [pageCache, setPageCache] = useState({});
-const currentPageRef = useRef(1);
 const itemsPerPage = 5;
 const CACHE_TTL = 60_000;
   
@@ -374,34 +371,19 @@ useEffect(() => {
   }
 }, [schedules]);
   useEffect(() => {
-  setPageCache({});
-  if (currentPage === 1) {
-    loadPage(1, true);
-  } else {
-    setCurrentPage(1);
-  }
+  setCurrentPage(1);
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
 
-useEffect(() => {
-  currentPageRef.current = currentPage;
-  loadPage(currentPage);
-}, [currentPage]);
 
 
-
-  const loadPage = async (page, force = false) => {
-  const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
-  const cached = pageCache[cacheKey];
+  const loadData = async (force = false) => {
+  const cached = pageCache['all'];
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
     setSchedules(cached.schedules);
-    setTotalSchedules(cached.total);
     return;
   }
 
-  page === 1 ? setLoading(true) : setPageLoading(true);
-  // Only clear when paginating (not on filter changes)
-  if (page !== currentPageRef.current) setSchedules([]);
-
+  setLoading(true);
   try {
     const BIG = 999;
     const [vaccinationRes, seminarRes, sterilizationRes, otherRes, microchipRes] = await Promise.all([
@@ -420,19 +402,15 @@ useEffect(() => {
       ...(microchipRes.data.schedules || []).map(s => ({ ...s, type: 'microchip' })),
     ].sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
 
-    setPageCache(prev => ({ ...prev, [cacheKey]: { schedules: all, total: all.length, ts: Date.now() } }));
+    setPageCache({ all: { schedules: all, ts: Date.now() } });
     setSchedules(all);
-    setTotalSchedules(all.length);
   } catch (err) {
     const { message } = handleAPIError(err);
     setError(message);
   } finally {
     setLoading(false);
-    setPageLoading(false);
   }
 };
-
-const loadData = (force = false) => loadPage(currentPage, force);
 
   const loadBarangays = async () => {
     try {
@@ -1013,7 +991,7 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
 
       handleCloseModal();
       setPageCache({});
-      loadPage(currentPage, true);
+      loadData(true);
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -1041,7 +1019,7 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
       setSuccess(`${getScheduleTypeLabel(scheduleToDelete.type)} schedule deleted successfully!`);
       setTimeout(() => setSuccess(''), 5000);
       setPageCache({});
-      loadPage(currentPage, true);
+      loadData(true);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -1445,7 +1423,7 @@ const paginatedSchedules = displaySchedules.slice(startIdx, startIdx + itemsPerP
               </div>
             </Card.Header>
 <Card.Body className="sched-card-body" style={{ padding: '2rem' }}>
-              {loading || pageLoading ? (
+              {loading ? (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
     <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa' }}>
       {[12, 20, 15, 18, 12, 10, 8].map((w, i) => (
