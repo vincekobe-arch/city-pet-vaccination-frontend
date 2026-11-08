@@ -1584,7 +1584,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             Vaccination
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2.5rem 1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.vaccination_date).toLocaleDateString()}</strong>
 </td>
 <td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
@@ -1662,7 +1662,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             Deworming
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2.5rem 1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.deworming_date).toLocaleDateString()}</strong>
 </td>
 <td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
@@ -1746,7 +1746,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             Sterilization
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2.5rem 1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.sterilization_date).toLocaleDateString()}</strong>
 </td>
 <td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
@@ -1809,7 +1809,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                             <i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2.5rem 1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.implant_date).toLocaleDateString()}</strong>
 </td>
 <td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
