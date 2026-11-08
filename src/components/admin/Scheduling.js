@@ -14,6 +14,7 @@ const [error, setError] = useState('');
 const [success, setSuccess] = useState('');
 const [totalSchedules, setTotalSchedules] = useState(0);
 const [schedulePageCache, setSchedulePageCache] = useState({});
+const [allSchedules, setAllSchedules] = useState([]);
   
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -181,11 +182,11 @@ useEffect(() => {
 
   const labels = ['Vaccination', 'Seminar', 'Sterilization', 'Microchip', 'Other'];
   const values = [
-    schedules.filter(s => s.type === 'vaccination').length,
-    schedules.filter(s => s.type === 'seminar').length,
-    schedules.filter(s => s.type === 'sterilization').length,
-    schedules.filter(s => s.type === 'microchip').length,
-    schedules.filter(s => s.type === 'other').length,
+    allSchedules.filter(s => s.type === 'vaccination').length,
+    allSchedules.filter(s => s.type === 'seminar').length,
+    allSchedules.filter(s => s.type === 'sterilization').length,
+    allSchedules.filter(s => s.type === 'microchip').length,
+    allSchedules.filter(s => s.type === 'other').length,
   ];
   const colors = ['#ffc107', '#6f42c1', '#28a745', '#6c757d', '#343a40'];
 
@@ -206,7 +207,7 @@ useEffect(() => {
   });
 
   return () => { if (schedTypeChartObj.current) { schedTypeChartObj.current.destroy(); schedTypeChartObj.current = null; } };
-}, [chartJsLoaded, schedules, loading]);
+}, [chartJsLoaded, allSchedules, loading]);
 
 useEffect(() => {
   if (!chartJsLoaded || !schedMonthlyChartRef.current || loading) return;
@@ -221,7 +222,7 @@ useEffect(() => {
   }
 
   const countByMonth = (types) => months.map(m =>
-    schedules.filter(s => {
+    allSchedules.filter(s => {
       const d = new Date(s.scheduled_date);
       return `${d.getFullYear()}-${d.getMonth()}` === m.key && (types === 'all' || types.includes(s.type));
     }).length
@@ -252,10 +253,10 @@ useEffect(() => {
   });
 
   return () => { if (schedMonthlyChartObj.current) { schedMonthlyChartObj.current.destroy(); schedMonthlyChartObj.current = null; } };
-}, [chartJsLoaded, schedules, loading]);
+}, [chartJsLoaded, allSchedules, loading]);
 
   useEffect(() => {
-  if (schedules.length === 0) return;
+  if (allSchedules.length === 0) return;
 
   // Destroy previous charts if re-rendering
   const typeCtx = document.getElementById('schedTypeChart');
@@ -270,11 +271,11 @@ useEffect(() => {
 
   // ── Bar chart: Events by Type ──
   const typeData = {
-    Vaccination: schedules.filter(s => s.type === 'vaccination').length,
-    Seminar: schedules.filter(s => s.type === 'seminar').length,
-    Sterilization: schedules.filter(s => s.type === 'sterilization').length,
-    Microchip: schedules.filter(s => s.type === 'microchip').length,
-    Other: schedules.filter(s => s.type === 'other').length,
+    Vaccination: allSchedules.filter(s => s.type === 'vaccination').length,
+    Seminar: allSchedules.filter(s => s.type === 'seminar').length,
+    Sterilization: allSchedules.filter(s => s.type === 'sterilization').length,
+    Microchip: allSchedules.filter(s => s.type === 'microchip').length,
+    Other: allSchedules.filter(s => s.type === 'other').length,
   };
 
   // Load Chart.js dynamically if not already loaded
@@ -330,11 +331,11 @@ useEffect(() => {
     });
 
     // ── Doughnut: Status Breakdown ──
-    const upcoming = schedules.filter(s => s.status === 'scheduled' && new Date(s.scheduled_date) >= new Date()).length;
-    const ongoing = schedules.filter(s => s.status === 'ongoing').length;
-    const completed = schedules.filter(s => s.status === 'completed').length;
-    const cancelled = schedules.filter(s => s.status === 'cancelled').length;
-    const pastDue = schedules.filter(s => s.status === 'scheduled' && new Date(s.scheduled_date) < new Date()).length;
+    const upcoming = allSchedules.filter(s => s.status === 'scheduled' && new Date(s.scheduled_date) >= new Date()).length;
+    const ongoing = allSchedules.filter(s => s.status === 'ongoing').length;
+    const completed = allSchedules.filter(s => s.status === 'completed').length;
+    const cancelled = allSchedules.filter(s => s.status === 'cancelled').length;
+    const pastDue = allSchedules.filter(s => s.status === 'scheduled' && new Date(s.scheduled_date) < new Date()).length;
 
     const statusLabels = ['Upcoming', 'Ongoing', 'Completed', 'Past Due', 'Cancelled'];
     const statusData = [upcoming, ongoing, completed, pastDue, cancelled];
@@ -392,7 +393,7 @@ useEffect(() => {
     script.onload = renderCharts;
     document.head.appendChild(script);
   }
-}, [schedules]);
+}, [allSchedules]);
   useEffect(() => {
   setCurrentPage(1);
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
@@ -411,6 +412,9 @@ const loadPage = async (page, force = false) => {
   }
 
   page === 1 ? setLoading(true) : setPageLoading(true);
+  // Clear current page data immediately so old rows don't show
+  setSchedules([]);
+
   try {
     const params = new URLSearchParams({
       page,
@@ -421,13 +425,26 @@ const loadPage = async (page, force = false) => {
       ...(searchTerm                && { search: searchTerm }),
     });
 
-    const res = await scheduleAPI.getAll(params.toString());
-    const newSchedules = res.data.schedules || [];
-    const total        = res.data.total ?? newSchedules.length;
+    // Load chart data only on first page load or filter change (page 1 + force)
+    const shouldLoadCharts = page === 1 || force;
+
+    const [pageRes, chartRes] = await Promise.all([
+      scheduleAPI.getAll(params.toString()),
+      shouldLoadCharts
+        ? scheduleAPI.getAll(new URLSearchParams({ page: 1, limit: 999 }).toString())
+        : Promise.resolve(null),
+    ]);
+
+    const newSchedules = pageRes.data.schedules || [];
+    const total        = pageRes.data.total ?? newSchedules.length;
 
     setSchedulePageCache(prev => ({ ...prev, [cacheKey]: { schedules: newSchedules, total, ts: Date.now() } }));
     setSchedules(newSchedules);
     setTotalSchedules(total);
+
+    if (chartRes) {
+      setAllSchedules(chartRes.data.schedules || []);
+    }
   } catch (err) {
     const { message } = handleAPIError(err);
     setError(message);
