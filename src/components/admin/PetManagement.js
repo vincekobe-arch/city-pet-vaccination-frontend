@@ -628,7 +628,7 @@ const loadData = () => loadPage(1);
                     <tbody>
                       {(() => {
                         const currentPagePets = filteredPets;
-                        const emptyRows = itemsPerPage - currentPagePets.length;
+
                         
                         return (
                           <>
@@ -659,8 +659,8 @@ const loadData = () => loadPage(1);
                               e.currentTarget.style.background = darkMode ? '#141414' : '#ffffff';
                             }}
                           >
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                              <div className="d-flex flex-column align-items-center">
+                            <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left', width: '15%' }}>
+                              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.65rem' }}>
                                 <img 
                                   src={getPetFaceImage(pet.species)}
                                   alt={pet.species}
@@ -669,23 +669,26 @@ const loadData = () => loadPage(1);
                                     width: '40px', 
                                     height: '40px', 
                                     objectFit: 'contain',
-                                    marginBottom: '0.5rem',
+                                    flexShrink: 0,
                                     filter: 'none'
                                   }}
                                   onError={(e) => {
                                     e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
+                                    e.target.nextSibling.style.display = 'block';
                                   }}
                                 />
                                 <i 
                                   className="fas fa-paw" 
-                                  style={{ fontSize: '2rem', color: '#ffc107', display: 'none', marginBottom: '0.5rem' }}
+                                  style={{ fontSize: '1.5rem', color: '#ffc107', display: 'none', flexShrink: 0 }}
                                 ></i>
-                                {pet.breed && (
-                                  <small style={{ fontWeight: '500', marginTop: '0.25rem', color: darkMode ? '#888888' : '#6c757d' }}>
-                                    {pet.breed}
-                                  </small>
-                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontWeight: '600', fontSize: '0.85rem', color: darkMode ? '#f0f0f0' : '#333', textTransform: 'capitalize' }}>{pet.species}</span>
+                                  {pet.breed && (
+                                    <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#aaa' }}>
+                                      {pet.breed}
+                                    </small>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '18%' }}>
@@ -753,12 +756,7 @@ const loadData = () => loadPage(1);
                           </tr>
                         );
                       })}
-                      {/* Empty rows to maintain fixed height */}
-                      {Array.from({ length: emptyRows }).map((_, index) => (
-                        <tr key={`empty-${index}`} style={{ pointerEvents: 'none', height: '73px' }}>
-                          <td colSpan="6" style={{ height: '73px', borderBottom: darkMode ? '1px solid #2a2a2a' : '1px solid #dee2e6', background: darkMode ? '#141414' : '#ffffff', boxSizing: 'border-box' }}></td>
-                        </tr>
-                      ))}
+
                     </>
                   );
                 })()}
