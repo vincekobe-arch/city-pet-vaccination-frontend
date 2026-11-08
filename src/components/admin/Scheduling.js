@@ -58,6 +58,7 @@ const [currentPage, setCurrentPage] = useState(1);
 const [pageLoading, setPageLoading] = useState(false);
 const [totalSchedules, setTotalSchedules] = useState(0);
 const [pageCache, setPageCache] = useState({});
+const currentPageRef = useRef(1);
 const itemsPerPage = 5;
 const CACHE_TTL = 60_000;
   
@@ -382,6 +383,7 @@ useEffect(() => {
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
 
 useEffect(() => {
+  currentPageRef.current = currentPage;
   loadPage(currentPage);
 }, [currentPage]);
 
@@ -398,7 +400,7 @@ useEffect(() => {
 
   page === 1 ? setLoading(true) : setPageLoading(true);
   // Only clear when paginating (not on filter changes)
-  if (page !== currentPage) setSchedules([]);
+  if (page !== currentPageRef.current) setSchedules([]);
 
   try {
     const BIG = 999;
