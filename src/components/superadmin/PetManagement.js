@@ -611,8 +611,8 @@ const itemsPerPage = 5;
   onMouseEnter={(e) => { e.currentTarget.style.background = darkMode ? 'rgba(255, 193, 7, 0.08)' : 'rgba(255, 193, 7, 0.05)'; }}
   onMouseLeave={(e) => { e.currentTarget.style.background = darkMode ? '#141414' : 'transparent'; }}
 >
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                              <div className="d-flex flex-column align-items-center">
+                            <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left', width: '15%' }}>
+                              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.65rem' }}>
                                 <img 
                                   src={getPetFaceImage(pet.species)}
                                   alt={pet.species}
@@ -621,17 +621,17 @@ const itemsPerPage = 5;
                                     width: '40px', 
                                     height: '40px', 
                                     objectFit: 'contain',
-                                    marginBottom: '0.5rem',
+                                    flexShrink: 0,
                                     filter: 'none'
                                   }}
                                   onError={(e) => {
                                     e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
+                                    e.target.nextSibling.style.display = 'block';
                                   }}
                                 />
                                 <i 
                                   className="fas fa-paw" 
-                                  style={{ fontSize: '2rem', color: '#ffc107', display: 'none', marginBottom: '0.5rem' }}
+                                  style={{ fontSize: '1.5rem', color: '#ffc107', display: 'none', flexShrink: 0 }}
                                 ></i>
                                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                                   <span style={{ fontWeight: '600', fontSize: '0.85rem', color: darkMode ? '#f0f0f0' : '#333', textTransform: 'capitalize' }}>{pet.species}</span>
