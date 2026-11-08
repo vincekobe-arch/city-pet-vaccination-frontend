@@ -1559,7 +1559,7 @@ const getSelectedPet = () => {
   <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
                                 <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Record Details</th>
@@ -1578,7 +1578,7 @@ const getSelectedPet = () => {
 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
-                                        <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
                                             <i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>
                                             Vaccination
@@ -1656,7 +1656,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
-                                        <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
                                             <i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>
                                             Deworming
@@ -1740,7 +1740,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
-                                        <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
                                             <i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>
                                             Sterilization
@@ -1804,7 +1804,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                         style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
 onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(67, 97, 238, 0.05)'}
 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                                        <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
                                           <span style={{ fontWeight: '500', color: '#555' }}>
                                             <i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip
                                           </span>
