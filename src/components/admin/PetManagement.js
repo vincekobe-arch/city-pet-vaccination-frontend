@@ -615,14 +615,14 @@ const loadData = () => loadPage(1);
                 <div className="table-responsive">
                   <Table hover className="pet-table mobile-table-wrap" style={{ marginBottom: 0, width: '100%' }}>
                     <thead style={{ background: darkMode ? '#1e1e1e' : '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Species/Breed</th>
-                        <th style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '18%' }}>Pet Information</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Gender</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Owner</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Registration Date</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Status</th>
-                        <th style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#333', padding: '1rem', textAlign: 'center', width: '13%' }}>Action</th>
+                      <tr style={{ background: darkMode ? 'linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+                        <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Species/Breed</th>
+                        <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
+                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Gender</th>
+                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Owner</th>
+                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Registration Date</th>
+                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+                        <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -691,15 +691,12 @@ const loadData = () => loadPage(1);
                                 </div>
                               </div>
                             </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '18%' }}>
-                              <div>
-                                <strong style={{ fontSize: '1rem', color: darkMode ? '#f0f0f0' : '#333' }}>{pet.name}</strong>
-                                <br />
-                                <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#6c757d' }}>
-                                  <i className="fas fa-barcode me-1"></i>
-                                  {pet.registration_number || 'N/A'}
-                                </small>
-                              </div>
+                            <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left', width: '18%' }}>
+                              <strong style={{ fontSize: '0.95rem', color: darkMode ? '#f0f0f0' : '#333', display: 'block' }}>{pet.name}</strong>
+                              <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#aaa' }}>
+                                <i className="fas fa-barcode me-1"></i>
+                                {pet.registration_number || 'N/A'}
+                              </small>
                             </td>
                             <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
                               <span className="text-capitalize" style={{ fontWeight: '500' }}>
