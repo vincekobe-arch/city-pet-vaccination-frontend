@@ -199,7 +199,9 @@ const SuperPetManagement = ({ darkMode }) => {
   const CACHE_TTL = 60_000;
 
   const loadPage = async (page, force = false) => {
-    const cached = pageCache[page];
+    // Don't cache when filters are involved — always fetch fresh
+    const cacheKey = `${page}_${filterStatus}_${filterSpecies}`;
+    const cached = pageCache[cacheKey];
     if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
       setPets(cached.pets);
       setTotalPets(cached.total);
@@ -215,7 +217,7 @@ const SuperPetManagement = ({ darkMode }) => {
       const newPets = petsRes.data.pets || [];
       const total  = petsRes.data.total ?? newPets.length;
 
-      setPageCache(prev => ({ [page]: { pets: newPets, total, ts: Date.now() } }));
+      setPageCache(prev => ({ ...prev, [cacheKey]: { pets: newPets, total, ts: Date.now() } }));
       setPets(newPets);
       setOwners(ownersRes.data.owners || []);
       setTotalPets(total);
@@ -252,6 +254,12 @@ const SuperPetManagement = ({ darkMode }) => {
     loadData();
     loadStats();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setPageCache({});
+    loadPage(1, true);
+  }, [filterStatus, filterSpecies]);
 
   useEffect(() => {
     if (currentPage > 1) loadPage(currentPage);
@@ -325,20 +333,9 @@ const SuperPetManagement = ({ darkMode }) => {
   };
 
   const filteredPets = pets.filter(pet => {
-    const matchesSearch = 
-      (pet.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    return (pet.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (pet.registration_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       getOwnerName(pet).toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesSpecies = 
-      filterSpecies === 'all' || pet.species === filterSpecies;
-    
-    const matchesStatus = 
-      filterStatus === 'all' || 
-      (filterStatus === 'active' && pet.is_active) ||
-      (filterStatus === 'inactive' && !pet.is_active);
-    
-    return matchesSearch && matchesSpecies && matchesStatus;
   });
 
   const activePets = pets.filter(p => p.is_active);
