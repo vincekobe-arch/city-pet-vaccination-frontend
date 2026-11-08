@@ -55,6 +55,7 @@ const [chartJsLoaded, setChartJsLoaded] = useState(!!window.Chart);
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
+const [pageLoading, setPageLoading] = useState(false);
 const [pageCache, setPageCache] = useState({});
 const itemsPerPage = 5;
 const CACHE_TTL = 60_000;
@@ -377,6 +378,13 @@ useEffect(() => {
   useEffect(() => {
   setCurrentPage(1);
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
+
+useEffect(() => {
+  if (currentPage === 1) return;
+  setPageLoading(true);
+  const timer = setTimeout(() => setPageLoading(false), 300);
+  return () => clearTimeout(timer);
+}, [currentPage]);
 
 
 
@@ -1428,7 +1436,7 @@ const paginatedSchedules = displaySchedules.slice(startIdx, startIdx + itemsPerP
               </div>
             </Card.Header>
 <Card.Body className="sched-card-body" style={{ padding: '2rem' }}>
-              {loading ? (
+              {loading || pageLoading ? (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
     <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa' }}>
       {[12, 20, 15, 18, 12, 10, 8].map((w, i) => (
