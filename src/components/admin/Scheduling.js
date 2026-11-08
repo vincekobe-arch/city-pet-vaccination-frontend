@@ -437,7 +437,7 @@ const loadPage = async (page, force = false) => {
   }
 };
 
-const loadData = (force = false) => loadPage(1, force);
+const loadData = (force = false) => loadPage(currentPage, force);
 
   const loadBarangays = async () => {
     try {
