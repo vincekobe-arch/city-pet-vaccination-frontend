@@ -151,19 +151,28 @@ const AdminOwnerManagement = () => {
   };
 
   useEffect(() => {
-    loadData();
     loadStats();
   }, []);
 
   useEffect(() => {
-    if (currentPage > 1) loadPage(currentPage);
+    loadPage(currentPage);
   }, [currentPage]);
+
+  useEffect(() => {
+    setPageCache({});
+    if (currentPage === 1) {
+      loadPage(1, true);
+    } else {
+      setCurrentPage(1);
+    }
+  }, [filterVerif, filterActive]);
 
   const CACHE_TTL = 60_000;
 
-const loadPage = async (page, bustCache = false) => {
-  const cached = pageCache[page];
-  if (!bustCache && cached && Date.now() - cached.ts < CACHE_TTL) {
+const loadPage = async (page, force = false) => {
+  const cacheKey = `${page}`;
+  const cached = pageCache[cacheKey];
+  if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
     setOwners(cached.owners);
     setTotalOwners(cached.total);
     return;
@@ -174,7 +183,7 @@ const loadPage = async (page, bustCache = false) => {
     const res = await ownerAPI.getAll(page, itemsPerPage);
     const newOwners = res.data.owners || [];
     const total     = res.data.total ?? newOwners.length;
-    setPageCache({ [page]: { owners: newOwners, total, ts: Date.now() } });
+    setPageCache({ [cacheKey]: { owners: newOwners, total, ts: Date.now() } });
     setOwners(newOwners);
     setTotalOwners(total);
   } catch (err) {
@@ -186,7 +195,7 @@ const loadPage = async (page, bustCache = false) => {
   }
 };
 
-const loadData = (bustCache = false) => loadPage(1, bustCache);
+const loadData = (force = false) => loadPage(1, force);
 
   useEffect(() => {
     if (statsLoading || hasAnimated) return;
@@ -255,7 +264,7 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
     try {
       await ownerAPI_verify(verifOwner.user_id, status);
       setVerifSuccess(`Status updated to: ${VERIF_CONFIG[status]?.label}`);
-      await loadData(true); // bust cache, owners only
+      await loadPage(currentPage, true);
       // Sync verifOwner with the fresh data so images reflect immediately
       try {
         const singleRes = await ownerAPI.getByUserId(verifOwner.user_id);
@@ -285,10 +294,10 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
   const indexOfLastPet = modalCurrentPage * petsPerPage;
   const indexOfFirstPet = indexOfLastPet - petsPerPage;
   const currentPets = ownerPets.slice(indexOfFirstPet, indexOfLastPet);
-  const totalPages = Math.ceil(ownerPets.length / petsPerPage);
+  const modalTotalPages = Math.ceil(ownerPets.length / petsPerPage);
 
   const handleModalNextPage = () => {
-    if (modalCurrentPage < totalPages) {
+    if (modalCurrentPage < modalTotalPages) {
       setModalCurrentPage(modalCurrentPage + 1);
     }
   };
@@ -562,59 +571,39 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
               </h5>
             </Card.Header>
             <Card.Body className="mobile-card-body" style={{ padding: '2rem' }}>
-              {loading ? (
-                <div className="table-responsive">
-                  <Table className="mobile-table-wrap" style={{ marginBottom: 0, tableLayout: 'fixed', width: '100%' }}>
-                    <thead style={{ background: '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Name</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Phone</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Address</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Total Pets</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Status</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '13%' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Array.from({ length: itemsPerPage }).map((_, i) => (
-                        <tr key={`skel-${i}`}>
-                          <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                              <div className="skeleton" style={{ width: '90px', height: '13px' }} />
-                            </div>
-                          </td>
-                          <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                              <div className="skeleton" style={{ width: '100px', height: '13px' }} />
-                            </div>
-                          </td>
-                          <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                              <div className="skeleton" style={{ width: '120px', height: '13px' }} />
-                            </div>
-                          </td>
-                          <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                              <div className="skeleton" style={{ width: '30px', height: '13px' }} />
-                            </div>
-                          </td>
-                          <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                              <div className="skeleton" style={{ width: '60px', height: '20px', borderRadius: '999px' }} />
-                              <div className="skeleton" style={{ width: '50px', height: '10px' }} />
-                            </div>
-                          </td>
-                          <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                              <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </div>
-              ) : filteredOwners.length === 0 ? (
+              {loading || pageLoading ? (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+    <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa', marginBottom: '0.25rem' }}>
+      {[18, 20, 15, 12, 15, 10].map((w, i) => (
+        <div key={i} className="skeleton" style={{ width: `${w}%`, height: '12px', flexShrink: 0 }} />
+      ))}
+    </div>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0f0f0' }}>
+        <div style={{ width: '18%', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
+          <div className="skeleton" style={{ width: '80%', height: '13px' }} />
+          <div className="skeleton" style={{ width: '50%', height: '10px' }} />
+        </div>
+        <div style={{ width: '20%', flexShrink: 0 }}>
+          <div className="skeleton" style={{ width: '85%', height: '12px' }} />
+        </div>
+        <div style={{ width: '15%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className="skeleton" style={{ width: '70%', height: '12px' }} />
+        </div>
+        <div style={{ width: '12%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className="skeleton" style={{ width: '30px', height: '13px' }} />
+        </div>
+        <div style={{ width: '15%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <div className="skeleton" style={{ width: '70px', height: '22px', borderRadius: '999px' }} />
+          <div className="skeleton" style={{ width: '55px', height: '10px' }} />
+        </div>
+        <div style={{ width: '10%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+        </div>
+      </div>
+    ))}
+  </div>
+) : filteredOwners.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-users text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
                   <h5 style={{ color: '#666666', fontWeight: '600' }}>No Communities Found</h5>
@@ -624,21 +613,20 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <Table hover className="mobile-table-wrap" style={{ marginBottom: 0, tableLayout: 'fixed', width: '100%' }}>
-                    <thead style={{ background: '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Name</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Phone</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '20%' }}>Address</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Total Pets</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '12%' }}>Status</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '13%' }}>Actions</th>
+                  <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                    <thead>
+                      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Name</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Email</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact</th>
+                        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Total Pets</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
+                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(() => {
                         const currentPageOwners = filteredOwners;
-                        const emptyRows = itemsPerPage - currentPageOwners.length;
                         
                         return (
                           <>
@@ -649,22 +637,15 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                               const displayPhone = owner.po_phone || owner.phone;
                               
                               return (
-                                <tr 
+                                <tr
                                   key={owner.user_id || owner.id}
-                                  style={{
-                                    transition: 'all 0.2s ease',
-                                    cursor: 'pointer'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'transparent';
-                                  }}
+                                  style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                 >
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-                                      <strong style={{ fontSize: '1rem', color: '#333' }}>{displayFirstName}</strong>
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+                                    <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>
+                                      {displayFirstName} {displayLastName}
                                       {(() => {
                                         const vs = owner.verification_status;
                                         if (!vs || vs === 'not_verified') return null;
@@ -674,63 +655,54 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                                           fully_verified: { icon: 'fa-check-circle',   color: '#198754' },
                                         }[vs];
                                         if (!cfg) return null;
-                                        return (
-                                          <i
-                                            className={`fas ${cfg.icon}`}
-                                            title={vs.replace('_', ' ')}
-                                            style={{ fontSize: '0.75rem', color: cfg.color, flexShrink: 0 }}
-                                          />
-                                        );
+                                        return <i className={`fas ${cfg.icon} ms-1`} title={vs.replace('_', ' ')} style={{ fontSize: '0.75rem', color: cfg.color }} />;
                                       })()}
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <small style={{ fontWeight: '500', color: '#555' }}>
-                                      <i className="fas fa-phone me-1"></i>
-                                      {displayPhone || 'N/A'}
+                                    </strong>
+                                    <small style={{ color: '#aaa', fontWeight: '500' }}>
+                                      <i className="fas fa-venus-mars me-1"></i>{owner.gender || '—'}
                                     </small>
                                   </td>
-                                  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '20%' }}>
-                                    <small style={{ fontWeight: '500', color: '#555' }}>{owner.address || 'Not provided'}</small>
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+                                    <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
+                                      <i className="fas fa-envelope me-1" style={{ color: '#ffc107' }}></i>
+                                      {owner.email || '—'}
+                                    </small>
                                   </td>
-                                  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                                    <span style={{ fontSize: '1.1rem', fontWeight: '600', color: petCount > 0 ? '#007bff' : '#6c757d' }}>
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                    <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
+                                      <i className="fas fa-phone me-1" style={{ color: '#ffc107' }}></i>
+                                      {displayPhone || '—'}
+                                    </small>
+                                  </td>
+                                  <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                    <span style={{ fontSize: '1rem', fontWeight: '700', color: petCount > 0 ? '#0d6efd' : '#aaa' }}>
                                       {petCount}
                                     </span>
                                   </td>
-                                  <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
-                                      {null}
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.2rem 0.55rem', borderRadius: '999px', background: owner.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${owner.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.7rem', fontWeight: '700', color: owner.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
-                                        <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
-                                        {owner.is_active ? 'Active' : 'Inactive'}
-                                      </span>
-                                      {(() => {
-                                        const ll = owner.last_login;
-                                        if (!ll) return (
-                                          <span style={{ fontSize: '0.65rem', color: '#bbb', fontStyle: 'italic', marginTop: '0.1rem' }}>Never signed in</span>
-                                        );
-                                        const diffMs  = Date.now() - new Date(ll).getTime();
-                                        const diffDay = Math.floor(diffMs / 86400000);
-                                        const diffWk  = Math.floor(diffDay / 7);
-                                        const diffMo  = Math.floor(diffDay / 30);
-                                        let label, color;
-                                        if (diffDay === 0)      { label = 'Today';           color = '#198754'; }
-                                        else if (diffDay === 1) { label = 'Yesterday';        color = '#198754'; }
-                                        else if (diffDay < 7)   { label = `${diffDay}d ago`;  color = '#198754'; }
-                                        else if (diffDay < 30)  { label = `${diffWk}w ago`;   color = '#e6a817'; }
-                                        else if (diffMo < 3)    { label = `${diffMo}mo ago`;  color = '#fd7e14'; }
-                                        else                    { label = `${diffMo}mo ago`;  color = '#dc3545'; }
-                                        return (
-                                          <span style={{ fontSize: '0.65rem', color, fontWeight: '600', whiteSpace: 'nowrap', marginTop: '0.1rem' }}>
-                                            <i className="fas fa-clock me-1" style={{ fontSize: '0.58rem' }} />{label}
-                                          </span>
-                                        );
-                                      })()}
-                                    </div>
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: owner.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${owner.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.75rem', fontWeight: '700', color: owner.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
+                                      <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
+                                      {owner.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                    {(() => {
+                                      const ll = owner.last_login;
+                                      if (!ll) return <div style={{ fontSize: '0.65rem', color: '#bbb', fontStyle: 'italic', marginTop: '0.25rem' }}>Never signed in</div>;
+                                      const diffMs  = Date.now() - new Date(ll).getTime();
+                                      const diffDay = Math.floor(diffMs / 86400000);
+                                      const diffWk  = Math.floor(diffDay / 7);
+                                      const diffMo  = Math.floor(diffDay / 30);
+                                      let label, color;
+                                      if (diffDay === 0)      { label = 'Today';          color = '#198754'; }
+                                      else if (diffDay === 1) { label = 'Yesterday';       color = '#198754'; }
+                                      else if (diffDay < 7)   { label = `${diffDay}d ago`; color = '#198754'; }
+                                      else if (diffDay < 30)  { label = `${diffWk}w ago`;  color = '#e6a817'; }
+                                      else if (diffMo < 3)    { label = `${diffMo}mo ago`; color = '#fd7e14'; }
+                                      else                    { label = `${diffMo}mo ago`; color = '#dc3545'; }
+                                      return <div style={{ fontSize: '0.65rem', color, fontWeight: '600', whiteSpace: 'nowrap', marginTop: '0.25rem' }}><i className="fas fa-clock me-1" style={{ fontSize: '0.58rem' }} />{label}</div>;
+                                    })()}
                                   </td>
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '13%' }}>
-                                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                    <div style={{ position: 'relative' }}>
                                       <button
                                         ref={showDropdown === owner.user_id ? dropdownButtonRef : null}
                                         onClick={(e) => {
@@ -738,15 +710,20 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                                             setShowDropdown(null);
                                           } else {
                                             const rect = e.currentTarget.getBoundingClientRect();
-                                              dropdownButtonRef.current = e.currentTarget;
-                                              setDropdownPos({
-                                                top: rect.top / ZOOM + (rect.height / ZOOM) / 2,
-                                                left: (rect.left / ZOOM) - 185,
-                                              });
+                                            dropdownButtonRef.current = e.currentTarget;
+                                            const menuItems = owner.verification_status !== 'not_verified' ? 2 : 1;
+                                            const dropdownHeight = menuItems * 50;
+                                            const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
+                                            setDropdownPos({
+                                              top: nearBottom
+                                                ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
+                                                : rect.top / ZOOM + (rect.height / ZOOM) / 2,
+                                              left: (rect.left / ZOOM) - 185
+                                            });
                                             setShowDropdown(owner.user_id);
                                           }
                                         }}
-                                        style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                                        style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
                                         onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
                                         onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                       >
@@ -757,17 +734,7 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                                 </tr>
                               );
                             })}
-                            {/* Empty rows to maintain fixed height */}
-                            {Array.from({ length: emptyRows }).map((_, index) => (
-                              <tr key={`empty-${index}`} style={{ pointerEvents: 'none' }}>
-                                <td style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-<td style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-<td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-<td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-<td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-<td style={{ height: '73px', borderBottom: '1px solid #dee2e6' }}></td>
-                              </tr>
-                            ))}
+
                           </>
                         );
                       })()}
@@ -894,7 +861,7 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                   border: '2px solid #dee2e6',
                   borderRadius: '8px',
                   padding: '0.5rem 0.75rem',
-                  cursor: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? 'not-allowed' : 'pointer',
+                  cursor: currentPage === mainTotalPages ? 'not-allowed' : 'pointer',
                   fontWeight: '600',
                   color: currentPage === mainTotalPages ? '#adb5bd' : '#333333',
                   transition: 'all 0.2s'
@@ -1059,7 +1026,7 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                   </div>
 
                   {/* Pagination */}
-                  {totalPages > 1 && (
+                  {modalTotalPages > 1 && (
                     <div className="d-flex justify-content-between align-items-center mt-3">
                       <Button 
                         variant="outline-secondary" 
@@ -1072,14 +1039,14 @@ const loadData = (bustCache = false) => loadPage(1, bustCache);
                       </Button>
                       
                       <span className="text-muted">
-                        Page {modalCurrentPage} / {totalPages}
+                        Page {modalCurrentPage} / {modalTotalPages}
                       </span>
                       
                       <Button 
                         variant="outline-secondary" 
                         size="sm"
                         onClick={handleModalNextPage}
-                        disabled={modalCurrentPage === totalPages}
+                        disabled={modalCurrentPage === modalTotalPages}
                       >
                         Next
                         <i className="fas fa-chevron-right ms-1"></i>
