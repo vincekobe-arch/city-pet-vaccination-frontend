@@ -682,9 +682,7 @@ const SuperPetManagement = ({ darkMode }) => {
                     </thead>
                     <tbody>
                       {(() => {
-                        const startIdx = (currentPage - 1) * itemsPerPage;
-                        const endIdx = currentPage * itemsPerPage;
-                        const currentPagePets = filteredPets.slice(startIdx, endIdx);
+                        const currentPagePets = filteredPets;
                         const emptyRows = itemsPerPage - currentPagePets.length;
                         
                         return (
