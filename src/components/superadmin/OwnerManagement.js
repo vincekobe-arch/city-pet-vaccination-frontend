@@ -57,13 +57,9 @@ const SuperAdminOwnerManagement = () => {
 
   useEffect(() => {
     if (showDropdown === null) return;
-    const updatePos = () => {
-      if (!dropdownButtonRef.current) return;
-      const rect = dropdownButtonRef.current.getBoundingClientRect();
-      setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
-    };
-    window.addEventListener('scroll', updatePos, true);
-    return () => window.removeEventListener('scroll', updatePos, true);
+    const closeOnScroll = () => setShowDropdown(null);
+    window.addEventListener('scroll', closeOnScroll, true);
+    return () => window.removeEventListener('scroll', closeOnScroll, true);
   }, [showDropdown]);
 
   // Verification modal state
@@ -646,7 +642,14 @@ const SuperAdminOwnerManagement = () => {
         } else {
           const rect = e.currentTarget.getBoundingClientRect();
           dropdownButtonRef.current = e.currentTarget;
-          setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
+          const dropdownHeight = 100;
+          const nearBottom = rect.bottom + dropdownHeight > window.innerHeight;
+          setDropdownPos({
+            top: nearBottom
+              ? rect.top / ZOOM - dropdownHeight / 2
+              : rect.top / ZOOM + (rect.height / ZOOM) / 2,
+            left: (rect.left / ZOOM) - 185
+          });
           setShowDropdown(owner.user_id);
         }
       }}
