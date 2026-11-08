@@ -405,15 +405,18 @@ useEffect(() => {
 const loadPage = async (page, force = false) => {
   const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
   const cached = schedulePageCache[cacheKey];
+
+  // Always unload current rows and show skeleton before loading next page
+  page === 1 ? setLoading(true) : setPageLoading(true);
+  setSchedules([]);
+
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
     setSchedules(cached.schedules);
     setTotalSchedules(cached.total);
+    setLoading(false);
+    setPageLoading(false);
     return;
   }
-
-  page === 1 ? setLoading(true) : setPageLoading(true);
-  // Clear current page data immediately so old rows don't show
-  setSchedules([]);
 
   try {
     const params = new URLSearchParams({
@@ -425,7 +428,6 @@ const loadPage = async (page, force = false) => {
       ...(searchTerm                && { search: searchTerm }),
     });
 
-    // Load chart data only on first page load or filter change (page 1 + force)
     const shouldLoadCharts = page === 1 || force;
 
     const [pageRes, chartRes] = await Promise.all([
