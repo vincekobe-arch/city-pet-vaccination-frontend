@@ -54,6 +54,9 @@ const SuperPetManagement = ({ darkMode }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecies, setFilterSpecies] = useState('all');
   const [filterStatus, setFilterStatus] = useState('active');
+  const [showDropdown, setShowDropdown] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const ZOOM = 0.75;
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -175,6 +178,13 @@ const itemsPerPage = 5;
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (showDropdown === null) return;
+    const closeOnScroll = () => setShowDropdown(null);
+    window.addEventListener('scroll', closeOnScroll, true);
+    return () => window.removeEventListener('scroll', closeOnScroll, true);
+  }, [showDropdown]);
 
   const loadData = async () => {
     try {
@@ -680,7 +690,17 @@ const itemsPerPage = 5;
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleViewPet(pet);
+                                    if (showDropdown === pet.id) { setShowDropdown(null); return; }
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const dropdownHeight = 50;
+                                    const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
+                                    setDropdownPos({
+                                      top: nearBottom
+                                        ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
+                                        : rect.top / ZOOM + (rect.height / ZOOM) / 2,
+                                      left: (rect.left / ZOOM) - 185
+                                    });
+                                    setShowDropdown(pet.id);
                                   }}
                                   style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
                                   onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
@@ -1075,6 +1095,42 @@ const itemsPerPage = 5;
         </Modal.Footer>
       </Modal>
     </Container>
+
+    {showDropdown !== null && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{
+          position: 'fixed',
+          top: dropdownPos.top,
+          left: dropdownPos.left,
+          transform: 'translateY(-50%)',
+          background: darkMode ? '#1e1e1e' : '#ffffff',
+          border: darkMode ? '1px solid #333333' : '1px solid #e0e0e0',
+          borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          minWidth: '170px',
+          zIndex: 1050,
+          overflow: 'hidden',
+          zoom: '0.75',
+        }}>
+          {(() => {
+            const pet = pets.find(p => p.id === showDropdown);
+            if (!pet) return null;
+            return (
+              <button
+                onClick={() => { setShowDropdown(null); handleViewPet(pet); }}
+                style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: darkMode ? '#1e1e1e' : '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: darkMode ? '#f0f0f0' : '#333333', fontWeight: '500' }}
+                onMouseOver={e => e.currentTarget.style.background = darkMode ? '#2a2a2a' : '#f8f9fa'}
+                onMouseOut={e => e.currentTarget.style.background = darkMode ? '#1e1e1e' : '#ffffff'}
+              >
+                <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }} />
+                <span>View Details</span>
+              </button>
+            );
+          })()}
+        </div>
+      </>
+    )}
     </>
   );
 };
