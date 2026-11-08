@@ -1458,7 +1458,7 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
       onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
     >
-      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left' }}>
         <span style={{ fontWeight: '500', color: '#555' }}>
           {schedule.type === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
           {schedule.type === 'seminar' && <><i className="fas fa-chalkboard-teacher me-1" style={{ color: '#6f42c1' }}></i>Seminar</>}
@@ -1499,7 +1499,16 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
         )}
       </td>
       <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        {schedule.status === 'cancelled' && <span style={{ fontWeight: '600', color: '#dc3545' }}>Cancelled</span>}
+        {schedule.status === 'cancelled' && <Badge style={{ background: '#dc3545', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Cancelled</Badge>}
+        {schedule.status === 'completed' && <Badge style={{ background: '#6c757d', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Completed</Badge>}
+        {schedule.status === 'ongoing' && <Badge style={{ background: '#28a745', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Ongoing</Badge>}
+        {schedule.status === 'scheduled' && (() => {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const scheduleDate = new Date(schedule.scheduled_date); scheduleDate.setHours(0, 0, 0, 0);
+          return scheduleDate < today
+            ? <Badge style={{ background: '#ffc107', color: '#000', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Past Due</Badge>
+            : <Badge style={{ background: '#007bff', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Upcoming</Badge>;
+        })()}
         {schedule.status === 'completed' && <span style={{ fontWeight: '600', color: '#6c757d' }}>Completed</span>}
         {schedule.status === 'ongoing' && <span style={{ fontWeight: '600', color: '#28a745' }}>Ongoing</span>}
         {schedule.status === 'scheduled' && (() => {
