@@ -43,8 +43,13 @@ const SuperPetManagement = ({ darkMode }) => {
   const [pets, setPets] = useState([]);
   const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [totalPets, setTotalPets] = useState(0);
+  const [pageCache, setPageCache] = useState({});
+  const [stats, setStats] = useState({ total: 0, dogs: 0, cats: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
   
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
@@ -58,9 +63,9 @@ const SuperPetManagement = ({ darkMode }) => {
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
   const ZOOM = 0.75;
   
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 5;
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(totalPets / itemsPerPage);
 
 
   const styles = `
@@ -81,6 +86,22 @@ const itemsPerPage = 5;
     @keyframes shimmer {
       0%   { background-position: -400px 0; }
       100% { background-position: 400px 0; }
+    }
+    @keyframes fadeInUp {
+      0%   { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
+    }
+    .skeleton-dark {
+      background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
     }
     @media (max-width: 768px) {
       .mobile-title { font-size: 1.5rem !important; }
@@ -175,9 +196,66 @@ const itemsPerPage = 5;
     `}
   `;
 
+  const CACHE_TTL = 60_000;
+
+  const loadPage = async (page, force = false) => {
+    const cached = pageCache[page];
+    if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
+      setPets(cached.pets);
+      setTotalPets(cached.total);
+      return;
+    }
+
+    page === 1 ? setLoading(true) : setPageLoading(true);
+    try {
+      const [petsRes, ownersRes] = await Promise.all([
+        petAPI.getAll(page, itemsPerPage),
+        ownerAPI.getAllUnpaginated()
+      ]);
+      const newPets = petsRes.data.pets || [];
+      const total  = petsRes.data.total ?? newPets.length;
+
+      setPageCache(prev => ({ [page]: { pets: newPets, total, ts: Date.now() } }));
+      setPets(newPets);
+      setOwners(ownersRes.data.owners || []);
+      setTotalPets(total);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setLoading(false);
+      setPageLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    setStatsLoading(true);
+    try {
+      const res = await petAPI.getAllUnpaginated();
+      const all = res.data.pets || [];
+      const active = all.filter(p => p.is_active);
+      setStats({
+        total: active.length,
+        dogs:  active.filter(p => p.species === 'dog').length,
+        cats:  active.filter(p => p.species === 'cat').length,
+      });
+    } catch {
+      // fail silently
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const loadData = () => loadPage(1);
+
   useEffect(() => {
     loadData();
+    loadStats();
   }, []);
+
+  useEffect(() => {
+    if (currentPage > 1) loadPage(currentPage);
+  }, [currentPage]);
 
   useEffect(() => {
     if (showDropdown === null) return;
@@ -185,24 +263,6 @@ const itemsPerPage = 5;
     window.addEventListener('scroll', closeOnScroll, true);
     return () => window.removeEventListener('scroll', closeOnScroll, true);
   }, [showDropdown]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [petsRes, ownersRes] = await Promise.all([
-        petAPI.getAllUnpaginated(),
-        ownerAPI.getAllUnpaginated()
-      ]);
-      
-      setPets(petsRes.data.pets || []);
-      setOwners(ownersRes.data.owners || []);
-    } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleViewPet = async (pet) => {
     setSelectedPet(pet);
@@ -281,7 +341,6 @@ const itemsPerPage = 5;
     return matchesSearch && matchesSpecies && matchesStatus;
   });
 
-  const totalPages = Math.ceil(filteredPets.length / itemsPerPage);
   const activePets = pets.filter(p => p.is_active);
 
   return (
@@ -354,7 +413,7 @@ const itemsPerPage = 5;
   {[
     {
       label: 'Total Pets',
-      count: activePets.length,
+      count: stats.total,
       img: '/paw.png',
       accent: '#ffc107',
       accentAlpha: 'rgba(255,193,7,0.12)',
@@ -362,7 +421,7 @@ const itemsPerPage = 5;
     },
     {
       label: 'Dogs',
-      count: activePets.filter(p => p.species === 'dog').length,
+      count: stats.dogs,
       img: '/dog_face.png',
       accent: '#FF6B6B',
       accentAlpha: 'rgba(255,107,107,0.12)',
@@ -370,7 +429,7 @@ const itemsPerPage = 5;
     },
     {
       label: 'Cats',
-      count: activePets.filter(p => p.species === 'cat').length,
+      count: stats.cats,
       img: '/cat_face.png',
       accent: '#4ECDC4',
       accentAlpha: 'rgba(78,205,196,0.12)',
@@ -423,7 +482,7 @@ const itemsPerPage = 5;
                 marginBottom: '0.75rem',
                 fontVariantNumeric: 'tabular-nums'
               }}>
-                <AnimatedStatValue value={count} loading={loading} darkMode={darkMode} />
+                <AnimatedStatValue value={count} loading={statsLoading} darkMode={darkMode} />
               </h2>
               <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{
@@ -564,12 +623,42 @@ const itemsPerPage = 5;
               </h5>
             </Card.Header>
             <Card.Body className="mobile-card-body" style={{ padding: '2rem', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}>
-              {loading ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" variant="primary" />
-                  <p className="mt-3 text-muted">Loading pets...</p>
-                </div>
-              ) : filteredPets.length === 0 ? (
+              {loading || pageLoading ? (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+    <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: darkMode ? '#1e1e1e' : '#f8f9fa', marginBottom: '0.25rem' }}>
+      {[15, 20, 12, 15, 15, 12, 11].map((w, i) => (
+        <div key={i} className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: `${w}%`, height: '12px', flexShrink: 0 }} />
+      ))}
+    </div>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: darkMode ? '#1a1a1a' : '#fafafa', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0', animation: `fadeInUp 0.3s ease-out ${i * 0.05}s backwards` }}>
+        <div style={{ width: '15%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '55px', height: '10px' }} />
+        </div>
+        <div style={{ width: '18%', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '80%', height: '13px' }} />
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '65%', height: '10px' }} />
+        </div>
+        <div style={{ width: '12%', flexShrink: 0 }}>
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '60%', height: '12px', margin: '0 auto' }} />
+        </div>
+        <div style={{ width: '15%', flexShrink: 0 }}>
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '75%', height: '12px', margin: '0 auto' }} />
+        </div>
+        <div style={{ width: '15%', flexShrink: 0 }}>
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '70%', height: '12px', margin: '0 auto' }} />
+        </div>
+        <div style={{ width: '12%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '60px', height: '24px', borderRadius: '8px' }} />
+        </div>
+        <div style={{ width: '13%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+        </div>
+      </div>
+    ))}
+  </div>
+) : filteredPets.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-paw text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
                   <h5 style={{ color: '#666666', fontWeight: '600' }}>No Pets Found</h5>
@@ -726,7 +815,7 @@ const itemsPerPage = 5;
       </Row>
 
       {/* Pagination */}
-      {filteredPets.length > itemsPerPage && (
+      {totalPets > itemsPerPage && (
   <Row className="mt-4 mobile-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
     <Col className="d-flex justify-content-between align-items-center">
       {/* Left: Page X of Y */}
