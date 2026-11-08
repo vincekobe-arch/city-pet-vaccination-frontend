@@ -1509,15 +1509,6 @@ const emptyRows = itemsPerPage - paginatedSchedules.length;
             ? <Badge style={{ background: '#ffc107', color: '#000', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Past Due</Badge>
             : <Badge style={{ background: '#007bff', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Upcoming</Badge>;
         })()}
-        {schedule.status === 'completed' && <span style={{ fontWeight: '600', color: '#6c757d' }}>Completed</span>}
-        {schedule.status === 'ongoing' && <span style={{ fontWeight: '600', color: '#28a745' }}>Ongoing</span>}
-        {schedule.status === 'scheduled' && (() => {
-          const today = new Date(); today.setHours(0, 0, 0, 0);
-          const scheduleDate = new Date(schedule.scheduled_date); scheduleDate.setHours(0, 0, 0, 0);
-          return scheduleDate < today
-            ? <span style={{ fontWeight: '600', color: '#ffc107' }}>Past Due</span>
-            : <span style={{ fontWeight: '600', color: '#007bff' }}>Upcoming</span>;
-        })()}
       </td>
       <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
         <div style={{ position: 'relative', display: 'inline-block' }}>
