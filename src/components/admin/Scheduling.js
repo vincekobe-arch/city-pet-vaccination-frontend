@@ -394,7 +394,9 @@ useEffect(() => {
     document.head.appendChild(script);
   }
 }, [allSchedules]);
-  
+  useEffect(() => {
+  setCurrentPage(1);
+}, [filterType, filterBarangay, filterStatus, searchTerm]);
 
 
 
@@ -402,32 +404,37 @@ useEffect(() => {
 
 const loadPage = async (page, force = false) => {
   const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
-
-  page === 1 ? setLoading(true) : setPageLoading(true);
-  setSchedules([]);
-
   const cached = schedulePageCache[cacheKey];
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
-    await new Promise(r => requestAnimationFrame(r));
     setSchedules(cached.schedules);
     setTotalSchedules(cached.total);
-    setLoading(false);
-    setPageLoading(false);
     return;
   }
+
+  page === 1 ? setLoading(true) : setPageLoading(true);
+  // Clear current page data immediately so old rows don't show
+  setSchedules([]);
 
   try {
     const params = new URLSearchParams({
       page,
       limit: itemsPerPage,
-      ...(filterType !== 'all'     && { type: filterType }),
-      ...(filterBarangay !== 'all' && { barangay_id: filterBarangay }),
-      ...(filterStatus !== 'all'   && { status: filterStatus }),
-      ...(searchTerm               && { search: searchTerm }),
+      ...(filterType !== 'all'      && { type: filterType }),
+      ...(filterBarangay !== 'all'  && { barangay_id: filterBarangay }),
+      ...(filterStatus !== 'all'    && { status: filterStatus }),
+      ...(searchTerm                && { search: searchTerm }),
     });
 
-    // Fetch page data alone — this await is what lets React paint the skeleton
-    const pageRes = await scheduleAPI.getAll(params.toString());
+    // Load chart data only on first page load or filter change (page 1 + force)
+    const shouldLoadCharts = page === 1 || force;
+
+    const [pageRes, chartRes] = await Promise.all([
+      scheduleAPI.getAll(params.toString()),
+      shouldLoadCharts
+        ? scheduleAPI.getAll(new URLSearchParams({ page: 1, limit: 999 }).toString())
+        : Promise.resolve(null),
+    ]);
+
     const newSchedules = pageRes.data.schedules || [];
     const total        = pageRes.data.total ?? newSchedules.length;
 
@@ -435,11 +442,8 @@ const loadPage = async (page, force = false) => {
     setSchedules(newSchedules);
     setTotalSchedules(total);
 
-    // Chart data fetched separately so it never blocks the table
-    if (page === 1 || force) {
-      scheduleAPI.getAll(new URLSearchParams({ page: 1, limit: 999 }).toString())
-        .then(chartRes => setAllSchedules(chartRes.data.schedules || []))
-        .catch(() => {});
+    if (chartRes) {
+      setAllSchedules(chartRes.data.schedules || []);
     }
   } catch (err) {
     const { message } = handleAPIError(err);
@@ -683,20 +687,27 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
   };
 
   const handleOpenViewModal = async (schedule) => {
-  setSelectedSchedule(schedule);
-  setShowViewModal(true);
-
+  console.log('📖 Opening view modal for schedule:', schedule);
+  
+  // If it's a vaccination schedule, fetch the per-vaccine counts FIRST
   if (schedule.type === 'vaccination') {
-    setLoadingVaccineCounts(true);
     try {
+      console.log('🔍 Fetching vaccine counts for schedule ID:', schedule.id);
       const response = await scheduleAPI.getVaccineRegistrationCounts(schedule.id);
+      console.log('✅ Vaccine counts received:', response.data.vaccine_counts);
       setVaccineRegistrationCounts(response.data.vaccine_counts || {});
+      
+      // Wait a tiny bit for state to update
+      await new Promise(resolve => setTimeout(resolve, 50));
     } catch (err) {
+      console.error('❌ Error fetching vaccine counts:', err);
       setVaccineRegistrationCounts({});
-    } finally {
-      setLoadingVaccineCounts(false);
     }
   }
+  
+  // Set the selected schedule and show modal AFTER fetching data
+  setSelectedSchedule(schedule);
+  setShowViewModal(true);
 };
 
   const handleCloseModal = () => {
