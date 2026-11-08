@@ -1818,8 +1818,6 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
 </td>
 <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333', fontFamily: 'monospace' }}>{record.microchip_number}</strong>
-  {record.microchip_brand && <><br /><small className="text-muted">Brand: {record.microchip_brand}</small></>}
-  {record.implant_site && <><br /><small className="text-muted">Site: {record.implant_site}</small></>}
 </td>
 <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <span style={{ fontSize: '0.85rem', fontWeight: '500', padding: '0.3rem 0.6rem', borderRadius: '6px', color: '#28a745', background: 'rgba(40,167,69,0.1)' }}>
@@ -2091,8 +2089,8 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Microchip Number</th>
-  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Brand</th>
-  <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Implant Site</th>
+  <th className="mobile-hide" style={{ display: 'none' }}></th>
+  <th className="mobile-hide" style={{ display: 'none' }}></th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
   {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
@@ -2113,12 +2111,8 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
 <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333', fontFamily: 'monospace' }}>{microchip.microchip_number}</strong>
 </td>
-<td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <small style={{ fontWeight: '500', color: '#555' }}>{microchip.microchip_brand || '-'}</small>
-</td>
-<td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <small style={{ fontWeight: '500', color: '#555' }}>{microchip.implant_site || '-'}</small>
-</td>
+<td className="mobile-hide" style={{ display: 'none' }}></td>
+<td className="mobile-hide" style={{ display: 'none' }}></td>
 <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <span style={{ fontSize: '0.85rem', fontWeight: '500', padding: '0.3rem 0.6rem', borderRadius: '6px', color: '#28a745', background: 'rgba(40,167,69,0.1)' }}>
     {microchip.clinic_name || 'City Vet Muntinlupa'}
