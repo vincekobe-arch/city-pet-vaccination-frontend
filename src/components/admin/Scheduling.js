@@ -374,12 +374,16 @@ useEffect(() => {
 }, [schedules]);
   useEffect(() => {
   setPageCache({});
-  setCurrentPage(1);
+  if (currentPage === 1) {
+    loadPage(1, true);
+  } else {
+    setCurrentPage(1);
+  }
 }, [filterType, filterBarangay, filterStatus, searchTerm]);
 
 useEffect(() => {
   loadPage(currentPage);
-}, [currentPage, filterType, filterBarangay, filterStatus, searchTerm]);
+}, [currentPage]);
 
 
 
@@ -393,8 +397,8 @@ useEffect(() => {
   }
 
   page === 1 ? setLoading(true) : setPageLoading(true);
-  // Clear current schedules immediately when changing pages to avoid stale flash
-  setSchedules([]);
+  // Only clear when paginating (not on filter changes)
+  if (page !== currentPage) setSchedules([]);
 
   try {
     const BIG = 999;
