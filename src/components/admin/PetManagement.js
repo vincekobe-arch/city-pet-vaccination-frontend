@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, Modal, Form, InputGroup } from 'react-bootstrap';
-import { petAPI, microchipAPI, handleAPIError } from '../../services/api';
+import { petAPI, ownerAPI, microchipAPI, handleAPIError } from '../../services/api';
 
 
 const PetStatCard = ({ label, count, img, accent, accentAlpha, delay, darkMode, loading }) => {
@@ -102,12 +102,16 @@ const PetStatCard = ({ label, count, img, accent, accentAlpha, delay, darkMode, 
 const PetManagement = ({ darkMode }) => {
  
 const [pets, setPets] = useState([]);
+  const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [totalPets, setTotalPets] = useState(0);
   const [pageCache, setPageCache] = useState({});
+  const [showDropdown, setShowDropdown] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
+  const ZOOM = 0.75;
   
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
@@ -243,19 +247,34 @@ const [statsLoading, setStatsLoading] = useState(true);
 };
 
 useEffect(() => {
-  loadData();
   loadStats();
 }, []);
 
-  useEffect(() => {
-    if (currentPage > 1) loadPage(currentPage);
-  }, [currentPage]);
+useEffect(() => {
+  loadPage(currentPage);
+}, [currentPage]);
+
+useEffect(() => {
+  setPageCache({});
+  if (currentPage === 1) {
+    loadPage(1, true);
+  } else {
+    setCurrentPage(1);
+  }
+}, [filterStatus, filterSpecies]);
+
+useEffect(() => {
+  if (showDropdown === null) return;
+  const closeOnScroll = () => setShowDropdown(null);
+  window.addEventListener('scroll', closeOnScroll, true);
+  return () => window.removeEventListener('scroll', closeOnScroll, true);
+}, [showDropdown]);
 
   const CACHE_TTL = 60_000;
 
 const loadPage = async (page, force = false) => {
-  // Serve from in-memory cache if fresh
-  const cached = pageCache[page];
+  const cacheKey = `${page}`;
+  const cached = pageCache[cacheKey];
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
     setPets(cached.pets);
     setTotalPets(cached.total);
@@ -264,13 +283,16 @@ const loadPage = async (page, force = false) => {
 
   page === 1 ? setLoading(true) : setPageLoading(true);
   try {
-    const res = await petAPI.getAll(page, itemsPerPage);
-    const newPets  = res.data.pets  || [];
-    const total    = res.data.total ?? newPets.length;
+    const [petsRes, ownersRes] = await Promise.all([
+      petAPI.getAll(page, itemsPerPage),
+      ownerAPI.getAllUnpaginated()
+    ]);
+    const newPets = petsRes.data.pets || [];
+    const total   = petsRes.data.total ?? newPets.length;
 
-    // Store only this page — previous page is evicted automatically
-    setPageCache(prev => ({ [page]: { pets: newPets, total, ts: Date.now() } }));
+    setPageCache({ [cacheKey]: { pets: newPets, total, ts: Date.now() } });
     setPets(newPets);
+    setOwners(ownersRes.data.owners || []);
     setTotalPets(total);
   } catch (err) {
     const { message } = handleAPIError(err);
@@ -704,27 +726,29 @@ const loadData = () => loadPage(1);
                               </Badge>
                             </td>
                             <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '13%' }}>
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="p-0"
-                                style={{ textDecoration: 'none' }}
-                                onClick={() => handleViewPet(pet)}
-                                title="View Details"
-                              >
-                                <img 
-                                  src="/view.png" 
-                                  alt="View" 
-                                  style={{ 
-                                    width: '24px', 
-                                    height: '24px',
-                                    transition: 'transform 0.2s ease',
-                                    filter: darkMode ? 'brightness(0) invert(1)' : 'none'
+                              <div style={{ position: 'relative', display: 'inline-block' }}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (showDropdown === pet.id) { setShowDropdown(null); return; }
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const dropdownHeight = 50;
+                                    const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
+                                    setDropdownPos({
+                                      top: nearBottom
+                                        ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
+                                        : rect.top / ZOOM + (rect.height / ZOOM) / 2,
+                                      left: (rect.left / ZOOM) - 185
+                                    });
+                                    setShowDropdown(pet.id);
                                   }}
-                                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-                                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                                />
-                              </Button>
+                                  style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                                  onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1120,6 +1144,42 @@ const loadData = () => loadPage(1);
         </Modal.Footer>
       </Modal>
     </Container>
+
+    {showDropdown !== null && (
+      <>
+        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+        <div style={{
+          position: 'fixed',
+          top: dropdownPos.top,
+          left: dropdownPos.left,
+          transform: 'translateY(-50%)',
+          background: darkMode ? '#1e1e1e' : '#ffffff',
+          border: darkMode ? '1px solid #333333' : '1px solid #e0e0e0',
+          borderRadius: '12px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          minWidth: '170px',
+          zIndex: 1050,
+          overflow: 'hidden',
+          zoom: '0.75',
+        }}>
+          {(() => {
+            const pet = pets.find(p => p.id === showDropdown);
+            if (!pet) return null;
+            return (
+              <button
+                onClick={() => { setShowDropdown(null); handleViewPet(pet); }}
+                style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: darkMode ? '#1e1e1e' : '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: darkMode ? '#f0f0f0' : '#333333', fontWeight: '500' }}
+                onMouseOver={e => e.currentTarget.style.background = darkMode ? '#2a2a2a' : '#f8f9fa'}
+                onMouseOut={e => e.currentTarget.style.background = darkMode ? '#1e1e1e' : '#ffffff'}
+              >
+                <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }} />
+                <span>View Details</span>
+              </button>
+            );
+          })()}
+        </div>
+      </>
+    )}
     </>
   );
 };
