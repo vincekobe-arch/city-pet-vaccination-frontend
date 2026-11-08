@@ -1584,10 +1584,10 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             Vaccination
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.vaccination_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+<td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
   <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
   <small style={{ color: '#aaa', fontWeight: '500' }}>
     <i className="fas fa-barcode me-1"></i>{record.registration_number}
@@ -1662,10 +1662,10 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             Deworming
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.deworming_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+<td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
   <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
   <small style={{ color: '#aaa', fontWeight: '500' }}>
     <i className="fas fa-barcode me-1"></i>{record.registration_number}
@@ -1746,10 +1746,10 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                             Sterilization
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.sterilization_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+<td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
   <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
   <small style={{ color: '#aaa', fontWeight: '500' }}>
     <i className="fas fa-barcode me-1"></i>{record.registration_number}
@@ -1809,10 +1809,10 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                             <i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip
                                           </span>
                                         </td>
-                                        <td className="mobile-hide" style={{ padding: '1rem 2rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                        <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
   <strong style={{ color: '#333' }}>{new Date(record.implant_date).toLocaleDateString()}</strong>
 </td>
-<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+<td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
   <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
   <small style={{ color: '#aaa', fontWeight: '500' }}><i className="fas fa-barcode me-1"></i>{record.registration_number}</small>
 </td>
@@ -1887,7 +1887,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                               <thead style={{ background: '#f8f9fa' }}>
                                 <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 2rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
+  <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Vaccine Type</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Next Due</th>
