@@ -41,6 +41,9 @@ const SuperAdminOwnerManagement = () => {
   const [owners, setOwners] = useState([]);
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
+  const [totalOwners, setTotalOwners] = useState(0);
+  const [pageCache, setPageCache] = useState({});
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterVerif, setFilterVerif] = useState('all');
@@ -87,9 +90,9 @@ const SuperAdminOwnerManagement = () => {
   const [modalCurrentPage, setModalCurrentPage] = useState(1);
   const petsPerPage = 5;
   
-  // Pagination state for main table
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const totalPages = Math.ceil(totalOwners / itemsPerPage);
 
   const styles = `
     @keyframes dropDown {
@@ -109,6 +112,16 @@ const SuperAdminOwnerManagement = () => {
     @keyframes shimmer {
       0%   { background-position: -400px 0; }
       100% { background-position: 400px 0; }
+    }
+    @keyframes fadeInUp {
+      0%   { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 8px;
     }
     @media (max-width: 768px) {
       .mobile-title { font-size: 1.5rem !important; }
@@ -142,27 +155,53 @@ const SuperAdminOwnerManagement = () => {
     }
   `;
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const CACHE_TTL = 60_000;
 
-  const loadData = async () => {
+  const loadPage = async (page, force = false) => {
+    const cacheKey = `${page}`;
+    const cached = pageCache[cacheKey];
+    if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
+      setOwners(cached.owners);
+      setTotalOwners(cached.total);
+      return;
+    }
+
+    page === 1 ? setLoading(true) : setPageLoading(true);
     try {
-      setLoading(true);
       const [ownersRes, petsRes] = await Promise.all([
-        ownerAPI.getAllUnpaginated(),
+        ownerAPI.getAll(page, itemsPerPage),
         petAPI.getAllUnpaginated()
       ]);
-      
-      setOwners(ownersRes.data.owners || []);
+      const newOwners = ownersRes.data.owners || [];
+      const total     = ownersRes.data.total  ?? newOwners.length;
+
+      setPageCache({ [cacheKey]: { owners: newOwners, total, ts: Date.now() } });
+      setOwners(newOwners);
       setPets(petsRes.data.pets || []);
+      setTotalOwners(total);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
       setLoading(false);
+      setPageLoading(false);
     }
   };
+
+  const loadData = () => loadPage(1);
+
+  useEffect(() => {
+    loadPage(currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    setPageCache({});
+    if (currentPage === 1) {
+      loadPage(1, true);
+    } else {
+      setCurrentPage(1);
+    }
+  }, [filterVerif, filterActive]);
 
   const handleViewOwner = async (owner) => {
     setSelectedOwner(owner);
@@ -212,14 +251,9 @@ const SuperAdminOwnerManagement = () => {
     try {
       await ownerAPI_verify(verifOwner.user_id, status);
       setVerifSuccess(`Community status updated to: ${VERIF_CONFIG[status]?.label}`);
-      const [ownersRes, petsRes] = await Promise.all([
-        ownerAPI.getAllUnpaginated(),
-        petAPI.getAllUnpaginated()
-      ]);
-      const freshOwners = ownersRes.data.owners || [];
-      const freshPets   = petsRes.data.pets   || [];
-      setOwners(freshOwners);
-      setPets(freshPets);
+      await loadPage(currentPage, true);
+      const petsRes = await petAPI.getAllUnpaginated();
+      setPets(petsRes.data.pets || []);
       // Sync verifOwner with the fresh data so images reflect immediately
       try {
         const singleRes = await ownerAPI.getByUserId(verifOwner.user_id);
@@ -255,10 +289,10 @@ const SuperAdminOwnerManagement = () => {
   const indexOfLastPet = modalCurrentPage * petsPerPage;
   const indexOfFirstPet = indexOfLastPet - petsPerPage;
   const currentPets = ownerPets.slice(indexOfFirstPet, indexOfLastPet);
-  const totalPages = Math.ceil(ownerPets.length / petsPerPage);
+  const modalTotalPages = Math.ceil(ownerPets.length / petsPerPage);
 
   const handleModalNextPage = () => {
-    if (modalCurrentPage < totalPages) {
+    if (modalCurrentPage < modalTotalPages) {
       setModalCurrentPage(modalCurrentPage + 1);
     }
   };
@@ -525,12 +559,39 @@ const SuperAdminOwnerManagement = () => {
               </h5>
             </Card.Header>
             <Card.Body className="mobile-card-body" style={{ padding: '2rem' }}>
-              {loading ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" variant="primary" />
-                  <p className="mt-3 text-muted">Loading communities...</p>
-                </div>
-              ) : filteredOwners.length === 0 ? (
+              {loading || pageLoading ? (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+    <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa', marginBottom: '0.25rem' }}>
+      {[18, 20, 15, 12, 15, 10].map((w, i) => (
+        <div key={i} className="skeleton" style={{ width: `${w}%`, height: '12px', flexShrink: 0 }} />
+      ))}
+    </div>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0f0f0', animation: `fadeInUp 0.3s ease-out ${i * 0.05}s backwards` }}>
+        <div style={{ width: '18%', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
+          <div className="skeleton" style={{ width: '80%', height: '13px' }} />
+          <div className="skeleton" style={{ width: '50%', height: '10px' }} />
+        </div>
+        <div style={{ width: '20%', flexShrink: 0 }}>
+          <div className="skeleton" style={{ width: '85%', height: '12px' }} />
+        </div>
+        <div style={{ width: '15%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className="skeleton" style={{ width: '70%', height: '12px' }} />
+        </div>
+        <div style={{ width: '12%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className="skeleton" style={{ width: '30px', height: '13px' }} />
+        </div>
+        <div style={{ width: '15%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+          <div className="skeleton" style={{ width: '70px', height: '22px', borderRadius: '999px' }} />
+          <div className="skeleton" style={{ width: '55px', height: '10px' }} />
+        </div>
+        <div style={{ width: '10%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+          <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+        </div>
+      </div>
+    ))}
+  </div>
+) : filteredOwners.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-users text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
                   <h5 style={{ color: '#666666', fontWeight: '600' }}>No Communities Found</h5>
@@ -553,14 +614,9 @@ const SuperAdminOwnerManagement = () => {
                     </thead>
                     <tbody>
                       {(() => {
-                        const startIdx = (currentPage - 1) * itemsPerPage;
-                        const endIdx = currentPage * itemsPerPage;
-                        const currentPageOwners = filteredOwners.slice(startIdx, endIdx);
-                        const emptyRows = itemsPerPage - currentPageOwners.length;
-                        
                         return (
                           <>
-                            {currentPageOwners.map(owner => {
+                            {filteredOwners.map(owner => {
                               const petCount = getOwnerPetCount(owner);
                               const displayFirstName = owner.po_first_name || owner.first_name;
                               const displayLastName = owner.po_last_name || owner.last_name;
@@ -677,11 +733,11 @@ const SuperAdminOwnerManagement = () => {
         </Col>
       </Row>
       {/* Pagination */}
-      {filteredOwners.length > itemsPerPage && (
+      {totalOwners > itemsPerPage && (
         <Row className="mt-4 mobile-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
           <Col className="d-flex justify-content-between align-items-center">
             <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-              Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{Math.ceil(filteredOwners.length / itemsPerPage)}</strong>
+              Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
             </span>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <button
@@ -715,7 +771,6 @@ const SuperAdminOwnerManagement = () => {
               </button>
 
               {(() => {
-                const totalPages = Math.ceil(filteredOwners.length / itemsPerPage);
                 const pages = [];
                 
                 if (totalPages <= 3) {
@@ -784,26 +839,26 @@ const SuperAdminOwnerManagement = () => {
 
               <button
                 className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(filteredOwners.length / itemsPerPage)))}
-                disabled={currentPage === Math.ceil(filteredOwners.length / itemsPerPage)}
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
                 style={{
-                  background: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? '#e9ecef' : '#ffffff',
+                  background: currentPage === totalPages ? '#e9ecef' : '#ffffff',
                   border: '2px solid #dee2e6',
                   borderRadius: '8px',
                   padding: '0.5rem 0.75rem',
                   cursor: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? 'not-allowed' : 'pointer',
                   fontWeight: '600',
-                  color: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? '#adb5bd' : '#333333',
+                  color: currentPage === totalPages ? '#adb5bd' : '#333333',
                   transition: 'all 0.2s'
                 }}
                 onMouseOver={(e) => {
-                  if (currentPage !== Math.ceil(filteredOwners.length / itemsPerPage)) {
+                  if (currentPage !== totalPages) {
                     e.target.style.background = '#f8f9fa';
                     e.target.style.borderColor = '#ffc107';
                   }
                 }}
                 onMouseOut={(e) => {
-                  if (currentPage !== Math.ceil(filteredOwners.length / itemsPerPage)) {
+                  if (currentPage !== totalPages) {
                     e.target.style.background = '#ffffff';
                     e.target.style.borderColor = '#dee2e6';
                   }
@@ -956,7 +1011,7 @@ const SuperAdminOwnerManagement = () => {
                   </div>
 
                   {/* Pagination */}
-                  {totalPages > 1 && (
+                  {modalTotalPages > 1 && (
                     <div className="d-flex justify-content-between align-items-center mt-3">
                       <Button 
                         variant="outline-secondary" 
@@ -969,14 +1024,14 @@ const SuperAdminOwnerManagement = () => {
                       </Button>
                       
                       <span className="text-muted">
-                        Page {modalCurrentPage} / {totalPages}
+                        Page {modalCurrentPage} / {modalTotalPages}
                       </span>
                       
                       <Button 
                         variant="outline-secondary" 
                         size="sm"
                         onClick={handleModalNextPage}
-                        disabled={modalCurrentPage === totalPages}
+                        disabled={modalCurrentPage === modalTotalPages}
                       >
                         Next
                         <i className="fas fa-chevron-right ms-1"></i>
