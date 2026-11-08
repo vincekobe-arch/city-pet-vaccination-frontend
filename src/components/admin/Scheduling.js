@@ -394,9 +394,7 @@ useEffect(() => {
     document.head.appendChild(script);
   }
 }, [allSchedules]);
-  useEffect(() => {
-  setCurrentPage(1);
-}, [filterType, filterBarangay, filterStatus, searchTerm]);
+  
 
 
 
@@ -406,7 +404,6 @@ const loadPage = async (page, force = false) => {
   const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
   const cached = schedulePageCache[cacheKey];
 
-  // Always unload current rows and show skeleton before loading next page
   page === 1 ? setLoading(true) : setPageLoading(true);
   setSchedules([]);
 
