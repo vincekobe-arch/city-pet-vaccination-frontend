@@ -198,9 +198,8 @@ const SuperPetManagement = ({ darkMode }) => {
 
   const CACHE_TTL = 60_000;
 
-  const loadPage = async (page, force = false) => {
-    // Don't cache when filters are involved — always fetch fresh
-    const cacheKey = `${page}_${filterStatus}_${filterSpecies}`;
+    const loadPage = async (page, force = false) => {
+    const cacheKey = `${page}`;
     const cached = pageCache[cacheKey];
     if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
       setPets(cached.pets);
@@ -251,18 +250,20 @@ const SuperPetManagement = ({ darkMode }) => {
   const loadData = () => loadPage(1);
 
   useEffect(() => {
-    loadData();
     loadStats();
   }, []);
 
   useEffect(() => {
-    setCurrentPage(1);
     setPageCache({});
-    loadPage(1, true);
+    if (currentPage === 1) {
+      loadPage(1, true);
+    } else {
+      setCurrentPage(1);
+    }
   }, [filterStatus, filterSpecies]);
 
   useEffect(() => {
-    if (currentPage > 1) loadPage(currentPage);
+    loadPage(currentPage);
   }, [currentPage]);
 
   useEffect(() => {
