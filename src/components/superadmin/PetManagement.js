@@ -574,13 +574,13 @@ const itemsPerPage = 5;
                   <Table hover className="pet-table mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
                     <thead style={{ background: darkMode ? '#1e1e1e' : '#f8f9fa' }}>
                       <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Species/Breed</th>
+  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Species/Breed</th>
   <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Gender</th>
   <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Owner</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Registration Date</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
-  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Action</th>
+  <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
 </tr>
                     </thead>
                     <tbody>
@@ -633,11 +633,14 @@ const itemsPerPage = 5;
                                   className="fas fa-paw" 
                                   style={{ fontSize: '2rem', color: '#ffc107', display: 'none', marginBottom: '0.5rem' }}
                                 ></i>
-                                {pet.breed && (
-                                  <small style={{ fontWeight: '500', marginTop: '0.25rem', color: darkMode ? '#888888' : '#6c757d' }}>
-                                    {pet.breed}
-                                  </small>
-                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontWeight: '600', fontSize: '0.85rem', color: darkMode ? '#f0f0f0' : '#333', textTransform: 'capitalize' }}>{pet.species}</span>
+                                  {pet.breed && (
+                                    <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#aaa' }}>
+                                      {pet.breed}
+                                    </small>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
@@ -673,27 +676,19 @@ const itemsPerPage = 5;
   </span>
 </td>
                             <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '13%' }}>
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="p-0"
-                                style={{ textDecoration: 'none' }}
-                                onClick={() => handleViewPet(pet)}
-                                title="View Details"
-                              >
-                                <img 
-                                  src="/view.png" 
-                                  alt="View" 
-                                  style={{ 
-                                    width: '24px', 
-                                    height: '24px',
-                                    transition: 'transform 0.2s ease',
-                                    filter: darkMode ? 'brightness(0) invert(1)' : 'none'
+                              <div style={{ position: 'relative', display: 'inline-block' }}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewPet(pet);
                                   }}
-                                  onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-                                  onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                                />
-                              </Button>
+                                  style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                                  onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
