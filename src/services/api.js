@@ -194,6 +194,10 @@ export const scheduleAPI = {
   register: (data) => api.post('/schedules/register', data),
   getRegisteredPets: (scheduleId, scheduleType) => 
     api.get(`/schedules/registered-pets/${scheduleId}/${scheduleType}`),
+    getAllSchedules: (page = 1, limit = 5, filters = {}) => {
+    const params = new URLSearchParams({ page, limit, ...filters });
+    return api.get(`/schedules/all?${params}`);
+  },
   
   // ✅ NEW: Get vaccine registration counts per vaccine
   getVaccineRegistrationCounts: (scheduleId) => {

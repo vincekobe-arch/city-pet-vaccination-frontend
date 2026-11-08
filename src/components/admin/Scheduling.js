@@ -59,6 +59,13 @@ const [pageLoading, setPageLoading] = useState(false);
 const [pageCache, setPageCache] = useState({});
 const itemsPerPage = 5;
 const CACHE_TTL = 60_000;
+
+const [tableSchedules, setTableSchedules] = useState([]);
+const [tableTotal, setTableTotal] = useState(0);
+const [tableLoading, setTableLoading] = useState(true);
+const [tablePageLoading, setTablePageLoading] = useState(false);
+const [tablePageCache, setTablePageCache] = useState({});
+const [debouncedSearch, setDebouncedSearch] = useState('');
   
   const [formData, setFormData] = useState({
     schedule_type: '',
@@ -375,16 +382,64 @@ useEffect(() => {
     document.head.appendChild(script);
   }
 }, [schedules]);
-  useEffect(() => {
-  setCurrentPage(1);
-}, [filterType, filterBarangay, filterStatus, searchTerm]);
+  // debounce search so we don't hit the server on every keystroke
+useEffect(() => {
+  const t = setTimeout(() => setDebouncedSearch(searchTerm), 400);
+  return () => clearTimeout(t);
+}, [searchTerm]);
 
 useEffect(() => {
-  if (currentPage === 1) return;
-  setPageLoading(true);
-  const timer = setTimeout(() => setPageLoading(false), 300);
-  return () => clearTimeout(timer);
-}, [currentPage]);
+  setCurrentPage(1);
+  setTablePageCache({});
+}, [filterType, filterBarangay, filterStatus, debouncedSearch]);
+
+const loadTableData = async (page) => {
+  const cacheKey = `${page}|${filterType}|${filterBarangay}|${filterStatus}|${debouncedSearch}`;
+  const cached = tablePageCache[cacheKey];
+  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    setTableSchedules(cached.schedules);
+    setTableTotal(cached.total);
+    return;
+  }
+
+  if (Object.keys(tablePageCache).length === 0) setTableLoading(true);
+  else setTablePageLoading(true);
+
+  try {
+    const filters = {};
+    if (filterType !== 'all') filters.type = filterType;
+    if (filterBarangay !== 'all') filters.barangay = filterBarangay;
+    if (filterStatus !== 'all') filters.status = filterStatus;
+    if (debouncedSearch) filters.search = debouncedSearch;
+
+    const res = await scheduleAPI.getAllSchedules(page, itemsPerPage, filters);
+    const rows = res.data.schedules || [];
+    const total = res.data.total ?? rows.length;
+    setTablePageCache(prev => ({ ...prev, [cacheKey]: { schedules: rows, total, ts: Date.now() } }));
+    setTableSchedules(rows);
+    setTableTotal(total);
+  } catch (err) {
+    const { message } = handleAPIError(err);
+    setError(message);
+  } finally {
+    setTableLoading(false);
+    setTablePageLoading(false);
+  }
+};
+
+useEffect(() => {
+  loadTableData(currentPage);
+}, [currentPage, filterType, filterBarangay, filterStatus, debouncedSearch]);
+
+// fetch the full record (used for View Details / Edit, since table rows are lightweight now)
+const fetchFullSchedule = async (schedule) => {
+  try {
+    const res = await api.get(`/schedules/show/${schedule.id}`);
+    return { ...schedule, ...res.data.schedule };
+  } catch {
+    return schedule;
+  }
+};
 
 
 
@@ -1116,10 +1171,8 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
   return matchesType && matchesBarangay && matchesSearch && matchesStatus;
 });
 
-  const displaySchedules = filteredSchedules;
-const totalPages = Math.ceil(displaySchedules.length / itemsPerPage);
-const startIdx = (currentPage - 1) * itemsPerPage;
-const paginatedSchedules = displaySchedules.slice(startIdx, startIdx + itemsPerPage);
+  const paginatedSchedules = tableSchedules;
+const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
 
   const filteredVaccinationTypes = vaccinationInventory.filter(item => {
   const matchesSpecies = filterVaccineSpecies === 'all' || item.species === filterVaccineSpecies || item.species === 'all';
