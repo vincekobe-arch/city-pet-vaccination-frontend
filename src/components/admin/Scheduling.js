@@ -1458,7 +1458,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
                   {filterStatus === 'all' ? 'All Schedules' : 
                    filterStatus === 'upcoming' ? 'Upcoming Events' : 
                    filterStatus === 'ongoing' ? 'Ongoing Schedules' : 
-                   'Completed Schedules'} ({displaySchedules.length})
+                   'Completed Schedules'} ({tableTotal})
                 </h5>
                 <Button 
   onClick={() => handleOpenModal('create')}
@@ -1489,7 +1489,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
               </div>
             </Card.Header>
 <Card.Body className="sched-card-body" style={{ padding: '2rem' }}>
-              {loading || pageLoading ? (
+              {tableLoading || tablePageLoading ? (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
     <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa' }}>
       {[12, 20, 15, 18, 12, 10, 8].map((w, i) => (
@@ -1504,7 +1504,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
       </div>
     ))}
   </div>
-              ) : displaySchedules.length === 0 ? (
+              ) : tableSchedules.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-calendar-times text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
                   <h5 style={{ color: '#666666', fontWeight: '600' }}>No Events Found</h5>
@@ -1604,7 +1604,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
     <>
       <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
       <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '185px', zIndex: 1050, overflow: 'hidden' }}>
-        <button onClick={() => { setShowDropdown(null); handleOpenViewModal(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+        <button onClick={async () => { setShowDropdown(null); const full = await fetchFullSchedule(schedule); handleOpenViewModal(full); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
           <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span>
         </button>
         {(user?.role === 'super_admin' || user?.role === 'barangay_official') && (
@@ -1614,7 +1614,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
         )}
         {schedule.status !== 'ongoing' && schedule.status !== 'completed' && (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
           <>
-            <button onClick={() => { setShowDropdown(null); handleOpenModal('edit', schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
+            <button onClick={async () => { setShowDropdown(null); const full = await fetchFullSchedule(schedule); handleOpenModal('edit', full); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
               <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Event</span>
             </button>
             <button onClick={() => { setShowDropdown(null); handleDeleteClick(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#fff5f5'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
@@ -1639,7 +1639,7 @@ const totalPages = Math.max(1, Math.ceil(tableTotal / itemsPerPage));
       </Row>
 
       {/* Pagination */}
-      {displaySchedules.length > itemsPerPage && (
+      {tableTotal > itemsPerPage && (
         <Row className="mt-4 sched-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.7s backwards' }}>
           <Col className="d-flex justify-content-between align-items-center">
             <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
