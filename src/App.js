@@ -69,8 +69,8 @@ function ScrollToTop() {
 const getDashboardRoute = (role) => {
   switch (role) {
     case 'super_admin': return '/super-admin/dashboard';
-    case 'barangay_official': return '/admin/dashboard';
-    case 'pet_owner': return '/owner/dashboard';
+    case 'barangay_official': return '/brgy-admin/dashboard';
+    case 'pet_owner': return '/community/dashboard';
     case 'private_clinic': return '/clinic/dashboard';
     default: return '/login';
   }
@@ -167,25 +167,24 @@ function MainContent({ user, handleLogin, darkMode }) {
         <Route path="/super-admin/clinics" element={user?.role === 'super_admin' ? <ClinicManagement /> : <Navigate to="/login" replace />} />
 
         {/* Barangay Official */}
-        <Route path="/admin/dashboard" element={user?.role === 'barangay_official' ? <AdminDashboard darkMode={darkMode} /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/pets" element={user?.role === 'barangay_official' ? <PetManagement darkMode={darkMode} /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/owners" element={user?.role === 'barangay_official' ? <AdminOwnerManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/vaccinations" element={user?.role === 'barangay_official' ? <RecordManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/schedules" element={user?.role === 'barangay_official' ? <Scheduling /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/vet-cards" element={user?.role === 'barangay_official' ? <VetCardManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/reports" element={user?.role === 'barangay_official' ? <ReportManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/map-status" element={user?.role === 'barangay_official' ? <MapStatus /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/inventory" element={user?.role === 'barangay_official' ? <InventoryManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/clinics" element={user?.role === 'barangay_official' ? <ClinicManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/dashboard" element={user?.role === 'barangay_official' ? <AdminDashboard darkMode={darkMode} /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/pets" element={user?.role === 'barangay_official' ? <PetManagement darkMode={darkMode} /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/owners" element={user?.role === 'barangay_official' ? <AdminOwnerManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/vaccinations" element={user?.role === 'barangay_official' ? <RecordManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/schedules" element={user?.role === 'barangay_official' ? <Scheduling /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/vet-cards" element={user?.role === 'barangay_official' ? <VetCardManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/reports" element={user?.role === 'barangay_official' ? <ReportManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/map-status" element={user?.role === 'barangay_official' ? <MapStatus /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/inventory" element={user?.role === 'barangay_official' ? <InventoryManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/brgy-admin/clinics" element={user?.role === 'barangay_official' ? <ClinicManagement /> : <Navigate to="/login" replace />} />
 
         {/* Pet Owner */}
-        <Route path="/owner/dashboard" element={user?.role === 'pet_owner' ? <OwnerDashboard /> : <Navigate to="/login" replace />} />
-        <Route path="/owner/pet-status" element={user?.role === 'pet_owner' ? <PetStatus /> : <Navigate to="/login" replace />} />
-        <Route path="/owner/schedule" element={user?.role === 'pet_owner' ? <OwnerSchedule /> : <Navigate to="/login" replace />} />
-        <Route path="/owner/vet-card" element={user?.role === 'pet_owner' ? <VetCard /> : <Navigate to="/login" replace />} />
-        <Route path="/owner/reports" element={user?.role === 'pet_owner' ? <Reports /> : <Navigate to="/login" replace />} />
-        <Route path="/vet-card-view/:petId" element={<VetCardView />} />
-        <Route path="/owner/map-status" element={user?.role === 'pet_owner' ? <OwnerMapStatus /> : <Navigate to="/login" replace />} />
+        <Route path="/community/dashboard" element={user?.role === 'pet_owner' ? <OwnerDashboard /> : <Navigate to="/login" replace />} />
+        <Route path="/community/pet-status" element={user?.role === 'pet_owner' ? <PetStatus /> : <Navigate to="/login" replace />} />
+        <Route path="/community/schedule" element={user?.role === 'pet_owner' ? <OwnerSchedule /> : <Navigate to="/login" replace />} />
+        <Route path="/community/vet-card" element={user?.role === 'pet_owner' ? <VetCard /> : <Navigate to="/login" replace />} />
+        <Route path="/community/reports" element={user?.role === 'pet_owner' ? <Reports /> : <Navigate to="/login" replace />} />
+        <Route path="/community/map-status" element={user?.role === 'pet_owner' ? <OwnerMapStatus /> : <Navigate to="/login" replace />} />               
         
         {/* Clinic */}
         <Route path="/clinic/dashboard" element={user?.role === 'private_clinic' ? <ClinicDashboard /> : <Navigate to="/login" replace />} />
