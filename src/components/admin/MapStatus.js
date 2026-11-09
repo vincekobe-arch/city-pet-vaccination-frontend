@@ -964,78 +964,64 @@ export default function MapStatus() {
           {/* ── Map Column ── */}
           <Col lg={9} className="order-1 order-lg-2">
   <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-    style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'visible', height: '100%', display: 'flex', flexDirection: 'column', minHeight: '600px', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
-              {/* Map Header Bar */}
-              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'linear-gradient(to bottom, rgba(13,20,36,0.92) 0%, rgba(13,20,36,0.7) 70%, transparent 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem', paddingTop: isFullscreen ? '0.5rem' : '0.9rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
-                    <span style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>Muntinlupa City Reports Map</span>
-                    <span style={{ background: 'rgba(255,193,7,0.2)', color: '#ffd54f', padding: '2px 10px', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700' }}>
-                      {loading ? '...' : `${filteredCount} pins`}
-                    </span>
+    style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', minHeight: '600px', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
+              
+              <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: isFullscreen ? '0' : '18px', marginTop: 0 }}>
+                {/* Map Overlay Header — inside the clipped map div */}
+                <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'linear-gradient(to bottom, rgba(13,20,36,0.95) 0%, rgba(13,20,36,0.75) 65%, transparent 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
+                      <span style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>Muntinlupa City Reports Map</span>
+                      <span style={{ background: 'rgba(255,193,7,0.2)', color: '#ffd54f', padding: '2px 10px', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700' }}>
+                        {loading ? '...' : `${filteredCount} pins`}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => { setIsFullscreen(f => !f); setTimeout(() => { if (mapInstanceRef.current && window.google) { window.google.maps.event.trigger(mapInstanceRef.current, 'resize'); } }, 300); }}
+                      title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                      style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(6px)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', zIndex: 10010 }}
+                      onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
+                      onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
+                    >
+                      <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.82rem', color: '#ffffff' }}></i>
+                    </button>
                   </div>
-                  <button
-onClick={() => {
-                      setIsFullscreen(f => !f);
-                      setTimeout(() => {
-                        if (mapInstanceRef.current && window.google) {
-                          window.google.maps.event.trigger(mapInstanceRef.current, 'resize');
-                        }
-                      }, 300);
-                    }}
-                    title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(6px)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', zIndex: 10010 }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-                  >
-                    <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.82rem', color: '#ffffff' }}></i>
-                  </button>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status:</span>
+                    {[
+                      { v: 'all',              label: 'All',              icon: '🗺️', color: '#ffc107' },
+                      { v: 'pending',          label: 'Pending',          icon: '📋', color: '#888' },
+                      { v: 'suspected_rabies', label: 'Suspected Rabies', icon: '⚠️', color: '#f0c800' },
+                      { v: 'positive_rabies',  label: 'Positive Rabies',  icon: '☣️', color: '#e00000' },
+                      { v: 'ongoing',          label: 'Ongoing',          icon: '🔄', color: '#22bb55' },
+                    ].map(f => (
+                      <div key={f.v} className="filter-wrap">
+                        <button className="filter-btn" onClick={() => setFilterStatus(f.v)} style={{ ...btnStyle(filterStatus === f.v, f.color), padding: '0.38rem 0.55rem', fontSize: '1rem', lineHeight: 1 }}>{f.icon}</button>
+                        <div className="tip">{f.label}</div>
+                      </div>
+                    ))}
+                    <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.2)', margin: '0 0.1rem' }} />
+                    <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type:</span>
+                    {[
+                      { v: 'all',           label: 'All Types',    icon: '🗂️', img: null,                color: '#ffc107' },
+                      { v: 'rabies_case',   label: 'Rabies Case',  icon: null, img: '/rabies.png',        color: '#e00000' },
+                      { v: 'animal_bite',   label: 'Animal Bite',  icon: null, img: '/animal_bite.png',   color: '#ff7700' },
+                      { v: 'animal_rescue', label: 'Animal Rescue',icon: null, img: '/animal_rescue.png', color: '#22bb55' },
+                      { v: 'others',        label: 'Others',       icon: null, img: '/others.png',        color: '#6677ee' },
+                    ].map(f => (
+                      <div key={f.v} className="filter-wrap">
+                        <button className="filter-btn" onClick={() => setFilterType(f.v)}
+                          style={{ ...btnStyle(filterType === f.v, f.color), padding: '0.38rem 0.55rem', fontSize: '1rem', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {f.img
+                            ? <img src={f.img} alt="" style={{ width: '15px', height: '15px', objectFit: 'contain', filter: filterType === f.v ? (f.color === '#ffc107' ? 'none' : 'brightness(0) invert(1)') : 'brightness(0) invert(0.6)' }} onError={e => e.target.style.display='none'} />
+                            : f.icon}
+                        </button>
+                        <div className="tip">{f.label}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-
-                {/* Status + Type Filters — single line */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status:</span>
-                  {[
-                    { v: 'all',              label: 'All',              icon: '🗺️', color: '#ffc107' },
-                    { v: 'pending',          label: 'Pending',          icon: '📋', color: '#888' },
-                    { v: 'suspected_rabies', label: 'Suspected Rabies', icon: '⚠️', color: '#f0c800' },
-                    { v: 'positive_rabies',  label: 'Positive Rabies',  icon: '☣️', color: '#e00000' },
-                    { v: 'ongoing',          label: 'Ongoing',          icon: '🔄', color: '#22bb55' },
-                  ].map(f => (
-                    <div key={f.v} className="filter-wrap">
-                      <button className="filter-btn" onClick={() => setFilterStatus(f.v)} style={{ ...btnStyle(filterStatus === f.v, f.color), padding: '0.38rem 0.55rem', fontSize: '1rem', lineHeight: 1 }}>
-                        {f.icon}
-                      </button>
-                      <div className="tip">{f.label}</div>
-                    </div>
-                  ))}
-
-                  <div style={{ width: '1px', height: '20px', background: 'rgba(0,0,0,0.12)', margin: '0 0.1rem' }} />
-
-                  <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.68rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Type:</span>
-                  {[
-                    { v: 'all',           label: 'All Types',    icon: '🗂️', img: null,                color: '#ffc107' },
-                    { v: 'rabies_case',   label: 'Rabies Case',  icon: null, img: '/rabies.png',        color: '#e00000' },
-                    { v: 'animal_bite',   label: 'Animal Bite',  icon: null, img: '/animal_bite.png',   color: '#ff7700' },
-                    { v: 'animal_rescue', label: 'Animal Rescue',icon: null, img: '/animal_rescue.png', color: '#22bb55' },
-                    { v: 'others',        label: 'Others',       icon: null, img: '/others.png',        color: '#6677ee' },
-                  ].map(f => (
-                    <div key={f.v} className="filter-wrap">
-                      <button className="filter-btn" onClick={() => setFilterType(f.v)}
-                        style={{ ...btnStyle(filterType === f.v, f.color), padding: '0.38rem 0.55rem', fontSize: '1rem', lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {f.img
-                          ? <img src={f.img} alt="" style={{ width: '15px', height: '15px', objectFit: 'contain', filter: filterType === f.v ? (f.color === '#ffc107' ? 'none' : 'brightness(0) invert(1)') : 'brightness(0) invert(0.6)' }} onError={e => e.target.style.display='none'} />
-                          : f.icon}
-                      </button>
-                      <div className="tip">{f.label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Map */}
-              <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: isFullscreen ? '0' : '18px' }}>
                 {loading && (
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.85)', zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
                     <Spinner animation="border" style={{ color: '#ffc107', width: '2.5rem', height: '2.5rem', borderWidth: '3px' }} />
