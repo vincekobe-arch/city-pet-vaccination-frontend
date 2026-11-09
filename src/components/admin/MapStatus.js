@@ -819,7 +819,7 @@ export default function MapStatus() {
         }
       `}</style>
 
-      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
 
         {/* ── Header (unchanged) ── */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -963,10 +963,10 @@ export default function MapStatus() {
 
           {/* ── Map Column ── */}
           <Col lg={9} className="order-1 order-lg-2">
-            <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-  style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'visible', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
+  <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
+    style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'visible', height: '100%', display: 'flex', flexDirection: 'column', minHeight: '600px', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
               {/* Map Header Bar */}
-              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'linear-gradient(to bottom, rgba(13,20,36,0.92) 0%, rgba(13,20,36,0.7) 70%, transparent 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
+              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'linear-gradient(to bottom, rgba(13,20,36,0.92) 0%, rgba(13,20,36,0.7) 70%, transparent 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem', paddingTop: isFullscreen ? '0.5rem' : '0.9rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
