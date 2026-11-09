@@ -343,7 +343,7 @@ const LandingPage = () => {
         * { box-sizing: border-box; }
 
         @media (max-width: 768px) {
-          .hero-title { font-size: 1.6rem !important; text-align: center !important; white-space: nowrap !important; }
+          .hero-title { font-size: 1.45rem !important; text-align: center !important; }
           .hero-sub { font-size: 1rem !important; text-align: center !important; }
           .hero-logo { max-width: 120px !important; }
           .hero-img { width: 100% !important; max-width: 100% !important; margin-top: 1.5rem; }
@@ -437,8 +437,8 @@ const LandingPage = () => {
               <div className="text-center mb-4">
                 <img src="logo.png" alt="PetUnity Logo" className="hero-logo" style={{ maxWidth:'180px', height:'auto', marginBottom:'1.5rem', filter:'drop-shadow(0 0 20px rgba(255,193,7,0.3))', animation:'dropDown 0.8s ease-out, bounce 2s infinite 0.8s' }} />
               </div>
-              <h1 className="hero-title" style={{ fontSize:'3.5rem', fontWeight:'800', marginBottom:'1.5rem', lineHeight:'1.2', animation:'dropDown 0.8s ease-out 0.2s backwards', whiteSpace:'nowrap' }}>
-                Welcome to <span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
+              <h1 className="hero-title" style={{ fontSize:'3.5rem', fontWeight:'800', marginBottom:'1.5rem', lineHeight:'1.2', animation:'dropDown 0.8s ease-out 0.2s backwards' }}>
+                Welcome to{' '}<span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
               </h1>
               <p className="hero-sub" style={{ fontSize:'1.3rem', marginBottom:'2rem', color:'#555555', lineHeight:'1.6', animation:'dropDown 0.8s ease-out 0.4s backwards' }}>
                 Managing pet health and vaccination records across Muntinlupa City. Keep your pets healthy and compliant with ease.
