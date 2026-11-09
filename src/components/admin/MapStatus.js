@@ -809,7 +809,7 @@ export default function MapStatus() {
         .filter-wrap:hover .tip { opacity: 1; transform: translateX(-50%) translateY(0px); }
         .map-overlay-header { pointer-events: none; }
         .map-overlay-header button, .map-overlay-header span, .map-overlay-header div[class="filter-wrap"] { pointer-events: auto; }
-        .map-fullscreen { position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:10001 !important;border-radius:0 !important;margin:0 !important; }
+        .map-fullscreen { position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:10005 !important;border-radius:0 !important;margin:0 !important; }
         .progress-bar-fill { animation: fillBar 1.1s cubic-bezier(.4,0,.2,1) forwards; }
         .panel-row { display:flex; gap:1rem; }
         @media print {
@@ -819,7 +819,7 @@ export default function MapStatus() {
         }
       `}</style>
 
-      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh', paddingTop: '80px', position: 'relative', zIndex: 1 }}>
+      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
 
         {/* ── Header (unchanged) ── */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -964,7 +964,7 @@ export default function MapStatus() {
           {/* ── Map Column ── */}
           <Col lg={9} className="order-1 order-lg-2">
   <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-    style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', minHeight: '600px', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10001, zoom: '1.333' }) }}>
+    style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', minHeight: '600px', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10005, zoom: '1.333' }) }}>
               
               <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: isFullscreen ? '0' : '18px', marginTop: 0 }}>
                 {/* Map Overlay Header — inside the clipped map div */}
