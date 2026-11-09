@@ -819,7 +819,7 @@ export default function MapStatus() {
         }
       `}</style>
 
-      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh', paddingTop: '80px', position: 'relative', zIndex: 1 }}>
 
         {/* ── Header (unchanged) ── */}
         <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
@@ -968,7 +968,7 @@ export default function MapStatus() {
               
               <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: isFullscreen ? '0' : '18px', marginTop: 0 }}>
                 {/* Map Overlay Header — inside the clipped map div */}
-                <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'linear-gradient(to bottom, rgba(13,20,36,0.95) 0%, rgba(13,20,36,0.75) 65%, transparent 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
+                <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 999, background: 'linear-gradient(to bottom, rgba(13,20,36,0.95) 0%, rgba(13,20,36,0.75) 65%, transparent 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                       <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
@@ -1028,7 +1028,7 @@ export default function MapStatus() {
                     <span style={{ fontWeight: '600', color: '#555' }}>Loading reports...</span>
                   </div>
                 )}
-                <div ref={mapRef} style={{ height: '100%', minHeight: isFullscreen ? 'unset' : '530px', width: '100%', display: 'block' }} />
+                <div ref={mapRef} style={{ height: '100%', minHeight: isFullscreen ? 'unset' : '530px', width: '100%', display: 'block', marginTop: isFullscreen ? '0' : '0' }} />
 
                 {/* Custom glass controls */}
                 <div style={{ position: 'absolute', right: 14, bottom: isFullscreen ? 60 : 34, zIndex: 10010, display: 'flex', flexDirection: 'column', gap: '8px' }}>
