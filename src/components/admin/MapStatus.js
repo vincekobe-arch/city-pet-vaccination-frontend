@@ -282,7 +282,7 @@ export default function MapStatus() {
 
         setTimeout(() => {
       const google = window.google;
-      const zoom = 15.85;
+      const zoom = 15.65;
       const pMap = new google.maps.Map(document.getElementById('print-map-inner'), {
         center: { lat, lng },
         zoom,
