@@ -966,7 +966,7 @@ export default function MapStatus() {
             <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
   style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
               {/* Map Header Bar */}
-              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, background: 'transparent', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
+              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'transparent', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
@@ -985,7 +985,7 @@ onClick={() => {
                       }, 300);
                     }}
                     title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(6px)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(6px)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', position: 'relative', zIndex: 10010 }}
                     onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
 onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
                   >
@@ -1045,7 +1045,7 @@ onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
                 <div ref={mapRef} style={{ height: '100%', minHeight: isFullscreen ? 'unset' : '530px', width: '100%', display: 'block' }} />
 
                 {/* Custom glass controls */}
-                <div style={{ position: 'absolute', right: 14, bottom: 34, zIndex: 5, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ position: 'absolute', right: 14, bottom: isFullscreen ? 60 : 34, zIndex: 10010, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
                     <button onClick={recenter} title="Recenter map" style={glassBtn}><i className="fas fa-crosshairs"></i></button>
                   </div>
