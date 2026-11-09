@@ -286,12 +286,12 @@ const streamRef = useRef(null);
   };
 
   useEffect(() => {
-    if (location.pathname === '/brgy-admin/pets' || location.pathname === '/brgy-admin/vet-cards') {
+    if (location.pathname === '/admin/pets' || location.pathname === '/admin/vet-cards') {
       setPetsDropdownOpen(true);
-    }
-    if (location.pathname === '/super-admin/officials' || location.pathname === '/super-admin/owners') {
-      setUsersDropdownOpen(true);
-    }
+      }
+      if (location.pathname === '/super-admin/officials' || location.pathname === '/super-admin/owners') {
+        setUsersDropdownOpen(true);
+      }
   }, [location.pathname]);
 
     useEffect(() => {
@@ -464,18 +464,18 @@ const streamRef = useRef(null);
         ];
       case 'barangay_official':
         return [
-          { label: 'Dashboard', icon: 'fa-home', to: '/brgy-admin/dashboard' },
+          { label: 'Dashboard', icon: 'fa-home', to: '/admin/dashboard' },
           { label: 'Pets', icon: 'fa-paw', dropdown: true, dropdownKey: 'pets', children: [
-            { label: 'Pets', icon: 'fa-dog', to: '/brgy-admin/pets' },
-            { label: 'Vet  Cards', icon: 'fa-id-card', to: '/brgy-admin/vet-cards' },
+            { label: 'Pets', icon: 'fa-dog', to: '/admin/pets' },
+            { label: 'Vet  Cards', icon: 'fa-id-card', to: '/admin/vet-cards' },
           ]},
-          { label: 'Community', icon: 'fa-users', to: '/brgy-admin/owners', badge: pendingVerifCount },
-          { label: 'Records', icon: 'fa-syringe', to: '/brgy-admin/vaccinations' },
-          { label: 'Events', icon: 'fa-calendar-alt', to: '/brgy-admin/schedules' },
-          { label: 'Reports', icon: 'fa-flag', to: '/brgy-admin/reports', badge: pendingReportCount },
-          { label: 'Inventory', icon: 'fa-boxes', to: '/brgy-admin/inventory', badge: expiredBatchCount },
-          { label: 'Map Status', icon: 'fa-map-marked-alt', to: '/brgy-admin/map-status' },
-          { label: 'Clinics', icon: 'fa-hospital', to: '/brgy-admin/clinics' },
+          { label: 'Community', icon: 'fa-users', to: '/admin/owners', badge: pendingVerifCount },
+          { label: 'Records', icon: 'fa-syringe', to: '/admin/vaccinations' },
+          { label: 'Events', icon: 'fa-calendar-alt', to: '/admin/schedules' },
+          { label: 'Reports', icon: 'fa-flag', to: '/admin/reports', badge: pendingReportCount },
+          { label: 'Inventory', icon: 'fa-boxes', to: '/admin/inventory', badge: expiredBatchCount },
+          { label: 'Map Status', icon: 'fa-map-marked-alt', to: '/admin/map-status' },
+          { label: 'Clinics', icon: 'fa-hospital', to: '/admin/clinics' },
         ];
       case 'pet_owner':
         return [
