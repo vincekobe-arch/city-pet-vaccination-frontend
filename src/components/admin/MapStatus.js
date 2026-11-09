@@ -964,9 +964,9 @@ export default function MapStatus() {
           {/* ── Map Column ── */}
           <Col lg={9} className="order-1 order-lg-2">
             <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-  style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
+  style={{ position: 'relative', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'visible', height: '100%', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
               {/* Map Header Bar */}
-              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'transparent', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
+              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'linear-gradient(to bottom, rgba(13,20,36,0.92) 0%, rgba(13,20,36,0.7) 70%, transparent 100%)', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: isFullscreen ? '0.4rem' : '0.75rem', marginBottom: isFullscreen ? '0.4rem' : '0.75rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
@@ -1035,7 +1035,7 @@ onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
               </div>
 
               {/* Map */}
-              <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
+              <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', borderRadius: isFullscreen ? '0' : '18px' }}>
                 {loading && (
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.85)', zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
                     <Spinner animation="border" style={{ color: '#ffc107', width: '2.5rem', height: '2.5rem', borderWidth: '3px' }} />
