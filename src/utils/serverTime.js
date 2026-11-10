@@ -3,6 +3,9 @@ const SERVER_TIME_URL = 'https://api.petunity-muntinlupacity.com/server-time';
 
 const RealDate = Date;
 let offset = 0; // milliseconds: server time minus device time
+try { offset = Number(localStorage.getItem('serverTimeOffset')) || 0; } catch (e) {}
+
+export const getClockOffset = () => offset;
 
 // Warn if the device clock differs from server time by more than this
 const CLOCK_TOLERANCE_MS = 5 * 60 * 1000; // 5 minutes
@@ -43,6 +46,7 @@ export async function syncServerTime() {
     if (data && data.timestamp) {
       // Adjust for network delay
       offset = data.timestamp + (end - start) / 2 - end;
+      try { localStorage.setItem('serverTimeOffset', String(offset)); } catch (e) {}
       clockListeners.forEach(fn => fn(offset));
     }
   } catch (e) {

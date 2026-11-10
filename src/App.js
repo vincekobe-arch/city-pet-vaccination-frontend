@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { syncServerTime, startServerTimeSync, isDeviceClockWrong, onClockChange } from './utils/serverTime';
+import { syncServerTime, startServerTimeSync, isDeviceClockWrong, onClockChange, getClockOffset } from './utils/serverTime';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
@@ -215,16 +215,18 @@ function App() {
   });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
-  const [timeReady, setTimeReady] = useState(false);
+  const [timeKey, setTimeKey] = useState(0);
 
   // Sync with Philippine server time before showing the app
-  const [clockWrong, setClockWrong] = useState(false);
+  const [clockWrong, setClockWrong] = useState(() => isDeviceClockWrong());
   const [clockBannerClosed, setClockBannerClosed] = useState(false);
 
   useEffect(() => {
+    const offsetBefore = getClockOffset();
     syncServerTime().finally(() => {
       setClockWrong(isDeviceClockWrong());
-      setTimeReady(true);
+      // If the real time differs from what the page used, refresh the screens once
+      if (Math.abs(getClockOffset() - offsetBefore) > 60 * 1000) setTimeKey(k => k + 1);
     });
     const stopSync = startServerTimeSync();
     const stopListen = onClockChange(() => setClockWrong(isDeviceClockWrong()));
@@ -286,11 +288,10 @@ function App() {
   }, [user]);
 
 
-  if (!timeReady) return <Loading message="Loading..." />;
   if (isLoggingIn) return <Loading message="Welcome back! Setting up your dashboard..." />;
 
   return (
-    <Router>
+    <Router key={timeKey}>
       <ScrollToTop />
       <div
         className="App min-vh-100"
