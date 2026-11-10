@@ -58,9 +58,15 @@ const PetStatus = () => {
   const [trashLoading, setTrashLoading] = useState(false);
   const [trashPage, setTrashPage] = useState(1);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const [showForceDeleteModal, setShowForceDeleteModal] = useState(false);
-  const [restoreLoading, setRestoreLoading] = useState(false);
-  const [forceDeleteLoading, setForceDeleteLoading] = useState(false);
+const [showForceDeleteModal, setShowForceDeleteModal] = useState(false);
+const [restoreLoading, setRestoreLoading] = useState(false);
+const [forceDeleteLoading, setForceDeleteLoading] = useState(false);
+const [archivedPets, setArchivedPets] = useState([]);
+const [archiveLoading, setArchiveLoading] = useState(false);
+const [archivePage, setArchivePage] = useState(1);
+const [showArchiveModal, setShowArchiveModal] = useState(false);
+const [showUnarchiveModal, setShowUnarchiveModal] = useState(false);
+const [archiveActionLoading, setArchiveActionLoading] = useState(false);
 const [petVetCards, setPetVetCards] = useState([]);
 const [qrDataURL, setQrDataURL] = useState('');
 const [qrLoading, setQrLoading] = useState(false);
@@ -138,6 +144,64 @@ const cropAnimRef = useRef(null);
     return Math.max(0, diff);
   };
 
+  const loadArchived = async () => {
+    try {
+      setArchiveLoading(true);
+      const res = await petAPI.archived();
+      setArchivedPets(res.data.pets || []);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setArchiveLoading(false);
+    }
+  };
+
+  const handleArchivePet = (pet) => {
+    setSelectedPet(pet);
+    setShowArchiveModal(true);
+  };
+
+  const confirmArchivePet = async () => {
+    setArchiveActionLoading(true);
+    setShowArchiveModal(false);
+    try {
+      await petAPI.archive(selectedPet.id);
+      await loadPets();
+      await loadArchived();
+      setUpdateSuccess(`${selectedPet.name} has been archived.`);
+      setTimeout(() => setUpdateSuccess(''), 3000);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setArchiveActionLoading(false);
+    }
+  };
+
+  const handleUnarchivePet = (pet) => {
+    setSelectedPet(pet);
+    setShowUnarchiveModal(true);
+  };
+
+  const confirmUnarchivePet = async () => {
+    setArchiveActionLoading(true);
+    setShowUnarchiveModal(false);
+    try {
+      await petAPI.unarchive(selectedPet.id);
+      await loadPets();
+      await loadArchived();
+      setUpdateSuccess(`${selectedPet.name} has been restored to active.`);
+      setTimeout(() => setUpdateSuccess(''), 3000);
+      setActiveTab('active');
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setArchiveActionLoading(false);
+    }
+  };
+
   const loadTrash = async () => {
     try {
       setTrashLoading(true);
@@ -206,6 +270,7 @@ const cropAnimRef = useRef(null);
     loadPets();
     fetchOwnerId();
     loadTrash();
+    loadArchived();
   }, []);
  
 useEffect(() => {
@@ -857,7 +922,7 @@ const handleRegisterPet = async (e) => {
                   <button
                     onClick={() => setShowDropdown(showDropdown === 'tab' ? null : 'tab')}
                     style={{
-                      background: activeTab === 'trash' ? '#dc3545' : '#f0f0f0',
+                      background: activeTab === 'trash' ? '#dc3545' : activeTab === 'archived' ? '#856404' : '#f0f0f0',
                       border: 'none',
                       borderRadius: '20px',
                       padding: '0.3rem 0.85rem',
@@ -867,13 +932,15 @@ const handleRegisterPet = async (e) => {
                       gap: '0.4rem',
                       fontSize: '0.82rem',
                       fontWeight: '700',
-                      color: activeTab === 'trash' ? '#fff' : '#555',
+                      color: activeTab === 'trash' || activeTab === 'archived' ? '#fff' : '#555',
                       transition: 'all 0.2s',
                       boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
                     }}
                   >
                     {activeTab === 'active' ? (
                       <><i className="fas fa-check-circle" style={{ color: '#198754' }}></i> Active</>
+                    ) : activeTab === 'archived' ? (
+                      <><i className="fas fa-archive"></i> Archived {archivedPets.length > 0 && <span style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '10px', padding: '0 5px' }}>{archivedPets.length}</span>}</>
                     ) : (
                       <><i className="fas fa-trash"></i> Trash {trashedPets.length > 0 && <span style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '10px', padding: '0 5px' }}>{trashedPets.length}</span>}</>
                     )}
@@ -909,6 +976,24 @@ const handleRegisterPet = async (e) => {
                           <i className="fas fa-check-circle" style={{ color: '#198754', width: '16px' }}></i>
                           Active
                           <span style={{ marginLeft: 'auto', background: '#e8f5e9', color: '#198754', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: '700' }}>{pets.length}</span>
+                        </button>
+                        <button
+                          onClick={() => { setActiveTab('archived'); setShowDropdown(null); setArchivePage(1); loadArchived(); }}
+                          style={{
+                            width: '100%', padding: '0.75rem 1rem', border: 'none',
+                            borderTop: '1px solid #f0f0f0',
+                            background: activeTab === 'archived' ? '#fff8e1' : '#fff',
+                            textAlign: 'left', cursor: 'pointer', display: 'flex',
+                            alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem',
+                            color: activeTab === 'archived' ? '#856404' : '#333',
+                            fontWeight: activeTab === 'archived' ? '700' : '500'
+                          }}
+                        >
+                          <i className="fas fa-archive" style={{ color: '#856404', width: '16px' }}></i>
+                          Archived
+                          {archivedPets.length > 0 && (
+                            <span style={{ marginLeft: 'auto', background: '#fff3cd', color: '#856404', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: '700' }}>{archivedPets.length}</span>
+                          )}
                         </button>
                         <button
                           onClick={() => { setActiveTab('trash'); setShowDropdown(null); setTrashPage(1); loadTrash(); }}
@@ -1220,6 +1305,35 @@ const handleRegisterPet = async (e) => {
                           </button>
                         )}
                         
+                        {/* Archive */}
+                        <button
+                          onClick={() => {
+                            setShowDropdown(null);
+                            handleArchivePet(pet);
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.75rem 1rem',
+                            border: 'none',
+                            background: '#ffffff',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            fontSize: '0.9rem',
+                            color: '#856404',
+                            fontWeight: '500',
+                            borderTop: '1px solid #f0f0f0',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#fff8e1'}
+                          onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
+                        >
+                          <i className="fas fa-archive" style={{ width: '18px', textAlign: 'center', color: '#856404' }}></i>
+                          <span>Archive Pet</span>
+                        </button>
+
                         {/* Only show Edit button if pet has NO records */}
                         {!checkPetHasRecords(pet) && (
                           <button
@@ -1779,6 +1893,76 @@ const handleRegisterPet = async (e) => {
           )}
         </>
       )}
+
+      {/* ===== ARCHIVE MODAL ===== */}
+      <Modal show={showArchiveModal} onHide={() => setShowArchiveModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-archive me-2" style={{ color: '#856404' }}></i>Archive Pet
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {selectedPet && (
+            <>
+              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                Are you sure you want to archive <strong style={{ color: '#856404' }}>{selectedPet.name}</strong>? The pet will become inactive.
+              </p>
+              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #856404' }}>
+                <strong style={{ fontSize: '1.1rem' }}>{selectedPet.name}</strong><br />
+                <small className="text-muted">
+                  <i className="fas fa-id-card me-1"></i>
+                  {selectedPet.registration_number} • <span className="text-capitalize">{selectedPet.species}</span> • {selectedPet.breed || 'Mixed'}
+                </small>
+              </div>
+              <Alert variant="warning" className="mt-3 mb-0">
+                <i className="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> All existing records are preserved. The pet will not appear in active listings. You can unarchive anytime.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowArchiveModal(false)} disabled={archiveActionLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
+          <Button onClick={confirmArchivePet} disabled={archiveActionLoading} style={{ background: '#856404', border: 'none', borderRadius: '8px', fontWeight: '600', padding: '0.75rem 1.5rem' }}>
+            {archiveActionLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-archive me-2"></i>Archive Pet</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* ===== UNARCHIVE MODAL ===== */}
+      <Modal show={showUnarchiveModal} onHide={() => setShowUnarchiveModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-box-open me-2" style={{ color: '#856404' }}></i>Unarchive Pet
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {selectedPet && (
+            <>
+              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                Restore <strong style={{ color: '#856404' }}>{selectedPet.name}</strong> back to your active pets?
+              </p>
+              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #856404' }}>
+                <strong style={{ fontSize: '1.1rem' }}>{selectedPet.name}</strong><br />
+                <small className="text-muted">
+                  <i className="fas fa-id-card me-1"></i>
+                  {selectedPet.registration_number} • <span className="text-capitalize">{selectedPet.species}</span> • {selectedPet.breed || 'Mixed'}
+                </small>
+              </div>
+              <Alert variant="success" className="mt-3 mb-0">
+                <i className="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> This pet and all its records will become visible again in your active list.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowUnarchiveModal(false)} disabled={archiveActionLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
+          <Button onClick={confirmUnarchivePet} disabled={archiveActionLoading} style={{ background: '#856404', border: 'none', borderRadius: '8px', fontWeight: '600', padding: '0.75rem 1.5rem' }}>
+            {archiveActionLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-box-open me-2"></i>Unarchive Pet</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* ===== RESTORE MODAL ===== */}
       <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
