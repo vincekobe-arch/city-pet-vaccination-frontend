@@ -1033,7 +1033,27 @@ const RECORD_TYPE_META = {
   microchip:     ['fa-microchip', '#4361ee', 'Microchip'],
 };
 
-// Which session this new record will be (archived records don't count)
+// Finds an active record that blocks restoring an archived one
+  // (same pet + same vaccine/dewormer + same date)
+  const findRestoreConflict = (rec) => {
+    if (!rec || !(rec.record_status === 'archived' || rec.deleted_at)) return null;
+    const isVac = rec.recordType === 'vaccination';
+    if (!isVac && rec.recordType !== 'deworming') return null;
+    const list = isVac ? vaccinations : dewormings;
+    const dateKey = isVac ? 'vaccination_date' : 'deworming_date';
+    const itemKeys = isVac ? ['clinic_item_id', 'inventory_id', 'vaccination_type_id'] : ['clinic_item_id', 'deworming_type_id'];
+    const itemKey = itemKeys.find(k => rec[k]);
+    const day = (v) => String(v || '').slice(0, 10);
+    return list.find(r =>
+      r.id !== rec.id &&
+      String(r.pet_id) === String(rec.pet_id) &&
+      !r.deleted_at && r.record_status !== 'archived' &&
+      day(r[dateKey]) === day(rec[dateKey]) &&
+      (itemKey ? String(r[itemKey]) === String(rec[itemKey]) : true)
+    ) || null;
+  };
+
+  // Which session this new record will be (archived records don't count)
 const getSessionNumber = () => {
   if (modalMode !== 'create' || formData.record_type !== 'vaccination' || !formData.pet_id || !formData.vaccination_type_id) return 1;
   return vaccinations.filter(r =>
@@ -3543,9 +3563,47 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
             const isMissed = recordToRestore.record_status === 'missed';
             const hasDue = recordToRestore.recordType === 'vaccination' || recordToRestore.recordType === 'deworming';
             const oldDue = recordToRestore.next_due_date ? String(recordToRestore.next_due_date).slice(0, 10) : '';
+            const conflict = findRestoreConflict(recordToRestore);
+            const isVacRec = recordToRestore.recordType === 'vaccination';
+            const fmtDate = (v) => v ? new Date(String(v).slice(0, 10)).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
             return (
               <>
-                {restoreError && (
+                {conflict && (
+                  <div style={{ background: 'rgba(220,53,69,0.06)', border: '2px solid #dc3545', borderRadius: '12px', padding: '1rem 1.1rem', marginBottom: '1.25rem' }}>
+                    <div className="d-flex align-items-start" style={{ gap: '0.75rem' }}>
+                      <i className="fas fa-ban" style={{ color: '#dc3545', fontSize: '1.3rem', marginTop: '2px', flexShrink: 0 }}></i>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '800', color: '#b02a37', marginBottom: '0.25rem' }}>Cannot restore this record</div>
+                        <div style={{ fontSize: '0.88rem', color: '#6c2a30', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+                          <strong>{recordToRestore.pet_name}</strong> already has an <strong>active</strong> {isVacRec ? 'vaccination' : 'deworming'} record
+                          with the same {isVacRec ? 'vaccine' : 'dewormer'} on the same date.
+                        </div>
+                        <div style={{ background: '#ffffff', border: '1px solid #f1c2c7', borderRadius: '8px', padding: '0.75rem 0.9rem', fontSize: '0.85rem' }}>
+                          <div style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#999', marginBottom: '0.5rem' }}>
+                            <i className="fas fa-check-circle me-1" style={{ color: '#28a745' }}></i>Active record
+                          </div>
+                          {[
+                            [isVacRec ? 'Vaccine' : 'Dewormer', isVacRec ? conflict.vaccine_name : conflict.deworming_name],
+                            ['Date', fmtDate(isVacRec ? conflict.vaccination_date : conflict.deworming_date)],
+                            ['Next Due', conflict.next_due_date ? fmtDate(conflict.next_due_date) : 'Not set'],
+                            ['Veterinarian', conflict.veterinarian_name || 'Not specified'],
+                            ['Recorded By', conflict.recorded_by || 'City Vet Muntinlupa'],
+                          ].map(([k, v]) => (
+                            <div key={k} className="d-flex justify-content-between" style={{ padding: '0.2rem 0', gap: '1rem' }}>
+                              <span style={{ color: '#888' }}>{k}</span>
+                              <strong style={{ color: '#333', textAlign: 'right' }}>{v || '—'}</strong>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#6c2a30', marginTop: '0.65rem' }}>
+                          <i className="fas fa-lightbulb me-1" style={{ color: '#ffc107' }}></i>
+                          Archive or edit the active record first if you want to keep this one instead.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {restoreError && !conflict && (
                   <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{restoreError}</Alert>
                 )}
                 <p style={{ fontSize: '1rem', marginBottom: '1.25rem', color: '#444' }}>
@@ -3565,7 +3623,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                     </div>
                   )}
                 </div>
-                {hasDue && (
+                {hasDue && !conflict && (
                   <div className="mt-3">
                     <Form.Group className="mb-3">
                       <Form.Label style={{ fontWeight: '600', color: '#333' }}>
@@ -3612,7 +3670,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
           <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}
             style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
           <Button variant="success" onClick={handleRestoreConfirm}
-            disabled={restoreLoading || (recordToRestore?.record_status === 'missed' && !restoreDueDate)}
+            disabled={restoreLoading || (recordToRestore?.record_status === 'missed' && !restoreDueDate) || !!findRestoreConflict(recordToRestore)}
             style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
             {restoreLoading
               ? <><Spinner size="sm" animation="border" className="me-2" />Restoring...</>
