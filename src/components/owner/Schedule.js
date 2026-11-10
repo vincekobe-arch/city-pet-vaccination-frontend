@@ -945,13 +945,19 @@ const confirmCancelVaccine = async () => {
         }
       }
 
-      // Show vaccination confirmation modal before proceeding
+      // Show requirements confirmation modal before proceeding
       setPendingVaccinationSubmit(true);
       setShowVaccinationConfirmModal(true);
       return;
-    } else if (scheduleType === 'deworming' || scheduleType === 'sterilization') {
+    } else if (scheduleType === 'deworming') {
       if (registrationData.pets_registered.length === 0) {
         setRegisterError('Please select at least one pet to register');
+        return;
+      }
+      // Show requirements confirmation modal for sterilization and microchip
+      if (scheduleType === 'sterilization' || scheduleType === 'microchip') {
+        setPendingVaccinationSubmit(true);
+        setShowVaccinationConfirmModal(true);
         return;
       }
     } else if (scheduleType === 'other') {
@@ -1052,38 +1058,48 @@ const confirmCancelVaccine = async () => {
   const handleVaccinationConfirmProceed = async () => {
     setShowVaccinationConfirmModal(false);
     setPendingVaccinationSubmit(null);
-    // Re-trigger actual submission skipping the vaccination intercept
     setRegisterLoading(true);
     setRegisterError('');
     setRegisterSuccess('');
 
     try {
-      const submitData = {
+      let submitData = {
         schedule_id: selectedSchedule.id,
         schedule_type: scheduleType,
         special_requests: registrationData.special_requests,
         notes: registrationData.notes,
-        pets_with_vaccines: compatiblePets
+      };
+
+      let registeredPetsSummary = [];
+
+      if (scheduleType === 'vaccination') {
+        submitData.pets_with_vaccines = compatiblePets
           .filter(p => p.selectedVaccines && p.selectedVaccines.length > 0)
           .map(pet => ({
             pet_id: pet.id,
             selected_vaccines: pet.selectedVaccines
-          }))
-      };
+          }));
+
+        registeredPetsSummary = compatiblePets
+          .filter(p => p.selectedVaccines && p.selectedVaccines.length > 0)
+          .map(pet => ({
+            name: pet.name,
+            species: pet.species,
+            breed: pet.breed,
+            vaccines: pet.selectedVaccines.map(vid => {
+              const inv = inventoryItems.find(i => i.id === parseInt(vid));
+              return inv?.item_name || inv?.name || `Vaccine #${vid}`;
+            })
+          }));
+      } else {
+        // sterilization or microchip
+        submitData.pets_registered = registrationData.pets_registered;
+        registeredPetsSummary = myPets
+          .filter(p => registrationData.pets_registered.includes(p.id))
+          .map(pet => ({ name: pet.name, species: pet.species, breed: pet.breed, vaccines: [] }));
+      }
 
       await scheduleAPI.register(submitData);
-
-      const registeredPetsSummary = compatiblePets
-        .filter(p => p.selectedVaccines && p.selectedVaccines.length > 0)
-        .map(pet => ({
-          name: pet.name,
-          species: pet.species,
-          breed: pet.breed,
-          vaccines: pet.selectedVaccines.map(vid => {
-            const inv = inventoryItems.find(i => i.id === parseInt(vid));
-            return inv?.item_name || inv?.name || `Vaccine #${vid}`;
-          })
-        }));
 
       setLastRegistrationData({
         schedule: selectedSchedule,
@@ -1091,7 +1107,7 @@ const confirmCancelVaccine = async () => {
         pets: registeredPetsSummary
       });
 
-      setFloatingSuccess(`Successfully registered for vaccination!`);
+      setFloatingSuccess(`Successfully registered for ${scheduleType}!`);
       await loadData();
       setShowRegisterModal(false);
       setRegisterSuccess('');
@@ -2247,7 +2263,7 @@ const getVaccineDetails = (schedule) => {
         <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
           <Modal.Title style={{ fontWeight: '800', color: '#7a5000' }}>
             <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }} />
-            Vaccination Requirements
+            {scheduleType === 'sterilization' ? 'Sterilization' : scheduleType === 'microchip' ? 'Microchipping' : 'Vaccination'} Requirements
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ padding: '1.75rem' }}>
@@ -2258,7 +2274,14 @@ const getVaccineDetails = (schedule) => {
               Are you sure your pet is 3 months old or above?
             </div>
             <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: 0, lineHeight: 1.6 }}>
-              The minimum age requirement for vaccination drives is <strong>3 months (12 weeks) old</strong>. Pets younger than this cannot safely receive vaccines.
+              The minimum age requirement for{' '}
+              {scheduleType === 'sterilization' ? 'sterilization' : scheduleType === 'microchip' ? 'microchipping' : 'vaccination'}{' '}
+              drives is <strong>3 months old</strong>.{' '}
+              {scheduleType === 'sterilization'
+                ? 'Pets younger than this are not physically ready for surgery.'
+                : scheduleType === 'microchip'
+                ? 'Pets younger than this may be too small for safe microchip implantation.'
+                : 'Pets younger than this cannot safely receive vaccines.'}
             </p>
           </div>
 
@@ -2269,11 +2292,21 @@ const getVaccineDetails = (schedule) => {
               Full Requirements Checklist
             </div>
             {[
-              { icon: 'fa-birthday-cake', color: '#ffc107', text: 'At least 3 months (12 weeks) old' },
+              { icon: 'fa-birthday-cake', color: '#ffc107', text: 'At least 3 months old' },
               { icon: 'fa-heartbeat', color: '#dc3545', text: 'Pet must be visibly healthy — no fever, vomiting, diarrhea, or lethargy' },
               { icon: 'fa-utensils', color: '#0d6efd', text: 'Well-fed and hydrated before the event' },
               { icon: 'fa-bath', color: '#0dcaf0', text: 'Bathed or clean to prevent cross-contamination' },
               { icon: 'fa-leash', color: '#6f42c1', text: 'Dogs must be on a leash; cats in a carrier' },
+              ...(scheduleType === 'sterilization' ? [
+                { icon: 'fa-clock', color: '#fd7e14', text: 'Fasting required: no food 8–12 hours before the procedure' },
+                { icon: 'fa-ban', color: '#dc3545', text: 'Female pets should not be in heat or pregnant at the time of surgery' },
+              ] : []),
+              ...(scheduleType === 'microchip' ? [
+                { icon: 'fa-id-card', color: '#198754', text: 'Bring any existing pet documents or records if available' },
+              ] : []),
+              ...(scheduleType === 'vaccination' ? [
+                { icon: 'fa-syringe', color: '#198754', text: 'Bring previous vaccination records if available' },
+              ] : []),
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', marginBottom: '0.55rem' }}>
                 <i className={`fas ${item.icon}`} style={{ color: item.color, fontSize: '0.85rem', marginTop: '3px', flexShrink: 0 }} />
@@ -2290,9 +2323,20 @@ const getVaccineDetails = (schedule) => {
             </div>
             {[
               'If your pet was adopted, start counting their age from the date you adopted them.',
-              'If you are unsure of your pet\'s exact age, ask a vet for an estimated age based on teeth/size.',
+              'If you are unsure of your pet\'s exact age, consult a vet for an estimated age based on teeth and size.',
               'A pet showing any signs of illness on the event day should be rescheduled for a future drive.',
-              'Bring any previous vaccination records if available.',
+              ...(scheduleType === 'sterilization' ? [
+                'Post-surgery, keep your pet calm and restrict activity for at least 7–10 days.',
+                'Prepare a clean, quiet recovery space at home before the event.',
+              ] : []),
+              ...(scheduleType === 'microchip' ? [
+                'The microchip procedure is quick and similar to a routine injection.',
+                'Keep the microchip registration details safe — this is your pet\'s permanent ID.',
+              ] : []),
+              ...(scheduleType === 'vaccination' ? [
+                'Monitor your pet for 30 minutes after vaccination for any allergic reactions.',
+                'Keep your pet\'s vaccination card safe for future reference.',
+              ] : []),
             ].map((tip, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.45rem' }}>
                 <i className="fas fa-circle" style={{ color: '#0d6efd', fontSize: '0.4rem', marginTop: '6px', flexShrink: 0 }} />
@@ -2306,7 +2350,7 @@ const getVaccineDetails = (schedule) => {
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
               <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '2px', flexShrink: 0 }} />
               <span style={{ fontSize: '0.82rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
-                If you proceed and your pet is found to be underage, unhealthy, or unqualified on the day of the event, <strong>your reserved slot will be forfeited</strong> and cannot be transferred or refunded.
+                If you proceed and your pet is found to be underage, unhealthy, or unqualified on the day of the event, <strong>your reserved slot will be forfeited (masasayang)</strong> and cannot be transferred or refunded.
               </span>
             </div>
           </div>
