@@ -2263,7 +2263,7 @@ const getVaccineDetails = (schedule) => {
         <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
           <Modal.Title style={{ fontWeight: '800', color: '#7a5000' }}>
             <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }} />
-            {scheduleType === 'sterilization' ? 'Sterilization' : scheduleType === 'microchip' ? 'Microchipping' : 'Vaccination'} Requirements
+            Event Requirements & Reminders
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ padding: '1.75rem' }}>
@@ -2274,14 +2274,12 @@ const getVaccineDetails = (schedule) => {
               Are you sure your pet is 3 months old or above?
             </div>
             <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: 0, lineHeight: 1.6 }}>
-              The minimum age requirement for{' '}
-              {scheduleType === 'sterilization' ? 'sterilization' : scheduleType === 'microchip' ? 'microchipping' : 'vaccination'}{' '}
-              drives is <strong>3 months old</strong>.{' '}
+              The minimum age requirement for this event is <strong>3 months old</strong>.{' '}
               {scheduleType === 'sterilization'
                 ? 'Pets younger than this are not physically ready for surgery.'
                 : scheduleType === 'microchip'
                 ? 'Pets younger than this may be too small for safe microchip implantation.'
-                : 'Pets younger than this cannot safely receive vaccines.'}
+                : 'Pets younger than this may not respond safely to the procedure.'}
             </p>
           </div>
 
