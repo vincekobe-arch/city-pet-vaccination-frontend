@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { syncServerTime, startServerTimeSync } from './utils/serverTime';
+import { syncServerTime, startServerTimeSync, isDeviceClockWrong, onClockChange } from './utils/serverTime';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
@@ -218,10 +218,23 @@ function App() {
   const [timeReady, setTimeReady] = useState(false);
 
   // Sync with Philippine server time before showing the app
+  const [clockWrong, setClockWrong] = useState(false);
+  const [clockBannerClosed, setClockBannerClosed] = useState(false);
+
   useEffect(() => {
-    syncServerTime().finally(() => setTimeReady(true));
-    return startServerTimeSync();
+    syncServerTime().finally(() => {
+      setClockWrong(isDeviceClockWrong());
+      setTimeReady(true);
+    });
+    const stopSync = startServerTimeSync();
+    const stopListen = onClockChange(() => setClockWrong(isDeviceClockWrong()));
+    return () => { stopSync(); stopListen(); };
   }, []);
+
+  // Show the banner again if the clock becomes wrong after being fixed
+  useEffect(() => {
+    if (clockWrong) setClockBannerClosed(false);
+  }, [clockWrong]);
 
   const handleLogin = (userData) => {
     setIsLoggingIn(true);
@@ -289,6 +302,55 @@ function App() {
         }}
       >
         {/* Main layout: sidebar + content side by side */}
+        {clockWrong && !clockBannerClosed && (
+          <div
+            role="alert"
+            style={{
+              position: 'fixed',
+              left: '50%',
+              bottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+              transform: 'translateX(-50%)',
+              width: 'calc(100% - 32px)',
+              maxWidth: '520px',
+              zIndex: 99998,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '0.75rem',
+              padding: '0.9rem 1rem',
+              borderRadius: '12px',
+              background: darkMode ? '#2b2410' : '#fff8e1',
+              border: '2px solid #ffc107',
+              color: darkMode ? '#f5f5f5' : '#333333',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+              fontSize: '0.88rem',
+            }}
+          >
+            <i className="fas fa-clock" style={{ color: '#ffc107', fontSize: '1.3rem', marginTop: '2px', flexShrink: 0 }}></i>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>
+                Your device’s date or time appears to be incorrect
+              </div>
+              <div style={{ opacity: 0.85 }}>
+                PetUnity is using Philippine Standard Time for all records. Current PH time:{' '}
+                <strong>
+                  {new Date().toLocaleString('en-PH', {
+                    timeZone: 'Asia/Manila',
+                    month: 'long', day: 'numeric', year: 'numeric',
+                    hour: 'numeric', minute: '2-digit',
+                  })}
+                </strong>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setClockBannerClosed(true)}
+              aria-label="Close"
+              style={{ background: 'none', border: 'none', color: 'inherit', opacity: 0.6, cursor: 'pointer', fontSize: '1rem', padding: 0, flexShrink: 0 }}
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+        )}
         <SessionInvalidatedModal />
         {user && <IdleTimeoutManager user={user} onLogout={handleLogout} />}
       <SidebarLayout user={user} onLogout={handleLogout} darkMode={darkMode} setDarkMode={setDarkMode} handleLogin={handleLogin} />
