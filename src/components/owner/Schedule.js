@@ -72,6 +72,8 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
   const [currentRegistrations, setCurrentRegistrations] = useState([]);
   const [vaccineToCancel, setVaccineToCancel] = useState(null);
   const [selectedVaccinesToCancel, setSelectedVaccinesToCancel] = useState({});
+  const [showVaccinationConfirmModal, setShowVaccinationConfirmModal] = useState(false);
+  const [pendingVaccinationSubmit, setPendingVaccinationSubmit] = useState(null);
 
   // Verification states
   const [ownerProfile, setOwnerProfile]       = useState(null);
@@ -356,10 +358,10 @@ setMicrochipSchedules(upcomingMicrochips);
     }
     
     if (scheduleType === 'vaccination') {
-      if (age.weeks < 6) {
+      if (age.months < 3) {
         return { 
           meets: false, 
-          reason: `Must be at least 6 weeks old (currently ${age.weeks} weeks old)` 
+          reason: `Must be at least 3 months old (currently ${age.months} months old)` 
         };
       }
     } else if (scheduleType === 'deworming') {
@@ -942,6 +944,11 @@ const confirmCancelVaccine = async () => {
           return;
         }
       }
+
+      // Show vaccination confirmation modal before proceeding
+      setPendingVaccinationSubmit(true);
+      setShowVaccinationConfirmModal(true);
+      return;
     } else if (scheduleType === 'deworming' || scheduleType === 'sterilization') {
       if (registrationData.pets_registered.length === 0) {
         setRegisterError('Please select at least one pet to register');
@@ -1037,6 +1044,63 @@ const confirmCancelVaccine = async () => {
     } catch (err) {
       const { message } = handleAPIError(err);
       setRegisterError(message);
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
+  const handleVaccinationConfirmProceed = async () => {
+    setShowVaccinationConfirmModal(false);
+    setPendingVaccinationSubmit(null);
+    // Re-trigger actual submission skipping the vaccination intercept
+    setRegisterLoading(true);
+    setRegisterError('');
+    setRegisterSuccess('');
+
+    try {
+      const submitData = {
+        schedule_id: selectedSchedule.id,
+        schedule_type: scheduleType,
+        special_requests: registrationData.special_requests,
+        notes: registrationData.notes,
+        pets_with_vaccines: compatiblePets
+          .filter(p => p.selectedVaccines && p.selectedVaccines.length > 0)
+          .map(pet => ({
+            pet_id: pet.id,
+            selected_vaccines: pet.selectedVaccines
+          }))
+      };
+
+      await scheduleAPI.register(submitData);
+
+      const registeredPetsSummary = compatiblePets
+        .filter(p => p.selectedVaccines && p.selectedVaccines.length > 0)
+        .map(pet => ({
+          name: pet.name,
+          species: pet.species,
+          breed: pet.breed,
+          vaccines: pet.selectedVaccines.map(vid => {
+            const inv = inventoryItems.find(i => i.id === parseInt(vid));
+            return inv?.item_name || inv?.name || `Vaccine #${vid}`;
+          })
+        }));
+
+      setLastRegistrationData({
+        schedule: selectedSchedule,
+        scheduleType,
+        pets: registeredPetsSummary
+      });
+
+      setFloatingSuccess(`Successfully registered for vaccination!`);
+      await loadData();
+      setShowRegisterModal(false);
+      setRegisterSuccess('');
+      setShowConfirmRegistrationModal(true);
+      setTimeout(() => setFloatingSuccess(''), 4000);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setRegisterError(message);
+      setShowRegisterModal(true);
     } finally {
       setRegisterLoading(false);
     }
@@ -1155,15 +1219,21 @@ const getVaccineDetails = (schedule) => {
                 style={{ fontSize: '1.5rem', color: '#000000', animation: 'float 3s ease-in-out infinite' }}
               />
               <h2 className="sched-page-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>Event Calendar</h2>
-              {!verifLoading && ownerProfile && (() => {
-                const cfg = VERIFICATION_CONFIG[ownerProfile.verification_status] || VERIFICATION_CONFIG.not_verified;
-                return (
-                  <span style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.3rem 0.85rem', borderRadius:'999px', background: cfg.color + '18', border:`1.5px solid ${cfg.color}40`, fontSize:'0.78rem', fontWeight:'700', color: cfg.color }}>
-                    <i className={`fas ${cfg.icon}`} style={{ fontSize:'0.75rem' }} />
-                    {cfg.label}
-                  </span>
-                );
-              })()}
+              <button
+              onClick={() => setShowVaccinationConfirmModal(true)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.35rem 0.9rem', borderRadius: '999px',
+                background: 'rgba(255,193,7,0.12)', border: '1.5px solid rgba(255,193,7,0.4)',
+                fontSize: '0.78rem', fontWeight: '700', color: '#b38600',
+                cursor: 'pointer', transition: 'all 0.2s'
+              }}
+              onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,193,7,0.22)'; }}
+              onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,193,7,0.12)'; }}
+            >
+              <i className="fas fa-clipboard-list" style={{ fontSize: '0.75rem' }} />
+              Requirements Reminder
+            </button>
             </div>
             {!verifLoading && ownerProfile?.verification_status === 'pending' && (
               <div style={{ marginTop:'0.5rem', fontSize:'0.8rem', color:'#856404', display:'flex', alignItems:'center', gap:'0.4rem' }}>
@@ -2171,6 +2241,97 @@ const getVaccineDetails = (schedule) => {
           </Card>
         </>
       )}
+
+      {/* Vaccination Pre-Submit Confirmation Modal */}
+      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} size="md" centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
+          <Modal.Title style={{ fontWeight: '800', color: '#7a5000' }}>
+            <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }} />
+            Vaccination Requirements
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '1.75rem' }}>
+          {/* Age confirmation */}
+          <div style={{ background: 'rgba(255,193,7,0.08)', border: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px', padding: '1.1rem 1.25rem', marginBottom: '1.1rem' }}>
+            <div style={{ fontWeight: '800', color: '#7a5000', fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+              <i className="fas fa-question-circle me-2" style={{ color: '#ffc107' }} />
+              Are you sure your pet is 3 months old or above?
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: 0, lineHeight: 1.6 }}>
+              The minimum age requirement for vaccination drives is <strong>3 months (12 weeks) old</strong>. Pets younger than this cannot safely receive vaccines.
+            </p>
+          </div>
+
+          {/* Requirements list */}
+          <div style={{ background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.1rem' }}>
+            <div style={{ fontWeight: '700', color: '#333', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+              <i className="fas fa-list-check me-2" style={{ color: '#198754' }} />
+              Full Requirements Checklist
+            </div>
+            {[
+              { icon: 'fa-birthday-cake', color: '#ffc107', text: 'At least 3 months (12 weeks) old' },
+              { icon: 'fa-heartbeat', color: '#dc3545', text: 'Pet must be visibly healthy — no fever, vomiting, diarrhea, or lethargy' },
+              { icon: 'fa-utensils', color: '#0d6efd', text: 'Well-fed and hydrated before the event' },
+              { icon: 'fa-bath', color: '#0dcaf0', text: 'Bathed or clean to prevent cross-contamination' },
+              { icon: 'fa-leash', color: '#6f42c1', text: 'Dogs must be on a leash; cats in a carrier' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', marginBottom: '0.55rem' }}>
+                <i className={`fas ${item.icon}`} style={{ color: item.color, fontSize: '0.85rem', marginTop: '3px', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.84rem', color: '#444', lineHeight: 1.5 }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Tips */}
+          <div style={{ background: 'rgba(13,110,253,0.05)', border: '1.5px solid rgba(13,110,253,0.2)', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.1rem' }}>
+            <div style={{ fontWeight: '700', color: '#0d6efd', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
+              <i className="fas fa-lightbulb me-2" />
+              Tips for Pet Owners
+            </div>
+            {[
+              'If your pet was adopted, start counting their age from the date you adopted them.',
+              'If you are unsure of your pet\'s exact age, ask a vet for an estimated age based on teeth/size.',
+              'A pet showing any signs of illness on the event day should be rescheduled for a future drive.',
+              'Bring any previous vaccination records if available.',
+            ].map((tip, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.45rem' }}>
+                <i className="fas fa-circle" style={{ color: '#0d6efd', fontSize: '0.4rem', marginTop: '6px', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', color: '#444', lineHeight: 1.5 }}>{tip}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Warning */}
+          <div style={{ background: 'rgba(220,53,69,0.06)', border: '1.5px solid rgba(220,53,69,0.25)', borderRadius: '10px', padding: '0.85rem 1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '2px', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.82rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
+                If you proceed and your pet is found to be underage, unhealthy, or unqualified on the day of the event, <strong>your reserved slot will be forfeited</strong> and cannot be transferred or refunded.
+              </span>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1rem 1.75rem', gap: '0.75rem' }}>
+          <Button
+            variant="secondary"
+            onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }}
+            style={{ borderRadius: '10px', padding: '0.7rem 1.5rem', fontWeight: '600' }}
+          >
+            <i className="fas fa-arrow-left me-2" />
+            Back
+          </Button>
+          {pendingVaccinationSubmit && (
+            <Button
+              onClick={handleVaccinationConfirmProceed}
+              className="border-0"
+              style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.7rem 1.75rem', fontWeight: '700', boxShadow: '0 4px 14px rgba(255,193,7,0.4)' }}
+            >
+              <i className="fas fa-check me-2" />
+              Yes, Proceed
+            </Button>
+          )}
+        </Modal.Footer>
+      </Modal>
 
       {/* Registration Confirmation Modal */}
       <Modal show={showConfirmRegistrationModal} onHide={() => setShowConfirmRegistrationModal(false)} size="md" centered style={{zoom: '0.75'}}>
