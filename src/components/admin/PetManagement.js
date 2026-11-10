@@ -231,9 +231,13 @@ const [statsLoading, setStatsLoading] = useState(true);
   const loadStats = async () => {
   setStatsLoading(true);
   try {
-    const res = await petAPI.getAllUnpaginated();
-    const all = res.data.pets || [];
-    const active = all.filter(p => p.is_active);
+    const [activeRes, archivedRes] = await Promise.all([
+      petAPI.getAllUnpaginated(),
+      petAPI.archived()
+    ]);
+    const active = activeRes.data.pets || [];
+    const archived = archivedRes.data.pets || [];
+    const all = [...active, ...archived];
     setStats({
       total: active.length,
       dogs:  active.filter(p => p.species === 'dog').length,
@@ -273,7 +277,7 @@ useEffect(() => {
   const CACHE_TTL = 60_000;
 
 const loadPage = async (page, force = false) => {
-  const cacheKey = `${page}`;
+  const cacheKey = `${page}_${filterStatus}_${filterSpecies}`;
   const cached = pageCache[cacheKey];
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
     setPets(cached.pets);
@@ -377,8 +381,8 @@ const loadData = () => loadPage(1);
     
     const matchesStatus = 
       filterStatus === 'all' || 
-      (filterStatus === 'active' && pet.is_active) ||
-      (filterStatus === 'inactive' && !pet.is_active);
+      (filterStatus === 'active' && (pet.is_active == 1 || pet.is_active === true)) ||
+      (filterStatus === 'archived' && (pet.is_active == 0 || pet.is_active === false));
     
     return matchesSearch && matchesSpecies && matchesStatus;
   });
@@ -523,7 +527,7 @@ const loadData = () => loadPage(1);
             }}
           >
             <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="archived">Archived</option>
             <option value="all">All</option>
           </Form.Select>
         </Col>
@@ -719,10 +723,11 @@ const loadData = () => loadPage(1);
                             </td>
                             <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
                               <Badge 
-                                bg={pet.is_active ? 'success' : 'secondary'}
+                                bg={pet.is_active ? 'success' : 'warning'}
+                                text={pet.is_active ? undefined : 'dark'}
                                 style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
                               >
-                                {pet.is_active ? 'Active' : 'Inactive'}
+                                {pet.is_active ? 'Active' : 'Archived'}
                               </Badge>
                             </td>
                             <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '13%' }}>
@@ -1028,10 +1033,11 @@ const loadData = () => loadPage(1);
                           <td style={{ fontWeight: '600', color: '#555' }}>Status:</td>
                           <td>
                             <Badge 
-                              bg={selectedPet.is_active ? 'success' : 'secondary'}
+                              bg={selectedPet.is_active ? 'success' : 'warning'}
+                              text={selectedPet.is_active ? undefined : 'dark'}
                               style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
                             >
-                              {selectedPet.is_active ? 'Active' : 'Inactive'}
+                              {selectedPet.is_active ? 'Active' : 'Archived'}
                             </Badge>
                           </td>
                         </tr>
