@@ -3,6 +3,7 @@
   import { vaccinationAPI, dewormingAPI, sterilizationAPI, microchipAPI, petAPI, handleAPIError } from '../../services/api';
   import { getUser } from '../../utils/auth';
   import QRCode from 'qrcode';
+import api from '../../services/api';
 import { todayPH, freshTodayPH } from '../../utils/serverTime';
 
   const RecordManagement = () => {
@@ -48,6 +49,9 @@ const [showAgeConfirmModal, setShowAgeConfirmModal] = useState(false);
 const [showRestoreModal, setShowRestoreModal] = useState(false);
 const [recordToRestore, setRecordToRestore] = useState(null);
 const [restoreLoading, setRestoreLoading] = useState(false);
+const [restoreDueDate, setRestoreDueDate] = useState('');
+const [restoreReason, setRestoreReason] = useState('');
+const [restoreError, setRestoreError] = useState('');
     // QR code
     const [qrDataURL, setQrDataURL] = useState('');
     const [qrLoading, setQrLoading] = useState(false);
@@ -192,7 +196,7 @@ useEffect(() => {
     useEffect(() => {
       if (loading || hasAnimated) return;
       const targets = {
-        vaccinations: vaccinations.length,
+        vaccinations: vaccinations.filter(r => !isInactive(r)).length,
         sterilizations: sterilizations.length,
         microchips: microchips.length,
       };
@@ -239,10 +243,10 @@ const loadData = async (bustCache = false) => {
 
   try {
     setLoading(true);
-    const trashParam = filterStatus === 'trash' ? '?trash=1' : '';
+    const trashParam = filterStatus === 'inactive' ? '?trash=1' : '';
     const [vaccinationsRes, dewormingsRes, sterilizationsRes, microchipsRes, petsRes] = await Promise.all([
-      vaccinationAPI.getAll(trashParam),
-      dewormingAPI.getAll(trashParam),
+      vaccinationAPI.getAll('?with_inactive=1'),
+      dewormingAPI.getAll('?with_inactive=1'),
       sterilizationAPI.getAll(trashParam),
       microchipAPI.getAll(trashParam),
       petAPI.getAll()
@@ -546,38 +550,17 @@ const loadInventoryVaccines = async () => {
     setShowDropdown(null);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!recordToDelete) return;
+    const handleDeleteConfirm = async () => {
+    if (!recordToDelete || deleteLoading) return;
     setDeleteLoading(true);
     try {
-      if (filterStatus === 'trash') {
-        // Permanent delete
-        if (recordToDelete.recordType === 'vaccination') {
-          await vaccinationAPI.forceDelete(recordToDelete.id);
-        } else if (recordToDelete.recordType === 'deworming') {
-          await dewormingAPI.forceDelete(recordToDelete.id);
-        } else if (recordToDelete.recordType === 'sterilization') {
-          await sterilizationAPI.forceDelete(recordToDelete.id);
-        } else if (recordToDelete.recordType === 'microchip') {
-          await microchipAPI.forceDelete(recordToDelete.id);
-        }
-        setFloatingSuccess('Record permanently deleted.');
-      } else {
-        // Soft delete (move to trash)
-        if (recordToDelete.recordType === 'vaccination') {
-          await vaccinationAPI.delete(recordToDelete.id);
-        } else if (recordToDelete.recordType === 'deworming') {
-          await dewormingAPI.delete(recordToDelete.id);
-        } else if (recordToDelete.recordType === 'sterilization') {
-          await sterilizationAPI.delete(recordToDelete.id);
-        } else if (recordToDelete.recordType === 'microchip') {
-          await microchipAPI.delete(recordToDelete.id);
-        }
-        setFloatingSuccess('Record moved to trash. It will be automatically removed after 30 days.');
-      }
+      // Archive only — the record becomes inactive, nothing is deleted
+      const apis = { vaccination: vaccinationAPI, deworming: dewormingAPI, sterilization: sterilizationAPI, microchip: microchipAPI };
+      await apis[recordToDelete.recordType].delete(recordToDelete.id);
       setShowDeleteModal(false);
       setRecordToDelete(null);
       loadData(true);
+      setFloatingSuccess('Record archived. You can find it under the "Inactive" filter.');
       setTimeout(() => setFloatingSuccess(''), 6000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -988,44 +971,76 @@ setError('');
     };
 
     const handleRestoreClick = (record, type) => {
+  setRestoreDueDate(''); setRestoreReason(''); setRestoreError('');
   setRecordToRestore({ ...record, recordType: type });
   setShowRestoreModal(true);
   setShowDropdown(null);
 };
 
 const handleRestoreConfirm = async () => {
-  if (!recordToRestore) return;
+  if (!recordToRestore || restoreLoading) return;
+  const target = recordToRestore;
+  if (target.record_status === 'missed' && !restoreDueDate) {
+    setRestoreError('Please set a new next due date.');
+    return;
+  }
   setRestoreLoading(true);
+  setRestoreError('');
   try {
-    if (recordToRestore.recordType === 'vaccination') {
-      await vaccinationAPI.restore(recordToRestore.id);
-    } else if (recordToRestore.recordType === 'deworming') {
-      await dewormingAPI.restore(recordToRestore.id);
-    } else if (recordToRestore.recordType === 'sterilization') {
-      await sterilizationAPI.restore(recordToRestore.id);
-    } else if (recordToRestore.recordType === 'microchip') {
-      await microchipAPI.restore(recordToRestore.id);
+    if (target.recordType === 'vaccination' || target.recordType === 'deworming') {
+      const path = target.recordType === 'vaccination' ? 'vaccinations' : 'dewormings';
+      await api.put(`/${path}/restore/${target.id}`, {
+        next_due_date: restoreDueDate || null,
+        reason: restoreReason || null,
+      });
+    } else if (target.recordType === 'sterilization') {
+      await sterilizationAPI.restore(target.id);
+    } else {
+      await microchipAPI.restore(target.id);
     }
     setShowRestoreModal(false);
     setRecordToRestore(null);
     loadData(true);
-    setFloatingSuccess('Record restored successfully!');
+    setFloatingSuccess('Record restored and active again.');
     setTimeout(() => setFloatingSuccess(''), 5000);
   } catch (err) {
     const { message } = handleAPIError(err);
-    setError(message);
+    setRestoreError(message);
   } finally {
     setRestoreLoading(false);
   }
 };
 
-const getDaysRemaining = (deletedAt) => {
-  if (!deletedAt) return null;
-  const deleted = new Date(deletedAt);
-  const expiry = new Date(deleted.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const now = new Date();
-  const diff = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-  return diff > 0 ? diff : 0;
+// ── Record status helpers ──
+// Inactive = archived (mistake / human error) or missed (due date passed, not followed)
+const isInactive = (r) => (r.record_status ? ['missed', 'archived'].includes(r.record_status) : !!r.deleted_at);
+
+const getInactiveLabel = (r) => {
+  if (!r) return null;
+  if (r.record_status === 'missed') {
+    return `Missed · was due ${new Date(r.next_due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  }
+  if (r.record_status === 'archived' || r.deleted_at) return 'Archived';
+  return null;
+};
+
+const ordinal = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+
+const RECORD_TYPE_META = {
+  vaccination:   ['fa-syringe',   '#ffc107', 'Vaccination'],
+  deworming:     ['fa-pills',     '#17a2b8', 'Deworming'],
+  sterilization: ['fa-cut',       '#28a745', 'Sterilization'],
+  microchip:     ['fa-microchip', '#4361ee', 'Microchip'],
+};
+
+// Which session this new record will be (archived records don't count)
+const getSessionNumber = () => {
+  if (modalMode !== 'create' || formData.record_type !== 'vaccination' || !formData.pet_id || !formData.vaccination_type_id) return 1;
+  return vaccinations.filter(r =>
+    String(r.pet_id) === String(formData.pet_id) &&
+    String(r.inventory_id) === String(formData.vaccination_type_id) &&
+    r.record_status !== 'archived' && !r.deleted_at
+  ).length + 1;
 };
 
 const getSelectedPet = () => {
@@ -1079,7 +1094,7 @@ const getSelectedPet = () => {
       record.pet_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.registration_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.veterinarian_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'trash' ? !!record.deleted_at : !record.deleted_at;
+    const matchesStatus = filterStatus === 'inactive' ? isInactive(record) : !isInactive(record);
     const recordedBy = record.recorded_by || record.clinic_name || 'City Vet Muntinlupa';
     const isCityVet = recordedBy === 'City Vet Muntinlupa';
     const matchesClinic = filterClinic === 'all' || (filterClinic === 'city_vet' ? isCityVet : !isCityVet);
@@ -1390,7 +1405,7 @@ const getSelectedPet = () => {
           <Col xs={6} md={2}>
             <Form.Select value={activeTab} onChange={(e) => setActiveTab(e.target.value)}
               style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
-              <option value="all">All ({vaccinations.length + sterilizations.length + microchips.length})</option>
+              <option value="all">All ({filteredVaccinations.length + filteredSterilizations.length + filteredMicrochips.length})</option>
               <option value="vaccination">Vaccination ({filteredVaccinations.length})</option>
               <option value="sterilization">Sterilization ({filteredSterilizations.length})</option>
               <option value="microchip">Microchip ({filteredMicrochips.length})</option>
@@ -1411,22 +1426,22 @@ const getSelectedPet = () => {
                 onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
                 style={{
                   borderRadius: '12px',
-                  border: `2px solid ${filterStatus === 'trash' ? '#dc3545' : '#e9ecef'}`,
+                  border: `2px solid ${filterStatus === 'inactive' ? '#dc3545' : '#e9ecef'}`,
                   fontWeight: '500',
                   height: '46px',
-                  color: filterStatus === 'trash' ? '#dc3545' : 'inherit',
-                  background: filterStatus === 'trash' ? 'rgba(220,53,69,0.04)' : '#ffffff',
+                  color: filterStatus === 'inactive' ? '#dc3545' : 'inherit',
+                  background: filterStatus === 'inactive' ? 'rgba(220,53,69,0.04)' : '#ffffff',
                   appearance: 'none',
                   paddingRight: '2.5rem'
                 }}
               >
                 <option value="active">Active</option>
-                <option value="trash">Trash</option>
+                <option value="inactive">Inactive</option>
               </Form.Select>
               <i className="fas fa-chevron-down" style={{
                 position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)',
                 pointerEvents: 'none', fontSize: '0.75rem',
-                color: filterStatus === 'trash' ? '#dc3545' : '#6c757d'
+                color: filterStatus === 'inactive' ? '#dc3545' : '#6c757d'
               }} />
             </div>
           </Col>
@@ -1586,7 +1601,7 @@ const getSelectedPet = () => {
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem 1rem 2.5rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Record Details</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
-  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  {filterStatus === 'inactive' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>}
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
 </tr>
                               </thead>
@@ -1636,11 +1651,11 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
-{filterStatus === 'trash' && (
+{filterStatus === 'inactive' && (
   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+    {(() => { const d = getInactiveLabel(record); return (
       <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-        <i className="fas fa-clock me-1"></i>{d}d left
+        <i className="fas fa-clock me-1"></i>{d}
       </span>
     ); })()}
   </td>
@@ -1660,9 +1675,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
         <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
         <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
           <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
-          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span></button>}
+          {filterStatus === 'inactive' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
         </div>
       </>
     )}
@@ -1720,11 +1735,11 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
-{filterStatus === 'trash' && (
+{filterStatus === 'inactive' && (
   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+    {(() => { const d = getInactiveLabel(record); return (
       <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-        <i className="fas fa-clock me-1"></i>{d}d left
+        <i className="fas fa-clock me-1"></i>{d}
       </span>
     ); })()}
   </td>
@@ -1744,9 +1759,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
         <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
         <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
           <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
-          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span></button>}
+          {filterStatus === 'inactive' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'deworming'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
         </div>
       </>
     )}
@@ -1785,11 +1800,11 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
-{filterStatus === 'trash' && (
+{filterStatus === 'inactive' && (
   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+    {(() => { const d = getInactiveLabel(record); return (
       <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-        <i className="fas fa-clock me-1"></i>{d}d left
+        <i className="fas fa-clock me-1"></i>{d}
       </span>
     ); })()}
   </td>
@@ -1809,9 +1824,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
         <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
         <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
           <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
-          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span></button>}
+          {filterStatus === 'inactive' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
         </div>
       </>
     )}
@@ -1846,11 +1861,11 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
     {record.recorded_by || 'City Vet Muntinlupa'}
   </span>
 </td>
-{filterStatus === 'trash' && (
+{filterStatus === 'inactive' && (
   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-    {(() => { const d = getDaysRemaining(record.deleted_at); return (
+    {(() => { const d = getInactiveLabel(record); return (
       <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-        <i className="fas fa-clock me-1"></i>{d}d left
+        <i className="fas fa-clock me-1"></i>{d}
       </span>
     ); })()}
   </td>
@@ -1870,9 +1885,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
         <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
           <button onClick={() => { setShowDropdown(null); handleViewRecord(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
-          {record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
-          {filterStatus === 'trash' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {record.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span></button>}
+          {filterStatus === 'inactive' && record.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(record, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
         </div>
       </>
     )}
@@ -1914,7 +1929,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Vaccine Type</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Next Due</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
-  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  {filterStatus === 'inactive' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>}
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
 </tr>
                               </thead>
@@ -1955,11 +1970,11 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
     {vaccination.recorded_by || vaccination.clinic_name || 'City Vet Muntinlupa'}
   </span>
 </td>
-{filterStatus === 'trash' && (
+{filterStatus === 'inactive' && (
   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-    {(() => { const d = getDaysRemaining(vaccination.deleted_at); return (
+    {(() => { const d = getInactiveLabel(vaccination); return (
       <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-        <i className="fas fa-clock me-1"></i>{d}d left
+        <i className="fas fa-clock me-1"></i>{d}
       </span>
     ); })()}
   </td>
@@ -1979,9 +1994,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
         <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
           <button onClick={() => { setShowDropdown(null); handleViewRecord(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-          {vaccination.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
-          {vaccination.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
-          {filterStatus === 'trash' && vaccination.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+          {vaccination.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {vaccination.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span></button>}
+          {filterStatus === 'inactive' && vaccination.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(vaccination, 'vaccination'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
         </div>
       </>
     )}
@@ -2022,7 +2037,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem 1rem 2.5rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Procedure Type</th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
-  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  {filterStatus === 'inactive' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>}
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
 </tr>
   </thead>
@@ -2051,11 +2066,11 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
     {sterilization.clinic_name || 'City Vet Muntinlupa'}
   </span>
 </td>
-{filterStatus === 'trash' && (
+{filterStatus === 'inactive' && (
   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-    {(() => { const d = getDaysRemaining(sterilization.deleted_at); return (
+    {(() => { const d = getInactiveLabel(sterilization); return (
       <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-        <i className="fas fa-clock me-1"></i>{d}d left
+        <i className="fas fa-clock me-1"></i>{d}
       </span>
     ); })()}
   </td>
@@ -2075,9 +2090,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
         <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
           <button onClick={() => { setShowDropdown(null); handleViewRecord(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-          {sterilization.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
-          {sterilization.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
-          {filterStatus === 'trash' && sterilization.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+          {sterilization.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {sterilization.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span></button>}
+          {filterStatus === 'inactive' && sterilization.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(sterilization, 'sterilization'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
         </div>
       </>
     )}
@@ -2114,7 +2129,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
   <th className="mobile-hide" style={{ display: 'none' }}></th>
   <th className="mobile-hide" style={{ display: 'none' }}></th>
   <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Recorded By</th>
-  {filterStatus === 'trash' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Expiry</th>}
+  {filterStatus === 'inactive' && <th className="mobile-hide" style={{ fontWeight: '700', color: '#dc3545', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>}
   <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
 </tr>
                               </thead>
@@ -2140,11 +2155,11 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
     {microchip.clinic_name || 'City Vet Muntinlupa'}
   </span>
 </td>
-{filterStatus === 'trash' && (
+{filterStatus === 'inactive' && (
   <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-    {(() => { const d = getDaysRemaining(microchip.deleted_at); return (
+    {(() => { const d = getInactiveLabel(microchip); return (
       <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-        <i className="fas fa-clock me-1"></i>{d}d left
+        <i className="fas fa-clock me-1"></i>{d}
       </span>
     ); })()}
   </td>
@@ -2164,9 +2179,9 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
         <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden' }}>
           <button onClick={() => { setShowDropdown(null); handleViewRecord(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span></button>
-          {microchip.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
-          {microchip.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{filterStatus === 'trash' ? 'Delete Permanently' : 'Delete Record'}</span></button>}
-          {filterStatus === 'trash' && microchip.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
+          {microchip.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleOpenEditModal(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span></button>}
+          {microchip.recorded_by === 'City Vet Muntinlupa' && filterStatus !== 'inactive' && <button onClick={() => { setShowDropdown(null); handleDeleteClick(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span></button>}
+          {filterStatus === 'inactive' && microchip.recorded_by === 'City Vet Muntinlupa' && <button onClick={() => { setShowDropdown(null); handleRestoreClick(microchip, 'microchip'); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}><img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span></button>}
         </div>
       </>
     )}
@@ -3515,121 +3530,140 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
             </Button>
           </Modal.Footer>
         </Modal>
-      {/* Restore Confirmation Modal */}
-<Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
-  <Modal.Header closeButton style={{ background: '#f0fff4', borderBottom: '2px solid #28a745' }}>
-    <Modal.Title style={{ fontWeight: '700' }}>
-      <i className="fas fa-undo text-success me-2"></i>Restore Record
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '2rem' }}>
-    {recordToRestore && (
-      <>
-        <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
-          Are you sure you want to restore this record? It will be moved back to active records.
-        </p>
-        <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
-          <div className="mb-2">
-            <span style={{ fontWeight: '500', color: '#555' }}>
-              {recordToRestore.recordType === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-              {recordToRestore.recordType === 'deworming' && <><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>Deworming</>}
-              {recordToRestore.recordType === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-              {recordToRestore.recordType === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</>}
-            </span>
-          </div>
-          <strong style={{ fontSize: '1.1rem' }}>{recordToRestore.pet_name}</strong><br />
-          <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToRestore.registration_number}</small>
-          {(() => { const d = getDaysRemaining(recordToRestore.deleted_at); return d !== null && (
-            <div className="mt-2">
-              <span style={{ fontSize: '0.82rem', fontWeight: '600', color: d <= 7 ? '#dc3545' : '#fd7e14' }}>
-                <i className="fas fa-clock me-1"></i>{d} day{d !== 1 ? 's' : ''} remaining before permanent deletion
-              </span>
-            </div>
-          ); })()}
-        </div>
-        <Alert variant="success" className="mt-3 mb-0">
-          <i className="fas fa-check-circle me-2"></i>
-          <strong>Notice:</strong> This record will be fully restored and visible in active records.
-        </Alert>
-      </>
-    )}
-  </Modal.Body>
-  <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-    <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}
-      style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-    <Button variant="success" onClick={handleRestoreConfirm} disabled={restoreLoading}
-      style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-      {restoreLoading ? <><Spinner size="sm" animation="border" className="me-2" />Restoring...</> : <><i className="fas fa-undo me-2"></i>Restore Record</>}
-    </Button>
-  </Modal.Footer>
-</Modal>
-
-{/* Delete Confirmation Modal */}
-        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
-          <Modal.Header closeButton style={{ background: filterStatus === 'trash' ? '#fff5f5' : '#f8f9fa', borderBottom: `2px solid ${filterStatus === 'trash' ? '#dc3545' : '#dee2e6'}` }}>
-            <Modal.Title style={{ fontWeight: '700' }}>
-              <i className={`fas ${filterStatus === 'trash' ? 'fa-trash-alt' : 'fa-trash'} text-danger me-2`}></i>
-              {filterStatus === 'trash' ? 'Permanently Delete Record' : 'Move to Trash'}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem' }}>
-          {recordToDelete && (
+            {/* Restore Confirmation Modal */}
+      <Modal show={showRestoreModal} onHide={() => !restoreLoading && setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#f0fff4', borderBottom: '2px solid #28a745' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-undo text-success me-2"></i>Restore Record
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {recordToRestore && (() => {
+            const [icon, color, label] = RECORD_TYPE_META[recordToRestore.recordType] || RECORD_TYPE_META.vaccination;
+            const isMissed = recordToRestore.record_status === 'missed';
+            const hasDue = recordToRestore.recordType === 'vaccination' || recordToRestore.recordType === 'deworming';
+            const oldDue = recordToRestore.next_due_date ? String(recordToRestore.next_due_date).slice(0, 10) : '';
+            return (
               <>
-                <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
-                  {filterStatus === 'trash'
-                    ? 'Are you sure you want to permanently delete this record? This cannot be undone.'
-                    : 'This record will be moved to trash and can be recovered within 30 days.'}
+                {restoreError && (
+                  <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{restoreError}</Alert>
+                )}
+                <p style={{ fontSize: '1rem', marginBottom: '1.25rem', color: '#444' }}>
+                  {isMissed
+                    ? 'This record was not followed up before its due date (e.g. typhoon, holiday, or clinic closed). Set a new next due date so the pet can continue its sessions.'
+                    : 'This record will become active again and show on the vet card.'}
                 </p>
-                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: `4px solid ${filterStatus === 'trash' ? '#dc3545' : '#ffc107'}` }}>
-                  <div className="mb-2">
-                    <span style={{ fontWeight: '500', color: '#555' }}>
-                      {recordToDelete.recordType === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-                      {recordToDelete.recordType === 'deworming' && <><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>Deworming</>}
-                      {recordToDelete.recordType === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-                      {recordToDelete.recordType === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</>}
-                    </span>
+                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
+                  <div className="mb-2" style={{ fontWeight: '500', color: '#555' }}>
+                    <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
                   </div>
-                  <strong style={{ fontSize: '1.1rem' }}>{recordToDelete.pet_name}</strong>
-                  <br />
-                  <small className="text-muted">
-                    <i className="fas fa-barcode me-1"></i>
-                    {recordToDelete.registration_number}
-                    {recordToDelete.veterinarian_name && <> • Dr. {recordToDelete.veterinarian_name}</>}
-                  </small>
-                </div>
-                {filterStatus === 'trash' ? (
-                  <Alert variant="danger" className="mt-3 mb-0">
-                    <i className="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Warning:</strong> This action is permanent and cannot be undone.
-                  </Alert>
-                ) : (
-                  <div className="mt-3 mb-0 d-flex align-items-start gap-2 p-3" style={{ background: 'rgba(255,193,7,0.08)', borderRadius: '10px', border: '1px solid rgba(255,193,7,0.3)' }}>
-                    <i className="fas fa-clock mt-1" style={{ color: '#ffc107', flexShrink: 0 }}></i>
-                    <div style={{ fontSize: '0.88rem', color: '#666' }}>
-                      <strong style={{ color: '#333' }}>Moved to Trash</strong> — This record will be recoverable for <strong>30 days</strong>, after which it will be automatically and permanently deleted.
+                  <strong style={{ fontSize: '1.1rem' }}>{recordToRestore.pet_name}</strong><br />
+                  <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToRestore.registration_number}</small>
+                  {getInactiveLabel(recordToRestore) && (
+                    <div className="mt-2" style={{ fontSize: '0.82rem', fontWeight: '600', color: '#fd7e14' }}>
+                      <i className="fas fa-info-circle me-1"></i>{getInactiveLabel(recordToRestore)}
                     </div>
+                  )}
+                </div>
+                {hasDue && (
+                  <div className="mt-3">
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: '600', color: '#333' }}>
+                        New Next Due Date{' '}
+                        {isMissed
+                          ? <span style={{ color: '#dc3545' }}>*</span>
+                          : <span style={{ fontWeight: '400', color: '#888', fontSize: '0.85rem' }}>(optional)</span>}
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={restoreDueDate}
+                        min={todayPH()}
+                        onChange={(e) => { setRestoreDueDate(e.target.value); setRestoreError(''); }}
+                        style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
+                      />
+                      {oldDue && (
+                        <Form.Text className="text-muted">
+                          Original due date: {new Date(oldDue).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </Form.Text>
+                      )}
+                    </Form.Group>
+                    <Form.Group>
+                      <Form.Label style={{ fontWeight: '600', color: '#333' }}>
+                        Reason <span style={{ fontWeight: '400', color: '#888', fontSize: '0.85rem' }}>(optional)</span>
+                      </Form.Label>
+                      <Form.Select
+                        value={restoreReason}
+                        onChange={(e) => setRestoreReason(e.target.value)}
+                        style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
+                      >
+                        <option value="">Select a reason...</option>
+                        {['Typhoon / bad weather', 'Holiday', 'Clinic was closed', 'Pet was sick', 'Owner could not attend', 'Archived by mistake', 'Other'].map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
                   </div>
                 )}
               </>
-            )}
-          </Modal.Body>
-          <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
-              style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDeleteConfirm} disabled={deleteLoading}
-              style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-              {deleteLoading ? (
-                <><Spinner size="sm" animation="border" className="me-2" />Processing...</>
-              ) : filterStatus === 'trash' ? (
-                <><i className="fas fa-trash-alt me-2"></i>Permanently Delete</>
-              ) : (
-                <><i className="fas fa-trash me-2"></i>Move to Trash</>
-              )}
-            </Button>
-          </Modal.Footer>
-        </Modal>
+            );
+          })()}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
+          <Button variant="success" onClick={handleRestoreConfirm}
+            disabled={restoreLoading || (recordToRestore?.record_status === 'missed' && !restoreDueDate)}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            {restoreLoading
+              ? <><Spinner size="sm" animation="border" className="me-2" />Restoring...</>
+              : <><i className="fas fa-undo me-2"></i>Restore Record</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Archive Confirmation Modal (records are never deleted) */}
+      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#fffbea', borderBottom: '2px solid #ffc107' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-archive me-2" style={{ color: '#ffc107' }}></i>Archive Record
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem' }}>
+          {recordToDelete && (() => {
+            const [icon, color, label] = RECORD_TYPE_META[recordToDelete.recordType] || RECORD_TYPE_META.vaccination;
+            return (
+              <>
+                <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
+                  Archive this record? Use this for records added by mistake. Nothing will be deleted.
+                </p>
+                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
+                  <div className="mb-2" style={{ fontWeight: '500', color: '#555' }}>
+                    <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
+                  </div>
+                  <strong style={{ fontSize: '1.1rem' }}>{recordToDelete.pet_name}</strong><br />
+                  <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToDelete.registration_number}</small>
+                </div>
+                <div className="mt-3 d-flex align-items-start gap-2 p-3" style={{ background: 'rgba(13,110,253,0.06)', borderRadius: '10px', border: '1px solid rgba(13,110,253,0.2)', fontSize: '0.88rem', color: '#555' }}>
+                  <i className="fas fa-info-circle mt-1" style={{ color: '#0d6efd', flexShrink: 0 }}></i>
+                  <div>
+                    The record becomes <strong>inactive</strong>: it moves to the <strong>Inactive</strong> filter and no longer shows on the vet card. All its data is kept and you can restore it anytime.
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </Modal.Body>
+        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} disabled={deleteLoading} className="border-0"
+            style={{ background: '#ffc107', color: '#000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700' }}>
+            {deleteLoading
+              ? <><Spinner size="sm" animation="border" className="me-2" />Archiving...</>
+              : <><i className="fas fa-archive me-2"></i>Archive Record</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       </Container>
 
@@ -3715,6 +3749,21 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
             </div>
           </div>
 
+          {(() => {
+            const n = getSessionNumber();
+            if (n < 2) return null;
+            return (
+              <div style={{ background: 'rgba(255,193,7,0.12)', border: '2px solid #ffc107', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <i className="fas fa-exclamation-triangle" style={{ color: '#ffc107', fontSize: '1.2rem', marginTop: '2px' }} />
+                <div>
+                  <div style={{ fontWeight: '800', color: '#7a5000' }}>This will be the {ordinal(n)} session</div>
+                  <div style={{ fontSize: '0.85rem', color: '#6b5300' }}>
+                    {getSelectedPet()?.name || 'This pet'} already has {n - 1} record{n - 1 > 1 ? 's' : ''} of this {formData.record_type === 'deworming' ? 'dewormer' : 'vaccine'}. Are you sure this is the {ordinal(n)} session?
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
           {/* Details */}
           <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', border: '1px solid #e9ecef' }}>
             {[
@@ -3775,7 +3824,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
           >
             {formLoading
               ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</>
-              : <><i className="fas fa-save me-2" />Confirm</>}
+              : <><i className="fas fa-save me-2" />{getSessionNumber() > 1 ? `Yes, Save as ${ordinal(getSessionNumber())} Session` : 'Confirm'}</>}
           </Button>
         </Modal.Footer>
       </Modal>

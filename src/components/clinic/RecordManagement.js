@@ -72,6 +72,9 @@ const [showDropdown, setShowDropdown] = useState(null);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [recordToRestore, setRecordToRestore] = useState(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreDueDate, setRestoreDueDate] = useState('');
+  const [restoreReason, setRestoreReason] = useState('');
+  const [restoreError, setRestoreError] = useState('');
   const [filterSpecies, setFilterSpecies] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('active'); // 'active' | 'trash'
@@ -209,9 +212,9 @@ setInventoryDewormerItems(
   const loadData = async () => {
   try {
     setLoading(true);
-    const trashParam = filterStatus === 'trash' ? '?trash=1' : '';
+    const trashParam = filterStatus === 'inactive' ? '?trash=1' : '';
     const [recordsRes, microchipsRes] = await Promise.all([
-      clinicAPI.getRecords(trashParam),
+      clinicAPI.getRecords('?with_inactive=1'),
       microchipAPI.getAll(trashParam)
     ]);
     loadClinicInventory(); // load clinic inventory in background
@@ -416,7 +419,7 @@ setInventoryDewormerItems(
     const handleDeleteConfirm = async () => {
     if (!recordToDelete || deleteLoading) return;
     const target = recordToDelete;
-    const permanent = filterStatus === 'trash';
+    const permanent = false; // permanent delete removed — records are archived only
     setDeleteLoading(true);
     setShowDeleteModal(false);             // close immediately
     try {
@@ -425,7 +428,7 @@ setInventoryDewormerItems(
         showSuccess('Record permanently deleted.');
       } else {
         await api.put(`/clinics/records/trash/${target.id}/${target.recordType}`);
-        showSuccess('Record moved to trash. It will be automatically removed after 30 days.', 6000);
+        showSuccess('Record archived. Find it under the "Inactive" filter to restore it.', 6000);
       }
       setRecordToDelete(null);
       loadData();
@@ -741,13 +744,39 @@ setError('');
     }
   };
 
-  const getDaysRemaining = (deletedAt) => {
-    if (!deletedAt) return null;
-    const deleted = new Date(deletedAt);
-    const expiry = new Date(deleted.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const now = new Date();
-    const diff = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 0;
+  // ── Record status helpers ──
+  const isInactive = (r) => (r.record_status ? ['missed', 'archived'].includes(r.record_status) : !!r.deleted_at);
+
+  const getInactiveLabel = (r) => {
+    if (!r) return null;
+    if (r.record_status === 'missed') {
+      return `Missed · was due ${new Date(r.next_due_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    }
+    if (r.record_status === 'archived' || r.deleted_at) return 'Archived';
+    return null;
+  };
+
+  const ordinal = (n) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+
+  const RECORD_TYPE_META = {
+    vaccination:   ['fa-syringe',   '#ffc107', 'Vaccination'],
+    deworming:     ['fa-pills',     '#17a2b8', 'Deworming'],
+    sterilization: ['fa-cut',       '#28a745', 'Sterilization'],
+    microchip:     ['fa-microchip', '#4361ee', 'Microchip'],
+  };
+
+  // Which session this new record will be (archived records don't count)
+  const getSessionNumber = () => {
+    if (modalMode !== 'create' || !formData.pet_id) return 1;
+    let list = [], itemId = '';
+    if (formData.record_type === 'vaccination') { list = vaccinations; itemId = formData.vaccination_type_id; }
+    else if (formData.record_type === 'deworming') { list = dewormings; itemId = formData.deworming_type_id; }
+    if (!itemId) return 1;
+    return list.filter(r =>
+      String(r.pet_id) === String(formData.pet_id) &&
+      String(r.clinic_item_id) === String(itemId) &&
+      r.record_status !== 'archived' && !r.deleted_at
+    ).length + 1;
   };
 
   const getFilteredRecords = (records) => records.filter(record => {
@@ -770,7 +799,7 @@ setError('');
       ? true
       : record.is_mine == 1;
 
-    const matchesStatus = filterStatus === 'trash' ? !!record.deleted_at : !record.deleted_at;
+    const matchesStatus = filterStatus === 'inactive' ? isInactive(record) : !isInactive(record);
 
     return matchesSpecies && matchesSearch && matchesOwnership && matchesStatus;
   });
@@ -793,7 +822,7 @@ setError('');
         ? normalizedRegNum === normalizedSearch
         : petName.includes(searchLower) || normalizedRegNum.includes(normalizedSearch) || vetName.includes(searchLower);
     const matchesOwnership = searchTerm === '' ? true : (isFullRegNumber && normalizedRegNum === normalizedSearch ? true : record.is_mine == 1);
-    const matchesStatus = filterStatus === 'trash' ? !!record.deleted_at : !record.deleted_at;
+    const matchesStatus = filterStatus === 'inactive' ? isInactive(record) : !isInactive(record);
     return matchesSpecies && matchesSearch && matchesOwnership && matchesStatus;
   });
 
@@ -822,6 +851,7 @@ setError('');
 const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: 'Deworming', sterilization: 'Sterilization', microchip: 'Microchip' }[type] || type);
 
   const handleRestoreClick = (record, type) => {
+    setRestoreDueDate(''); setRestoreReason(''); setRestoreError('');
     setRecordToRestore({ ...record, recordType: type });
     setShowRestoreModal(true);
     setShowDropdown(null);
@@ -830,16 +860,24 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
     const handleRestoreConfirm = async () => {
     if (!recordToRestore || restoreLoading) return;
     const target = recordToRestore;
+    if (target.record_status === 'missed' && !restoreDueDate) {
+      setRestoreError('Please set a new next due date.');
+      return;
+    }
     setRestoreLoading(true);
-    setShowRestoreModal(false);            // close immediately
+    setRestoreError('');
     try {
-      await api.put(`/clinics/records/restore/${target.id}/${target.recordType}`);
-      showSuccess('Record restored successfully!');
+      await api.put(`/clinics/records/restore/${target.id}/${target.recordType}`, {
+        next_due_date: restoreDueDate || null,
+        reason: restoreReason || null,
+      });
+      setShowRestoreModal(false);
+      showSuccess('Record restored and active again.');
       setRecordToRestore(null);
       loadData();
     } catch (err) {
       const { message } = handleAPIError(err);
-      setError(message);
+      setRestoreError(message);
     } finally {
       setRestoreLoading(false);
     }
@@ -941,10 +979,10 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
         {/* Stats Cards */}
         <Row className="mb-4">
           {[
-            { label: 'Vaccination', count: vaccinations.filter(r => r.is_mine == 1).length, icon: '/vaccine.png', faIcon: 'fas fa-syringe', accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)', description: 'Vaccination Records', delay: '0.1s' },
-            { label: 'Deworming', count: dewormings.filter(r => r.is_mine == 1).length, icon: '/deworm.png', faIcon: 'fas fa-pills', accent: '#17a2b8', accentAlpha: 'rgba(23,162,184,0.12)', description: 'Deworming Records', delay: '0.2s' },
-            { label: 'Sterilization', count: sterilizations.filter(r => r.is_mine == 1).length, icon: '/sterilization.png', faIcon: 'fas fa-cut', accent: '#28a745', accentAlpha: 'rgba(40,167,69,0.12)', description: 'Sterilization Records', delay: '0.3s' },
-            { label: 'Microchip', count: microchips.filter(r => r.is_mine == 1).length, icon: '/microchip.png', faIcon: 'fas fa-microchip', accent: '#4361ee', accentAlpha: 'rgba(67,97,238,0.12)', description: 'Microchip Records', delay: '0.4s' },
+            { label: 'Vaccination', count: vaccinations.filter(r => r.is_mine == 1 && !isInactive(r)).length, icon: '/vaccine.png', faIcon: 'fas fa-syringe', accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)', description: 'Vaccination Records', delay: '0.1s' },
+            { label: 'Deworming', count: dewormings.filter(r => r.is_mine == 1 && !isInactive(r)).length, icon: '/deworm.png', faIcon: 'fas fa-pills', accent: '#17a2b8', accentAlpha: 'rgba(23,162,184,0.12)', description: 'Deworming Records', delay: '0.2s' },
+            { label: 'Sterilization', count: sterilizations.filter(r => r.is_mine == 1 && !isInactive(r)).length, icon: '/sterilization.png', faIcon: 'fas fa-cut', accent: '#28a745', accentAlpha: 'rgba(40,167,69,0.12)', description: 'Sterilization Records', delay: '0.3s' },
+            { label: 'Microchip', count: microchips.filter(r => r.is_mine == 1 && !isInactive(r)).length, icon: '/microchip.png', faIcon: 'fas fa-microchip', accent: '#4361ee', accentAlpha: 'rgba(67,97,238,0.12)', description: 'Microchip Records', delay: '0.4s' },
           ].map(({ label, count, icon, faIcon, accent, accentAlpha, description, delay }, i) => {
             const [displayCount, setDisplayCount] = React.useState(0);
             const [hasAnimated, setHasAnimated] = React.useState(false);
@@ -1021,7 +1059,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
           </Col>
           <Col xs={6} sm={4} md={2}>
             <Form.Select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
-              <option value="all">All ({vaccinations.filter(r => r.is_mine == 1).length + dewormings.filter(r => r.is_mine == 1).length + sterilizations.filter(r => r.is_mine == 1).length + microchips.filter(r => r.is_mine == 1).length})</option>
+              <option value="all">All ({filteredVaccinations.filter(r => r.is_mine == 1).length + filteredDewormings.filter(r => r.is_mine == 1).length + filteredSterilizations.filter(r => r.is_mine == 1).length + filteredMicrochips.filter(r => r.is_mine == 1).length})</option>
               <option value="vaccination">Vaccination ({filteredVaccinations.filter(r => r.is_mine == 1).length})</option>
               <option value="deworming">Deworming ({filteredDewormings.filter(r => r.is_mine == 1).length})</option>
               <option value="sterilization">Sterilization ({filteredSterilizations.filter(r => r.is_mine == 1).length})</option>
@@ -1035,19 +1073,19 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                 onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
                 style={{
                   borderRadius: '12px',
-                  border: `2px solid ${filterStatus === 'trash' ? '#dc3545' : '#e9ecef'}`,
+                  border: `2px solid ${filterStatus === 'inactive' ? '#dc3545' : '#e9ecef'}`,
                   fontWeight: '500',
                   height: '46px',
-                  color: filterStatus === 'trash' ? '#dc3545' : 'inherit',
-                  background: filterStatus === 'trash' ? 'rgba(220,53,69,0.04)' : '#ffffff',
+                  color: filterStatus === 'inactive' ? '#dc3545' : 'inherit',
+                  background: filterStatus === 'inactive' ? 'rgba(220,53,69,0.04)' : '#ffffff',
                   appearance: 'none',
                   paddingRight: '2.5rem'
                 }}
               >
                 <option value="active">Active</option>
-                <option value="trash">Trash</option>
+                <option value="inactive">Inactive</option>
               </Form.Select>
-              <i className="fas fa-chevron-down" style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '0.75rem', color: filterStatus === 'trash' ? '#dc3545' : '#6c757d' }} />
+              <i className="fas fa-chevron-down" style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '0.75rem', color: filterStatus === 'inactive' ? '#dc3545' : '#6c757d' }} />
             </div>
           </Col>
         </Row>
@@ -1099,7 +1137,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                           <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Weight</th>
                           <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Veterinarian</th>
                           <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
-                          {filterStatus === 'trash' && <th className="col-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Expires In</th>}
+                          {filterStatus === 'inactive' && <th className="col-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Status</th>}
                           <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
                         </tr>
                       </thead>
@@ -1169,11 +1207,11 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
                                   {record.recorded_by || 'City Vet Muntinlupa'}
                                 </span>
                               </td>
-                              {filterStatus === 'trash' && (
+                              {filterStatus === 'inactive' && (
                                 <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                  {(() => { const d = getDaysRemaining(record.deleted_at); return d !== null && (
+                                  {(() => { const d = getInactiveLabel(record); return d !== null && (
                                     <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-                                      <i className="fas fa-clock me-1"></i>{d}d left
+                                      <i className="fas fa-clock me-1"></i>{d}
                                     </span>
                                   ); })()}
                                 </td>
@@ -2031,7 +2069,7 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
               const record = sourceArr.find(r => r.id === recordId);
               if (!record || !type) return null;
               const isMine = record.is_mine == 1;
-              const inTrash = filterStatus === 'trash';
+              const inTrash = filterStatus === 'inactive';
               return (<>
                 <button onClick={() => handleViewRecord(record, type)} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}>
                   <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span>
@@ -2041,9 +2079,9 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
                     <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span>
                   </button>
                 )}
-                {isMine && (
+                {isMine && !inTrash && (
                   <button onClick={() => handleDeleteClick(record, type)} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}>
-                    <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>{inTrash ? 'Delete Permanently' : 'Delete Record'}</span>
+                    <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span>
                   </button>
                 )}
                 {isMine && inTrash && (
@@ -2057,81 +2095,137 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
         </>
       )}
 
-      {/* Restore Confirmation Modal */}
-      <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
+            {/* Restore Confirmation Modal */}
+      <Modal show={showRestoreModal} onHide={() => !restoreLoading && setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
         <Modal.Header closeButton style={{ background: '#f0fff4', borderBottom: '2px solid #28a745' }}>
-          <Modal.Title style={{ fontWeight: '700' }}><i className="fas fa-undo text-success me-2"></i>Restore Record</Modal.Title>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-undo text-success me-2"></i>Restore Record
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ padding: '2rem' }}>
-          {recordToRestore && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>Are you sure you want to restore this record? It will be moved back to active records.</p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
-                <div className="mb-2">
-                  <span style={{ fontWeight: '500', color: '#555' }}>
-                    {recordToRestore.recordType === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-                    {recordToRestore.recordType === 'deworming' && <><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>Deworming</>}
-                    {recordToRestore.recordType === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-                    {recordToRestore.recordType === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</>}
-                  </span>
+          {recordToRestore && (() => {
+            const [icon, color, label] = RECORD_TYPE_META[recordToRestore.recordType] || RECORD_TYPE_META.vaccination;
+            const isMissed = recordToRestore.record_status === 'missed';
+            const hasDue = recordToRestore.recordType === 'vaccination' || recordToRestore.recordType === 'deworming';
+            const oldDue = recordToRestore.next_due_date ? String(recordToRestore.next_due_date).slice(0, 10) : '';
+            return (
+              <>
+                {restoreError && (
+                  <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{restoreError}</Alert>
+                )}
+                <p style={{ fontSize: '1rem', marginBottom: '1.25rem', color: '#444' }}>
+                  {isMissed
+                    ? 'This record was not followed up before its due date (e.g. typhoon, holiday, or clinic closed). Set a new next due date so the pet can continue its sessions.'
+                    : 'This record will become active again and show on the vet card.'}
+                </p>
+                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
+                  <div className="mb-2" style={{ fontWeight: '500', color: '#555' }}>
+                    <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
+                  </div>
+                  <strong style={{ fontSize: '1.1rem' }}>{recordToRestore.pet_name}</strong><br />
+                  <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToRestore.registration_number}</small>
+                  {getInactiveLabel(recordToRestore) && (
+                    <div className="mt-2" style={{ fontSize: '0.82rem', fontWeight: '600', color: '#fd7e14' }}>
+                      <i className="fas fa-info-circle me-1"></i>{getInactiveLabel(recordToRestore)}
+                    </div>
+                  )}
                 </div>
-                <strong style={{ fontSize: '1.1rem' }}>{recordToRestore.pet_name}</strong><br />
-                <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToRestore.registration_number}</small>
-                {(() => { const d = getDaysRemaining(recordToRestore.deleted_at); return d !== null && (<div className="mt-2"><span style={{ fontSize: '0.82rem', fontWeight: '600', color: d <= 7 ? '#dc3545' : '#fd7e14' }}><i className="fas fa-clock me-1"></i>{d} day{d !== 1 ? 's' : ''} remaining before permanent deletion</span></div>); })()}
-              </div>
-              <Alert variant="success" className="mt-3 mb-0"><i className="fas fa-check-circle me-2"></i><strong>Notice:</strong> This record will be fully restored and visible in active records.</Alert>
-            </>
-          )}
+                {hasDue && (
+                  <div className="mt-3">
+                    <Form.Group className="mb-3">
+                      <Form.Label style={{ fontWeight: '600', color: '#333' }}>
+                        New Next Due Date{' '}
+                        {isMissed
+                          ? <span style={{ color: '#dc3545' }}>*</span>
+                          : <span style={{ fontWeight: '400', color: '#888', fontSize: '0.85rem' }}>(optional)</span>}
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={restoreDueDate}
+                        min={todayPH()}
+                        onChange={(e) => { setRestoreDueDate(e.target.value); setRestoreError(''); }}
+                        style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
+                      />
+                      {oldDue && (
+                        <Form.Text className="text-muted">
+                          Original due date: {new Date(oldDue).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </Form.Text>
+                      )}
+                    </Form.Group>
+                    <Form.Group>
+                      <Form.Label style={{ fontWeight: '600', color: '#333' }}>
+                        Reason <span style={{ fontWeight: '400', color: '#888', fontSize: '0.85rem' }}>(optional)</span>
+                      </Form.Label>
+                      <Form.Select
+                        value={restoreReason}
+                        onChange={(e) => setRestoreReason(e.target.value)}
+                        style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
+                      >
+                        <option value="">Select a reason...</option>
+                        {['Typhoon / bad weather', 'Holiday', 'Clinic was closed', 'Pet was sick', 'Owner could not attend', 'Archived by mistake', 'Other'].map(r => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </Modal.Body>
         <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-          <Button variant="success" onClick={handleRestoreConfirm} disabled={restoreLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            {restoreLoading ? <><Spinner size="sm" animation="border" className="me-2" />Restoring...</> : <><i className="fas fa-undo me-2"></i>Restore Record</>}
+          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
+          <Button variant="success" onClick={handleRestoreConfirm}
+            disabled={restoreLoading || (recordToRestore?.record_status === 'missed' && !restoreDueDate)}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            {restoreLoading
+              ? <><Spinner size="sm" animation="border" className="me-2" />Restoring...</>
+              : <><i className="fas fa-undo me-2"></i>Restore Record</>}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: filterStatus === 'trash' ? '#fff5f5' : '#f8f9fa', borderBottom: `2px solid ${filterStatus === 'trash' ? '#dc3545' : '#dee2e6'}` }}>
+      {/* Archive Confirmation Modal (records are never deleted) */}
+      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: '#fffbea', borderBottom: '2px solid #ffc107' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
-            <i className={`fas ${filterStatus === 'trash' ? 'fa-trash-alt' : 'fa-trash'} text-danger me-2`}></i>
-            {filterStatus === 'trash' ? 'Permanently Delete Record' : 'Move to Trash'}
+            <i className="fas fa-archive me-2" style={{ color: '#ffc107' }}></i>Archive Record
           </Modal.Title>
         </Modal.Header>
         <Modal.Body style={{ padding: '2rem' }}>
-          {recordToDelete && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
-                {filterStatus === 'trash' ? 'Are you sure you want to permanently delete this record? This cannot be undone.' : 'This record will be moved to trash and can be recovered within 30 days.'}
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: `4px solid ${filterStatus === 'trash' ? '#dc3545' : '#ffc107'}` }}>
-                <div className="mb-2">
-                  <span style={{ fontWeight: '500', color: '#555' }}>
-                    {recordToDelete.recordType === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-                    {recordToDelete.recordType === 'deworming' && <><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>Deworming</>}
-                    {recordToDelete.recordType === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-                    {recordToDelete.recordType === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</>}
-                  </span>
+          {recordToDelete && (() => {
+            const [icon, color, label] = RECORD_TYPE_META[recordToDelete.recordType] || RECORD_TYPE_META.vaccination;
+            return (
+              <>
+                <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
+                  Archive this record? Use this for records added by mistake. Nothing will be deleted.
+                </p>
+                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
+                  <div className="mb-2" style={{ fontWeight: '500', color: '#555' }}>
+                    <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
+                  </div>
+                  <strong style={{ fontSize: '1.1rem' }}>{recordToDelete.pet_name}</strong><br />
+                  <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToDelete.registration_number}</small>
                 </div>
-                <strong style={{ fontSize: '1.1rem' }}>{recordToDelete.pet_name}</strong><br />
-                <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToDelete.registration_number}{recordToDelete.veterinarian_name && <> • Dr. {recordToDelete.veterinarian_name}</>}</small>
-              </div>
-              {filterStatus === 'trash' ? (
-                <Alert variant="danger" className="mt-3 mb-0"><i className="fas fa-exclamation-triangle me-2"></i><strong>Warning:</strong> This action is permanent and cannot be undone.</Alert>
-              ) : (
-                <div className="mt-3 mb-0 d-flex align-items-start gap-2 p-3" style={{ background: 'rgba(255,193,7,0.08)', borderRadius: '10px', border: '1px solid rgba(255,193,7,0.3)' }}>
-                  <i className="fas fa-clock mt-1" style={{ color: '#ffc107', flexShrink: 0 }}></i>
-                  <div style={{ fontSize: '0.88rem', color: '#666' }}><strong style={{ color: '#333' }}>Moved to Trash</strong> — This record will be recoverable for <strong>30 days</strong>, after which it will be automatically and permanently deleted.</div>
+                <div className="mt-3 d-flex align-items-start gap-2 p-3" style={{ background: 'rgba(13,110,253,0.06)', borderRadius: '10px', border: '1px solid rgba(13,110,253,0.2)', fontSize: '0.88rem', color: '#555' }}>
+                  <i className="fas fa-info-circle mt-1" style={{ color: '#0d6efd', flexShrink: 0 }}></i>
+                  <div>
+                    The record becomes <strong>inactive</strong>: it moves to the <strong>Inactive</strong> filter and no longer shows on the vet card. All its data is kept and you can restore it anytime.
+                  </div>
                 </div>
-              )}
-            </>
-          )}
+              </>
+            );
+          })()}
         </Modal.Body>
         <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-          <Button variant="danger" onClick={handleDeleteConfirm} disabled={deleteLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            {deleteLoading ? <><Spinner size="sm" animation="border" className="me-2" />Processing...</> : filterStatus === 'trash' ? <><i className="fas fa-trash-alt me-2"></i>Permanently Delete</> : <><i className="fas fa-trash me-2"></i>Move to Trash</>}
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} disabled={deleteLoading} className="border-0"
+            style={{ background: '#ffc107', color: '#000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700' }}>
+            {deleteLoading
+              ? <><Spinner size="sm" animation="border" className="me-2" />Archiving...</>
+              : <><i className="fas fa-archive me-2"></i>Archive Record</>}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -2182,6 +2276,21 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
       </div>
     </div>
 
+    {(() => {
+      const n = getSessionNumber();
+      if (n < 2) return null;
+      return (
+        <div style={{ background: 'rgba(255,193,7,0.12)', border: '2px solid #ffc107', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+          <i className="fas fa-exclamation-triangle" style={{ color: '#ffc107', fontSize: '1.2rem', marginTop: '2px' }} />
+          <div>
+            <div style={{ fontWeight: '800', color: '#7a5000' }}>This will be the {ordinal(n)} session</div>
+            <div style={{ fontSize: '0.85rem', color: '#6b5300' }}>
+              {getSelectedPet()?.name || 'This pet'} already has {n - 1} record{n - 1 > 1 ? 's' : ''} of this {formData.record_type === 'deworming' ? 'dewormer' : 'vaccine'}. Are you sure this is the {ordinal(n)} session?
+            </div>
+          </div>
+        </div>
+      );
+    })()}
     {/* Details */}
     <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', border: '1px solid #e9ecef' }}>
       {[
@@ -2268,7 +2377,7 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
     >
       {formLoading
         ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</>
-        : <><i className="fas fa-save me-2" />{modalMode === 'edit' ? 'Save Changes' : `Confirm`}</>}
+        : <><i className="fas fa-save me-2" />{modalMode === 'edit' ? 'Save Changes' : (getSessionNumber() > 1 ? `Yes, Save as ${ordinal(getSessionNumber())} Session` : 'Confirm')}</>}
     </Button>
   </Modal.Footer>
 </Modal>
