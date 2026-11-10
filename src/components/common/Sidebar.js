@@ -345,16 +345,13 @@ const streamRef = useRef(null);
   }, [user]);
 
   // Hide sidebar on vet card view pages, login page, and register page
-  const validRoutes = [
-  '/super-admin/', '/admin/', '/community/', '/clinic/', '/edit-profile', '/vet-card-view/', '/login', '/register', '/'
-];
-const isValidRoute = validRoutes.some(route => location.pathname.startsWith(route)) || location.pathname === '/';
-const hideRoutes = ['/vet-card-view/', '/login', '/register', '/edit-profile'];
-const shouldHide = hideRoutes.some(route => location.pathname.includes(route)) || !isValidRoute;
-if (shouldHide && location.pathname !== '/') return null;
   const isLandingPage = location.pathname === '/';
+  const knownRoutes = ['/super-admin/', '/admin/', '/community/', '/clinic/'];
+  const hideRoutes = ['/vet-card-view/', '/login', '/register', '/edit-profile'];
+  const isKnownRoute = knownRoutes.some(r => location.pathname.startsWith(r)) || isLandingPage;
+  const shouldHide = hideRoutes.some(r => location.pathname.includes(r));
 
-  if (shouldHide) return null;
+  if (shouldHide || !isKnownRoute) return null;
 
   // ─── LANDING PAGE: original top navbar (light only, no dark mode toggle) ─
   if (isLandingPage) {
