@@ -74,6 +74,7 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
   const [selectedVaccinesToCancel, setSelectedVaccinesToCancel] = useState({});
   const [showVaccinationConfirmModal, setShowVaccinationConfirmModal] = useState(false);
   const [pendingVaccinationSubmit, setPendingVaccinationSubmit] = useState(null);
+  const [showRequirementsReminderModal, setShowRequirementsReminderModal] = useState(false);
 
   // Verification states
   const [ownerProfile, setOwnerProfile]       = useState(null);
@@ -1236,7 +1237,7 @@ const getVaccineDetails = (schedule) => {
               />
               <h2 className="sched-page-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>Event Calendar</h2>
               <button
-              onClick={() => setShowVaccinationConfirmModal(true)}
+              onClick={() => setShowRequirementsReminderModal(true)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                 padding: '0.35rem 0.9rem', borderRadius: '999px',
@@ -2257,6 +2258,115 @@ const getVaccineDetails = (schedule) => {
           </Card>
         </>
       )}
+
+      {/* Requirements Reminder Modal — opened by the header button, read-only */}
+      <Modal show={showRequirementsReminderModal} onHide={() => setShowRequirementsReminderModal(false)} size="md" centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
+          <Modal.Title style={{ fontWeight: '800', color: '#7a5000' }}>
+            <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }} />
+            Event Requirements & Reminders
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '1.75rem' }}>
+          <div style={{ background: 'rgba(255,193,7,0.08)', border: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px', padding: '1.1rem 1.25rem', marginBottom: '1.1rem' }}>
+            <div style={{ fontWeight: '800', color: '#7a5000', fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+              <i className="fas fa-question-circle me-2" style={{ color: '#ffc107' }} />
+              Are you sure your pet is 3 months old or above?
+            </div>
+            <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: 0, lineHeight: 1.6 }}>
+              The minimum age requirement for this event is <strong>3 months old</strong>. Pets younger than this may not respond safely to the procedure.
+            </p>
+          </div>
+          <div style={{ background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.1rem' }}>
+            <div style={{ fontWeight: '700', color: '#333', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
+              <i className="fas fa-list-check me-2" style={{ color: '#198754' }} />
+              Full Requirements Checklist
+            </div>
+            {[
+              { icon: 'fa-birthday-cake', color: '#ffc107', text: 'At least 3 months old' },
+              { icon: 'fa-heartbeat', color: '#dc3545', text: 'Pet must be visibly healthy — no fever, vomiting, diarrhea, or lethargy' },
+              { icon: 'fa-utensils', color: '#0d6efd', text: 'Well-fed and hydrated before the event' },
+              { icon: 'fa-bath', color: '#0dcaf0', text: 'Bathed or clean to prevent cross-contamination' },
+              { icon: 'fa-paw', color: '#6f42c1', text: 'Dogs must be on a leash; cats must be in a carrier' },
+              { icon: 'fa-notes-medical', color: '#198754', text: 'Bring any existing pet health records or documents if available' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', marginBottom: '0.55rem' }}>
+                <i className={`fas ${item.icon}`} style={{ color: item.color, fontSize: '0.85rem', marginTop: '3px', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.84rem', color: '#444', lineHeight: 1.5 }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: 'rgba(13,110,253,0.05)', border: '1.5px solid rgba(13,110,253,0.2)', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.1rem' }}>
+            <div style={{ fontWeight: '700', color: '#0d6efd', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
+              <i className="fas fa-lightbulb me-2" />
+              Tips for Pet Owners
+            </div>
+            {[
+              'If your pet was adopted, start counting their age from the date you adopted them.',
+              'If you are unsure of your pet\'s exact age, consult a vet for an estimated age based on teeth and size.',
+              'A pet showing any signs of illness on the event day may be turned away — reschedule if needed.',
+              'Arrive early to avoid long queues and ensure your pet is attended to on time.',
+            ].map((tip, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.45rem' }}>
+                <i className="fas fa-circle" style={{ color: '#0d6efd', fontSize: '0.4rem', marginTop: '6px', flexShrink: 0 }} />
+                <span style={{ fontSize: '0.82rem', color: '#444', lineHeight: 1.5 }}>{tip}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: 'rgba(220,53,69,0.06)', border: '1.5px solid rgba(220,53,69,0.25)', borderRadius: '10px', padding: '0.85rem 1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '2px', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.82rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
+                If your pet is found unqualified on the day of the event, <strong>your reserved slot will be forfeited (masasayang)</strong> and cannot be transferred or refunded.
+              </span>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1rem 1.75rem' }}>
+          <Button onClick={() => setShowRequirementsReminderModal(false)} className="border-0 w-100"
+            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.7rem', fontWeight: '700' }}>
+            <i className="fas fa-check me-2" />Got it!
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Pre-Submit Confirmation Modal — short summary shown before submitting */}
+      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} size="sm" centered style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
+          <Modal.Title style={{ fontWeight: '800', color: '#7a5000', fontSize: '1rem' }}>
+            <i className="fas fa-check-circle me-2" style={{ color: '#ffc107' }} />
+            Confirm Registration
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '1.5rem', textAlign: 'center' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,193,7,0.12)', border: '2px solid rgba(255,193,7,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <i className="fas fa-paw" style={{ fontSize: '1.6rem', color: '#ffc107' }} />
+          </div>
+          <p style={{ fontWeight: '700', color: '#333', fontSize: '0.95rem', marginBottom: '0.5rem' }}>
+            Is your pet <span style={{ color: '#ffc107' }}>3 months old or above</span> and <span style={{ color: '#198754' }}>healthy</span>?
+          </p>
+          <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: '1rem', lineHeight: 1.55 }}>
+            By proceeding, you confirm your pet meets the event requirements. Unqualified pets will have their slot forfeited on the day.
+          </p>
+          <button
+            onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); setShowRequirementsReminderModal(true); }}
+            style={{ background: 'none', border: 'none', color: '#0d6efd', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+          >
+            <i className="fas fa-clipboard-list me-1" />
+            View full requirements reminder
+          </button>
+        </Modal.Body>
+        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1rem 1.5rem', gap: '0.5rem' }}>
+          <Button variant="secondary" onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }}
+            style={{ borderRadius: '10px', padding: '0.6rem 1.25rem', fontWeight: '600', fontSize: '0.85rem', flex: 1 }}>
+            <i className="fas fa-arrow-left me-1" />Back
+          </Button>
+          <Button onClick={handleVaccinationConfirmProceed} className="border-0"
+            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.6rem 1.25rem', fontWeight: '700', fontSize: '0.85rem', flex: 1, boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
+            <i className="fas fa-check me-1" />Proceed
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Vaccination Pre-Submit Confirmation Modal */}
       <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} size="md" centered style={{ zoom: '0.75' }}>
