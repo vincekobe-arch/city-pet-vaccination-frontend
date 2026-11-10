@@ -2331,39 +2331,39 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Pre-Submit Confirmation Modal — short summary shown before submitting */}
-      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} size="sm" centered style={{ zoom: '0.75' }}>
+      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} size="md" centered style={{ zoom: '0.75' }}>
         <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '800', color: '#7a5000', fontSize: '1rem' }}>
+          <Modal.Title style={{ fontWeight: '800', color: '#7a5000', fontSize: '1.1rem' }}>
             <i className="fas fa-check-circle me-2" style={{ color: '#ffc107' }} />
             Confirm Registration
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ padding: '1.5rem', textAlign: 'center' }}>
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(255,193,7,0.12)', border: '2px solid rgba(255,193,7,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-            <i className="fas fa-paw" style={{ fontSize: '1.6rem', color: '#ffc107' }} />
+        <Modal.Body style={{ padding: '2rem', textAlign: 'center' }}>
+          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(255,193,7,0.12)', border: '2px solid rgba(255,193,7,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <i className="fas fa-paw" style={{ fontSize: '2rem', color: '#ffc107' }} />
           </div>
-          <p style={{ fontWeight: '700', color: '#333', fontSize: '0.95rem', marginBottom: '0.5rem' }}>
+          <p style={{ fontWeight: '700', color: '#333', fontSize: '1.05rem', marginBottom: '0.75rem' }}>
             Is your pet <span style={{ color: '#ffc107' }}>3 months old or above</span> and <span style={{ color: '#198754' }}>healthy</span>?
           </p>
-          <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: '1rem', lineHeight: 1.55 }}>
-            By proceeding, you confirm your pet meets the event requirements. Unqualified pets will have their slot forfeited on the day.
+          <p style={{ fontSize: '0.88rem', color: '#777', marginBottom: '1.25rem', lineHeight: 1.65, maxWidth: '360px', margin: '0 auto 1.25rem' }}>
+            By proceeding, you confirm that your pet meets all the event requirements. Unqualified pets will have their reserved slot forfeited on the day of the event.
           </p>
           <button
             onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); setShowRequirementsReminderModal(true); }}
-            style={{ background: 'none', border: 'none', color: '#0d6efd', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+            style={{ background: 'none', border: 'none', color: '#0d6efd', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
           >
             <i className="fas fa-clipboard-list me-1" />
             View full requirements reminder
           </button>
         </Modal.Body>
-        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1rem 1.5rem', gap: '0.5rem' }}>
+        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1.25rem 2rem', gap: '0.75rem' }}>
           <Button variant="secondary" onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }}
-            style={{ borderRadius: '10px', padding: '0.6rem 1.25rem', fontWeight: '600', fontSize: '0.85rem', flex: 1 }}>
-            <i className="fas fa-arrow-left me-1" />Back
+            style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600', fontSize: '0.9rem', flex: 1 }}>
+            <i className="fas fa-arrow-left me-2" />Back
           </Button>
           <Button onClick={handleVaccinationConfirmProceed} className="border-0"
-            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.6rem 1.25rem', fontWeight: '700', fontSize: '0.85rem', flex: 1, boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
-            <i className="fas fa-check me-1" />Proceed
+            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '700', fontSize: '0.9rem', flex: 1, boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
+            <i className="fas fa-check me-2" />Proceed
           </Button>
         </Modal.Footer>
       </Modal>
