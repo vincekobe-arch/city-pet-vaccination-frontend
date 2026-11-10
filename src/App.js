@@ -197,7 +197,7 @@ function MainContent({ user, handleLogin, darkMode }) {
         <Route path="/edit-profile" element={user ? <EditProfile darkMode={darkMode} /> : <Navigate to="/login" replace />} />
 
         {/* 404 */}
-        <Route path="*" element={user ? <Navigate to={getDashboardRoute(user.role)} replace /> : <Navigate to="/login" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </main>
   );
