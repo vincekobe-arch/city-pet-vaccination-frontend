@@ -866,7 +866,7 @@ setError('');
   const totalPages = Math.ceil(currentRecords.length / itemsPerPage);
   const startIdx = (currentPage - 1) * itemsPerPage;
   const paginatedRecords = currentRecords.slice(startIdx, startIdx + itemsPerPage);
-  const emptyRows = itemsPerPage - paginatedRecords.length;
+
 
 const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: 'Deworming', sterilization: 'Sterilization', microchip: 'Microchip' }[type] || type);
 
@@ -1110,243 +1110,303 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
           </Col>
         </Row>
 
-        {/* Table */}
+                {/* Records Table */}
         <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
           <Col>
-            <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+            <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'visible' }}>
               <Card.Header className="rec-card-header" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                    <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }}></i>
-                    {activeTab === 'all' && `All Records (${filteredVaccinations.length + filteredDewormings.length + filteredSterilizations.length + filteredMicrochips.length})`}
-                    {activeTab === 'vaccination' && `Vaccination Records (${filteredVaccinations.length})`}
-                    {activeTab === 'deworming' && `Deworming Records (${filteredDewormings.length})`}
-                    {activeTab === 'sterilization' && `Sterilization Records (${filteredSterilizations.length})`}
-                    {activeTab === 'microchip' && `Microchip Records (${filteredMicrochips.length})`}
+                    {activeTab === 'all' && <><i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }}></i>All Records ({allRecords.length})</>}
+                    {activeTab === 'vaccination' && <><i className="fas fa-syringe me-2" style={{ color: '#ffc107' }}></i>Vaccination Records ({filteredVaccinations.length})</>}
+                    {activeTab === 'deworming' && <><i className="fas fa-pills me-2" style={{ color: '#17a2b8' }}></i>Deworming Records ({filteredDewormings.length})</>}
+                    {activeTab === 'sterilization' && <><i className="fas fa-cut me-2" style={{ color: '#ffc107' }}></i>Sterilization Records ({filteredSterilizations.length})</>}
+                    {activeTab === 'microchip' && <><i className="fas fa-microchip me-2" style={{ color: '#4361ee' }}></i>Microchip Records ({filteredMicrochips.length})</>}
                   </h5>
-                  <Button onClick={handleOpenModal} className="border-0 rec-add-btn"
-                    style={{ background: '#ffc107', color: '#000000', padding: '0.5rem 1.5rem', borderRadius: '8px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.4)', transition: 'all 0.3s' }}
-                    onMouseOver={(e) => { e.target.style.transform = 'translateY(-2px)'; e.target.style.background = '#ffb300'; }}
-                    onMouseOut={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.background = '#ffc107'; }}
+                  <Button
+                    onClick={handleOpenModal}
+                    className="border-0 rec-add-btn"
+                    style={{ background: '#ffc107', color: '#000000', padding: '0.5rem 1.5rem', borderRadius: '8px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)', transition: 'all 0.3s' }}
+                    onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)'; e.currentTarget.style.background = '#ffb300'; }}
+                    onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)'; e.currentTarget.style.background = '#ffc107'; }}
                   >
-                    <i className="fas fa-plus me-2"></i>Add Record
+                    <i className="fas fa-plus me-2"></i><span>Add Record</span>
                   </Button>
                 </div>
               </Card.Header>
-              <Card.Body className="rec-card-body" style={{ padding: '2rem' }}>
-                {loading ? (
-                  <div className="text-center py-5">
-                    <Spinner animation="border" variant="warning" />
-                    <p className="mt-3 text-muted">Loading records...</p>
-                  </div>
-                ) : currentRecords.length === 0 ? (
-                  <div className="text-center py-5">
-                    <i className="fas fa-clipboard-list" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                    <h5 className="mt-3" style={{ color: '#666666', fontWeight: '600' }}>No Records Found</h5>
-                    <p className="text-muted">{searchTerm || filterSpecies !== 'all' ? 'Try adjusting your filters' : 'Start by adding records for pets'}</p>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <Table hover className="rec-table" style={{ marginBottom: 0 }}>
-                      <thead style={{ background: '#f8f9fa' }}>
-                        <tr>
-                          {activeTab === 'all' && <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Type</th>}
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Details</th>
-                          <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Weight</th>
-                          <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Veterinarian</th>
-                          <th className="col-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Recorded By</th>
-                          {filterStatus === 'inactive' && <th className="col-hide" style={{ fontWeight: '600', color: '#dc3545', padding: '1rem', textAlign: 'center' }}>Status</th>}
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {paginatedRecords.map((record, index) => {
-                          const type = record.recordType || activeTab;
-                          const dropdownKey = `${type}-${record.id}`;
-                          const date = type === 'vaccination' ? record.vaccination_date
-                            : type === 'deworming' ? record.deworming_date
-                            : type === 'microchip' ? record.implant_date
-                            : record.sterilization_date;
-                          return (
-                            <tr key={dropdownKey} style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = type === 'microchip' ? 'rgba(67,97,238,0.05)' : 'rgba(255,193,7,0.05)'}
-                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                            >
-                              {activeTab === 'all' && (
-                                <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                  {type === 'vaccination' && <span style={{ fontWeight: '500', color: '#555' }}><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</span>}
-                                  {type === 'deworming' && <span style={{ fontWeight: '500', color: '#555' }}><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }}></i>Deworming</span>}
-                                  {type === 'sterilization' && <span style={{ fontWeight: '500', color: '#555' }}><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</span>}
-                                  {type === 'microchip' && <span style={{ fontWeight: '500', color: '#555' }}><i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>Microchip</span>}
-                                </td>
-                              )}
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <strong style={{ color: '#333' }}>{new Date(date).toLocaleDateString()}</strong>
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <strong style={{ fontSize: '1rem', color: '#333' }}>{record.pet_name}</strong><br />
-                                <small className="text-muted" style={{ fontWeight: '500' }}>
-                                  <i className="fas fa-barcode me-1"></i>{record.registration_number}
-                                </small>
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                {type === 'vaccination' && (
-                                  <>
-                                    <strong style={{ color: '#333' }}>{record.vaccine_name}</strong>
-                                    {record.next_due_date && <><br /><small>Next: <span style={{ color: new Date(record.next_due_date) < new Date() ? '#dc3545' : '#28a745', fontWeight: '500' }}>{new Date(record.next_due_date).toLocaleDateString()}</span></small></>}
-                                  </>
-                                )}
-                                {type === 'deworming' && (
-                                  <>
-                                    <strong style={{ color: '#333' }}>{record.deworming_name}</strong>
-                                    {record.dosage && <><br /><small className="text-muted">Dosage: {record.dosage}</small></>}
-                                    {record.next_due_date && <><br /><small>Next: <span style={{ color: new Date(record.next_due_date) < new Date() ? '#dc3545' : '#28a745', fontWeight: '500' }}>{new Date(record.next_due_date).toLocaleDateString()}</span></small></>}
-                                  </>
-                                )}
-                                {type === 'sterilization' && (
-                                  <Badge bg="success" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>{record.procedure_type}</Badge>
-                                )}
-                                {type === 'microchip' && (
-                                  <>
-                                    <strong style={{ color: '#333', fontFamily: 'monospace' }}>{record.microchip_number}</strong>
-                                    {record.microchip_brand && <><br /><small className="text-muted">Brand: {record.microchip_brand}</small></>}
-                                    {record.implant_site && <><br /><small className="text-muted">Site: {record.implant_site}</small></>}
-                                  </>
-                                )}
-                              </td>
-                              <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                {record.weight ? <span style={{ fontWeight: '500', color: '#555' }}>{record.weight} kg</span> : <span className="text-muted">-</span>}
-                              </td>
-                              <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <small style={{ fontWeight: '500', color: '#555' }}>{record.veterinarian_name || 'Not specified'}</small>
-                              </td>
-                              <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <span style={{ fontSize: '0.85rem', fontWeight: '500', padding: '0.3rem 0.6rem', borderRadius: '6px', color: record.is_mine == 1 ? '#28a745' : '#6c757d', background: record.is_mine == 1 ? 'rgba(40,167,69,0.1)' : 'rgba(108,117,125,0.1)' }}>
-                                  {record.recorded_by || 'City Vet Muntinlupa'}
-                                </span>
-                              </td>
-                              {filterStatus === 'inactive' && (
-                                <td className="col-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                  {(() => { const d = getInactiveLabel(record); return d !== null && (
-                                    <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: d <= 7 ? '#dc3545' : '#fd7e14', background: d <= 7 ? 'rgba(220,53,69,0.1)' : 'rgba(253,126,20,0.1)' }}>
-                                      <i className="fas fa-clock me-1"></i>{d}
-                                    </span>
-                                  ); })()}
-                                </td>
-                              )}
-                              {renderEllipsisButton(dropdownKey, record, type)}
+
+              <Card.Body className="rec-card-body" style={{ padding: '2rem', overflow: 'visible' }}>
+                {(() => {
+                  // ── Shared styles (same as admin) ──
+                  const th = { fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' };
+                  const thLeft = { ...th, textAlign: 'left' };
+                  const thPet = { ...th, textAlign: 'left', padding: '1rem 1.25rem 1rem 2.5rem' };
+                  const td = { padding: '1rem', verticalAlign: 'middle', textAlign: 'center' };
+                  const skel = { background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s ease-in-out infinite', borderRadius: '8px' };
+
+                  const showType = activeTab === 'all';
+                  const inactiveView = filterStatus === 'inactive';
+                  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
+                  const isPast = (d) => d && new Date(d) < new Date();
+                  const nextDue = (d) => (
+                    <span style={{ color: isPast(d) ? '#dc3545' : '#28a745', fontWeight: '500' }}>{fmt(d)}</span>
+                  );
+                  const dateOf = (r, t) => t === 'vaccination' ? r.vaccination_date
+                    : t === 'deworming' ? r.deworming_date
+                    : t === 'microchip' ? r.implant_date
+                    : r.sterilization_date;
+
+                  // Column headers per tab (like admin)
+                  const detailHeaders = {
+                    all:           ['Record Details'],
+                    vaccination:   ['Vaccine Type', 'Next Due'],
+                    deworming:     ['Deworming Type', 'Next Due'],
+                    sterilization: ['Procedure Type'],
+                    microchip:     ['Microchip Number'],
+                  }[activeTab] || ['Record Details'];
+
+                  // "Record Details" cell for the All tab
+                  const renderDetails = (r, t) => {
+                    if (t === 'vaccination') return (
+                      <>
+                        <strong style={{ color: '#333' }}>{r.vaccine_name}</strong>
+                        {r.next_due_date && <><br /><small>Next: {nextDue(r.next_due_date)}</small></>}
+                      </>
+                    );
+                    if (t === 'deworming') return (
+                      <>
+                        <strong style={{ color: '#333' }}>{r.deworming_name}</strong>
+                        {r.dosage && <><br /><small className="text-muted">Dosage: {r.dosage}</small></>}
+                        {r.next_due_date && <><br /><small>Next: {nextDue(r.next_due_date)}</small></>}
+                      </>
+                    );
+                    if (t === 'sterilization') return (
+                      <Badge bg="success" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>{r.procedure_type}</Badge>
+                    );
+                    return <strong style={{ color: '#333', fontFamily: 'monospace' }}>{r.microchip_number}</strong>;
+                  };
+
+                  // ── Loading skeleton ──
+                  if (loading) {
+                    return (
+                      <div className="table-responsive">
+                        <Table className="rec-table" style={{ marginBottom: 0, width: '100%' }}>
+                          <thead style={{ background: '#f8f9fa' }}>
+                            <tr>
+                              <th style={thLeft}>Type</th>
+                              <th className="col-hide" style={th}>Date</th>
+                              <th style={thPet}>Pet Information</th>
+                              <th className="col-hide" style={th}>Record Details</th>
+                              <th className="col-hide" style={th}>Recorded By</th>
+                              <th style={th}>Actions</th>
                             </tr>
-                          );
-                        })}
-                        {Array.from({ length: emptyRows }).map((_, i) => (
-                          <tr key={`empty-${i}`} style={{ height: '73px' }}>
-                            <td colSpan={activeTab === 'all' ? 8 : 7} style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                              <div style={{ visibility: 'hidden' }}>Empty</div>
-                            </td>
+                          </thead>
+                          <tbody>
+                            {Array.from({ length: itemsPerPage }).map((_, i) => (
+                              <tr key={`skel-${i}`}>
+                                <td style={{ ...td, textAlign: 'left' }}><div style={{ ...skel, width: '90px', height: '13px' }} /></td>
+                                <td className="col-hide" style={td}><div style={{ display: 'flex', justifyContent: 'center' }}><div style={{ ...skel, width: '80px', height: '13px' }} /></div></td>
+                                <td style={{ ...td, textAlign: 'left', paddingLeft: '2.5rem' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                    <div style={{ ...skel, width: '90px', height: '13px' }} />
+                                    <div style={{ ...skel, width: '110px', height: '10px' }} />
+                                  </div>
+                                </td>
+                                <td className="col-hide" style={td}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                                    <div style={{ ...skel, width: '100px', height: '13px' }} />
+                                    <div style={{ ...skel, width: '70px', height: '10px' }} />
+                                  </div>
+                                </td>
+                                <td className="col-hide" style={td}><div style={{ display: 'flex', justifyContent: 'center' }}><div style={{ ...skel, width: '110px', height: '26px', borderRadius: '6px' }} /></div></td>
+                                <td style={td}><div style={{ display: 'flex', justifyContent: 'center' }}><div style={{ ...skel, width: '24px', height: '24px', borderRadius: '50%' }} /></div></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </div>
+                    );
+                  }
+
+                  // ── Empty state ──
+                  if (currentRecords.length === 0) {
+                    const [icon, title, desc] = {
+                      all:           ['fa-clipboard-list', 'No Records Found',          'Start by adding records for pets'],
+                      vaccination:   ['fa-syringe',        'No Vaccination Records',    'Start by adding vaccination records for pets'],
+                      deworming:     ['fa-pills',          'No Deworming Records',      'Start by adding deworming records for pets'],
+                      sterilization: ['fa-cut',            'No Sterilization Records',  'Sterilization records will appear here'],
+                      microchip:     ['fa-microchip',      'No Microchip Records',      'Microchip records will appear here'],
+                    }[activeTab];
+                    return (
+                      <div className="text-center py-5">
+                        <i className={`fas ${icon} text-muted mb-3`} style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
+                        <h5 style={{ color: '#666666', fontWeight: '600' }}>{title}</h5>
+                        <p className="text-muted">
+                          {searchTerm || filterSpecies !== 'all'
+                            ? 'Try adjusting your filters'
+                            : inactiveView ? 'No inactive records found' : desc}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  // ── Table ──
+                  return (
+                    <div className="table-responsive" style={{ overflow: 'visible' }}>
+                      <Table hover className="rec-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
+                        <thead style={{ background: '#f8f9fa' }}>
+                          <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
+                            {showType && <th style={thLeft}>Type</th>}
+                            <th className="col-hide" style={th}>Date</th>
+                            <th style={thPet}>Pet Information</th>
+                            {detailHeaders.map(h => (
+                              <th key={h} className={showType ? 'col-hide' : ''} style={th}>{h}</th>
+                            ))}
+                            <th className="col-hide" style={th}>Recorded By</th>
+                            {inactiveView && <th className="col-hide" style={{ ...th, color: '#dc3545' }}>Status</th>}
+                            <th style={th}>Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                )}
+                        </thead>
+                        <tbody>
+                          {paginatedRecords.map((record) => {
+                            const type = record.recordType || activeTab;
+                            const dropdownKey = `${type}-${record.id}`;
+                            const [icon, color, label] = RECORD_TYPE_META[type] || RECORD_TYPE_META.vaccination;
+                            const hoverBg = type === 'microchip' ? 'rgba(67, 97, 238, 0.05)' : 'rgba(255, 193, 7, 0.05)';
+                            return (
+                              <tr
+                                key={dropdownKey}
+                                style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = hoverBg}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                              >
+                                {/* Type */}
+                                {showType && (
+                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
+                                    <span style={{ fontWeight: '500', color: '#555', whiteSpace: 'nowrap' }}>
+                                      <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
+                                    </span>
+                                  </td>
+                                )}
+
+                                {/* Date */}
+                                <td className="col-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
+                                  <strong style={{ color: '#333' }}>{fmt(dateOf(record, type))}</strong>
+                                </td>
+
+                                {/* Pet Information */}
+                                <td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
+                                  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
+                                  <small style={{ color: '#aaa', fontWeight: '500' }}>
+                                    <i className="fas fa-barcode me-1"></i>{record.registration_number}
+                                  </small>
+                                </td>
+
+                                {/* Details — All tab: one combined column */}
+                                {showType && (
+                                  <td className="col-hide" style={td}>{renderDetails(record, type)}</td>
+                                )}
+
+                                {/* Details — Vaccination / Deworming tabs: name + Next Due */}
+                                {!showType && (type === 'vaccination' || type === 'deworming') && (
+                                  <>
+                                    <td style={td}>
+                                      <strong style={{ color: '#333' }}>{type === 'vaccination' ? record.vaccine_name : record.deworming_name}</strong>
+                                      {type === 'deworming' && record.dosage && <><br /><small className="text-muted">Dosage: {record.dosage}</small></>}
+                                    </td>
+                                    <td style={td}>
+                                      {record.next_due_date ? nextDue(record.next_due_date) : <span className="text-muted">N/A</span>}
+                                    </td>
+                                  </>
+                                )}
+
+                                {/* Details — Sterilization / Microchip tabs */}
+                                {!showType && (type === 'sterilization' || type === 'microchip') && (
+                                  <td style={td}>{renderDetails(record, type)}</td>
+                                )}
+
+                                {/* Recorded By */}
+                                <td className="col-hide" style={td}>
+                                  <span style={{
+                                    fontSize: '0.85rem', fontWeight: '500', padding: '0.3rem 0.6rem', borderRadius: '6px',
+                                    color: record.is_mine == 1 ? '#28a745' : '#6c757d',
+                                    background: record.is_mine == 1 ? 'rgba(40,167,69,0.1)' : 'rgba(108,117,125,0.1)'
+                                  }}>
+                                    {record.recorded_by || 'City Vet Muntinlupa'}
+                                  </span>
+                                </td>
+
+                                {/* Status (Inactive filter only) */}
+                                {inactiveView && (
+                                  <td className="col-hide" style={td}>
+                                    {getInactiveLabel(record) && (
+                                      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: '#fd7e14', background: 'rgba(253,126,20,0.1)', whiteSpace: 'nowrap' }}>
+                                        <i className="fas fa-clock me-1"></i>{getInactiveLabel(record)}
+                                      </span>
+                                    )}
+                                  </td>
+                                )}
+
+                                {/* Actions */}
+                                {renderEllipsisButton(dropdownKey, record, type)}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </Table>
+                    </div>
+                  );
+                })()}
               </Card.Body>
             </Card>
           </Col>
         </Row>
 
-        {/* Microchip Tab */}
-        {activeTab === 'microchip' && (
-          <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-            <Col>
-              <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-                <Card.Body className="rec-card-body" style={{ padding: '2rem' }}>
-                  {filteredMicrochips.length === 0 ? (
-                    <div className="text-center py-5">
-                      <i className="fas fa-microchip" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                      <h5 className="mt-3" style={{ color: '#666666', fontWeight: '600' }}>No Microchip Records</h5>
-                      <p className="text-muted">{searchTerm || filterSpecies !== 'all' ? 'Try adjusting your filters' : 'Microchip records will appear here'}</p>
-                    </div>
-                  ) : (
-                    <div className="table-responsive">
-                      <Table hover style={{ marginBottom: 0 }}>
-                        <thead style={{ background: '#f8f9fa' }}>
-                          <tr>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Date</th>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Pet Information</th>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Microchip Number</th>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Brand</th>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Implant Site</th>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Weight</th>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Veterinarian</th>
-                            <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedRecords.map(microchip => (
-                            <tr key={microchip.id} style={{ transition: 'all 0.2s ease', cursor: 'pointer' }}
-                              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(67,97,238,0.05)'}
-                              onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <strong style={{ color: '#333' }}>{new Date(microchip.implant_date).toLocaleDateString()}</strong>
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <strong style={{ fontSize: '1rem', color: '#333' }}>{microchip.pet_name}</strong><br />
-                                <small className="text-muted" style={{ fontWeight: '500' }}><i className="fas fa-barcode me-1"></i>{microchip.registration_number}</small>
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <strong style={{ color: '#333', fontFamily: 'monospace' }}>{microchip.microchip_number}</strong>
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <small style={{ fontWeight: '500', color: '#555' }}>{microchip.microchip_brand || '-'}</small>
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <small style={{ fontWeight: '500', color: '#555' }}>{microchip.implant_site || '-'}</small>
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                {microchip.weight ? <span style={{ fontWeight: '500', color: '#555' }}>{microchip.weight} kg</span> : <span className="text-muted">-</span>}
-                              </td>
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <small style={{ fontWeight: '500', color: '#555' }}>{microchip.veterinarian_name || 'Not specified'}</small>
-                              </td>
-                              {renderEllipsisButton(`mic-tab-${microchip.id}`, microchip, 'microchip')}
-                            </tr>
-                          ))}
-                          {Array.from({ length: emptyRows }).map((_, i) => (
-                            <tr key={`empty-${i}`} style={{ height: '73px' }}>
-                              <td colSpan="8" style={{ padding: '1rem', borderBottom: '1px solid #dee2e6' }}>
-                                <div style={{ visibility: 'hidden' }}>Empty</div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        )}
-
         {/* Pagination */}
         {currentRecords.length > itemsPerPage && (
-          <Row className="mt-4">
-            <Col className="d-flex justify-content-center">
+          <Row className="mt-4" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
+            <Col className="d-flex justify-content-between align-items-center">
+              <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
+                Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
+              </span>
+
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}
-                  style={{ background: currentPage === 1 ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === 1 ? '#adb5bd' : '#333333' }}>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  style={{ background: currentPage === 1 ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === 1 ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { if (currentPage !== 1) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
+                  onMouseOut={(e) => { if (currentPage !== 1) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
+                >
                   <i className="fas fa-chevron-left"></i>
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button key={page} onClick={() => setCurrentPage(page)}
-                    style={{ background: currentPage === page ? '#ffc107' : '#ffffff', border: '2px solid', borderColor: currentPage === page ? '#ffc107' : '#dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', minWidth: '40px', cursor: 'pointer', fontWeight: '700', color: currentPage === page ? '#000000' : '#333333' }}>
-                    {page}
-                  </button>
-                ))}
-                <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
-                  style={{ background: currentPage === totalPages ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === totalPages ? '#adb5bd' : '#333333' }}>
+
+                {(() => {
+                  let start = Math.max(1, currentPage - 1);
+                  let end = Math.min(totalPages, start + 2);
+                  if (end - start < 2) start = Math.max(1, end - 2);
+                  const pages = [];
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  return pages.map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      style={{ background: currentPage === page ? '#ffc107' : '#ffffff', border: '2px solid', borderColor: currentPage === page ? '#ffc107' : '#dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', minWidth: '40px', cursor: 'pointer', fontWeight: '700', color: currentPage === page ? '#000000' : '#333333', transition: 'all 0.2s', boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none' }}
+                      onMouseOver={(e) => { if (currentPage !== page) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
+                      onMouseOut={(e) => { if (currentPage !== page) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
+                    >
+                      {page}
+                    </button>
+                  ));
+                })()}
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  style={{ background: currentPage === totalPages ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === totalPages ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
+                  onMouseOut={(e) => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
+                >
                   <i className="fas fa-chevron-right"></i>
                 </button>
               </div>
