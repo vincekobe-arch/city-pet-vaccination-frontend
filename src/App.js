@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { syncServerTime, startServerTimeSync, isDeviceClockWrong, onClockChange, getClockOffset } from './utils/serverTime';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -303,7 +304,7 @@ function App() {
         }}
       >
         {/* Main layout: sidebar + content side by side */}
-        {clockWrong && !clockBannerClosed && (
+        {clockWrong && !clockBannerClosed && createPortal(
           <div
             role="alert"
             style={{
@@ -350,7 +351,8 @@ function App() {
             >
               <i className="fas fa-times"></i>
             </button>
-          </div>
+          </div>,
+          document.body
         )}
         <SessionInvalidatedModal />
         {user && <IdleTimeoutManager user={user} onLogout={handleLogout} />}
