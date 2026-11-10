@@ -4,6 +4,7 @@ import { clinicAPI, vaccinationAPI, dewormingAPI, sterilizationAPI, microchipAPI
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
 import { useRef } from 'react';
+import { todayPH, freshTodayPH } from '../../utils/serverTime';
 
 const ClinicRecordManagement = () => {
   const [vaccinations, setVaccinations] = useState([]);
@@ -252,7 +253,27 @@ setInventoryDewormerItems(
     notes: ''
   };
 
+  // Re-check the server time when the form opens, then fix any default
+  // dates that were filled in using the device clock
+  const refreshFormDates = () => {
+    const shownToday = todayPH();
+    freshTodayPH().then(today => {
+      if (today === shownToday) return;
+      setFormData(prev => {
+        const fix = (v) => (v === shownToday ? today : v);
+        return {
+          ...prev,
+          vaccination_date:   fix(prev.vaccination_date),
+          deworming_date:     fix(prev.deworming_date),
+          sterilization_date: fix(prev.sterilization_date),
+          implant_date:       fix(prev.implant_date),
+        };
+      });
+    });
+  };
+
   const handleOpenModal = () => {
+    refreshFormDates();
     setModalMode('create');
     setEditingRecord(null);
     setFormData(emptyForm);

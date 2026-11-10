@@ -3,6 +3,7 @@
   import { vaccinationAPI, dewormingAPI, sterilizationAPI, microchipAPI, petAPI, handleAPIError } from '../../services/api';
   import { getUser } from '../../utils/auth';
   import QRCode from 'qrcode';
+import { todayPH, freshTodayPH } from '../../utils/serverTime';
 
   const RecordManagement = () => {
     const [vaccinations, setVaccinations] = useState([]);
@@ -142,17 +143,17 @@ const [filterClinic, setFilterClinic] = useState('city_vet');
       pet_registration_input: '',
       vaccination_type_id: '',
       _inventory_vaccine_id: '',
-      vaccination_date: new Date().toISOString().split('T')[0],
+      vaccination_date: todayPH(),
       vaccination_next_due_date: '',
       deworming_type_id: '',
-      deworming_date: new Date().toISOString().split('T')[0],
+      deworming_date: todayPH(),
       deworming_next_due_date: '',
       dosage: '',
       procedure_type: '',
-      sterilization_date: new Date().toISOString().split('T')[0],
+      sterilization_date: todayPH(),
       microchip_subtype: '',
       microchip_number: '',
-      implant_date: new Date().toISOString().split('T')[0],
+      implant_date: todayPH(),
       implant_site: '',
       microchip_brand: '',
       veterinarian_name: '',
@@ -358,7 +359,27 @@ const loadInventoryVaccines = async () => {
       }
     };
 
+    // Re-check the server time when the form opens, then fix any default
+    // dates that were filled in using the device clock
+    const refreshFormDates = () => {
+      const shownToday = todayPH();
+      freshTodayPH().then(today => {
+        if (today === shownToday) return;
+        setFormData(prev => {
+          const fix = (v) => (v === shownToday ? today : v);
+          return {
+            ...prev,
+            vaccination_date:   fix(prev.vaccination_date),
+            deworming_date:     fix(prev.deworming_date),
+            sterilization_date: fix(prev.sterilization_date),
+            implant_date:       fix(prev.implant_date),
+          };
+        });
+      });
+    };
+
     const handleOpenModal = () => {
+      refreshFormDates();
       setModalMode('create');
       setEditingRecord(null);
       setFormData({
@@ -366,17 +387,17 @@ const loadInventoryVaccines = async () => {
         pet_id: '',
         pet_registration_input: '',
         vaccination_type_id: '',
-        vaccination_date: new Date().toISOString().split('T')[0],
+        vaccination_date: todayPH(),
         vaccination_next_due_date: '',
         deworming_type_id: '',
-        deworming_date: new Date().toISOString().split('T')[0],
+        deworming_date: todayPH(),
         deworming_next_due_date: '',
         dosage: '',
         procedure_type: '',
-        sterilization_date: new Date().toISOString().split('T')[0],
+        sterilization_date: todayPH(),
         microchip_subtype: '',
         microchip_number: '',
-        implant_date: new Date().toISOString().split('T')[0],
+        implant_date: todayPH(),
         implant_site: '',
         microchip_brand: '',
         veterinarian_name: '',
@@ -401,17 +422,17 @@ const loadInventoryVaccines = async () => {
         pet_id: String(record.pet_id),
         pet_registration_input: (record.registration_number || '').replace('PET-', ''),
         vaccination_type_id: '',
-        vaccination_date: new Date().toISOString().split('T')[0],
+        vaccination_date: todayPH(),
         vaccination_next_due_date: '',
         deworming_type_id: '',
-        deworming_date: new Date().toISOString().split('T')[0],
+        deworming_date: todayPH(),
         deworming_next_due_date: '',
         dosage: '',
         procedure_type: '',
-        sterilization_date: new Date().toISOString().split('T')[0],
+        sterilization_date: todayPH(),
         microchip_subtype: '',
         microchip_number: '',
-        implant_date: new Date().toISOString().split('T')[0],
+        implant_date: todayPH(),
         implant_site: '',
         microchip_brand: '',
         veterinarian_name: '',
@@ -2686,7 +2707,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                               name="vaccination_date"
                               value={formData.vaccination_date}
                               onChange={handleChange}
-                              max={new Date().toISOString().split('T')[0]}
+                              max={todayPH()}
                               required
                               style={{
                                 borderRadius: '8px',
@@ -2762,7 +2783,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                               name="deworming_date"
                               value={formData.deworming_date}
                               onChange={handleChange}
-                              max={new Date().toISOString().split('T')[0]}
+                              max={todayPH()}
                               required
                               style={{
                                 borderRadius: '8px',
@@ -2865,7 +2886,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
               name="sterilization_date"
               value={formData.sterilization_date}
               onChange={handleChange}
-              max={new Date().toISOString().split('T')[0]}
+              max={todayPH()}
               required
               style={{
                 borderRadius: '8px',
@@ -3015,7 +3036,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                                 <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
                                   Implant Date <span style={{ color: '#dc3545' }}>*</span>
                                 </Form.Label>
-                                <Form.Control type="date" name="implant_date" value={formData.implant_date} onChange={handleChange} max={new Date().toISOString().split('T')[0]} required style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }} />
+                                <Form.Control type="date" name="implant_date" value={formData.implant_date} onChange={handleChange} max={todayPH()} required style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }} />
                               </Form.Group>
                             </Col>
                             {formData.microchip_subtype === 'microchip' && (

@@ -73,3 +73,9 @@ export function startServerTimeSync() {
 // Today's date in Philippine time, formatted YYYY-MM-DD
 export const todayPH = () =>
   new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+
+// Gets a fresh server time first, then returns today's PH date (YYYY-MM-DD)
+export const freshTodayPH = async () => {
+  await syncServerTime();
+  return todayPH();
+};
