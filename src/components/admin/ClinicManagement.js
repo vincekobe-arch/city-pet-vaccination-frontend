@@ -367,7 +367,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
 
   // Auto-generate username from clinic name
   const generateUsername = (clinicName) => {
-    const currentYear = new Date().getFullYear();
+    const currentYear = Number(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila', year: 'numeric' }));
     const currentYearClinics = clinics.filter(c => {
       return c.username && c.username.includes(currentYear.toString());
     });

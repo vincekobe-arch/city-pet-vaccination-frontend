@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { syncServerTime, startServerTimeSync } from './utils/serverTime';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
@@ -214,6 +215,13 @@ function App() {
   });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+  const [timeReady, setTimeReady] = useState(false);
+
+  // Sync with Philippine server time before showing the app
+  useEffect(() => {
+    syncServerTime().finally(() => setTimeReady(true));
+    return startServerTimeSync();
+  }, []);
 
   const handleLogin = (userData) => {
     setIsLoggingIn(true);
@@ -265,6 +273,7 @@ function App() {
   }, [user]);
 
 
+  if (!timeReady) return <Loading message="Loading..." />;
   if (isLoggingIn) return <Loading message="Welcome back! Setting up your dashboard..." />;
 
   return (
