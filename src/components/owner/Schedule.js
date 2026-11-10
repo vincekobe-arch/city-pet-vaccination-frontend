@@ -2296,17 +2296,13 @@ const getVaccineDetails = (schedule) => {
               { icon: 'fa-heartbeat', color: '#dc3545', text: 'Pet must be visibly healthy — no fever, vomiting, diarrhea, or lethargy' },
               { icon: 'fa-utensils', color: '#0d6efd', text: 'Well-fed and hydrated before the event' },
               { icon: 'fa-bath', color: '#0dcaf0', text: 'Bathed or clean to prevent cross-contamination' },
-              { icon: 'fa-leash', color: '#6f42c1', text: 'Dogs must be on a leash; cats in a carrier' },
+              { icon: 'fa-paw', color: '#6f42c1', text: 'Dogs must be on a leash; cats must be in a carrier' },
+              { icon: 'fa-notes-medical', color: '#198754', text: 'Bring any existing pet health records or documents if available' },
               ...(scheduleType === 'sterilization' ? [
                 { icon: 'fa-clock', color: '#fd7e14', text: 'Fasting required: no food 8–12 hours before the procedure' },
                 { icon: 'fa-ban', color: '#dc3545', text: 'Female pets should not be in heat or pregnant at the time of surgery' },
               ] : []),
-              ...(scheduleType === 'microchip' ? [
-                { icon: 'fa-id-card', color: '#198754', text: 'Bring any existing pet documents or records if available' },
-              ] : []),
-              ...(scheduleType === 'vaccination' ? [
-                { icon: 'fa-syringe', color: '#198754', text: 'Bring previous vaccination records if available' },
-              ] : []),
+              ...(scheduleType === 'sterilization' || scheduleType === 'microchip' ? [] : []),
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', marginBottom: '0.55rem' }}>
                 <i className={`fas ${item.icon}`} style={{ color: item.color, fontSize: '0.85rem', marginTop: '3px', flexShrink: 0 }} />
@@ -2324,18 +2320,20 @@ const getVaccineDetails = (schedule) => {
             {[
               'If your pet was adopted, start counting their age from the date you adopted them.',
               'If you are unsure of your pet\'s exact age, consult a vet for an estimated age based on teeth and size.',
-              'A pet showing any signs of illness on the event day should be rescheduled for a future drive.',
+              'A pet showing any signs of illness on the event day may be turned away — reschedule if needed.',
+              'Arrive early to avoid long queues and ensure your pet is attended to on time.',
               ...(scheduleType === 'sterilization' ? [
+                'Fasting reminder: do not feed your pet 8–12 hours before the procedure.',
                 'Post-surgery, keep your pet calm and restrict activity for at least 7–10 days.',
-                'Prepare a clean, quiet recovery space at home before the event.',
+                'Prepare a clean, quiet recovery space at home before attending the event.',
               ] : []),
               ...(scheduleType === 'microchip' ? [
-                'The microchip procedure is quick and similar to a routine injection.',
-                'Keep the microchip registration details safe — this is your pet\'s permanent ID.',
+                'The microchip procedure is quick and similar to a routine injection — most pets barely notice.',
+                'Keep the microchip registration details safe — this serves as your pet\'s permanent ID.',
               ] : []),
               ...(scheduleType === 'vaccination' ? [
-                'Monitor your pet for 30 minutes after vaccination for any allergic reactions.',
-                'Keep your pet\'s vaccination card safe for future reference.',
+                'Monitor your pet for mild reactions (soreness, mild lethargy) after the event — these are normal.',
+                'Keep your pet\'s records safe for tracking future vaccination schedules.',
               ] : []),
             ].map((tip, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.45rem' }}>
