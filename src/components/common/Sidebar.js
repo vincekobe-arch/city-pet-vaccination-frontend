@@ -345,8 +345,12 @@ const streamRef = useRef(null);
   }, [user]);
 
   // Hide sidebar on vet card view pages, login page, and register page
+  const validRoutes = [
+    '/super-admin/', '/admin/', '/community/', '/clinic/', '/edit-profile', '/vet-card-view/', '/login', '/register', '/'
+  ];
+  const isValidRoute = validRoutes.some(route => location.pathname.startsWith(route)) || location.pathname === '/';
   const hideRoutes = ['/vet-card-view/', '/login', '/register', '/edit-profile'];
-  const shouldHide = hideRoutes.some(route => location.pathname.includes(route));
+  const shouldHide = hideRoutes.some(route => location.pathname.includes(route)) || !isValidRoute;
   const isLandingPage = location.pathname === '/';
 
   if (shouldHide) return null;
