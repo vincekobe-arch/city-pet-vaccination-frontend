@@ -57,6 +57,7 @@ import ClinicInventoryManagement from './components/clinic/ClinicInventoryManage
 import EditProfile from './components/common/EditProfile';
 import { getToken, getUser, removeAuth } from './utils/auth';
 import SessionInvalidatedModal from './components/common/SessionInvalidatedModal';
+import NotFound from './components/common/NotFound';
 import IdleTimeoutManager from './components/common/IdleTimeoutManager';
 
 // Scroll to Top Component
@@ -196,7 +197,7 @@ function MainContent({ user, handleLogin, darkMode }) {
         <Route path="/edit-profile" element={user ? <EditProfile darkMode={darkMode} /> : <Navigate to="/login" replace />} />
 
         {/* 404 */}
-        <Route path="*" element={user ? <Navigate to={getDashboardRoute(user.role)} replace /> : <Navigate to="/" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </main>
   );
