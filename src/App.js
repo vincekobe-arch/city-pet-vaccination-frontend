@@ -79,8 +79,11 @@ const getDashboardRoute = (role) => {
 function SidebarLayout({ user, onLogout, darkMode, setDarkMode, handleLogin }) {
   const location = useLocation();
   const hiddenRoutes = ['/vet-card-view/', '/login', '/register', '/edit-profile'];
-  const isLandingPage = location.pathname === '/';
-  const hasSidebar = !isLandingPage && !hiddenRoutes.some(r => location.pathname.includes(r));
+const isLandingPage = location.pathname === '/';
+const isKnownRoute = [
+  '/super-admin/', '/admin/', '/community/', '/clinic/'
+].some(r => location.pathname.startsWith(r));
+const hasSidebar = !isLandingPage && !hiddenRoutes.some(r => location.pathname.includes(r)) && isKnownRoute;
 
   if (!hasSidebar) {
     // Landing page & auth pages: navbar sits above content, full width
