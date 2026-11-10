@@ -30,6 +30,7 @@ const [petSearchTerm, setPetSearchTerm] = useState('');
 
 const [showConfirmRecordModal, setShowConfirmRecordModal] = useState(false);
 const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
+const [showAgeConfirmModal, setShowAgeConfirmModal] = useState(false);
     
     const [showModal, setShowModal] = useState(false);
     const [formLoading, setFormLoading] = useState(false);
@@ -3142,16 +3143,32 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
               </Button>
               <Button 
                 type="button"
-                onClick={(e) => {
+                                  onClick={(e) => {
                   e.preventDefault();
                   if (!formData.record_type) return;
                   if (modalMode === 'create' && !getSelectedPet()) return;
                   if (formData.record_type === 'microchip' && !formData.microchip_subtype) return;
                   if (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && !formData.microchip_number) return;
                   if (modalMode === 'edit') {
-                    // Edit mode: go straight to save
                     handleSubmit({ preventDefault: () => {} });
                     return;
+                  }
+                  // Check age requirement for vaccination, sterilization, microchip
+                  const needsAgeCheck = ['vaccination', 'sterilization', 'microchip'].includes(formData.record_type);
+                  if (needsAgeCheck) {
+                    const pet = getSelectedPet();
+                    if (pet) {
+                      const needsWarning = !pet.birth_date || (() => {
+                        const birth = new Date(pet.birth_date);
+                        const today = new Date();
+                        const months = (today.getFullYear() - birth.getFullYear()) * 12 + (today.getMonth() - birth.getMonth());
+                        return months < 3;
+                      })();
+                      if (needsWarning) {
+                        setShowAgeConfirmModal(true);
+                        return;
+                      }
+                    }
                   }
                   setShowConfirmRecordModal(true);
                 }}
@@ -3594,6 +3611,49 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
         </Modal>
 
       </Container>
+
+      {/* ── Age Confirmation Modal ── */}
+      <Modal show={showAgeConfirmModal} onHide={() => setShowAgeConfirmModal(false)} centered size="md" style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
+          <Modal.Title style={{ fontWeight: '800', color: '#7a5000', fontSize: '1.1rem' }}>
+            <i className="fas fa-exclamation-triangle me-2" style={{ color: '#ffc107' }} />
+            Age Requirement Notice
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '2rem', textAlign: 'center' }}>
+          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(255,193,7,0.12)', border: '2px solid rgba(255,193,7,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <i className="fas fa-paw" style={{ fontSize: '2rem', color: '#ffc107' }} />
+          </div>
+          <p style={{ fontWeight: '700', color: '#333', fontSize: '1rem', marginBottom: '0.5rem' }}>
+            {!getSelectedPet()?.birth_date
+              ? <>This pet has <span style={{ color: '#ffc107' }}>no birth date on record</span>.</>
+              : <>This pet appears to be <span style={{ color: '#ffc107' }}>under 3 months old</span>.</>
+            }
+          </p>
+          <p style={{ fontSize: '0.88rem', color: '#777', marginBottom: '1rem', lineHeight: 1.65, maxWidth: '360px', margin: '0 auto 1.25rem' }}>
+            The minimum age requirement for {getRecordTypeLabel(formData.record_type)} is <strong>3 months old</strong>.
+            Are you sure this pet is 3 months old or above and <span style={{ color: '#198754', fontWeight: '700' }}>healthy</span>?
+          </p>
+          <div style={{ background: 'rgba(220,53,69,0.06)', border: '1.5px solid rgba(220,53,69,0.25)', borderRadius: '10px', padding: '0.75rem 1rem', textAlign: 'left' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.85rem', marginTop: '2px', flexShrink: 0 }} />
+              <span style={{ fontSize: '0.8rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
+                Proceeding with an unqualified pet may result in complications. Please confirm the pet meets the age and health requirements before proceeding.
+              </span>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1.25rem 2rem', gap: '0.75rem' }}>
+          <Button variant="secondary" onClick={() => setShowAgeConfirmModal(false)}
+            style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600', fontSize: '0.9rem', flex: 1 }}>
+            <i className="fas fa-arrow-left me-2" />Back
+          </Button>
+          <Button className="border-0" onClick={() => { setShowAgeConfirmModal(false); setShowConfirmRecordModal(true); }}
+            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '700', fontSize: '0.9rem', flex: 1, boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
+            <i className="fas fa-check me-2" />Yes, Proceed
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* ── Review & Confirm Record Modal ── */}
       <Modal show={showConfirmRecordModal} onHide={() => setShowConfirmRecordModal(false)} centered style={{ zoom: '0.75' }}>
