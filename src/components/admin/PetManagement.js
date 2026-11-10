@@ -287,16 +287,53 @@ const loadPage = async (page, force = false) => {
 
   page === 1 ? setLoading(true) : setPageLoading(true);
   try {
-    const [petsRes, ownersRes] = await Promise.all([
-      petAPI.getAll(page, itemsPerPage),
-      ownerAPI.getAllUnpaginated()
-    ]);
-    const newPets = petsRes.data.pets || [];
-    const total   = petsRes.data.total ?? newPets.length;
+    let allPets = [];
 
-    setPageCache({ [cacheKey]: { pets: newPets, total, ts: Date.now() } });
-    setPets(newPets);
-    setOwners(ownersRes.data.owners || []);
+    if (filterStatus === 'archived') {
+      const [archivedRes, ownersRes] = await Promise.all([
+        petAPI.archived(),
+        ownerAPI.getAllUnpaginated()
+      ]);
+      allPets = archivedRes.data.pets || [];
+      setOwners(ownersRes.data.owners || []);
+    } else if (filterStatus === 'all') {
+      const [activeRes, archivedRes, ownersRes] = await Promise.all([
+        petAPI.getAllUnpaginated(),
+        petAPI.archived(),
+        ownerAPI.getAllUnpaginated()
+      ]);
+      allPets = [
+        ...(activeRes.data.pets || []),
+        ...(archivedRes.data.pets || [])
+      ];
+      setOwners(ownersRes.data.owners || []);
+    } else {
+      // active (default)
+      const [petsRes, ownersRes] = await Promise.all([
+        petAPI.getAll(page, itemsPerPage),
+        ownerAPI.getAllUnpaginated()
+      ]);
+      allPets = petsRes.data.pets || [];
+      const total = petsRes.data.total ?? allPets.length;
+      setOwners(ownersRes.data.owners || []);
+      setPageCache(prev => ({ ...prev, [cacheKey]: { pets: allPets, total, ts: Date.now() } }));
+      setPets(allPets);
+      setTotalPets(total);
+      setLoading(false);
+      setPageLoading(false);
+      return;
+    }
+
+    // For archived/all: paginate client-side
+    const speciesFiltered = filterSpecies === 'all'
+      ? allPets
+      : allPets.filter(p => p.species === filterSpecies);
+    const total = speciesFiltered.length;
+    const start = (page - 1) * itemsPerPage;
+    const paginated = speciesFiltered.slice(start, start + itemsPerPage);
+
+    setPageCache(prev => ({ ...prev, [cacheKey]: { pets: paginated, total, ts: Date.now() } }));
+    setPets(paginated);
     setTotalPets(total);
   } catch (err) {
     const { message } = handleAPIError(err);
@@ -375,16 +412,9 @@ const loadData = () => loadPage(1);
       (pet.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (pet.registration_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       getOwnerName(pet).toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesSpecies = 
-      filterSpecies === 'all' || pet.species === filterSpecies;
-    
-    const matchesStatus = 
-      filterStatus === 'all' || 
-      (filterStatus === 'active' && (pet.is_active == 1 || pet.is_active === true)) ||
-      (filterStatus === 'archived' && (pet.is_active == 0 || pet.is_active === false));
-    
-    return matchesSearch && matchesSpecies && matchesStatus;
+    // Species and status already filtered server/client-side in loadPage;
+    // only search needs to be applied locally here.
+    return matchesSearch;
   });
 
 
@@ -772,7 +802,7 @@ const loadData = () => loadPage(1);
       </Row>
 
       {/* Pagination */}
-      {totalPets > itemsPerPage && (
+      {totalPets > itemsPerPage && filteredPets.length > 0 && (
   <Row className="mt-4 mobile-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
     <Col className="d-flex justify-content-between align-items-center">
       {/* Left: Page X of Y */}
