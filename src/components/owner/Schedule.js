@@ -2317,7 +2317,7 @@ const getVaccineDetails = (schedule) => {
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
               <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '2px', flexShrink: 0 }} />
               <span style={{ fontSize: '0.82rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
-                If your pet is found unqualified on the day of the event, <strong>your reserved slot will be forfeited (masasayang)</strong> and cannot be transferred or refunded.
+                If your pet is found unqualified on the day of the event, <strong>your reserved slot will be forfeited (masasayang)</strong> and cannot be transferred.
               </span>
             </div>
           </div>
@@ -2456,7 +2456,7 @@ const getVaccineDetails = (schedule) => {
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
               <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '2px', flexShrink: 0 }} />
               <span style={{ fontSize: '0.82rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
-                If you proceed and your pet is found to be underage, unhealthy, or unqualified on the day of the event, <strong>your reserved slot will be forfeited (masasayang)</strong> and cannot be transferred or refunded.
+                If you proceed and your pet is found to be underage, unhealthy, or unqualified on the day of the event, <strong>your reserved slot will be forfeited (masasayang)</strong> and cannot be transferred.
               </span>
             </div>
           </div>
