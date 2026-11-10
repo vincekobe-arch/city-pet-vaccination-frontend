@@ -1778,6 +1778,107 @@ const handleRegisterPet = async (e) => {
         </>
       )}
 
+      {/* ===== ARCHIVED VIEW ===== */}
+      {activeTab === 'archived' && (
+        <>
+          {archiveLoading ? (
+            <Row style={{ flex: '1 1 auto' }}>
+              <Col className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
+                <Spinner animation="border" style={{ color: '#856404', width: '3rem', height: '3rem' }} />
+              </Col>
+            </Row>
+          ) : archivedPets.length === 0 ? (
+            <Row style={{ flex: '1 1 auto' }}>
+              <Col>
+                <Card className="text-center py-5 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+                  <Card.Body>
+                    <i className="fas fa-archive text-muted mb-3" style={{ fontSize: '3.5rem', color: '#e0e0e0' }}></i>
+                    <h4 className="text-muted mb-2">No Archived Pets</h4>
+                    <p className="text-muted mb-0">Archived pets will appear here. They remain inactive until unarchived.</p>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          ) : (
+            <>
+              <div className="mb-3 px-1">
+                <small style={{ color: '#856404', fontWeight: '600' }}>
+                  <i className="fas fa-info-circle me-1"></i>
+                  Archived pets are inactive and hidden from active records. You can unarchive them anytime.
+                </small>
+              </div>
+              <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
+                {archivedPets.slice((archivePage - 1) * itemsPerPage, archivePage * itemsPerPage).map((pet, index) => (
+                  <Col key={pet.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + index * 0.08}s backwards` }}>
+                    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(133,100,4,0.1)', opacity: 0.88, overflow: 'hidden' }}>
+                      <Card.Header className="d-flex align-items-center" style={{ background: 'linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%)', borderBottom: '2px solid #856404', borderRadius: '20px 20px 0 0' }}>
+                        <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0, overflow: 'hidden' }}>
+                          <img src={getPetImage(pet.species, pet.photo_url)} alt={pet.species} style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '12px', filter: 'grayscale(40%)' }} onError={(e) => e.target.src = '/pet-default.png'} />
+                        </div>
+                        <div className="flex-grow-1">
+                          <h5 className="mb-0" style={{ fontWeight: '700', color: '#555' }}>{pet.name}</h5>
+                          <small className="text-muted" style={{ fontSize: '0.8rem' }}>
+                            <i className="fas fa-id-card me-1"></i>{pet.registration_number}
+                          </small>
+                        </div>
+                        <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem' }}>Archived</Badge>
+                      </Card.Header>
+                      <Card.Body style={{ padding: '1.25rem' }}>
+                        <Row className="mb-2">
+                          <Col xs={6}>
+                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Species</small>
+                            <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.species}</div>
+                          </Col>
+                          <Col xs={6}>
+                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Breed</small>
+                            <div style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.breed || 'Mixed'}</div>
+                          </Col>
+                        </Row>
+                        <Row className="mb-3">
+                          <Col xs={6}>
+                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Gender</small>
+                            <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.gender}</div>
+                          </Col>
+                          <Col xs={6}>
+                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Vaccinations</small>
+                            <div style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.vaccination_count || 0} record(s)</div>
+                          </Col>
+                        </Row>
+                        <button
+                          onClick={() => handleUnarchivePet(pet)}
+                          style={{ width: '100%', background: '#856404', border: 'none', borderRadius: '8px', padding: '0.55rem', color: '#fff', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                          onMouseOver={(e) => e.currentTarget.style.background = '#6d5203'}
+                          onMouseOut={(e) => e.currentTarget.style.background = '#856404'}
+                        >
+                          <i className="fas fa-box-open me-1"></i>Unarchive
+                        </button>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+              {archivedPets.length > itemsPerPage && (
+                <Row className="mt-4">
+                  <Col className="d-flex justify-content-between align-items-center">
+                    <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
+                      Page <strong>{archivePage}</strong> of <strong>{Math.ceil(archivedPets.length / itemsPerPage)}</strong>
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => setArchivePage(p => Math.max(p - 1, 1))} disabled={archivePage === 1} style={{ background: archivePage === 1 ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: archivePage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: archivePage === 1 ? '#adb5bd' : '#333' }}>
+                        <i className="fas fa-chevron-left"></i>
+                      </button>
+                      <button onClick={() => setArchivePage(p => Math.min(p + 1, Math.ceil(archivedPets.length / itemsPerPage)))} disabled={archivePage === Math.ceil(archivedPets.length / itemsPerPage)} style={{ background: archivePage === Math.ceil(archivedPets.length / itemsPerPage) ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: archivePage === Math.ceil(archivedPets.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontWeight: '600', color: archivePage === Math.ceil(archivedPets.length / itemsPerPage) ? '#adb5bd' : '#333' }}>
+                        <i className="fas fa-chevron-right"></i>
+                      </button>
+                    </div>
+                  </Col>
+                </Row>
+              )}
+            </>
+          )}
+        </>
+      )}
+
       {/* ===== TRASH VIEW ===== */}
       {activeTab === 'trash' && (
         <>
