@@ -19,6 +19,55 @@ const setCache = (data) => {
 // "2026-11-10 07:04:07" -> Date (works in every browser)
 const toDate = (value) => (value ? new Date(String(value).replace(' ', 'T')) : null);
 
+/* ------------------------------------------------------------------ */
+/* Animation helpers                                                  */
+/* ------------------------------------------------------------------ */
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Turns true shortly after mount, so bars, donuts and lines can grow from zero
+const useGrow = (delay = 350) => {
+  const [on, setOn] = useState(prefersReducedMotion());
+  useEffect(() => {
+    if (prefersReducedMotion()) { setOn(true); return; }
+    const timer = setTimeout(() => setOn(true), delay);
+    return () => clearTimeout(timer);
+  }, []);
+  return on;
+};
+
+// Counts a number up from 0 with an ease-out curve
+const CountUp = ({ value = 0, duration = 1200, delay = 350 }) => {
+  const target = Number(value) || 0;
+  const [n, setN] = useState(prefersReducedMotion() ? target : 0);
+  useEffect(() => {
+    if (prefersReducedMotion()) { setN(target); return; }
+    let raf, start;
+    const timer = setTimeout(() => {
+      const tick = (ts) => {
+        if (!start) start = ts;
+        const p = Math.min(1, (ts - start) / duration);
+        setN(Math.round(target * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, delay);
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+  }, [target]);
+  return n;
+};
+
+const GROW_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+const ProgressBar = ({ pct, color, track, height = 8 }) => {
+  const on = useGrow();
+  return (
+    <div style={{ height: `${height}px`, borderRadius: `${height / 2}px`, background: track, overflow: 'hidden' }}>
+      <div style={{ width: `${on ? Math.min(100, pct) : 0}%`, height: '100%', borderRadius: `${height / 2}px`, background: color, transition: `width 1.2s ${GROW_EASE}` }} />
+    </div>
+  );
+};
+
 const REPORT_TYPES = {
   rabies_case:   { label: 'Rabies case',   color: '#dc3545', icon: 'fa-virus' },
   animal_bite:   { label: 'Animal bite',   color: '#fd7e14', icon: 'fa-tooth' },
@@ -345,6 +394,7 @@ const ActivityChart = ({ months, t }) => {
   const step = Math.max(1, Math.ceil(peak / 4));
   const max = step * 4;
   const n = months.length;
+  const on = useGrow();
   const xAt = (i) => (n > 1 ? (i / (n - 1)) * 100 : 50);
   const yAt = (v) => 100 - (v / max) * 100;
   const line = (key) => months.map((m, i) => `${i ? 'L' : 'M'}${xAt(i)},${yAt(m[key])}`).join(' ');
@@ -365,6 +415,7 @@ const ActivityChart = ({ months, t }) => {
           </React.Fragment>
         ))}
 
+        <div style={{ position: 'absolute', inset: 0, clipPath: on ? 'inset(-12px -12px -12px -12px)' : 'inset(-12px 100% -12px -12px)', transition: `clip-path 1.4s ${GROW_EASE}` }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
           <defs>
             <linearGradient id="petsArea" x1="0" y1="0" x2="0" y2="1">
@@ -382,6 +433,7 @@ const ActivityChart = ({ months, t }) => {
           <div key={`${s.key}${i}`} title={`${m.label}: ${m[s.key]} ${s.label.toLowerCase()}`}
             style={{ position: 'absolute', left: `${xAt(i)}%`, top: `${yAt(m[s.key])}%`, width: '9px', height: '9px', borderRadius: '50%', background: t.panel, border: `2px solid ${s.color}`, transform: 'translate(-50%, -50%)' }} />
         )))}
+        </div>
 
         {months.map((m, i) => (
           <div key={m.label} style={{ position: 'absolute', top: '100%', marginTop: '8px', left: `${xAt(i)}%`, transform: 'translateX(-50%)', fontSize: '0.72rem', color: t.muted, whiteSpace: 'nowrap' }}>
@@ -396,6 +448,7 @@ const ActivityChart = ({ months, t }) => {
 const Donut = ({ segments, total, t, size = 150, stroke = 18 }) => {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
+  const on = useGrow();
   let offset = 0;
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
@@ -405,14 +458,15 @@ const Donut = ({ segments, total, t, size = 150, stroke = 18 }) => {
           const len = (s.value / total) * c;
           const el = (
             <circle key={s.key} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={stroke}
-              strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+              strokeDasharray={on ? `${len} ${c - len}` : `0 ${c}`} strokeDashoffset={on ? -offset : 0} transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              style={{ transition: `stroke-dasharray 1.2s ${GROW_EASE}, stroke-dashoffset 1.2s ${GROW_EASE}` }} />
           );
           offset += len;
           return el;
         })}
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>{total}</div>
+        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}><CountUp value={total} /></div>
         <div style={{ fontSize: '0.72rem', color: t.muted, marginTop: '0.2rem' }}>reports</div>
       </div>
     </div>
@@ -423,11 +477,9 @@ const BarRow = ({ t, label, value, max, color, right }) => (
   <div style={{ marginBottom: '0.8rem' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.3rem', gap: '0.5rem' }}>
       <span style={{ fontSize: '0.84rem', color: t.text, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      <span style={{ fontSize: '0.8rem', color: t.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{right ?? value}</span>
+      <span style={{ fontSize: '0.8rem', color: t.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{right ?? <CountUp value={value} />}</span>
     </div>
-    <div style={{ height: '8px', borderRadius: '4px', background: t.track, overflow: 'hidden' }}>
-      <div style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, height: '100%', borderRadius: '4px', background: color, transition: 'width 0.6s ease' }} />
-    </div>
+    <ProgressBar pct={max > 0 ? (value / max) * 100 : 0} color={color} track={t.track} />
   </div>
 );
 
@@ -576,7 +628,7 @@ const AdminDashboard = ({ darkMode }) => {
   .dash-table td { font-size: 0.86rem; border-bottom: 1px solid ${t.border} !important; padding: 0.65rem 0.75rem; vertical-align: middle; }
   .dash-table tr:last-child td { border-bottom: none !important; }
 
-  @keyframes panelIn {
+@keyframes panelIn {
     0%   { opacity: 0; transform: translateY(16px); }
     100% { opacity: 1; transform: translateY(0); }
   }
@@ -686,11 +738,11 @@ const AdminDashboard = ({ darkMode }) => {
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                    <span style={{ fontSize: '2.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>{analytics.coverage}%</span>
-                    <span style={{ fontSize: '0.85rem', ...muted }}>{analytics.vaccinated} of {pets.length} pets</span>
+                    <span style={{ fontSize: '2.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}><CountUp value={analytics.coverage} />%</span>
+                    <span style={{ fontSize: '0.85rem', ...muted }}><CountUp value={analytics.vaccinated} /> of {pets.length} pets</span>
                   </div>
-                  <div style={{ height: '10px', borderRadius: '5px', background: t.track, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    <div style={{ width: `${analytics.coverage}%`, height: '100%', background: '#198754', borderRadius: '5px', transition: 'width 0.6s ease' }} />
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <ProgressBar pct={analytics.coverage} color="#198754" track={t.track} height={10} />
                   </div>
                   {analytics.species.map(s => (
                     <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -698,7 +750,7 @@ const AdminDashboard = ({ darkMode }) => {
                         <img src={s.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <BarRow t={t} label={s.label} value={s.pct} max={100} color={s.color} right={`${s.pct}% (${s.vaccinated}/${s.total})`} />
+                        <BarRow t={t} label={s.label} value={s.pct} max={100} color={s.color} right={<><CountUp value={s.pct} />% (<CountUp value={s.vaccinated} />/{s.total})</>} />
                       </div>
                     </div>
                   ))}
@@ -728,7 +780,7 @@ const AdminDashboard = ({ darkMode }) => {
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.84rem', color: t.text }}>
                           <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color }} />{s.label}
                         </span>
-                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}>{s.value}</span>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}><CountUp value={s.value} /></span>
                       </div>
                     ))}
                   </div>
@@ -747,7 +799,7 @@ const AdminDashboard = ({ darkMode }) => {
                     <a href="/admin/map-status" className="dash-row" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '10px', background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.25)', textDecoration: 'none', marginBottom: '1rem' }}>
                       <i className="fas fa-exclamation-circle" style={{ color: '#dc3545', fontSize: '1.1rem' }} />
                       <span style={{ fontSize: '0.84rem', color: t.text, lineHeight: 1.35 }}>
-                        <strong>{analytics.positive + analytics.suspected} active rabies {analytics.positive + analytics.suspected === 1 ? 'case' : 'cases'}</strong>
+                        <strong><CountUp value={analytics.positive + analytics.suspected} /> active rabies {analytics.positive + analytics.suspected === 1 ? 'case' : 'cases'}</strong>
                         <span style={{ display: 'block', ...muted }}>{analytics.positive} positive, {analytics.suspected} suspected. View them on the map.</span>
                       </span>
                     </a>
@@ -771,7 +823,7 @@ const AdminDashboard = ({ darkMode }) => {
               ) : (
                 analytics.topBarangays.map(([name, count]) => (
                   <BarRow key={name} t={t} label={name} value={count} max={analytics.topBarangays[0][1]} color="#0d6efd"
-                    right={`${count} ${count === 1 ? 'report' : 'reports'}`} />
+                    right={<><CountUp value={count} /> {count === 1 ? 'report' : 'reports'}</>} />
                 ))
               )}
             </Panel>

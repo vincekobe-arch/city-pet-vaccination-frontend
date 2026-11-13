@@ -46,6 +46,55 @@ const AnimatedStatValue = ({ value, loading }) => {
 /* ------------------------------------------------------------------ */
 const toDate = (value) => (value ? new Date(String(value).replace(' ', 'T')) : null);
 
+/* ------------------------------------------------------------------ */
+/* Animation helpers                                                  */
+/* ------------------------------------------------------------------ */
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Turns true shortly after mount, so bars, donuts and lines can grow from zero
+const useGrow = (delay = 350) => {
+  const [on, setOn] = useState(prefersReducedMotion());
+  useEffect(() => {
+    if (prefersReducedMotion()) { setOn(true); return; }
+    const timer = setTimeout(() => setOn(true), delay);
+    return () => clearTimeout(timer);
+  }, []);
+  return on;
+};
+
+// Counts a number up from 0 with an ease-out curve
+const CountUp = ({ value = 0, duration = 1200, delay = 350 }) => {
+  const target = Number(value) || 0;
+  const [n, setN] = useState(prefersReducedMotion() ? target : 0);
+  useEffect(() => {
+    if (prefersReducedMotion()) { setN(target); return; }
+    let raf, start;
+    const timer = setTimeout(() => {
+      const tick = (ts) => {
+        if (!start) start = ts;
+        const p = Math.min(1, (ts - start) / duration);
+        setN(Math.round(target * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, delay);
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+  }, [target]);
+  return n;
+};
+
+const GROW_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+const ProgressBar = ({ pct, color, track, height = 8 }) => {
+  const on = useGrow();
+  return (
+    <div style={{ height: `${height}px`, borderRadius: `${height / 2}px`, background: track, overflow: 'hidden' }}>
+      <div style={{ width: `${on ? Math.min(100, pct) : 0}%`, height: '100%', borderRadius: `${height / 2}px`, background: color, transition: `width 1.2s ${GROW_EASE}` }} />
+    </div>
+  );
+};
+
 const formatShortDate = (value) => {
   const d = toDate(value);
   return d && !isNaN(d) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -124,6 +173,7 @@ const LineChart = ({ months, series, t }) => {
   const step = Math.max(1, Math.ceil(peak / 4));
   const max = step * 4;
   const n = months.length;
+  const on = useGrow();
   const xAt = (i) => (n > 1 ? (i / (n - 1)) * 100 : 50);
   const yAt = (v) => 100 - (v / max) * 100;
   const line = (key) => months.map((m, i) => `${i ? 'L' : 'M'}${xAt(i)},${yAt(m[key])}`).join(' ');
@@ -140,6 +190,7 @@ const LineChart = ({ months, series, t }) => {
             </div>
           </React.Fragment>
         ))}
+        <div style={{ position: 'absolute', inset: 0, clipPath: on ? 'inset(-12px -12px -12px -12px)' : 'inset(-12px 100% -12px -12px)', transition: `clip-path 1.4s ${GROW_EASE}` }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
           <defs>
             <linearGradient id="saArea" x1="0" y1="0" x2="0" y2="1">
@@ -156,6 +207,7 @@ const LineChart = ({ months, series, t }) => {
           <div key={`${s.key}${i}`} title={`${m.label}: ${m[s.key]} ${s.label.toLowerCase()}`}
             style={{ position: 'absolute', left: `${xAt(i)}%`, top: `${yAt(m[s.key])}%`, width: '9px', height: '9px', borderRadius: '50%', background: t.panel, border: `2px solid ${s.color}`, transform: 'translate(-50%, -50%)' }} />
         )))}
+        </div>
         {months.map((m, i) => (
           <div key={m.label} style={{ position: 'absolute', top: '100%', marginTop: '8px', left: `${xAt(i)}%`, transform: 'translateX(-50%)', fontSize: '0.72rem', color: t.muted, whiteSpace: 'nowrap' }}>
             {m.label}
@@ -169,6 +221,7 @@ const LineChart = ({ months, series, t }) => {
 const Donut = ({ segments, total, unit, t, size = 150, stroke = 18 }) => {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
+  const on = useGrow();
   let offset = 0;
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
@@ -178,14 +231,15 @@ const Donut = ({ segments, total, unit, t, size = 150, stroke = 18 }) => {
           const len = (s.value / total) * c;
           const el = (
             <circle key={s.key} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={stroke}
-              strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+              strokeDasharray={on ? `${len} ${c - len}` : `0 ${c}`} strokeDashoffset={on ? -offset : 0} transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              style={{ transition: `stroke-dasharray 1.2s ${GROW_EASE}, stroke-dashoffset 1.2s ${GROW_EASE}` }} />
           );
           offset += len;
           return el;
         })}
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>{total}</div>
+        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}><CountUp value={total} /></div>
         <div style={{ fontSize: '0.72rem', color: t.muted, marginTop: '0.2rem' }}>{unit}</div>
       </div>
     </div>
@@ -199,11 +253,9 @@ const BarRow = ({ t, label, sublabel, value, max, color, right }) => (
         <span style={{ fontSize: '0.84rem', color: t.text, fontWeight: 600 }}>{label}</span>
         {sublabel && <span style={{ fontSize: '0.76rem', color: t.muted, marginLeft: '0.4rem' }}>{sublabel}</span>}
       </span>
-      <span style={{ fontSize: '0.8rem', color: t.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{right ?? value}</span>
+      <span style={{ fontSize: '0.8rem', color: t.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{right ?? <CountUp value={value} />}</span>
     </div>
-    <div style={{ height: '8px', borderRadius: '4px', background: t.track, overflow: 'hidden' }}>
-      <div style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, height: '100%', borderRadius: '4px', background: color, transition: 'width 0.6s ease' }} />
-    </div>
+    <ProgressBar pct={max > 0 ? (value / max) * 100 : 0} color={color} track={t.track} />
   </div>
 );
 
@@ -301,10 +353,10 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
     });
     const topAccounts = Object.values(accounts).sort((a, b) => b.count - a.count).slice(0, 5);
 
-    // Recent system activity (new pets and pet owners)
+    // Recent system activity (new pets and community accounts)
     const system = [
-      ...pets.map(p => ({ kind: 'pet', date: p.created_at || p.registration_date, title: `${p.name} registered`, meta: `${(p.species || 'Pet').replace(/^./, c => c.toUpperCase())}, owned by ${p.owner_name || 'N/A'}` })),
-      ...owners.map(o => ({ kind: 'owner', date: o.created_at, title: `${o.first_name} ${o.last_name} joined`, meta: 'New pet owner account' })),
+      ...pets.map(p => ({ kind: 'pet', date: p.created_at || p.registration_date, title: `${p.name} registered`, meta: `${(p.species || 'Pet').replace(/^./, c => c.toUpperCase())}, registered by ${p.owner_name || 'N/A'}` })),
+      ...owners.map(o => ({ kind: 'owner', date: o.created_at, title: `${o.first_name} ${o.last_name} joined`, meta: 'New community account' })),
     ].filter(a => toDate(a.date)).sort((a, b) => toDate(b.date) - toDate(a.date)).slice(0, 8);
 
     return {
@@ -341,7 +393,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
     }
     .dash-row { transition: background 0.15s ease; }
     .dash-row:hover { background: ${t.subtle}; }
-    @keyframes panelIn {
+  @keyframes panelIn {
       0%   { opacity: 0; transform: translateY(16px); }
       100% { opacity: 1; transform: translateY(0); }
     }
@@ -349,7 +401,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
     .dash-section > :nth-child(2) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.08s); }
     .dash-section > :nth-child(3) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.16s); }
 
-    @media (prefers-reduced-motion: reduce) {
+      @media (prefers-reduced-motion: reduce) {
       .skeleton, .sa-stat, .dash-panel { animation: none !important; }
     }
     @media (max-width: 768px) {
@@ -395,8 +447,8 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
         {/* Statistics Cards (unchanged) */}
         <Row className="mb-4" style={{ flexWrap: 'nowrap', margin: '0 -6px' }}>
           {[
-            { label: 'Barangay Admins', count: officials.length, img: '/users.png', accent: '#198754', accentAlpha: 'rgba(25,135,84,0.12)', fallbackIcon: 'fa-user-tie', description: 'Total Administrators', delay: '0.1s' },
-            { label: 'Pet Owners', count: owners.length, img: '/users.png', accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users', description: 'Total Owners', delay: '0.2s' },
+            { label: 'Admins', count: officials.length, img: '/users.png', accent: '#198754', accentAlpha: 'rgba(25,135,84,0.12)', fallbackIcon: 'fa-user-tie', description: 'Total Administrators', delay: '0.1s' },
+            { label: 'Communities', count: owners.length, img: '/users.png', accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users', description: 'Total Communities', delay: '0.2s' },
             { label: 'Total Pets', count: pets.length, img: '/paw.png', accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)', fallbackIcon: 'fa-paw', description: 'Registered Pets', delay: '0.3s' },
           ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => (
             <div key={label} className="sa-stat" style={{ flex: '1 1 0', padding: '0 6px', minWidth: 0, animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
@@ -436,11 +488,11 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
             <Panel
               t={t} icon="fa-chart-line" iconColor="#ffc107"
               title="System growth"
-              subtitle={loading ? 'Loading activity…' : `${analytics.petsThisMonth} new pets and ${analytics.ownersThisMonth} new pet owners this month`}
+              subtitle={loading ? 'Loading activity…' : `${analytics.petsThisMonth} new ${analytics.petsThisMonth === 1 ? 'pet' : 'pets'} and ${analytics.ownersThisMonth} new community ${analytics.ownersThisMonth === 1 ? 'account' : 'accounts'} this month`}
               action={
                 <div className="dash-hide-sm" style={{ display: 'flex', gap: '1rem' }}>
                   <LegendDot t={t} color="#ffc107" label="Pets registered" />
-                  <LegendDot t={t} color="#0dcaf0" label="Pet owners joined" />
+                  <LegendDot t={t} color="#0dcaf0" label="Communities joined" />
                   <LegendDot t={t} color="#198754" label="Records added" />
                 </div>
               }
@@ -449,7 +501,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
                 ? <Skeleton style={{ height: '240px', width: '100%' }} />
                 : <LineChart t={t} months={analytics.months} series={[
                     { key: 'pets', label: 'Pets registered', color: '#ffc107' },
-                    { key: 'owners', label: 'Pet owners joined', color: '#0dcaf0' },
+                    { key: 'owners', label: 'Communities joined', color: '#0dcaf0' },
                     { key: 'records', label: 'Records added', color: '#198754' },
                   ]} />}
             </Panel>
@@ -467,11 +519,11 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                    <span style={{ fontSize: '2.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>{analytics.coverage}%</span>
-                    <span style={{ fontSize: '0.85rem', ...muted }}>{analytics.vaccinated} of {pets.length} pets</span>
+                    <span style={{ fontSize: '2.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}><CountUp value={analytics.coverage} />%</span>
+                    <span style={{ fontSize: '0.85rem', ...muted }}><CountUp value={analytics.vaccinated} /> of {pets.length} pets</span>
                   </div>
-                  <div style={{ height: '10px', borderRadius: '5px', background: t.track, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                    <div style={{ width: `${analytics.coverage}%`, height: '100%', background: '#198754', borderRadius: '5px', transition: 'width 0.6s ease' }} />
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <ProgressBar pct={analytics.coverage} color="#198754" track={t.track} height={10} />
                   </div>
                   {analytics.species.map(s => (
                     <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -479,7 +531,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
                         <img src={s.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <BarRow t={t} label={s.label} value={s.pct} max={100} color={s.color} right={`${s.pct}% (${s.vaccinated}/${s.total})`} />
+                        <BarRow t={t} label={s.label} value={s.pct} max={100} color={s.color} right={<><CountUp value={s.pct} />% (<CountUp value={s.vaccinated} />/{s.total})</>} />
                       </div>
                     </div>
                   ))}
@@ -490,7 +542,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
         </Row>
 
         {/* Admin and clinic analytics */}
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.55s' }}>
           <Col lg={4}>
             <Panel t={t} icon="fa-chart-pie" iconColor="#6f42c1" title="Records by type" subtitle="Health records added by admins and clinics">
               {loading ? (
@@ -509,7 +561,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.84rem', color: t.text }}>
                           <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color }} />{s.label}
                         </span>
-                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}>{s.value}</span>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}><CountUp value={s.value} /></span>
                       </div>
                     ))}
                   </div>
@@ -536,7 +588,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
                   })()}
                   {analytics.totalRecords > 0 && (
                     <div style={{ marginTop: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '10px', background: t.subtle, fontSize: '0.82rem', color: t.text }}>
-                      Private clinics added <strong>{Math.round((analytics.clinicRecords / analytics.totalRecords) * 100)}%</strong> of all health records.
+                      Private clinics added <strong><CountUp value={Math.round((analytics.clinicRecords / analytics.totalRecords) * 100)} />%</strong> of all health records.
                     </div>
                   )}
                 </>
@@ -554,7 +606,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
                 analytics.topAccounts.map(a => (
                   <BarRow key={`${a.name}${a.org}`} t={t} label={a.name} sublabel={a.org} value={a.count}
                     max={analytics.topAccounts[0].count} color={a.clinic ? '#0dcaf0' : '#198754'}
-                    right={`${a.count} ${a.count === 1 ? 'action' : 'actions'}`} />
+                    right={<><CountUp value={a.count} /> {a.count === 1 ? 'action' : 'actions'}</>} />
                 ))
               )}
             </Panel>
@@ -598,11 +650,11 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
           </Col>
 
           <Col lg={6}>
-            <Panel t={t} icon="fa-history" iconColor="#0dcaf0" title="Recent system activity" subtitle="New pets and pet owner accounts" bodyStyle={{ padding: '0.25rem 0.75rem 0.75rem' }}>
+            <Panel t={t} icon="fa-history" iconColor="#0dcaf0" title="Recent system activity" subtitle="New pets and community accounts" bodyStyle={{ padding: '0.25rem 0.75rem 0.75rem' }}>
               {loading ? (
                 [0, 1, 2, 3, 4].map(i => <Skeleton key={i} style={{ height: '46px', margin: '0 0.5rem 0.6rem' }} />)
               ) : analytics.system.length === 0 ? (
-                <EmptyState t={t} icon="fa-history" text="New pets and pet owners will show up here." />
+                <EmptyState t={t} icon="fa-history" text="New pets and community accounts will show up here." />
               ) : (
                 analytics.system.map((a, i) => (
                   <ActivityItem
