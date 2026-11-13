@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Alert, Badge } from 'react-bootstrap';
-import { barangayAPI, officialAPI, ownerAPI, petAPI, vaccinationAPI, dewormingAPI, sterilizationAPI, scheduleAPI, vetCardAPI, handleAPIError } from '../../services/api';
+import { Container, Row, Col, Card, Alert, Badge, Button } from 'react-bootstrap';
+import { barangayAPI, officialAPI, ownerAPI, petAPI, vaccinationAPI, vetCardAPI, activityLogAPI, handleAPIError } from '../../services/api';
+import ActivityLogsModal from './ActivityLogsModal';
 
 const AnimatedStatValue = ({ value, loading }) => {
   const [displayValue, setDisplayValue] = React.useState(0);
@@ -59,6 +60,7 @@ const SuperAdminDashboard = () => {
 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showLogs, setShowLogs] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -75,13 +77,7 @@ const SuperAdminDashboard = () => {
         petsRes,
         vaccinationStatsRes,
         vetCardsRes,
-        vaccinationRecordsRes,
-        dewormingRecordsRes,
-        sterilizationRecordsRes,
-        vaccinationSchedulesRes,
-        dewormingSchedulesRes,
-        seminarSchedulesRes,
-        sterilizationSchedulesRes
+        activityLogsRes
       ] = await Promise.all([
         barangayAPI.getAll(),
         officialAPI.getAll(),
@@ -89,13 +85,7 @@ const SuperAdminDashboard = () => {
         petAPI.getAll(),
         vaccinationAPI.getStatistics(),
         vetCardAPI.getAll(),
-        vaccinationAPI.getAll().catch(() => ({ data: { vaccination_records: [] } })),
-        dewormingAPI.getAll().catch(() => ({ data: { deworming_records: [] } })),
-        sterilizationAPI.getAll().catch(() => ({ data: { sterilization_records: [] } })),
-        scheduleAPI.getVaccinationSchedules().catch(() => ({ data: { schedules: [] } })),
-        scheduleAPI.getDewormingSchedules().catch(() => ({ data: { schedules: [] } })),
-        scheduleAPI.getSeminarSchedules().catch(() => ({ data: { schedules: [] } })),
-        scheduleAPI.getSterilizationSchedules().catch(() => ({ data: { schedules: [] } }))
+        activityLogAPI.getAll({ limit: 10 }).catch(() => ({ data: { logs: [] } }))
       ]);
 
       const barangays = barangaysRes.data.barangays || [];
@@ -104,13 +94,7 @@ const SuperAdminDashboard = () => {
       const pets = petsRes.data.pets || [];
       const vaccinationStats = vaccinationStatsRes.data.statistics || {};
       const vetCards = vetCardsRes.data.vet_cards || [];
-      const vaccinationRecords = vaccinationRecordsRes.data.vaccination_records || [];
-      const dewormingRecords = dewormingRecordsRes.data.deworming_records || [];
-      const sterilizationRecords = sterilizationRecordsRes.data.sterilization_records || [];
-      const vaccinationSchedules = vaccinationSchedulesRes.data.schedules || [];
-      const dewormingSchedules = dewormingSchedulesRes.data.schedules || [];
-      const seminarSchedules = seminarSchedulesRes.data.schedules || [];
-      const sterilizationSchedules = sterilizationSchedulesRes.data.schedules || [];
+      const activityLogs = activityLogsRes.data.logs || [];
 
       const barangayStats = barangays.map(barangay => {
         const barangayOfficials = officials.filter(official => 
@@ -186,15 +170,7 @@ const SuperAdminDashboard = () => {
         },
         barangays: barangayStats,
         recentActivity: generateRecentActivity(pets, owners),
-        recentAdminActivity: generateRecentAdminActivity(
-          vaccinationRecords,
-          dewormingRecords,
-          sterilizationRecords,
-          vaccinationSchedules,
-          dewormingSchedules,
-          seminarSchedules,
-          sterilizationSchedules
-        ),
+        recentAdminActivity: activityLogs.map(toActivityCard),
         vaccinationStatsBySpecies: vaccinationStats_new,
         barangayAdminStatus: barangayAdminStatus_new
       });
@@ -245,97 +221,25 @@ const SuperAdminDashboard = () => {
       .slice(0, 10);
   };
 
-  const generateRecentAdminActivity = (
-    vaccinationRecords,
-    dewormingRecords,
-    sterilizationRecords,
-    vaccinationSchedules,
-    dewormingSchedules,
-    seminarSchedules,
-    sterilizationSchedules
-  ) => {
-    const activities = [];
-    
-    // Add vaccination records
-    vaccinationRecords.slice(0, 5).forEach(record => {
-      activities.push({
-        type: 'vaccination_added',
-        description: `Vaccination record added for ${record.pet_name || 'pet'}: ${record.vaccine_name || 'vaccine'}`,
-        date: record.created_at || record.vaccination_date,
-        image: '/vaccine.png',
-        color: '#198754'
-      });
-    });
+    const toActivityCard = (log) => {
+    const recordImages = {
+      vaccination: '/vaccine.png',
+      deworming: '/deworm.png',
+      sterilization: '/sterilization.png',
+      microchip: '/microchip.png'
+    };
+    const image = log.category === 'event'
+      ? '/schedule.png'
+      : (recordImages[log.activity_type] || '/vaccine.png');
+    const target = log.pet_name ? ` for ${log.pet_name}` : '';
 
-    // Add deworming records
-    dewormingRecords.slice(0, 5).forEach(record => {
-      activities.push({
-        type: 'deworming_added',
-        description: `Deworming record added for ${record.pet_name || 'pet'}: ${record.deworming_name || 'treatment'}`,
-        date: record.created_at || record.deworming_date,
-        image: '/deworm.png',
-        color: '#fd7e14'
-      });
-    });
-
-    // Add sterilization records
-    sterilizationRecords.slice(0, 5).forEach(record => {
-      activities.push({
-        type: 'sterilization_added',
-        description: `Sterilization record added for ${record.pet_name || 'pet'}: ${record.procedure_type || 'procedure'}`,
-        date: record.created_at || record.sterilization_date,
-        image: '/sterilization.png',
-        color: '#6f42c1'
-      });
-    });
-
-    // Add vaccination schedules
-    vaccinationSchedules.slice(0, 3).forEach(schedule => {
-      activities.push({
-        type: 'schedule_added',
-        description: `Vaccination event scheduled: ${schedule.title}`,
-        date: schedule.created_at,
-        image: '/schedule.png',
-        color: '#0d6efd'
-      });
-    });
-
-    // Add deworming schedules
-    dewormingSchedules.slice(0, 3).forEach(schedule => {
-      activities.push({
-        type: 'schedule_added',
-        description: `Deworming event scheduled: ${schedule.title}`,
-        date: schedule.created_at,
-        image: '/schedule.png',
-        color: '#0d6efd'
-      });
-    });
-
-    // Add seminar schedules
-    seminarSchedules.slice(0, 3).forEach(schedule => {
-      activities.push({
-        type: 'schedule_added',
-        description: `Seminar scheduled: ${schedule.title}`,
-        date: schedule.created_at,
-        image: '/schedule.png',
-        color: '#0d6efd'
-      });
-    });
-
-    // Add sterilization schedules
-    sterilizationSchedules.slice(0, 3).forEach(schedule => {
-      activities.push({
-        type: 'schedule_added',
-        description: `Sterilization event scheduled: ${schedule.title}`,
-        date: schedule.created_at,
-        image: '/schedule.png',
-        color: '#0d6efd'
-      });
-    });
-
-    return activities
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 10);
+    return {
+      type: log.activity_type,
+      description: `${log.action}: ${log.item_name || 'N/A'}${target} — by ${log.performed_by_name} (${log.organization})`,
+      date: log.created_at ? String(log.created_at).replace(' ', 'T') : null,
+      image,
+      color: log.category === 'event' ? '#0d6efd' : '#198754'
+    };
   };
  
 
@@ -577,6 +481,7 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
             }}
           >
             <Card.Header
+              className="d-flex justify-content-between align-items-center"
               style={{
                 background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
                 borderBottom: '2px solid #ffc107',
@@ -585,9 +490,17 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
               }}
             >
               <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-<i className="fas fa-user-shield me-2" style={{ color: '#ffc107' }}></i>
-                Recent Admin Activity
+                <i className="fas fa-user-shield me-2" style={{ color: '#ffc107' }}></i>
+                Recent Admin/Clinic Activity
               </h5>
+              <Button
+                size="sm"
+                variant="warning"
+                onClick={() => setShowLogs(true)}
+                style={{ fontWeight: '600', borderRadius: '8px' }}
+              >
+                <i className="fas fa-list me-1"></i> View Logs
+              </Button>
             </Card.Header>
             <Card.Body style={{ padding: '2rem' }}>
               {loading ? (
@@ -605,7 +518,7 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
               ) : dashboardData.recentAdminActivity.length === 0 ? (
                 <div className="text-center py-5">
                   <i className="fas fa-user-shield text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                  <h6 style={{ color: '#666666', fontWeight: '600' }}>No admin activity yet</h6>
+                  <h6 style={{ color: '#666666', fontWeight: '600' }}>No admin/clinic activity yet</h6>
                   <p className="text-muted small mb-0">
                     Admin activity will appear here as records and events are added.
                   </p>
@@ -794,6 +707,7 @@ const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, 
         </Col>
       </Row>
     </Container>
+    <ActivityLogsModal show={showLogs} onHide={() => setShowLogs(false)} />
     </>
   );
 };

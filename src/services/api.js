@@ -256,6 +256,11 @@ export const scheduleAPI = {
   }
 };
 
+// Activity Logs API (Super Admin)
+export const activityLogAPI = {
+  getAll: (params = {}) => api.get('/activity-logs', { params }),
+};
+
 // Dashboard batch — replaces 10+ sidebar + dashboard calls
 export const dashboardAPI = {
   getBatch: () => api.get('/dashboard/batch'),
