@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Button, Form, Row, Col, Table, Badge, Spinner, Alert } from 'react-bootstrap';
+import { Modal, Button, Form, Row, Col, Table, Badge, Spinner, Alert, InputGroup } from 'react-bootstrap';
 import { activityLogAPI, handleAPIError } from '../../services/api';
 
 const ROLE_LABELS = {
@@ -172,47 +172,61 @@ const ActivityLogsModal = ({ show, onHide }) => {
     }
   };
 
+  const compactStyles = `
+    .activity-logs-dialog { max-width: 980px; }
+    .activity-logs-dialog .modal-content { border-radius: 14px; }
+    .activity-logs-table th {
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: #6c757d; font-weight: 700; white-space: nowrap; padding: 0.5rem;
+    }
+    .activity-logs-table td { padding: 0.5rem; font-size: 0.8rem; vertical-align: middle; }
+    .activity-logs-table .badge { font-size: 0.65rem; font-weight: 600; }
+    .activity-logs-details { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  `;
+
   return (
-    <Modal show={show} onHide={onHide} size="xl" centered scrollable>
-      <Modal.Header closeButton style={{ borderBottom: '2px solid #ffc107' }}>
-        <Modal.Title style={{ fontWeight: '700', color: '#333333' }}>
+    <Modal show={show} onHide={onHide} centered scrollable dialogClassName="activity-logs-dialog">
+      <style>{compactStyles}</style>
+      <Modal.Header closeButton style={{ borderBottom: '2px solid #ffc107', padding: '0.75rem 1.25rem' }}>
+        <Modal.Title style={{ fontWeight: '700', color: '#333333', fontSize: '1.1rem' }}>
           <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }}></i>
           Admin/Clinic Activity Logs
         </Modal.Title>
       </Modal.Header>
 
-      <Modal.Body style={{ padding: '1.5rem' }}>
+      <Modal.Body style={{ padding: '1rem 1.25rem' }}>
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')}>
+          <Alert variant="danger" dismissible onClose={() => setError('')} className="py-2 small">
             {error}
           </Alert>
         )}
 
         {/* Filters */}
-        <Row className="g-2 mb-3">
+        <Row className="g-2 mb-2">
           <Col md={4}>
             <Form.Control
+              size="sm"
               placeholder="Search name, clinic, pet, reg. no., event..."
               value={filters.search}
               onChange={handleFilter('search')}
             />
           </Col>
           <Col md={2}>
-            <Form.Select value={filters.role} onChange={handleFilter('role')}>
+            <Form.Select size="sm" value={filters.role} onChange={handleFilter('role')}>
               <option value="">All Users</option>
               <option value="admin">City Vet Admin</option>
               <option value="clinic">Private Clinic</option>
             </Form.Select>
           </Col>
           <Col md={2}>
-            <Form.Select value={filters.category} onChange={handleFilter('category')}>
+            <Form.Select size="sm" value={filters.category} onChange={handleFilter('category')}>
               <option value="">Records & Events</option>
               <option value="record">Records</option>
               <option value="event">Events</option>
             </Form.Select>
           </Col>
           <Col md={2}>
-            <Form.Select value={filters.type} onChange={handleFilter('type')}>
+            <Form.Select size="sm" value={filters.type} onChange={handleFilter('type')}>
               <option value="">All Types</option>
               {TYPE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -220,23 +234,30 @@ const ActivityLogsModal = ({ show, onHide }) => {
             </Form.Select>
           </Col>
           <Col md={2} className="d-grid">
-            <Button variant="outline-secondary" onClick={resetFilters}>
+            <Button size="sm" variant="outline-secondary" onClick={resetFilters}>
               <i className="fas fa-undo me-1"></i> Reset
             </Button>
           </Col>
+        </Row>
+        <Row className="g-2 mb-3 align-items-center">
           <Col md={3}>
-            <Form.Label className="small text-muted mb-1">Date added from</Form.Label>
-            <Form.Control type="date" value={filters.dateFrom} onChange={handleFilter('dateFrom')} />
+            <InputGroup size="sm">
+              <InputGroup.Text>From</InputGroup.Text>
+              <Form.Control type="date" value={filters.dateFrom} onChange={handleFilter('dateFrom')} />
+            </InputGroup>
           </Col>
           <Col md={3}>
-            <Form.Label className="small text-muted mb-1">Date added to</Form.Label>
-            <Form.Control type="date" value={filters.dateTo} onChange={handleFilter('dateTo')} />
+            <InputGroup size="sm">
+              <InputGroup.Text>To</InputGroup.Text>
+              <Form.Control type="date" value={filters.dateTo} onChange={handleFilter('dateTo')} />
+            </InputGroup>
           </Col>
-          <Col md={6} className="d-flex align-items-end justify-content-end">
+          <Col md={6} className="d-flex align-items-center justify-content-end">
             <span className="text-muted small me-3">
               {filteredLogs.length} log{filteredLogs.length !== 1 ? 's' : ''} found
             </span>
             <Button
+              size="sm"
               variant="success"
               onClick={exportCSV}
               disabled={loading || filteredLogs.length === 0}
@@ -248,80 +269,83 @@ const ActivityLogsModal = ({ show, onHide }) => {
 
         {/* Table */}
         {loading ? (
-          <div className="text-center py-5">
-            <Spinner animation="border" variant="warning" />
-            <p className="text-muted mt-2 mb-0">Loading activity logs...</p>
+          <div className="text-center py-4">
+            <Spinner animation="border" size="sm" variant="warning" />
+            <p className="text-muted small mt-2 mb-0">Loading activity logs...</p>
           </div>
         ) : filteredLogs.length === 0 ? (
-          <div className="text-center py-5">
-            <i className="fas fa-clipboard-list mb-3" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
-            <h6 style={{ color: '#666666', fontWeight: '600' }}>No activity logs found</h6>
+          <div className="text-center py-4">
+            <i className="fas fa-clipboard-list mb-2" style={{ fontSize: '2rem', color: '#e0e0e0' }}></i>
+            <h6 style={{ color: '#666666', fontWeight: '600', fontSize: '0.9rem' }}>No activity logs found</h6>
             <p className="text-muted small mb-0">Try changing or resetting the filters.</p>
           </div>
         ) : (
-          <Table responsive hover className="align-middle mb-0" style={{ fontSize: '0.9rem' }}>
+          <Table responsive hover size="sm" className="activity-logs-table mb-0">
             <thead style={{ background: '#f8f9fa' }}>
               <tr>
-                <th>Date & Time Added</th>
+                <th>Date Added</th>
                 <th>Performed By</th>
                 <th>Action</th>
                 <th>Details</th>
-                <th>Record / Event Date</th>
+                <th>Record/Event Date</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {pageLogs.map((log) => (
-                <tr key={log.log_id}>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    <div style={{ fontWeight: '600' }}>{formatDate(log.created_at)}</div>
-                    <small className="text-muted">{formatTime(log.created_at)}</small>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: '600' }}>{log.performed_by_name}</div>
-                    <small className="text-muted d-block">{log.organization}</small>
-                    <Badge bg={log.performed_by_role === 'private_clinic' ? 'info' : 'success'} className="mt-1">
-                      {ROLE_LABELS[log.performed_by_role] || log.performed_by_role}
-                    </Badge>
-                  </td>
-                  <td>
-                    <Badge bg={log.category === 'event' ? 'primary' : 'warning'} text={log.category === 'event' ? undefined : 'dark'} className="mb-1">
-                      {log.category === 'event' ? 'Event' : 'Record'}
-                    </Badge>
-                    <div>{log.action}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: '600' }}>{log.item_name}</div>
-                    {log.category === 'record' ? (
-                      <small className="text-muted d-block">
-                        {log.pet_name} ({log.registration_number || 'No Reg. No.'})
-                        {log.owner_name ? ` · Owner: ${log.owner_name}` : ''}
-                        {log.veterinarian_name ? ` · Vet: ${log.veterinarian_name}` : ''}
+              {pageLogs.map((log) => {
+                const details = log.category === 'record'
+                  ? `${log.pet_name || ''} (${log.registration_number || 'No Reg. No.'})${log.owner_name ? ` · Owner: ${log.owner_name}` : ''}${log.veterinarian_name ? ` · Vet: ${log.veterinarian_name}` : ''}`
+                  : log.location;
+
+                return (
+                  <tr key={log.log_id}>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <div style={{ fontWeight: '600' }}>{formatDate(log.created_at)}</div>
+                      <small className="text-muted">{formatTime(log.created_at)}</small>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: '600' }}>{log.performed_by_name}</div>
+                      <small className="text-muted">{log.organization}</small>
+                    </td>
+                    <td>
+                      <Badge
+                        bg={log.category === 'event' ? 'primary' : 'warning'}
+                        text={log.category === 'event' ? undefined : 'dark'}
+                        className="me-1"
+                      >
+                        {log.category === 'event' ? 'Event' : 'Record'}
+                      </Badge>
+                      <div>{log.action.replace('Scheduled ', '').replace('Added ', '')}</div>
+                    </td>
+                    <td>
+                      <div className="activity-logs-details" style={{ fontWeight: '600' }} title={log.item_name}>
+                        {log.item_name}
+                      </div>
+                      <small className="text-muted activity-logs-details d-block" title={details}>
+                        {details}
                       </small>
-                    ) : (
-                      <small className="text-muted d-block">{log.location}</small>
-                    )}
-                  </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    <div>{formatDate(log.activity_date)}</div>
-                    {log.start_time && (
-                      <small className="text-muted">
-                        {formatClock(log.start_time)} - {formatClock(log.end_time)}
-                      </small>
-                    )}
-                  </td>
-                  <td>
-                    <Badge bg={statusVariant(log.status)}>{capitalize(log.status)}</Badge>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <div>{formatDate(log.activity_date)}</div>
+                      {log.start_time && (
+                        <small className="text-muted">
+                          {formatClock(log.start_time)} - {formatClock(log.end_time)}
+                        </small>
+                      )}
+                    </td>
+                    <td>
+                      <Badge bg={statusVariant(log.status)}>{capitalize(log.status)}</Badge>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Table>
         )}
       </Modal.Body>
 
       {!loading && filteredLogs.length > 0 && (
-        <Modal.Footer className="d-flex justify-content-between">
+        <Modal.Footer className="d-flex justify-content-between" style={{ padding: '0.5rem 1.25rem' }}>
           <small className="text-muted">
             Page {page} of {totalPages}
           </small>
