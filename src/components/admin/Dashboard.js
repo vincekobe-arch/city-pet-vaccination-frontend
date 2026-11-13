@@ -1,29 +1,68 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Spinner, Alert, Badge, Table } from 'react-bootstrap';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Container, Row, Col, Card, Alert, Table, Button } from 'react-bootstrap';
 import { dashboardAPI, handleAPIError } from '../../services/api';
 
+const CACHE_KEY = '__dash_v2__';
 const CACHE_TTL = 60_000;
 const getCached = () => {
   try {
-    const raw = sessionStorage.getItem('__dash__');
+    const raw = sessionStorage.getItem(CACHE_KEY);
     if (!raw) return null;
     const { ts, data } = JSON.parse(raw);
     return Date.now() - ts > CACHE_TTL ? null : data;
   } catch { return null; }
 };
 const setCache = (data) => {
-  try { sessionStorage.setItem('__dash__', JSON.stringify({ ts: Date.now(), data })); } catch {}
+  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch {}
 };
-import api from '../../services/api';
-import { getUser } from '../../utils/auth';
 
+// "2026-11-10 07:04:07" -> Date (works in every browser)
+const toDate = (value) => (value ? new Date(String(value).replace(' ', 'T')) : null);
 
+const REPORT_TYPES = {
+  rabies_case:   { label: 'Rabies case',   color: '#dc3545', icon: 'fa-virus' },
+  animal_bite:   { label: 'Animal bite',   color: '#fd7e14', icon: 'fa-tooth' },
+  animal_rescue: { label: 'Animal rescue', color: '#0d6efd', icon: 'fa-hand-holding-heart' },
+  others:        { label: 'Others',        color: '#6c757d', icon: 'fa-clipboard' },
+};
+
+// Same colors as the map markers, so the dashboard and map read the same way
+const REPORT_STATUS = {
+  pending:          { label: 'Pending',          color: '#9aa0a6' },
+  suspected_rabies: { label: 'Suspected rabies', color: '#e0a800' },
+  positive_rabies:  { label: 'Positive rabies',  color: '#dc3545' },
+  ongoing:          { label: 'Ongoing',          color: '#22a855' },
+  resolved:         { label: 'Resolved',         color: '#0d6efd' },
+  declined:         { label: 'Declined',         color: '#6c757d' },
+};
+
+const SPECIES = {
+  dog:    { label: 'Dog',    color: '#FF6B6B', icon: '/dog.png' },
+  cat:    { label: 'Cat',    color: '#4ECDC4', icon: '/cat.png' },
+  rabbit: { label: 'Rabbit', color: '#95E1D3', icon: '/rabbit.png' },
+};
+
+const theme = (darkMode) => ({
+  page:     darkMode ? '#0f0f0f' : '#ffffff',
+  panel:    darkMode ? '#141414' : '#ffffff',
+  border:   darkMode ? '#242424' : '#e9ecef',
+  subtle:   darkMode ? '#1c1c1c' : '#f6f7f9',
+  track:    darkMode ? '#262626' : '#eef0f3',
+  text:     darkMode ? '#f0f0f0' : '#1f2328',
+  muted:    darkMode ? '#8a8a8a' : '#6b7280',
+  faint:    darkMode ? '#5c5c5c' : '#9ca3af',
+  grid:     darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+});
+
+/* ------------------------------------------------------------------ */
+/* Map (unchanged behavior, now receives all active reports)          */
+/* ------------------------------------------------------------------ */
 const MiniMapEmbed = ({ reports = [] }) => {
-  const mapRef     = useRef(null);
+  const mapRef      = useRef(null);
   const instanceRef = useRef(null);
   const markersRef  = useRef([]);
 
-  const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY || '${process.env.REACT_APP_GOOGLE_MAPS_KEY}';
+  const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY;
 
   const MAP_STYLES = [
     { elementType: 'geometry',            stylers: [{ color: '#0d1424' }] },
@@ -92,7 +131,6 @@ const MiniMapEmbed = ({ reports = [] }) => {
         fillOpacity: 0, map,
       });
 
-      // City Vet marker
       new google.maps.Marker({
         position: { lat: 14.395293, lng: 121.044737 },
         map,
@@ -131,7 +169,7 @@ const MiniMapEmbed = ({ reports = [] }) => {
     markersRef.current = [];
 
     reports
-      .filter(r => r.latitude && r.longitude && r.status !== 'resolved')
+      .filter(r => r.latitude && r.longitude && r.status !== 'resolved' && r.status !== 'declined')
       .forEach(r => {
         const color = STATUS_COLOR[r.status] || '#888';
         const marker = new google.maps.Marker({
@@ -164,6 +202,9 @@ const MiniMapEmbed = ({ reports = [] }) => {
   return <div ref={mapRef} style={{ height: '100%', width: '100%' }} />;
 };
 
+/* ------------------------------------------------------------------ */
+/* Stat card (unchanged)                                              */
+/* ------------------------------------------------------------------ */
 const StatCard = ({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay, darkMode, loading }) => {
   const [displayCount, setDisplayCount] = React.useState(0);
   const [hasAnimated, setHasAnimated] = React.useState(false);
@@ -260,180 +301,251 @@ const StatCard = ({ label, count, img, accent, accentAlpha, fallbackIcon, descri
   );
 };
 
+/* ------------------------------------------------------------------ */
+/* Building blocks                                                    */
+/* ------------------------------------------------------------------ */
+const Panel = ({ t, icon, iconColor, title, subtitle, action, children, bodyStyle, className = '' }) => (
+  <div className={`dash-panel h-100 ${className}`} style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="dash-panel-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', padding: '1.1rem 1.25rem 0.75rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', minWidth: 0 }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: `${iconColor}1f`, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`fas ${icon}`} style={{ fontSize: '0.9rem' }} />
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <h5 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: t.text }}>{title}</h5>
+          {subtitle && <div style={{ fontSize: '0.8rem', color: t.muted, marginTop: '0.15rem' }}>{subtitle}</div>}
+        </div>
+      </div>
+      {action}
+    </div>
+    <div style={{ padding: '0.5rem 1.25rem 1.25rem', flex: 1, ...bodyStyle }}>{children}</div>
+  </div>
+);
+
+const PanelLink = ({ href, color, children }) => (
+  <a href={href} className="dash-link" style={{ fontSize: '0.78rem', fontWeight: 600, color, textDecoration: 'none', whiteSpace: 'nowrap', padding: '0.3rem 0.7rem', borderRadius: '8px', border: `1px solid ${color}40` }}>
+    {children}
+  </a>
+);
+
+const Skeleton = ({ darkMode, style }) => (
+  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={style} />
+);
+
+const EmptyState = ({ t, icon, text }) => (
+  <div style={{ height: '100%', minHeight: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.faint, gap: '0.5rem', textAlign: 'center' }}>
+    <i className={`fas ${icon}`} style={{ fontSize: '1.6rem' }} />
+    <span style={{ fontSize: '0.85rem' }}>{text}</span>
+  </div>
+);
+
+/* Monthly activity: pets registered vs reports submitted */
+const ActivityChart = ({ months, t }) => {
+  const peak = Math.max(1, ...months.map(m => Math.max(m.pets, m.reports)));
+  const step = Math.max(1, Math.ceil(peak / 4));
+  const max = step * 4;
+  const n = months.length;
+  const xAt = (i) => (n > 1 ? (i / (n - 1)) * 100 : 50);
+  const yAt = (v) => 100 - (v / max) * 100;
+  const line = (key) => months.map((m, i) => `${i ? 'L' : 'M'}${xAt(i)},${yAt(m[key])}`).join(' ');
+  const series = [
+    { key: 'pets', label: 'Pets registered', color: '#ffc107', area: true },
+    { key: 'reports', label: 'Reports submitted', color: '#dc3545', area: false },
+  ];
+
+  return (
+    <div className="activity-chart" style={{ position: 'relative', height: '240px' }}>
+      <div style={{ position: 'absolute', left: '34px', right: '10px', top: '10px', bottom: '28px' }}>
+        {[0, 1, 2, 3, 4].map(k => (
+          <React.Fragment key={k}>
+            <div style={{ position: 'absolute', left: 0, right: 0, top: `${(k / 4) * 100}%`, borderTop: `1px ${k === 4 ? 'solid' : 'dashed'} ${t.grid}` }} />
+            <div style={{ position: 'absolute', left: '-34px', width: '26px', textAlign: 'right', top: `${(k / 4) * 100}%`, transform: 'translateY(-50%)', fontSize: '0.7rem', color: t.faint }}>
+              {max - k * step}
+            </div>
+          </React.Fragment>
+        ))}
+
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}>
+          <defs>
+            <linearGradient id="petsArea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ffc107" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="#ffc107" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={`${line('pets')} L${xAt(n - 1)},100 L${xAt(0)},100 Z`} fill="url(#petsArea)" />
+          {series.map(s => (
+            <path key={s.key} d={line(s.key)} fill="none" stroke={s.color} strokeWidth="2.25" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          ))}
+        </svg>
+
+        {series.map(s => months.map((m, i) => (
+          <div key={`${s.key}${i}`} title={`${m.label}: ${m[s.key]} ${s.label.toLowerCase()}`}
+            style={{ position: 'absolute', left: `${xAt(i)}%`, top: `${yAt(m[s.key])}%`, width: '9px', height: '9px', borderRadius: '50%', background: t.panel, border: `2px solid ${s.color}`, transform: 'translate(-50%, -50%)' }} />
+        )))}
+
+        {months.map((m, i) => (
+          <div key={m.label} style={{ position: 'absolute', top: '100%', marginTop: '8px', left: `${xAt(i)}%`, transform: 'translateX(-50%)', fontSize: '0.72rem', color: t.muted, whiteSpace: 'nowrap' }}>
+            {m.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const Donut = ({ segments, total, t, size = 150, stroke = 18 }) => {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={t.track} strokeWidth={stroke} />
+        {total > 0 && segments.filter(s => s.value > 0).map(s => {
+          const len = (s.value / total) * c;
+          const el = (
+            <circle key={s.key} cx={size / 2} cy={size / 2} r={r} fill="none" stroke={s.color} strokeWidth={stroke}
+              strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+          );
+          offset += len;
+          return el;
+        })}
+      </svg>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontSize: '1.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>{total}</div>
+        <div style={{ fontSize: '0.72rem', color: t.muted, marginTop: '0.2rem' }}>reports</div>
+      </div>
+    </div>
+  );
+};
+
+const BarRow = ({ t, label, value, max, color, right }) => (
+  <div style={{ marginBottom: '0.8rem' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.3rem', gap: '0.5rem' }}>
+      <span style={{ fontSize: '0.84rem', color: t.text, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ fontSize: '0.8rem', color: t.muted, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{right ?? value}</span>
+    </div>
+    <div style={{ height: '8px', borderRadius: '4px', background: t.track, overflow: 'hidden' }}>
+      <div style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, height: '100%', borderRadius: '4px', background: color, transition: 'width 0.6s ease' }} />
+    </div>
+  </div>
+);
+
+const formatShortDate = (value) => {
+  const d = toDate(value);
+  return d && !isNaN(d) ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+};
+
+/* ------------------------------------------------------------------ */
+/* Dashboard                                                          */
+/* ------------------------------------------------------------------ */
 const AdminDashboard = ({ darkMode }) => {
   const [dashboardData, setDashboardData] = useState({
-  statistics: {
-    total_pets: 0,
-    total_owners: 0,
-    upcoming_schedules: 0
-  },
-  recentPets: [],
-  upcomingSchedules: [],
-  pets: [],
-  recentReports: []
-});
+    statistics: { total_pets: 0, total_owners: 0, upcoming_schedules: 0 },
+    pets: [],
+    reports: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const user = getUser();
+  const t = theme(darkMode);
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = async () => {
-  const cached = getCached();
-  if (cached && cached.statistics?.total_owners > 0 || cached && cached.statistics?.upcoming_schedules > 0) {
-    setDashboardData(cached); setLoading(false); return;
-  }
+  const loadDashboardData = async (force = false) => {
+    const cached = !force && getCached();
+    if (cached) { setDashboardData(cached); setLoading(false); return; }
 
-  try {
-    setLoading(true);
-    const { data } = await dashboardAPI.getBatch();
-
-    const pets    = data.pets    || [];
-    const reports = data.reports || [];
-
-    const result = {
-      statistics: {
-        total_pets:         pets.length,
-        total_owners:       Number(data.owners?.total ?? data.owners ?? 0),
-        upcoming_schedules: Number(data.upcoming_schedules ?? 0),
-      },
-      recentPets:   pets.slice(0, 5),
-      pets,
-      recentReports: [...reports]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 5),
-    };
-
-    setDashboardData(result);
-    setCache(result);
-  } catch (err) {
-    setError(handleAPIError(err).message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Calculate vaccination statistics by species
-  const getVaccinationStatsBySpecies = () => {
-    const species = ['Dog', 'Cat', 'Rabbit'];
-    const colors = {
-      'Dog': '#FF6B6B',
-      'Cat': '#4ECDC4',
-      'Rabbit': '#95E1D3'
-    };
-    
-    return species.map(speciesName => {
-      const speciesPets = dashboardData.pets.filter(pet => 
-        pet.species?.toLowerCase() === speciesName.toLowerCase()
-      );
-      const vaccinated = speciesPets.filter(pet => 
-        pet.vaccination_count && pet.vaccination_count > 0
-      ).length;
-      const total = speciesPets.length;
-      const percentage = total > 0 ? Math.round((vaccinated / total) * 100) : 0;
-      
-      return {
-        species: speciesName,
-        vaccinated,
-        total,
-        percentage,
-        color: colors[speciesName],
-        icon: speciesName === 'Dog' ? '/dog_face.png' : 
-              speciesName === 'Cat' ? '/cat_face.png' : '/rabbit_face.png'
+    try {
+      setLoading(true);
+      setError('');
+      const { data } = await dashboardAPI.getBatch();
+      const result = {
+        statistics: {
+          total_pets:         (data.pets || []).length,
+          total_owners:       Number(data.owners?.total ?? data.owners ?? 0),
+          upcoming_schedules: Number(data.upcoming_schedules ?? 0),
+        },
+        pets:    data.pets || [],
+        reports: data.reports || [],
       };
-    }).filter(stat => stat.total > 0);
+      setDashboardData(result);
+      setCache(result);
+    } catch (err) {
+      setError(handleAPIError(err).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Progress Bar Component for Vaccination by Species
-  const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, color, darkMode }) => {
-    return (
-      <div className="mb-4 mobile-vaccination-item">
-        <div className="d-flex justify-content-between align-items-center mb-2">
-          <div className="d-flex align-items-center">
-            <div className="mobile-species-icon" style={{
-  width: '40px',
-  height: '40px',
-  borderRadius: '10px',
-  background: `${color}15`,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginRight: '12px',
-  border: `2px solid ${color}30`
-}}>
-  <img 
-    src={icon} 
-    alt={species}
-    style={{ width: '24px', height: '24px', objectFit: 'contain' }}
-    className="mobile-species-icon-img"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            </div>
-            <span style={{ fontWeight: '600', fontSize: '1rem', color: darkMode ? '#f0f0f0' : '#333333' }}>{species}</span>
-          </div>
-          <div className="text-end">
-            <Badge 
-  className="mobile-vaccination-badge"
-  style={{ 
-    background: color,
-    fontSize: '0.85rem',
-    fontWeight: '700',
-    padding: '0.4rem 0.8rem',
-    borderRadius: '8px'
-  }}
->
-              {percentage}%
-            </Badge>
-            <small className="text-muted ms-2" style={{ fontWeight: '600' }}>({vaccinated}/{total})</small>
-          </div>
-        </div>
-        <div className="vaccination-progress-bar" style={{
-  width: '100%',
-  height: '28px',
-  backgroundColor: darkMode ? '#2a2a2a' : '#f0f0f0',
-  borderRadius: '14px',
-  overflow: 'hidden',
-  position: 'relative',
-  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
-}}>
-          <div style={{
-            width: `${percentage}%`,
-            height: '100%',
-            background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`,
-            transition: 'width 0.8s ease',
-            borderRadius: '14px',
-            boxShadow: `0 2px 8px ${color}40`
-          }}></div>
-        </div>
-      </div>
-    );
-  };
+  const { pets, reports } = dashboardData;
 
-  const vaccinationStatsBySpecies = getVaccinationStatsBySpecies();
+  const analytics = useMemo(() => {
+    // Last 6 months of activity
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, k) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - k), 1);
+      return { key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString('en-US', { month: 'short' }), pets: 0, reports: 0 };
+    });
+    const byKey = Object.fromEntries(months.map(m => [m.key, m]));
+    const bucket = (value) => {
+      const d = toDate(value);
+      return d && !isNaN(d) ? byKey[`${d.getFullYear()}-${d.getMonth()}`] : null;
+    };
+    pets.forEach(p => { const b = bucket(p.registration_date || p.created_at); if (b) b.pets++; });
+    reports.forEach(r => { const b = bucket(r.created_at); if (b) b.reports++; });
+
+    const thisMonth = months[5].pets;
+    const lastMonth = months[4].pets;
+
+    // Vaccination coverage
+    const vaccinated = pets.filter(p => Number(p.vaccination_count) > 0).length;
+    const species = Object.entries(SPECIES).map(([key, cfg]) => {
+      const list = pets.filter(p => p.species?.toLowerCase() === key);
+      const done = list.filter(p => Number(p.vaccination_count) > 0).length;
+      return { key, ...cfg, total: list.length, vaccinated: done, pct: list.length ? Math.round((done / list.length) * 100) : 0 };
+    }).filter(s => s.total > 0);
+
+    // Reports
+    const byType = Object.entries(REPORT_TYPES).map(([key, cfg]) => ({ key, ...cfg, value: reports.filter(r => r.report_type === key).length }));
+    const byStatus = Object.entries(REPORT_STATUS).map(([key, cfg]) => ({ key, ...cfg, value: reports.filter(r => r.status === key).length })).filter(s => s.value > 0);
+    const positive = reports.filter(r => r.status === 'positive_rabies').length;
+    const suspected = reports.filter(r => r.status === 'suspected_rabies').length;
+
+    const barangayCounts = {};
+    reports.forEach(r => { const name = r.barangay_name || 'Unknown'; barangayCounts[name] = (barangayCounts[name] || 0) + 1; });
+    const topBarangays = Object.entries(barangayCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    const recentReports = [...reports].sort((a, b) => toDate(b.created_at) - toDate(a.created_at)).slice(0, 6);
+    const recentPets = [...pets].sort((a, b) => toDate(b.registration_date || b.created_at) - toDate(a.registration_date || a.created_at)).slice(0, 6);
+    const activeReports = reports.filter(r => r.status !== 'resolved' && r.status !== 'declined');
+
+    return {
+      months, thisMonth, lastMonth,
+      vaccinated, coverage: pets.length ? Math.round((vaccinated / pets.length) * 100) : 0, species,
+      byType, byStatus, positive, suspected, topBarangays, recentReports, recentPets, activeReports,
+    };
+  }, [pets, reports]);
+
+  const petTrendText = (() => {
+    const diff = analytics.thisMonth - analytics.lastMonth;
+    const base = `${analytics.thisMonth} pet${analytics.thisMonth === 1 ? '' : 's'} registered this month`;
+    if (diff === 0) return `${base}, same as last month`;
+    return `${base}, ${Math.abs(diff)} ${diff > 0 ? 'more' : 'fewer'} than last month`;
+  })();
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   const styles = `
   @keyframes dropDown {
     0%   { opacity: 0; transform: translateY(-30px); }
     100% { opacity: 1; transform: translateY(0); }
   }
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50%       { transform: translateY(-10px); }
-  }
   @keyframes shimmer {
     0%   { background-position: -400px 0; }
     100% { background-position: 400px 0; }
   }
-  @keyframes fadeInUp {
-    0%   { opacity: 0; transform: translateY(20px); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-
   .skeleton {
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
     background-size: 800px 100%;
@@ -446,7 +558,6 @@ const AdminDashboard = ({ darkMode }) => {
     animation: shimmer 1.4s ease-in-out infinite;
     border-radius: 8px;
   }
-
   .dashboard-page {
     zoom: 0.75;
     min-height: 100vh;
@@ -456,325 +567,320 @@ const AdminDashboard = ({ darkMode }) => {
   @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
   @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
 
+  .dash-link:hover, .dash-link:focus-visible { background: rgba(0,0,0,0.04); }
+  .dash-link:focus-visible, .dash-row:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
+  .dash-row { transition: background 0.15s ease; }
+  .dash-row:hover { background: ${t.subtle}; }
+  .dash-table { --bs-table-bg: transparent; --bs-table-color: ${t.text}; --bs-table-hover-bg: ${t.subtle}; --bs-table-hover-color: ${t.text}; margin-bottom: 0; }
+  .dash-table th { font-size: 0.78rem; font-weight: 600; color: ${t.muted}; border-bottom: 1px solid ${t.border} !important; padding: 0.6rem 0.75rem; white-space: nowrap; }
+  .dash-table td { font-size: 0.86rem; border-bottom: 1px solid ${t.border} !important; padding: 0.65rem 0.75rem; vertical-align: middle; }
+  .dash-table tr:last-child td { border-bottom: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-stat-card, .skeleton, .skeleton-dark { animation: none !important; }
+  }
+
   @media (max-width: 768px) {
     .mobile-title { font-size: 1.5rem !important; }
-    .vaccination-progress-bar { height: 10px !important; border-radius: 5px !important; }
-    .vaccination-progress-bar > div { border-radius: 5px !important; }
-    .mobile-species-icon { width: 28px !important; height: 28px !important; border-radius: 6px !important; margin-right: 8px !important; }
-    .mobile-species-icon-img { width: 18px !important; height: 18px !important; }
     .mobile-subtitle { font-size: 0.9rem !important; }
     .mobile-stat-number { font-size: 1.2rem !important; }
     .mobile-stat-label { font-size: 0.6rem !important; margin-bottom: 0.25rem !important; }
     .mobile-stat-icon { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
     .mobile-stat-icon img { width: 18px !important; height: 18px !important; }
     .mobile-card-padding { padding: 0.5rem 0.3rem !important; }
-    .mobile-card-header { padding: 1rem !important; }
-    .mobile-card-header h5 { font-size: 0.95rem !important; }
-    .mobile-card-body { padding: 1rem !important; }
     .mobile-stat-description { display: none !important; }
     .mobile-stat-card { margin-bottom: 0.5rem !important; }
-    .mobile-pet-name { font-size: 0.9rem !important; }
-    .mobile-pet-info { font-size: 0.7rem !important; }
-    .mobile-pet-icon { width: 35px !important; height: 35px !important; }
-    .mobile-pet-icon img { width: 24px !important; height: 24px !important; }
-    .mobile-pet-item { padding: 0.6rem !important; margin-bottom: 0.5rem !important; border-radius: 8px !important; }
-    .mobile-recent-pet-icon { width: 32px !important; height: 32px !important; border-radius: 8px !important; margin-right: 10px !important; }
-    .mobile-recent-pet-img { width: 22px !important; height: 22px !important; }
-    .mobile-pet-name { font-size: 0.85rem !important; margin-bottom: 0.25rem !important; }
-    .mobile-pet-info { font-size: 0.7rem !important; gap: 8px !important; }
-    .mobile-pet-info i { font-size: 0.65rem !important; }
-    .mobile-vaccination-item { margin-bottom: 0.75rem !important; }
-    .mobile-vaccination-item .d-flex { margin-bottom: 0.5rem !important; }
-    .mobile-vaccination-badge { font-size: 0.7rem !important; padding: 0.25rem 0.5rem !important; border-radius: 6px !important; }
+    .dash-panel-header { padding: 0.9rem 1rem 0.5rem !important; }
+    .activity-chart { height: 200px !important; }
+    .donut-wrap { flex-direction: column; }
+    .dash-hide-sm { display: none; }
   }
 `;
+
+  const muted = { color: t.muted };
 
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: darkMode ? '#0f0f0f' : '#ffffff', minHeight: '100vh', transition: 'all 0.3s ease' }}>
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: t.page, minHeight: '100vh', transition: 'background 0.3s ease' }}>
+
+        {/* Header */}
+        <Row className="mb-4 align-items-end" style={{ animation: 'dropDown 0.4s ease-out' }}>
           <Col>
-            <div>
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-                <i 
-                  className="fas fa-home" 
-                  style={{ 
-                    fontSize: '1.5rem', 
-                    color: darkMode ? '#ffffff' : '#000000',
-                    animation: 'float 3s ease-in-out infinite'
-                  }}
-                ></i>
-                <h2 className="mobile-title" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333', fontSize: '2rem', marginBottom: '0' }}>Admin Dashboard</h2>
-              </div>
-              
-            </div>
+            <h2 className="mobile-title" style={{ fontWeight: 700, color: t.text, fontSize: '2rem', marginBottom: '0.25rem' }}>
+              <i className="fas fa-home me-2" style={{ fontSize: '1.5rem' }} />Admin Dashboard
+            </h2>
+            <div className="mobile-subtitle" style={{ fontSize: '0.95rem', ...muted }}>{today}</div>
+          </Col>
+          <Col xs="auto">
+            <Button
+              variant={darkMode ? 'outline-light' : 'outline-secondary'}
+              size="sm"
+              onClick={() => loadDashboardData(true)}
+              disabled={loading}
+              style={{ borderRadius: '8px', fontWeight: 600 }}
+            >
+              <i className={`fas fa-sync-alt me-1 ${loading ? 'fa-spin' : ''}`} /> Refresh data
+            </Button>
           </Col>
         </Row>
 
         {error && (
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2" />{error}
+          </Alert>
+        )}
+
+        {/* Statistics Cards (unchanged) */}
         <Row className="mb-4">
-          <Col>
-            <Alert 
-              variant="danger" 
-              dismissible 
-              onClose={() => setError('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #dc3545',
-                background: 'rgba(220, 53, 69, 0.1)',
-                color: '#dc3545'
-              }}
+          {[
+            { label: 'Total Pets',  count: dashboardData.statistics.total_pets,        img: '/paw.png',    accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',  fallbackIcon: 'fa-paw',          description: 'Registered Pets',   delay: '0.1s' },
+            { label: 'Communities', count: dashboardData.statistics.total_owners,       img: '/users.png',  accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users',        description: 'Total Communities', delay: '0.2s' },
+            { label: 'Events',      count: dashboardData.statistics.upcoming_schedules, img: '/events.png', accent: '#dc3545', accentAlpha: 'rgba(220,53,69,0.12)',  fallbackIcon: 'fa-calendar-alt', description: 'Upcoming Events',   delay: '0.3s' },
+          ].map(props => (
+            <StatCard key={props.label} {...props} darkMode={darkMode} loading={loading} />
+          ))}
+        </Row>
+
+        {/* Activity + vaccination coverage */}
+        <Row className="g-4 mb-4">
+          <Col lg={8}>
+            <Panel
+              t={t} icon="fa-chart-line" iconColor="#ffc107"
+              title="Monthly activity"
+              subtitle={loading ? 'Loading activity…' : petTrendText}
+              action={
+                <div className="dash-hide-sm" style={{ display: 'flex', gap: '1rem', fontSize: '0.78rem', ...muted }}>
+                  <span><span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '3px', background: '#ffc107', marginRight: '6px' }} />Pets registered</span>
+                  <span><span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '3px', background: '#dc3545', marginRight: '6px' }} />Reports submitted</span>
+                </div>
+              }
             >
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
+              {loading
+                ? <Skeleton darkMode={darkMode} style={{ height: '240px', width: '100%' }} />
+                : <ActivityChart months={analytics.months} t={t} />}
+            </Panel>
+          </Col>
+
+          <Col lg={4}>
+            <Panel
+              t={t} icon="fa-syringe" iconColor="#198754"
+              title="Vaccination coverage"
+              subtitle="Pets with at least one vaccination"
+            >
+              {loading ? (
+                <>
+                  <Skeleton darkMode={darkMode} style={{ height: '56px', width: '50%', marginBottom: '1.25rem' }} />
+                  {[0, 1, 2].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '30px', width: '100%', marginBottom: '0.9rem' }} />)}
+                </>
+              ) : pets.length === 0 ? (
+                <EmptyState t={t} icon="fa-syringe" text="Coverage appears once pets are registered." />
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                    <span style={{ fontSize: '2.6rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>{analytics.coverage}%</span>
+                    <span style={{ fontSize: '0.85rem', ...muted }}>{analytics.vaccinated} of {pets.length} pets</span>
+                  </div>
+                  <div style={{ height: '10px', borderRadius: '5px', background: t.track, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <div style={{ width: `${analytics.coverage}%`, height: '100%', background: '#198754', borderRadius: '5px', transition: 'width 0.6s ease' }} />
+                  </div>
+                  {analytics.species.map(s => (
+                    <div key={s.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '34px', height: '34px', borderRadius: '9px', background: `${s.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginBottom: '0.8rem' }}>
+                        <img src={s.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <BarRow t={t} label={s.label} value={s.pct} max={100} color={s.color} right={`${s.pct}% (${s.vaccinated}/${s.total})`} />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </Panel>
           </Col>
         </Row>
-      )}
 
-      {/* Statistics Cards */}
-<Row className="mb-4">
-  {[
-    { label: 'Total Pets',  count: dashboardData.statistics.total_pets,        img: '/paw.png',    accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',  fallbackIcon: 'fa-paw',          description: 'Registered Pets',  delay: '0.1s' },
-    { label: 'Communities', count: dashboardData.statistics.total_owners,       img: '/users.png',  accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', fallbackIcon: 'fa-users',        description: 'Total Communities',     delay: '0.2s' },
-    { label: 'Events',      count: dashboardData.statistics.upcoming_schedules, img: '/events.png', accent: '#dc3545', accentAlpha: 'rgba(220,53,69,0.12)',  fallbackIcon: 'fa-calendar-alt', description: 'Upcoming Events',  delay: '0.3s' },
-  ].map(props => (
-    <StatCard key={props.label} {...props} darkMode={darkMode} loading={loading} />
-  ))}
-</Row>
-
-      <Row style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-
-  {/* Vaccination Status */}
-  <Col lg={6} className="mb-4">
-    <Card className="border-0 h-100" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.2s backwards' }}>
-      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
-        <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-          <i className="fas fa-syringe me-2" style={{ color: '#ffc107' }}></i>Vaccination Status
-        </h5>
-      </Card.Header>
-      <Card.Body className="mobile-card-body" style={{ padding: '1.5rem', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {loading ? (
-          ['Dog', 'Cat'].map(s => (
-            <div key={s} style={{ padding: '1.25rem', borderRadius: '16px', background: darkMode ? '#1e1e1e' : '#f5f5f5', border: `1.5px solid ${darkMode ? '#2a2a2a' : '#ebebeb'}`, display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '90px', height: '90px', borderRadius: '50%', flexShrink: 0 }} />
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '60px', height: '14px' }} />
-                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '80px', height: '28px' }} />
-                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '100px', height: '10px' }} />
-                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '100%', height: '4px', marginTop: '4px' }} />
-              </div>
-            </div>
-          ))
-        ) : (
-          ['Dog', 'Cat'].map((speciesName) => {
-            const colors = { Dog: { main: '#FF6B6B', light: 'rgba(255,107,107,0.12)', icon: '/dog.png' }, Cat: { main: '#4ECDC4', light: 'rgba(78,205,196,0.12)', icon: '/cat.png' } };
-            const cfg = colors[speciesName];
-            const speciesPets = dashboardData.pets.filter(p => p.species?.toLowerCase() === speciesName.toLowerCase());
-            const vaccinated = speciesPets.filter(p => p.vaccination_count && p.vaccination_count > 0).length;
-            const total = speciesPets.length;
-            const pct = total > 0 ? Math.round((vaccinated / total) * 100) : 0;
-            const radius = 38;
-            const circ = 2 * Math.PI * radius;
-            const offset = circ - (pct / 100) * circ;
-            return (
-              <div key={speciesName} style={{ padding: '1.25rem', borderRadius: '16px', background: darkMode ? '#1e1e1e' : cfg.light, border: `1.5px solid ${cfg.main}30`, display: 'flex', alignItems: 'center', gap: '1rem', animation: 'fadeInUp 0.4s ease-out backwards' }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <svg width="90" height="90" viewBox="0 0 90 90">
-                    <circle cx="45" cy="45" r={radius} fill="none" stroke={darkMode ? '#2a2a2a' : '#e9ecef'} strokeWidth="10" />
-                    <circle cx="45" cy="45" r={radius} fill="none" stroke={cfg.main} strokeWidth="10" strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90 45 45)" style={{ transition: 'stroke-dashoffset 1s ease' }} />
-                  </svg>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={cfg.icon} alt={speciesName} style={{ width: '22px', height: '22px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+        {/* Report analytics */}
+        <Row className="g-4 mb-4">
+          <Col lg={4}>
+            <Panel t={t} icon="fa-chart-pie" iconColor="#dc3545" title="Reports by type" subtitle="All reports received">
+              {loading ? (
+                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                  <Skeleton darkMode={darkMode} style={{ width: '150px', height: '150px', borderRadius: '50%' }} />
+                  <div style={{ flex: 1 }}>{[0, 1, 2, 3].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '14px', marginBottom: '0.8rem' }} />)}</div>
+                </div>
+              ) : reports.length === 0 ? (
+                <EmptyState t={t} icon="fa-chart-pie" text="No reports received yet." />
+              ) : (
+                <div className="donut-wrap" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                  <Donut segments={analytics.byType} total={reports.length} t={t} />
+                  <div style={{ flex: 1, width: '100%' }}>
+                    {analytics.byType.map(s => (
+                      <div key={s.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: `1px solid ${t.border}` }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.84rem', color: t.text }}>
+                          <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color }} />{s.label}
+                        </span>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}>{s.value}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '700', fontSize: '0.95rem', color: darkMode ? '#f0f0f0' : '#333', marginBottom: '0.25rem' }}>{speciesName}</div>
-                  <div style={{ fontSize: '1.6rem', fontWeight: '800', color: cfg.main, lineHeight: 1, marginBottom: '0.25rem' }}>{pct}%</div>
-                  <div style={{ fontSize: '0.72rem', color: darkMode ? '#666' : '#999', fontWeight: '600' }}>{vaccinated} / {total} vaccinated</div>
-                  <div style={{ marginTop: '0.5rem', height: '4px', borderRadius: '4px', background: darkMode ? '#2a2a2a' : '#e9ecef', overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: cfg.main, borderRadius: '4px', transition: 'width 1s ease' }} />
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </Card.Body>
-    </Card>
-  </Col>
+              )}
+            </Panel>
+          </Col>
 
-  {/* Recently Registered Pets */}
-  <Col lg={6} className="mb-4">
-    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.3s backwards' }}>
-      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
-        <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-          <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>Recently Registered Pets
-        </h5>
-      </Card.Header>
-      <Card.Body className="mobile-card-body" style={{ padding: '1rem', height: '320px', overflowY: 'auto', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}>
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.25rem' }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0' }}>
-                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '55%', height: '12px' }} />
-                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '40%', height: '10px' }} />
-                </div>
-                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '32px', height: '10px', flexShrink: 0 }} />
-              </div>
-            ))}
-          </div>
-        ) : dashboardData.recentPets.length === 0 ? (
-          <div className="text-center py-5">
-            <i className="fas fa-paw" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
-            <h6 style={{ color: darkMode ? '#aaaaaa' : '#666', fontWeight: '600', marginTop: '1rem' }}>No pets yet</h6>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {dashboardData.recentPets.map((pet, i) => {
-              const getPetImage = (species) => {
-                if (species?.toLowerCase() === 'dog') return '/dog.png';
-                if (species?.toLowerCase() === 'cat') return '/cat.png';
-                if (species?.toLowerCase() === 'rabbit') return '/rabbit.png';
-                return '/dog.png';
-              };
-              const speciesColors = { dog: '#FF6B6B', cat: '#4ECDC4', rabbit: '#95E1D3' };
-              const sc = speciesColors[pet.species?.toLowerCase()] || '#ffc107';
-              return (
-                <div key={pet.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0', transition: 'all 0.2s ease', cursor: 'default', animation: `fadeInUp 0.35s ease-out ${i * 0.06}s backwards` }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.borderColor = sc; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = darkMode ? '#2a2a2a' : '#f0f0f0'; }}
-                >
-                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${sc}20`, border: `1.5px solid ${sc}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <img src={getPetImage(pet.species)} alt={pet.name} style={{ width: '24px', height: '24px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: '700', fontSize: '0.85rem', color: darkMode ? '#f0f0f0' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pet.name}</div>
-                    <div style={{ fontSize: '0.7rem', color: darkMode ? '#666' : '#aaa', fontWeight: '500', textTransform: 'capitalize' }}>{pet.species} · {pet.owner_name || 'N/A'}</div>
-                  </div>
-                  <div style={{ fontSize: '0.65rem', color: darkMode ? '#555' : '#bbb', fontWeight: '600', flexShrink: 0 }}>
-                    {new Date(pet.registration_date || pet.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </Card.Body>
-    </Card>
-  </Col>
+          <Col lg={4}>
+            <Panel t={t} icon="fa-tasks" iconColor="#e0a800" title="Report status" subtitle="Where each report stands">
+              {loading ? (
+                [0, 1, 2, 3].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '28px', marginBottom: '0.9rem' }} />)
+              ) : (
+                <>
+                  {(analytics.positive + analytics.suspected) > 0 && (
+                    <a href="/admin/map-status" className="dash-row" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '10px', background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.25)', textDecoration: 'none', marginBottom: '1rem' }}>
+                      <i className="fas fa-exclamation-circle" style={{ color: '#dc3545', fontSize: '1.1rem' }} />
+                      <span style={{ fontSize: '0.84rem', color: t.text, lineHeight: 1.35 }}>
+                        <strong>{analytics.positive + analytics.suspected} active rabies {analytics.positive + analytics.suspected === 1 ? 'case' : 'cases'}</strong>
+                        <span style={{ display: 'block', ...muted }}>{analytics.positive} positive, {analytics.suspected} suspected. View them on the map.</span>
+                      </span>
+                    </a>
+                  )}
+                  {analytics.byStatus.length === 0
+                    ? <EmptyState t={t} icon="fa-tasks" text="Report statuses appear once reports come in." />
+                    : analytics.byStatus.map(s => (
+                        <BarRow key={s.key} t={t} label={s.label} value={s.value} max={reports.length} color={s.color} />
+                      ))}
+                </>
+              )}
+            </Panel>
+          </Col>
 
-  {/* Recent Reports */}
-  <Col lg={6} className="mb-4">
-    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.4s backwards' }}>
-      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #dc3545', padding: '1.5rem', borderRadius: '20px 20px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-          <i className="fas fa-flag me-2" style={{ color: '#dc3545' }}></i>Recent Reports
-        </h5>
-        <a href="/admin/reports" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#dc3545', textDecoration: 'none', background: 'rgba(220,53,69,0.08)', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(220,53,69,0.2)' }}>View All →</a>
-      </Card.Header>
-      <Card.Body className="mobile-card-body" style={{ padding: '1rem', height: '320px', overflowY: 'auto', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}>
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.25rem' }}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0' }}>
-                <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0 }} />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '50%', height: '12px' }} />
-                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '35%', height: '10px' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-end' }}>
-                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '52px', height: '16px', borderRadius: '20px' }} />
-                  <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '36px', height: '10px' }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (() => {
-          const storedReports = dashboardData.recentReports || [];
-          if (storedReports.length === 0) return (
-            <div className="text-center py-5">
-              <i className="fas fa-flag" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
-              <h6 style={{ color: darkMode ? '#aaa' : '#666', fontWeight: '600', marginTop: '1rem' }}>No reports yet</h6>
-            </div>
-          );
-          const TYPE_ICONS = { rabies_case: { icon: '🦠', color: '#dc3545' }, animal_bite: { icon: '🩹', color: '#fd7e14' }, animal_rescue: { icon: '🐾', color: '#0d6efd' }, others: { icon: '📋', color: '#6c757d' } };
-          const STATUS_COLORS = { pending: '#ffc107', suspected_rabies: '#dc3545', positive_rabies: '#8b0000', ongoing: '#0dcaf0', resolved: '#198754' };
-          const STATUS_LABELS = { pending: 'Pending', suspected_rabies: 'Suspected', positive_rabies: 'Positive', ongoing: 'Ongoing', resolved: 'Resolved' };
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {storedReports.slice(0, 5).map((report, i) => {
-                const tc = TYPE_ICONS[report.report_type] || TYPE_ICONS.others;
-                const sc = STATUS_COLORS[report.status] || '#888';
-                const sl = STATUS_LABELS[report.status] || report.status;
-                return (
-                  <a key={report.id} href="/admin/reports" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: darkMode ? '#1e1e1e' : '#f9f9f9', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0', textDecoration: 'none', transition: 'all 0.2s ease', animation: `fadeInUp 0.35s ease-out ${i * 0.06}s backwards` }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.borderColor = tc.color; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.borderColor = darkMode ? '#2a2a2a' : '#f0f0f0'; }}
-                  >
-                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: `${tc.color}15`, border: `1.5px solid ${tc.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>{tc.icon}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: '700', fontSize: '0.82rem', color: darkMode ? '#f0f0f0' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.reporter_name || 'Anonymous'}</div>
-                      <div style={{ fontSize: '0.68rem', color: darkMode ? '#666' : '#aaa', fontWeight: '500' }}>{report.barangay_name || 'Unknown'}</div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.62rem', fontWeight: '700', color: '#fff', background: sc, padding: '0.15rem 0.5rem', borderRadius: '20px' }}>{sl}</span>
-                      <span style={{ fontSize: '0.62rem', color: darkMode ? '#555' : '#bbb', fontWeight: '600' }}>{new Date(report.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          );
-        })()}
-      </Card.Body>
-    </Card>
-  </Col>
+          <Col lg={4}>
+            <Panel t={t} icon="fa-map-pin" iconColor="#0d6efd" title="Most reports by barangay" subtitle="Top 5 barangays">
+              {loading ? (
+                [0, 1, 2, 3, 4].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '28px', marginBottom: '0.9rem' }} />)
+              ) : analytics.topBarangays.length === 0 ? (
+                <EmptyState t={t} icon="fa-map-pin" text="No reports received yet." />
+              ) : (
+                analytics.topBarangays.map(([name, count]) => (
+                  <BarRow key={name} t={t} label={name} value={count} max={analytics.topBarangays[0][1]} color="#0d6efd"
+                    right={`${count} ${count === 1 ? 'report' : 'reports'}`} />
+                ))
+              )}
+            </Panel>
+          </Col>
+        </Row>
 
-  {/* Map Status */}
-  <Col lg={6} className="mb-4">
-    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease', animation: 'fadeInUp 0.5s ease-out 0.5s backwards' }}>
-      <Card.Header className="mobile-card-header" style={{ background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #198754', padding: '1.5rem', borderRadius: '20px 20px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-          <i className="fas fa-map-marked-alt me-2" style={{ color: '#198754' }}></i>Map Status
-        </h5>
-        <a href="/admin/map-status" style={{ fontSize: '0.72rem', fontWeight: '700', color: '#198754', textDecoration: 'none', background: 'rgba(25,135,84,0.08)', padding: '0.25rem 0.65rem', borderRadius: '20px', border: '1px solid rgba(25,135,84,0.2)' }}>Open Map →</a>
-      </Card.Header>
-      <div style={{ position: 'relative', height: '320px' }}>
-        {loading ? (
-          <div style={{ width: '100%', height: '100%', background: darkMode ? '#1a1a1a' : '#eef0f2', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-            {/* Grid lines */}
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={`h${i}`} style={{ position: 'absolute', left: 0, right: 0, height: '1px', top: `${20 + i * 16}%`, background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)' }} />
-            ))}
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={`v${i}`} style={{ position: 'absolute', top: 0, bottom: 0, width: '1px', left: `${15 + i * 18}%`, background: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)' }} />
-            ))}
-            {/* Skeleton road-like blobs */}
-            <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ position: 'absolute', width: '60%', height: '8px', top: '35%', left: '10%', borderRadius: '4px', opacity: 0.6 }} />
-            <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ position: 'absolute', width: '40%', height: '8px', top: '55%', left: '25%', borderRadius: '4px', opacity: 0.5 }} />
-            <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ position: 'absolute', width: '5px', height: '40%', top: '20%', left: '45%', borderRadius: '4px', opacity: 0.5 }} />
-            {/* Center pin */}
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: darkMode ? 'rgba(25,135,84,0.15)' : 'rgba(25,135,84,0.1)', border: '2px solid rgba(25,135,84,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <i className="fas fa-map-marker-alt" style={{ fontSize: '1.3rem', color: '#198754', opacity: 0.5 }} />
+        {/* Map + recent reports */}
+        <Row className="g-4 mb-4">
+          <Col lg={8}>
+            <Panel
+              t={t} icon="fa-map-marked-alt" iconColor="#198754"
+              title="Map status"
+              subtitle={loading ? 'Loading map…' : `${analytics.activeReports.length} active ${analytics.activeReports.length === 1 ? 'report' : 'reports'} in Muntinlupa City`}
+              action={<PanelLink href="/admin/map-status" color="#198754">Open map</PanelLink>}
+              bodyStyle={{ padding: 0 }}
+            >
+              <div style={{ position: 'relative', height: '380px' }}>
+                {loading
+                  ? <Skeleton darkMode={darkMode} style={{ width: '100%', height: '100%', borderRadius: 0 }} />
+                  : <MiniMapEmbed reports={analytics.activeReports} />}
               </div>
-              <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '110px', height: '11px' }} />
-              <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '75px', height: '9px' }} />
-            </div>
-          </div>
-        ) : (
-          <MiniMapEmbed reports={dashboardData.recentReports} darkMode={darkMode} />
-        )}
-      </div>
-    </Card>
-  </Col>
+            </Panel>
+          </Col>
 
-</Row>
-    </Container>
+          <Col lg={4}>
+            <Panel
+              t={t} icon="fa-flag" iconColor="#dc3545"
+              title="Recent reports"
+              action={<PanelLink href="/admin/reports" color="#dc3545">View all</PanelLink>}
+              bodyStyle={{ padding: '0.25rem 0.75rem 0.75rem' }}
+            >
+              {loading ? (
+                [0, 1, 2, 3, 4].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '46px', margin: '0 0.5rem 0.6rem' }} />)
+              ) : analytics.recentReports.length === 0 ? (
+                <EmptyState t={t} icon="fa-flag" text="New community reports will show up here." />
+              ) : (
+                analytics.recentReports.map(report => {
+                  const type = REPORT_TYPES[report.report_type] || REPORT_TYPES.others;
+                  const status = REPORT_STATUS[report.status] || { label: report.status, color: '#888' };
+                  return (
+                    <a key={report.id} href="/admin/reports" className="dash-row" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 0.5rem', borderRadius: '10px', textDecoration: 'none' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '9px', background: `${type.color}1a`, color: type.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className={`fas ${type.icon}`} style={{ fontSize: '0.9rem' }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: t.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{type.label}</div>
+                        <div style={{ fontSize: '0.75rem', ...muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {report.barangay_name || 'Unknown barangay'}, {formatShortDate(report.created_at)}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: status.color, background: `${status.color}1a`, padding: '0.2rem 0.55rem', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                        {status.label}
+                      </span>
+                    </a>
+                  );
+                })
+              )}
+            </Panel>
+          </Col>
+        </Row>
+
+        {/* Recently registered pets */}
+        <Row className="g-4">
+          <Col>
+            <Panel
+              t={t} icon="fa-paw" iconColor="#ffc107"
+              title="Recently registered pets"
+              action={<PanelLink href="/admin/pets" color={darkMode ? '#ffc107' : '#b38600'}>View all pets</PanelLink>}
+            >
+              {loading ? (
+                [0, 1, 2, 3, 4].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '36px', marginBottom: '0.5rem' }} />)
+              ) : analytics.recentPets.length === 0 ? (
+                <EmptyState t={t} icon="fa-paw" text="Pets registered by the community will show up here." />
+              ) : (
+                <Table responsive hover className="dash-table">
+                  <thead>
+                    <tr>
+                      <th>Pet</th>
+                      <th>Species</th>
+                      <th>Owner</th>
+                      <th>Vaccinations</th>
+                      <th>Registered</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.recentPets.map(pet => {
+                      const sp = SPECIES[pet.species?.toLowerCase()] || { label: pet.species || 'Unknown', color: '#adb5bd', icon: '/paw.png' };
+                      const count = Number(pet.vaccination_count) || 0;
+                      return (
+                        <tr key={pet.id}>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                              <div style={{ width: '30px', height: '30px', borderRadius: '8px', background: `${sp.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <img src={sp.icon} alt="" style={{ width: '18px', height: '18px', objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />
+                              </div>
+                              <span style={{ fontWeight: 600 }}>{pet.name}</span>
+                            </div>
+                          </td>
+                          <td style={{ textTransform: 'capitalize' }}>{pet.species || 'Unknown'}</td>
+                          <td>{pet.owner_name || 'N/A'}</td>
+                          <td>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.55rem', borderRadius: '20px', color: count > 0 ? '#198754' : t.muted, background: count > 0 ? 'rgba(25,135,84,0.12)' : t.subtle }}>
+                              {count > 0 ? `${count} recorded` : 'None yet'}
+                            </span>
+                          </td>
+                          <td style={muted}>{formatShortDate(pet.registration_date || pet.created_at)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </Table>
+              )}
+            </Panel>
+          </Col>
+        </Row>
+
+      </Container>
     </>
   );
 };
