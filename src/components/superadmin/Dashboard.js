@@ -87,7 +87,7 @@ const theme = (darkMode) => ({
 /* Building blocks                                                    */
 /* ------------------------------------------------------------------ */
 const Panel = ({ t, icon, iconColor, title, subtitle, action, children, bodyStyle }) => (
-  <div className="h-100" style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+  <div className="h-100 dash-panel" style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
     <div className="dash-panel-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', padding: '1.1rem 1.25rem 0.75rem' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', minWidth: 0 }}>
         <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: `${iconColor}1f`, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -341,8 +341,16 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
     }
     .dash-row { transition: background 0.15s ease; }
     .dash-row:hover { background: ${t.subtle}; }
+    @keyframes panelIn {
+      0%   { opacity: 0; transform: translateY(16px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .dash-section .dash-panel { animation: panelIn 0.5s ease-out backwards; animation-delay: var(--d, 0.4s); }
+    .dash-section > :nth-child(2) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.08s); }
+    .dash-section > :nth-child(3) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.16s); }
+
     @media (prefers-reduced-motion: reduce) {
-      .skeleton, .sa-stat { animation: none !important; }
+      .skeleton, .sa-stat, .dash-panel { animation: none !important; }
     }
     @media (max-width: 768px) {
       .dash-panel-header { padding: 0.9rem 1rem 0.5rem !important; }
@@ -423,7 +431,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
         </Row>
 
         {/* Growth + coverage */}
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.4s' }}>
           <Col lg={8}>
             <Panel
               t={t} icon="fa-chart-line" iconColor="#ffc107"
@@ -554,7 +562,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
         </Row>
 
         {/* Recent activity */}
-        <Row className="g-4">
+        <Row className="g-4 dash-section" style={{ '--d': '0.7s' }}>
           <Col lg={6}>
             <Panel
               t={t} icon="fa-user-shield" iconColor="#ffc107"

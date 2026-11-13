@@ -576,8 +576,16 @@ const AdminDashboard = ({ darkMode }) => {
   .dash-table td { font-size: 0.86rem; border-bottom: 1px solid ${t.border} !important; padding: 0.65rem 0.75rem; vertical-align: middle; }
   .dash-table tr:last-child td { border-bottom: none !important; }
 
+  @keyframes panelIn {
+    0%   { opacity: 0; transform: translateY(16px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  .dash-section .dash-panel { animation: panelIn 0.5s ease-out backwards; animation-delay: var(--d, 0.4s); }
+  .dash-section > :nth-child(2) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.08s); }
+  .dash-section > :nth-child(3) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.16s); }
+
   @media (prefers-reduced-motion: reduce) {
-    .mobile-stat-card, .skeleton, .skeleton-dark { animation: none !important; }
+    .mobile-stat-card, .skeleton, .skeleton-dark, .dash-panel { animation: none !important; }
   }
 
   @media (max-width: 768px) {
@@ -643,7 +651,7 @@ const AdminDashboard = ({ darkMode }) => {
         </Row>
 
         {/* Activity + vaccination coverage */}
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.4s' }}>
           <Col lg={8}>
             <Panel
               t={t} icon="fa-chart-line" iconColor="#ffc107"
@@ -701,7 +709,7 @@ const AdminDashboard = ({ darkMode }) => {
         </Row>
 
         {/* Report analytics */}
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.55s' }}>
           <Col lg={4}>
             <Panel t={t} icon="fa-chart-pie" iconColor="#dc3545" title="Reports by type" subtitle="All reports received">
               {loading ? (
@@ -771,7 +779,7 @@ const AdminDashboard = ({ darkMode }) => {
         </Row>
 
         {/* Map + recent reports */}
-        <Row className="g-4 mb-4">
+        <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.7s' }}>
           <Col lg={8}>
             <Panel
               t={t} icon="fa-map-marked-alt" iconColor="#198754"
@@ -826,7 +834,7 @@ const AdminDashboard = ({ darkMode }) => {
         </Row>
 
         {/* Recently registered pets */}
-        <Row className="g-4">
+        <Row className="g-4 dash-section" style={{ '--d': '0.85s' }}>
           <Col>
             <Panel
               t={t} icon="fa-paw" iconColor="#ffc107"
