@@ -123,7 +123,7 @@ const [pets, setPets] = useState([]);
   const [filterStatus, setFilterStatus] = useState('active');
   
   const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 5;
+const itemsPerPage = 10;
 const totalPages = Math.ceil(totalPets / itemsPerPage);
 
 const [stats, setStats] = useState({ total: 0, dogs: 0, cats: 0 });
@@ -226,6 +226,98 @@ const [statsLoading, setStatsLoading] = useState(true);
     }
     .pet-table thead th { background-color: #f8f9fa !important; }
   `}
+
+  /* ---------------- Pet Management ---------------- */
+  .pet-management-page {
+    ${darkMode ? `
+    --pm-panel: #141414; --pm-line: #262626; --pm-line2: #1f1f1f; --pm-text: #f0f0f0; --pm-muted: #9a9a9a; --pm-faint: #6b6b6b;
+    --pm-soft: #1e1e1e; --pm-hover: #1b1b1b; --pm-input: #1a1a1a; --pm-menu: #1e1e1e;` : `
+    --pm-panel: #ffffff; --pm-line: #eef0f3; --pm-line2: #f3f4f6; --pm-text: #1f2328; --pm-muted: #6b7280; --pm-faint: #9ca3af;
+    --pm-soft: #f3f4f6; --pm-hover: #fafbfc; --pm-input: #ffffff; --pm-menu: #ffffff;`}
+  }
+  @keyframes pmIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pmRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pmMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .pm-anim { animation: pmIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+  .pm-title { font-weight: 700; color: var(--pm-text); font-size: 1.85rem; margin: 0; }
+  .pm-sub { color: var(--pm-muted); font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+  .pm-panel { background: var(--pm-panel); border: 1px solid var(--pm-line); border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); }
+  .pm-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--pm-line); }
+  .pm-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: var(--pm-text); }
+  .pm-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: var(--pm-text); color: var(--pm-panel); }
+  .pm-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--pm-soft); }
+  .pm-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: var(--pm-muted); transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+  .pm-seg button:hover { color: var(--pm-text); }
+  .pm-seg button.on { background: var(--pm-panel); color: var(--pm-text); box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+
+  .pm-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--pm-line); }
+  .pm-search, .pm-select { position: relative; }
+  .pm-search { flex: 1 1 260px; }
+  .pm-search > i, .pm-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--pm-faint); font-size: 0.78rem; pointer-events: none; }
+  .pm-input { width: 100%; height: 38px; border: 1px solid var(--pm-line); border-radius: 10px; background: var(--pm-input); padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: var(--pm-text); outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+  .pm-input::placeholder { color: var(--pm-faint); }
+  .pm-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+  select.pm-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+  .pm-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: var(--pm-faint); }
+  .pm-clear:hover { background: var(--pm-soft); color: var(--pm-text); }
+  .pm-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+  .pm-link:hover { text-decoration: underline; }
+
+  .pm-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  .pm-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--pm-faint); padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid var(--pm-line); white-space: nowrap; text-align: left; background: transparent; }
+  .pm-table td { padding: 0.75rem 0.65rem; border-bottom: 1px solid var(--pm-line2); vertical-align: middle; font-size: 0.86rem; color: var(--pm-text); background: transparent; }
+  .pm-table tbody tr { animation: pmRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+  .pm-table tbody tr:hover { background: var(--pm-hover); }
+  .pm-table tbody tr:last-child td { border-bottom: none; }
+  .pm-table tbody tr.raised { position: relative; z-index: 5; }
+  .pm-strong { font-weight: 600; color: var(--pm-text); }
+  .pm-muted { font-size: 0.78rem; color: var(--pm-muted); }
+  .pm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .pm-ellipsis { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pm-face { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,193,7,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pm-face img { width: 28px; height: 28px; object-fit: contain; }
+  .pm-gender { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.84rem; font-weight: 500; }
+  .pm-gender.male i { color: #0d6efd; }
+  .pm-gender.female i { color: #d63384; }
+  .pm-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+  .pm-pill.on { background: rgba(25,135,84,0.12); color: #198754; }
+  .pm-pill.on i { font-size: 0.4rem; }
+  .pm-pill.off { background: rgba(255,193,7,0.16); color: #b88a00; }
+  .pm-pill.off i { font-size: 0.65rem; }
+
+  .pm-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: var(--pm-muted); display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+  .pm-icon-btn:hover, .pm-icon-btn.on { background: var(--pm-soft); border-color: var(--pm-line); color: var(--pm-text); }
+  .pm-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 180px; background: var(--pm-menu); border: 1px solid var(--pm-line); border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.16); padding: 0.35rem; z-index: 1050; animation: pmMenu 0.16s ease-out; transform-origin: top right; text-align: left; }
+  .pm-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: var(--pm-text); font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+  .pm-menu-item i { width: 16px; text-align: center; color: var(--pm-muted); font-size: 0.82rem; }
+  .pm-menu-item:hover { background: var(--pm-soft); }
+
+  .pm-empty { text-align: center; padding: 3rem 1rem; }
+  .pm-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+  .pm-empty h6 { font-weight: 700; color: var(--pm-text); margin-bottom: 0.25rem; }
+  .pm-empty p { color: var(--pm-muted); font-size: 0.88rem; margin: 0; }
+
+  .pm-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid var(--pm-line); }
+  .pm-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: var(--pm-muted); transition: background 0.15s ease; }
+  .pm-page:hover:not(:disabled) { background: var(--pm-soft); }
+  .pm-page.on { background: #ffc107; color: #1f2328; }
+  .pm-page.nav { border-color: var(--pm-line); background: var(--pm-panel); font-size: 0.75rem; }
+  .pm-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .pm-seg button:focus-visible, .pm-icon-btn:focus-visible, .pm-menu-item:focus-visible, .pm-page:focus-visible, .pm-link:focus-visible, .pm-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+  @media (max-width: 768px) {
+    .pm-title { font-size: 1.45rem; }
+    .pm-sub { font-size: 0.85rem; }
+    .pm-table { table-layout: auto; }
+    .pm-table th { width: auto !important; }
+    .pm-select { flex: 1 1 140px; }
+    .pm-select select.pm-input { width: 100%; min-width: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pm-anim, .pm-table tbody tr, .pm-menu { animation: none !important; }
+  }
 `;
 
   const loadStats = async () => {
@@ -351,13 +443,17 @@ const loadData = () => loadPage(1);
     setQrDataURL('');
     setShowViewModal(true);
 
-    if (pet.microchip_number) {
+    if (pet.qr_code || pet.microchip_number) {
       setQrLoading(true);
       try {
-        const microchipRes = await microchipAPI.getByPetId(pet.id);
-        const microchipRecord = microchipRes.data.microchip_record;
-        if (microchipRecord && microchipRecord.qr_code) {
-          const jsonStr = atob(microchipRecord.qr_code);
+        // Every pet gets a QR code on registration (pets.qr_code)
+        let qrCode = pet.qr_code;
+        if (!qrCode) {
+          const microchipRes = await microchipAPI.getByPetId(pet.id);
+          qrCode = microchipRes.data.microchip_record?.qr_code;
+        }
+        if (qrCode) {
+          const jsonStr = atob(qrCode);
           const parsed = JSON.parse(jsonStr);
           const QRCode = (await import('qrcode')).default;
           const dataURL = await QRCode.toDataURL(JSON.stringify(parsed), {
@@ -420,71 +516,51 @@ const loadData = () => loadPage(1);
 
   const activePets = pets.filter(p => p.is_active);
 
+  const pmPagerNumbers = (() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  })();
+  const getPetFaceImage = (species) => {
+    const s = (species || '').toLowerCase();
+    if (s === 'cat') return '/cat_face.png';
+    if (s === 'rabbit') return '/rabbit_face.png';
+    return '/dog_face.png';
+  };
+  const fmtPetDate = (value) => {
+    if (!value) return '—';
+    const d = new Date(String(value).replace(' ', 'T'));
+    return isNaN(d) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  const hasPetFilters = searchTerm || filterSpecies !== 'all';
+
   return (
     <>
       <style>{styles}</style>
       <Container fluid className="py-4 pet-management-page" style={{ backgroundColor: darkMode ? '#0f0f0f' : '#ffffff', transition: 'all 0.3s ease' }}>
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div>
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-                <i 
-                  className="fas fa-paw" 
-                  style={{ 
-                    fontSize: '1.5rem', 
-                    color: darkMode ? '#ffffff' : '#000000',
-                    animation: 'float 3s ease-in-out infinite'
-                  }}
-                ></i>
-<h2 className="mobile-title" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333', fontSize: '2rem', marginBottom: '0' }}>Pet Management</h2>              
-</div>
-              
-            </div>
-          </Col>
-        </Row>
+
+        {/* Header */}
+        <div className="mb-4 pm-anim">
+          <h2 className="pm-title mobile-title">Pet Management</h2>
+          <p className="pm-sub">All pets registered by the community in Muntinlupa City.</p>
+        </div>
 
         {error && (
-        <Row className="mb-4">
-          <Col>
-            <Alert 
-              variant="danger" 
-              dismissible 
-              onClose={() => setError('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #dc3545',
-                background: 'rgba(220, 53, 69, 0.1)',
-                color: '#dc3545'
-              }}
-            >
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
-          </Col>
-        </Row>
-      )}
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2"></i>
+            {error}
+          </Alert>
+        )}
 
-      {success && (
-        <Row className="mb-4">
-          <Col>
-            <Alert 
-              variant="success" 
-              dismissible 
-              onClose={() => setSuccess('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #28a745',
-                background: 'rgba(40, 167, 69, 0.1)',
-                color: '#28a745'
-              }}
-            >
-              <i className="fas fa-check-circle me-2"></i>
-              {success}
-            </Alert>
-          </Col>
-        </Row>
-      )}
-
+        {success && (
+          <Alert variant="success" dismissible onClose={() => setSuccess('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-check-circle me-2"></i>
+            {success}
+          </Alert>
+        )}
       {/* Statistics Cards */}
 <Row className="mb-4">
   {[
@@ -496,402 +572,183 @@ const loadData = () => loadPage(1);
   ))}
 </Row>
 
-      {/* Filters */}
-      <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-        <Col xs={12} md={6} className="mb-2 mb-md-0">
-          <InputGroup style={{ borderRadius: '12px', overflow: 'hidden' }}>
-<InputGroup.Text style={{ background: darkMode ? '#1e1e1e' : '#f8f9fa', border: darkMode ? '2px solid #333333' : '2px solid #e9ecef', borderRight: 'none', color: darkMode ? '#aaaaaa' : '#333333' }}>              <i className="fas fa-search"></i>
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
-              placeholder="Search by pet name, registration number, or owner..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ 
-                border: darkMode ? '2px solid #333333' : '2px solid #e9ecef',
-                borderLeft: 'none',
-                borderRight: searchTerm ? 'none' : darkMode ? '2px solid #333333' : '2px solid #e9ecef',
-                background: darkMode ? '#1e1e1e' : '#ffffff',
-                color: darkMode ? '#f0f0f0' : '#333333'
-              }}
-            />
-            {searchTerm && (
-              <Button 
-                variant="outline-secondary" 
-                onClick={() => setSearchTerm('')}
-                style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}
-              >
-                <i className="fas fa-times"></i>
-              </Button>
-            )}
-          </InputGroup>
-        </Col>
-        <Col xs={6} md={3} className="mb-2 mb-md-0">
-          <Form.Select
-            value={filterSpecies}
-            onChange={(e) => setFilterSpecies(e.target.value)}
-            style={{ 
-              borderRadius: '12px', 
-              border: darkMode ? '2px solid #333333' : '2px solid #e9ecef',
-              fontWeight: '500',
-              background: darkMode ? '#1e1e1e' : '#ffffff',
-              color: darkMode ? '#f0f0f0' : '#333333'
-            }}
-          >
-            <option value="all">All</option>
-            <option value="dog">Dogs</option>
-            <option value="cat">Cats</option>
-            
-          </Form.Select>
-        </Col>
-        <Col xs={6} md={3}>
-          <Form.Select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ 
-              borderRadius: '12px', 
-              border: darkMode ? '2px solid #333333' : '2px solid #e9ecef',
-              fontWeight: '500',
-              background: darkMode ? '#1e1e1e' : '#ffffff',
-              color: darkMode ? '#f0f0f0' : '#333333'
-            }}
-          >
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="all">All</option>
-          </Form.Select>
-        </Col>
-      </Row>
+        {/* Pets table */}
+        <div className="pm-panel pm-anim" style={{ '--d': '0.18s', overflow: 'visible' }}>
+          {/* Header */}
+          <div className="pm-toolbar">
+            <div className="pm-toolbar-title">
+              <span>Registered pets</span>
+              <span className="pm-count">{totalPets}</span>
+            </div>
+            <div className="pm-seg" role="group" aria-label="Status">
+              {[['active', 'Active'], ['archived', 'Archived'], ['all', 'All']].map(([v, l]) => (
+                <button key={v} type="button" className={filterStatus === v ? 'on' : ''} onClick={() => { setFilterStatus(v); setShowDropdown(null); }} aria-pressed={filterStatus === v}>{l}</button>
+              ))}
+            </div>
+          </div>
 
-      {/* Pets Table */}
-      <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-        <Col>
-          <Card 
-            className="border-0"
-            style={{
-              borderRadius: '20px',
-              boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.08)',
-              overflow: 'hidden',
-              background: darkMode ? '#141414' : '#ffffff',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            <Card.Header
-              className="mobile-card-header"
-              style={{
-                background: darkMode ? 'linear-gradient(135deg, #1a1a1a 0%, #222222 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                borderBottom: '2px solid #ffc107',
-                padding: '1.5rem',
-                borderRadius: '20px 20px 0 0'
-              }}
-            >
-              <h5 className="mb-0" style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333333' }}>
-                <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>
-                Registered Pets ({filteredPets.length})
-              </h5>
-            </Card.Header>
-            <Card.Body className="mobile-card-body" style={{ padding: '2rem', background: darkMode ? '#141414' : '#ffffff', transition: 'all 0.3s ease' }}>
-              {loading || pageLoading ? (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-    {/* Skeleton table header */}
-    <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: darkMode ? '#1e1e1e' : '#f8f9fa', marginBottom: '0.25rem' }}>
-      {[15, 20, 12, 15, 15, 12, 11].map((w, i) => (
-        <div key={i} className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: `${w}%`, height: '12px', flexShrink: 0 }} />
-      ))}
-    </div>
-    {/* Skeleton rows */}
-    {Array.from({ length: 5 }).map((_, i) => (
-      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: darkMode ? '#1a1a1a' : '#fafafa', border: darkMode ? '1px solid #2a2a2a' : '1px solid #f0f0f0', animation: `fadeInUp 0.3s ease-out ${i * 0.05}s backwards` }}>
-        {/* Species icon + breed */}
-        <div style={{ width: '15%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '55px', height: '10px' }} />
-        </div>
-        {/* Pet name + reg */}
-        <div style={{ width: '18%', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '80%', height: '13px' }} />
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '65%', height: '10px' }} />
-        </div>
-        {/* Gender */}
-        <div style={{ width: '12%', flexShrink: 0 }}>
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '60%', height: '12px', margin: '0 auto' }} />
-        </div>
-        {/* Owner */}
-        <div style={{ width: '15%', flexShrink: 0 }}>
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '75%', height: '12px', margin: '0 auto' }} />
-        </div>
-        {/* Date */}
-        <div style={{ width: '15%', flexShrink: 0 }}>
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '70%', height: '12px', margin: '0 auto' }} />
-        </div>
-        {/* Status badge */}
-        <div style={{ width: '12%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '60px', height: '24px', borderRadius: '8px' }} />
-        </div>
-        {/* Action */}
-        <div style={{ width: '13%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-          <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
-        </div>
-      </div>
-    ))}
-  </div>
-) : filteredPets.length === 0 ? (
-                <div className="text-center py-5">
-                  <i className="fas fa-paw text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                  <h5 style={{ color: '#666666', fontWeight: '600' }}>No Pets Found</h5>
-                  <p className="text-muted">
-                    {searchTerm || filterSpecies !== 'all' || filterStatus !== 'active'
-                      ? 'Try adjusting your filters'
-                      : 'No pets have been registered by owners yet'}
-                  </p>
-                </div>
-              ) : (
-                <div className="table-responsive">
-                  <Table hover className="pet-table mobile-table-wrap" style={{ marginBottom: 0, width: '100%' }}>
-                    <thead style={{ background: darkMode ? '#1e1e1e' : '#f8f9fa' }}>
-                      <tr style={{ background: darkMode ? 'linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-                        <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Species/Breed</th>
-                        <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Pet Information</th>
-                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Gender</th>
-                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Owner</th>
-                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Registration Date</th>
-                        <th className="mobile-hide" style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
-                        <th style={{ fontWeight: '700', color: darkMode ? '#aaaaaa' : '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const currentPagePets = filteredPets;
-
-                        
-                        return (
-                          <>
-                            {currentPagePets.map((pet, index) => {
-                        const getPetFaceImage = (species) => {
-                          if (species?.toLowerCase() === 'dog') {
-                            return '/dog_face.png';
-                          } else if (species?.toLowerCase() === 'cat') {
-                            return '/cat_face.png';
-                          } else if (species?.toLowerCase() === 'rabbit') {
-                            return '/rabbit_face.png';
-                          }
-                          return '/dog_face.png';
-                        };
-
-                        return (
-                          <tr 
-                            key={pet.id}
-                            style={{
-                              transition: 'all 0.2s ease',
-                              cursor: 'pointer',
-                              background: darkMode ? '#141414' : '#ffffff'
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = darkMode ? 'rgba(255, 193, 7, 0.08)' : 'rgba(255, 193, 7, 0.05)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = darkMode ? '#141414' : '#ffffff';
-                            }}
-                          >
-                            <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left', width: '15%' }}>
-                              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.65rem' }}>
-                                <img 
-                                  src={getPetFaceImage(pet.species)}
-                                  alt={pet.species}
-                                  className="mobile-table-img"
-                                  style={{ 
-                                    width: '40px', 
-                                    height: '40px', 
-                                    objectFit: 'contain',
-                                    flexShrink: 0,
-                                    filter: 'none'
-                                  }}
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'block';
-                                  }}
-                                />
-                                <i 
-                                  className="fas fa-paw" 
-                                  style={{ fontSize: '1.5rem', color: '#ffc107', display: 'none', flexShrink: 0 }}
-                                ></i>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                  <span style={{ fontWeight: '600', fontSize: '0.85rem', color: darkMode ? '#f0f0f0' : '#333', textTransform: 'capitalize' }}>{pet.species}</span>
-                                  {pet.breed && (
-                                    <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#aaa' }}>
-                                      {pet.breed}
-                                    </small>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left', width: '18%' }}>
-                              <strong style={{ fontSize: '0.95rem', color: darkMode ? '#f0f0f0' : '#333', display: 'block' }}>{pet.name}</strong>
-                              <small style={{ fontWeight: '500', color: darkMode ? '#888888' : '#aaa' }}>
-                                <i className="fas fa-barcode me-1"></i>
-                                {pet.registration_number || 'N/A'}
-                              </small>
-                            </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
-                              <span className="text-capitalize" style={{ fontWeight: '500' }}>
-                                {pet.gender === 'male' ? (
-                                  <><i className="fas fa-mars text-primary me-1"></i>Male</>
-                                ) : (
-                                  <><i className="fas fa-venus text-danger me-1"></i>Female</>
-                                )}
-                              </span>
-                            </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                              <small style={{ fontWeight: '500', color: darkMode ? '#aaaaaa' : '#555' }}>{getOwnerName(pet)}</small>
-                            </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                              <small style={{ fontWeight: '500', color: darkMode ? '#aaaaaa' : '#555' }}>
-                                {pet.registration_date
-                                  ? new Date(pet.registration_date).toLocaleDateString()
-                                  : new Date(pet.created_at).toLocaleDateString()}
-                              </small>
-                            </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '12%' }}>
-                              <Badge 
-                                bg={pet.is_active ? 'success' : 'warning'}
-                                text={pet.is_active ? undefined : 'dark'}
-                                style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                              >
-                                {pet.is_active ? 'Active' : 'Archived'}
-                              </Badge>
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '13%' }}>
-                              <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (showDropdown === pet.id) { setShowDropdown(null); return; }
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    const dropdownHeight = 50;
-                                    const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
-                                    setDropdownPos({
-                                      top: nearBottom
-                                        ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
-                                        : rect.top / ZOOM + (rect.height / ZOOM) / 2,
-                                      left: (rect.left / ZOOM) - 185
-                                    });
-                                    setShowDropdown(pet.id);
-                                  }}
-                                  style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                                  onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                                >
-                                  <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-
-                    </>
-                  );
-                })()}
-                    </tbody>
-                  </Table>
-                </div>
+          {/* Filters */}
+          <div className="pm-filters">
+            <div className="pm-search">
+              <i className="fas fa-search" />
+              <input
+                className="pm-input"
+                placeholder="Search by pet name, registration number, or owner..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search pets"
+              />
+              {searchTerm && (
+                <button type="button" className="pm-clear" onClick={() => setSearchTerm('')} aria-label="Clear search">
+                  <i className="fas fa-times" />
+                </button>
               )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+            </div>
+            <div className="pm-select">
+              <i className="fas fa-paw" />
+              <select className="pm-input" value={filterSpecies} onChange={(e) => setFilterSpecies(e.target.value)} aria-label="Species">
+                <option value="all">All species</option>
+                <option value="dog">Dogs</option>
+                <option value="cat">Cats</option>
+              </select>
+            </div>
+            {hasPetFilters && (
+              <button type="button" className="pm-link" onClick={() => { setSearchTerm(''); setFilterSpecies('all'); }}>
+                <i className="fas fa-undo me-1" />Clear filters
+              </button>
+            )}
+          </div>
 
-      {/* Pagination */}
-      {totalPets > itemsPerPage && filteredPets.length > 0 && (
-  <Row className="mt-4 mobile-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
-    <Col className="d-flex justify-content-between align-items-center">
-      {/* Left: Page X of Y */}
-      <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-        Page <strong style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{currentPage}</strong> of <strong style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{totalPages}</strong>
-      </span>
+          {/* Body */}
+          <div className="mobile-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+            {loading || pageLoading ? (
+              <div style={{ padding: '0.5rem 0 1rem' }}>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid var(--pm-line)', opacity: 1 - i * 0.12 }}>
+                    <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: 40, height: 40, borderRadius: '50%' }} />
+                    <div className="flex-grow-1">
+                      <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '25%', height: 13, marginBottom: 8 }} />
+                      <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: '15%', height: 10 }} />
+                    </div>
+                    <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: 120, height: 12 }} />
+                    <div className={darkMode ? 'skeleton-dark' : 'skeleton'} style={{ width: 70, height: 22, borderRadius: 999 }} />
+                  </div>
+                ))}
+              </div>
+            ) : filteredPets.length === 0 ? (
+              <div className="pm-empty">
+                <div className="ic"><i className="fas fa-paw" /></div>
+                <h6>No pets found</h6>
+                <p>{hasPetFilters || filterStatus !== 'active' ? 'Try changing or clearing the filters.' : 'No pets have been registered by owners yet.'}</p>
+              </div>
+            ) : (
+              <div className="table-responsive" style={{ overflow: 'visible' }}>
+                <table className="pm-table mobile-table-wrap">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '24%' }}>Pet</th>
+                      <th style={{ width: '17%' }}>Species / breed</th>
+                      <th className="mobile-hide" style={{ width: '11%' }}>Gender</th>
+                      <th className="mobile-hide" style={{ width: '18%' }}>Owner</th>
+                      <th className="mobile-hide" style={{ width: '13%' }}>Registered</th>
+                      <th className="mobile-hide" style={{ width: '11%' }}>Status</th>
+                      <th style={{ width: '6%' }} aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPets.map((pet, i) => {
+                      const menuOpen = showDropdown === pet.id;
+                      return (
+                        <tr key={pet.id} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                              <div className="pm-face">
+                                <img
+                                  src={getPetFaceImage(pet.species)}
+                                  alt=""
+                                  className="mobile-table-img"
+                                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                                />
+                                <i className="fas fa-paw" style={{ display: 'none', color: '#e0a800' }} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div className="pm-strong pm-ellipsis" title={pet.name}>{pet.name}</div>
+                                <div className="pm-muted pm-mono pm-ellipsis">{pet.registration_number || 'N/A'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="pm-strong text-capitalize" style={{ fontSize: '0.85rem' }}>{pet.species}</div>
+                            <div className="pm-muted pm-ellipsis">{pet.breed || 'Mixed'}</div>
+                          </td>
+                          <td className="mobile-hide">
+                            {pet.gender === 'male'
+                              ? <span className="pm-gender male"><i className="fas fa-mars" />Male</span>
+                              : <span className="pm-gender female"><i className="fas fa-venus" />Female</span>}
+                          </td>
+                          <td className="mobile-hide">
+                            <div className="pm-ellipsis" style={{ fontSize: '0.85rem' }} title={getOwnerName(pet)}>{getOwnerName(pet)}</div>
+                          </td>
+                          <td className="mobile-hide">
+                            <div style={{ fontSize: '0.85rem' }}>{fmtPetDate(pet.registration_date || pet.created_at)}</div>
+                          </td>
+                          <td className="mobile-hide">
+                            <span className={`pm-pill ${pet.is_active ? 'on' : 'off'}`}>
+                              <i className={`fas ${pet.is_active ? 'fa-circle' : 'fa-archive'}`} />{pet.is_active ? 'Active' : 'Archived'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button
+                                type="button"
+                                className={`pm-icon-btn${menuOpen ? ' on' : ''}`}
+                                onClick={(e) => { e.stopPropagation(); setShowDropdown(menuOpen ? null : pet.id); }}
+                                aria-label={`Options for ${pet.name}`}
+                                aria-expanded={menuOpen}
+                              >
+                                <i className="fas fa-ellipsis-v" />
+                              </button>
+                              {menuOpen && (
+                                <>
+                                  <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                                  <div className="pm-menu" role="menu">
+                                    <button type="button" role="menuitem" className="pm-menu-item" onClick={() => { setShowDropdown(null); handleViewPet(pet); }}>
+                                      <i className="fas fa-eye" />View details
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-      {/* Right: Pagination buttons */}
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <button
-          className="page-btn"
-          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-          style={{
-            background: currentPage === 1 ? (darkMode ? '#1a1a1a' : '#e9ecef') : (darkMode ? '#2a2a2a' : '#ffffff'),
-            border: darkMode ? '2px solid #333333' : '2px solid #dee2e6',
-            borderRadius: '8px',
-            padding: '0.5rem 0.75rem',
-            cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-            fontWeight: '600',
-            color: currentPage === 1 ? '#adb5bd' : (darkMode ? '#f0f0f0' : '#333333'),
-            transition: 'all 0.2s'
-          }}
-          onMouseOver={(e) => { if (currentPage !== 1) { e.currentTarget.style.background = darkMode ? '#333' : '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-          onMouseOut={(e) => { if (currentPage !== 1) { e.currentTarget.style.background = darkMode ? '#2a2a2a' : '#ffffff'; e.currentTarget.style.borderColor = darkMode ? '#333333' : '#dee2e6'; } }}
-        >
-          <i className="fas fa-chevron-left"></i>
-        </button>
-
-        {(() => {
-          const pages = [];
-          if (totalPages <= 3) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-          } else {
-            let start = Math.max(1, currentPage - 1);
-            let end = Math.min(totalPages, start + 2);
-            if (end - start < 2) start = Math.max(1, end - 2);
-            for (let i = start; i <= end; i++) pages.push(i);
-          }
-
-          return pages.map((page, idx) => (
-            <button
-              className="page-btn"
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              style={{
-                background: currentPage === page ? '#ffc107' : (darkMode ? '#2a2a2a' : '#ffffff'),
-                border: '2px solid',
-                borderColor: currentPage === page ? '#ffc107' : (darkMode ? '#333333' : '#dee2e6'),
-                borderRadius: '8px',
-                padding: '0.5rem 0.75rem',
-                minWidth: '40px',
-                cursor: 'pointer',
-                fontWeight: '700',
-                color: currentPage === page ? '#000000' : (darkMode ? '#f0f0f0' : '#333333'),
-                transition: 'all 0.2s',
-                boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none'
-              }}
-              onMouseOver={(e) => { if (currentPage !== page) { e.currentTarget.style.background = darkMode ? '#333' : '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-              onMouseOut={(e) => { if (currentPage !== page) { e.currentTarget.style.background = darkMode ? '#2a2a2a' : '#ffffff'; e.currentTarget.style.borderColor = darkMode ? '#333333' : '#dee2e6'; } }}
-            >
-              {page}
-            </button>
-          ));
-        })()}
-
-        <button
-          className="page-btn"
-          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-          disabled={currentPage === totalPages}
-          style={{
-            background: currentPage === totalPages ? (darkMode ? '#1a1a1a' : '#e9ecef') : (darkMode ? '#2a2a2a' : '#ffffff'),
-            border: darkMode ? '2px solid #333333' : '2px solid #dee2e6',
-            borderRadius: '8px',
-            padding: '0.5rem 0.75rem',
-            cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-            fontWeight: '600',
-            color: currentPage === totalPages ? '#adb5bd' : (darkMode ? '#f0f0f0' : '#333333'),
-            transition: 'all 0.2s'
-          }}
-          onMouseOver={(e) => { if (currentPage !== totalPages) { e.currentTarget.style.background = darkMode ? '#333' : '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-          onMouseOut={(e) => { if (currentPage !== totalPages) { e.currentTarget.style.background = darkMode ? '#2a2a2a' : '#ffffff'; e.currentTarget.style.borderColor = darkMode ? '#333333' : '#dee2e6'; } }}
-        >
-          <i className="fas fa-chevron-right"></i>
-        </button>
-      </div>
-    </Col>
-  </Row>
-)}
+          {/* Pagination */}
+          {totalPets > itemsPerPage && filteredPets.length > 0 && (
+            <div className="pm-foot mobile-pagination">
+              <span className="pm-muted page-info" style={{ fontSize: '0.84rem' }}>
+                Showing <strong className="pm-strong">{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalPets)}</strong> of {totalPets}
+              </span>
+              <div className="d-flex align-items-center gap-1">
+                <button type="button" className="pm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
+                  <i className="fas fa-chevron-left" />
+                </button>
+                {pmPagerNumbers.map(n => (
+                  <button key={n} type="button" className={`pm-page page-btn${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+                ))}
+                <button type="button" className="pm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
+                  <i className="fas fa-chevron-right" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
       {/* View Modal */}
       <Modal show={showViewModal} onHide={() => { setShowViewModal(false); setQrDataURL(''); }} size="lg" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }} className="pet-modal">
@@ -941,6 +798,7 @@ const loadData = () => loadPage(1);
                         </tr>
                         <tr>
                           <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Species:</td>
+                          <td className="text-capitalize" style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{selectedPet.species || 'Not specified'}</td>
                         </tr>
                         <tr>
                           <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Breed:</td>
@@ -948,6 +806,7 @@ const loadData = () => loadPage(1);
                         </tr>
                         <tr>
                           <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Gender:</td>
+                          <td className="text-capitalize" style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{selectedPet.gender || 'Not specified'}</td>
                         </tr>
                         <tr>
                           <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Birth Date:</td>
@@ -1081,7 +940,7 @@ const loadData = () => loadPage(1);
                     </Table>
                   </Card.Body>
                 </Card>
-              {selectedPet?.microchip_number && (
+              {(selectedPet?.qr_code || selectedPet?.microchip_number) && (
                 <Card
                   className="mb-3 border-0"
                   style={{
@@ -1096,7 +955,7 @@ const loadData = () => loadPage(1);
                   }}>
                     <h6 className="mb-0" style={{ fontWeight: '600', color: darkMode ? '#f0f0f0' : '#333' }}>
                       <i className="fas fa-qrcode me-2" style={{ color: '#4361ee' }}></i>
-                      Microchip QR Code
+                      Pet QR Code
                     </h6>
                   </Card.Header>
                   <Card.Body className="text-center" style={{ background: darkMode ? '#1e1e1e' : '#ffffff' }}>
@@ -1121,13 +980,13 @@ const loadData = () => loadPage(1);
                           }}
                         />
                         <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem', fontFamily: 'monospace' }}>
-                          {selectedPet.microchip_number}
+                          {selectedPet.microchip_number || selectedPet.registration_number}
                         </div>
                         <button
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = qrDataURL;
-                            link.download = `QR_${selectedPet.name}_${selectedPet.microchip_number}.png`;
+                            link.download = `QR_${selectedPet.name}_${selectedPet.microchip_number || selectedPet.registration_number}.png`;
                             link.click();
                           }}
                           style={{
@@ -1176,41 +1035,6 @@ const loadData = () => loadPage(1);
       </Modal>
     </Container>
 
-    {showDropdown !== null && (
-      <>
-        <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
-        <div style={{
-          position: 'fixed',
-          top: dropdownPos.top,
-          left: dropdownPos.left,
-          transform: 'translateY(-50%)',
-          background: darkMode ? '#1e1e1e' : '#ffffff',
-          border: darkMode ? '1px solid #333333' : '1px solid #e0e0e0',
-          borderRadius: '12px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-          minWidth: '170px',
-          zIndex: 1050,
-          overflow: 'hidden',
-          zoom: '0.75',
-        }}>
-          {(() => {
-            const pet = pets.find(p => p.id === showDropdown);
-            if (!pet) return null;
-            return (
-              <button
-                onClick={() => { setShowDropdown(null); handleViewPet(pet); }}
-                style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: darkMode ? '#1e1e1e' : '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: darkMode ? '#f0f0f0' : '#333333', fontWeight: '500' }}
-                onMouseOver={e => e.currentTarget.style.background = darkMode ? '#2a2a2a' : '#f8f9fa'}
-                onMouseOut={e => e.currentTarget.style.background = darkMode ? '#1e1e1e' : '#ffffff'}
-              >
-                <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain', filter: darkMode ? 'brightness(0) invert(1)' : 'none' }} />
-                <span>View Details</span>
-              </button>
-            );
-          })()}
-        </div>
-      </>
-    )}
     </>
   );
 };
