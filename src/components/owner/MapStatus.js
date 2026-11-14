@@ -597,7 +597,7 @@ export default function OwnerMapStatus() {
         <Row className="g-4 dash-section" style={{ '--d': '0.15s', flex: '1 1 auto' }}>
 
           {/* Map */}
-          <Col lg={8} className="map-col">
+          <Col lg={8} className="map-col order-1 order-lg-2">
             <div className={`dash-panel map-card ${isFullscreen ? 'map-fullscreen' : ''}`}>
               {/* Top bar */}
               <div style={{ position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', pointerEvents: 'none' }}>
@@ -646,7 +646,7 @@ export default function OwnerMapStatus() {
           </Col>
 
           {/* Side panels */}
-          <Col lg={4} className="side-stack" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <Col lg={4} className="side-stack order-2 order-lg-1" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             <Panel icon="fa-info-circle" iconColor="#ffc107" title="Reading the map">
               <div className="stagger">
