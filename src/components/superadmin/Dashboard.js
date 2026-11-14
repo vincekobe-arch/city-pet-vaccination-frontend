@@ -426,15 +426,6 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
             <div style={{ fontSize: '0.95rem', ...muted }}>{today}</div>
           </Col>
           <Col xs="auto">
-            <Button
-              variant={darkMode ? 'outline-light' : 'outline-secondary'}
-              size="sm"
-              onClick={loadDashboardData}
-              disabled={loading}
-              style={{ borderRadius: '8px', fontWeight: 600 }}
-            >
-              <i className={`fas fa-sync-alt me-1 ${loading ? 'fa-spin' : ''}`} /> Refresh data
-            </Button>
           </Col>
         </Row>
 
