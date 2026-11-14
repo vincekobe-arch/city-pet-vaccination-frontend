@@ -290,6 +290,10 @@ const EditProfile = ({ darkMode }) => {
     @keyframes epDots { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
 
     .ep-wrap { max-width: 760px; padding-top: 1.5rem; padding-bottom: 3rem; }
+    .ep-wrap { zoom: 0.75; }
+    @media (min-width: 1600px) { .ep-wrap { zoom: 0.9; } }
+    @media (min-width: 1920px) { .ep-wrap { zoom: 1; } }
+    @media (max-width: 768px) { .ep-wrap { zoom: 1; } }
     .ep-anim { animation: epIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
 
     .ep-back { display: inline-flex; align-items: center; gap: 0.45rem; border: none; background: none; padding: 0.3rem 0.5rem 0.3rem 0; color: var(--ep-muted); font-size: 0.86rem; font-weight: 600; margin-bottom: 0.75rem; transition: color 0.15s ease; }
