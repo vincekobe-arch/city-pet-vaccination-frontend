@@ -203,6 +203,8 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
     .ev-day { position: relative; aspect-ratio: 1 / 1; border: none; border-radius: 10px; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #1f2328; font-size: 0.85rem; font-weight: 500; transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease; }
     .ev-day:hover { background: #f3f4f6; }
     .ev-day.out { color: #c4c9d0; }
+    .ev-day.past { color: #d6dae0; cursor: default; }
+    .ev-day.past:hover { background: transparent; }
     .ev-day.has { font-weight: 700; background: #fafbfc; }
     .ev-day.has:hover { background: #f1f3f5; transform: translateY(-1px); }
     .ev-day.today .num { box-shadow: inset 0 0 0 1.5px #e0a800; border-radius: 50%; width: 1.7em; height: 1.7em; display: inline-flex; align-items: center; justify-content: center; }
@@ -1372,6 +1374,8 @@ const getVaccineDetails = (schedule) => {
   const eventsByDate = typeFiltered.reduce((acc, s) => { (acc[dateKey(s)] = acc[dateKey(s)] || []).push(s); return acc; }, {});
 
   // 6-week grid for the visible month
+  const nowMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const isCurrentMonth = calMonth.getTime() <= nowMonth.getTime();
   const calendarDays = (() => {
     const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
     const start = new Date(first); start.setDate(1 - first.getDay());
@@ -1538,17 +1542,23 @@ const getVaccineDetails = (schedule) => {
           <Col lg={4} xl={3}>
             <div className="ev-panel ev-anim" style={{ '--d': '0.1s' }}>
               <div className="ev-cal-head">
-                <button type="button" className="ev-icon-btn" aria-label="Previous month"
-                  onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
-                  <i className="fas fa-chevron-left" />
-                </button>
+                {isCurrentMonth ? (
+                  <span style={{ width: 34 }} aria-hidden="true" />
+                ) : (
+                  <button type="button" className="ev-icon-btn" aria-label="Previous month"
+                    onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
+                    <i className="fas fa-chevron-left" />
+                  </button>
+                )}
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1f2328' }}>
                     {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </div>
-                  <button type="button" className="ev-link" onClick={() => { const n = new Date(); setCalMonth(new Date(n.getFullYear(), n.getMonth(), 1)); setSelectedDate(todayKey); setCurrentPage(1); }}>
-                    Jump to today
-                  </button>
+                  {!isCurrentMonth && (
+                    <button type="button" className="ev-link" onClick={() => { const n = new Date(); setCalMonth(new Date(n.getFullYear(), n.getMonth(), 1)); setSelectedDate(null); setCurrentPage(1); }}>
+                      Back to this month
+                    </button>
+                  )}
                 </div>
                 <button type="button" className="ev-icon-btn" aria-label="Next month"
                   onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
@@ -1561,6 +1571,12 @@ const getVaccineDetails = (schedule) => {
               </div>
               <div className="ev-cal-grid" key={calMonth.toISOString()}>
                 {calendarDays.map(({ date, key, inMonth }) => {
+                  // Days from the previous month are left blank
+                  if (!inMonth && date < calMonth) return <span key={key} aria-hidden="true" />;
+                  const isPast = key < todayKey;
+                  if (isPast) {
+                    return <span key={key} className="ev-day past" aria-hidden="true"><span className="num">{date.getDate()}</span><span className="dots" /></span>;
+                  }
                   const dayEvents = eventsByDate[key] || [];
                   const types = [...new Set(dayEvents.map(e => e.type))].slice(0, 3);
                   const isSelected = selectedDate === key;
