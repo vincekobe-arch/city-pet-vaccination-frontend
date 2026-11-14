@@ -64,7 +64,7 @@ const [restoreError, setRestoreError] = useState('');
 const [filterClinic, setFilterClinic] = useState('city_vet');    
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     const [displayCounts, setDisplayCounts] = useState({ vaccinations: 0, sterilizations: 0, microchips: 0 });
     const [hasAnimated, setHasAnimated] = useState(false);
