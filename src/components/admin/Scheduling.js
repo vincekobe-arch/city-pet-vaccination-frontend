@@ -154,7 +154,7 @@ const itemsPerPage = 5;
 
     .em-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
     .em-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
-    .em-btn.primary { background: #ffc107; color: #1f2328; }
+    .em-btn.primary { height: 36px; background: #ffc107; color: #1f2328; }
     .em-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
 
     .em-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: emToast 0.35s ease-out; }
@@ -189,7 +189,7 @@ const itemsPerPage = 5;
     .em-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
     .em-link:hover { text-decoration: underline; }
 
-    .em-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .em-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
     .em-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
     .em-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
     .em-table tbody tr { animation: emRow 0.35s ease-out backwards; transition: background 0.15s ease; }
@@ -198,7 +198,7 @@ const itemsPerPage = 5;
     .em-table tbody tr.raised { position: relative; z-index: 5; }
     .em-strong { font-weight: 600; color: #1f2328; }
     .em-muted { font-size: 0.78rem; color: #6b7280; }
-    .em-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .em-ellipsis { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .em-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
     .em-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
     .em-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
@@ -239,6 +239,8 @@ const itemsPerPage = 5;
       .em-filters select.em-input { min-width: 0; width: 100%; }
       .em-select { flex: 1 1 140px; }
       .em-ellipsis { max-width: 160px; }
+      .em-table { table-layout: auto; }
+      .em-table th { width: auto !important; }
       .em-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -1341,9 +1343,6 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
             <h2 className="em-title sched-title">Event Management</h2>
             <p className="em-sub">Schedule and manage vaccination drives, seminars and other City Vet events.</p>
           </div>
-          <button type="button" className="em-btn primary lg sched-add-btn" onClick={() => handleOpenModal('create')}>
-            <i className="fas fa-plus" />Add event
-          </button>
         </div>
 
         {error && (
@@ -1410,10 +1409,15 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
               <span>{statusTitle}</span>
               <span className="em-count">{totalSchedules}</span>
             </div>
-            <div className="em-seg" role="group" aria-label="Status">
-              {[['upcoming', 'Upcoming'], ['ongoing', 'Ongoing'], ['completed', 'Completed'], ['all', 'All']].map(([v, l]) => (
-                <button key={v} type="button" className={filterStatus === v ? 'on' : ''} onClick={() => setFilterStatus(v)} aria-pressed={filterStatus === v}>{l}</button>
-              ))}
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <div className="em-seg" role="group" aria-label="Status">
+                {[['upcoming', 'Upcoming'], ['ongoing', 'Ongoing'], ['completed', 'Completed'], ['all', 'All']].map(([v, l]) => (
+                  <button key={v} type="button" className={filterStatus === v ? 'on' : ''} onClick={() => setFilterStatus(v)} aria-pressed={filterStatus === v}>{l}</button>
+                ))}
+              </div>
+              <button type="button" className="em-btn primary sched-add-btn" onClick={() => handleOpenModal('create')}>
+                <i className="fas fa-plus" />Add event
+              </button>
             </div>
           </div>
           <div className="em-filters">
@@ -1491,12 +1495,12 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
                 <table className="em-table sched-table">
                   <thead>
                     <tr>
-                      <th>Date</th>
-                      <th>Event</th>
-                      <th className="mobile-hide">Location</th>
-                      <th className="mobile-hide">Slots</th>
-                      <th>Status</th>
-                      <th style={{ width: 56 }} aria-label="Actions" />
+                      <th style={{ width: '17%' }}>Date</th>
+                      <th style={{ width: '33%' }}>Event</th>
+                      <th className="mobile-hide" style={{ width: '20%' }}>Location</th>
+                      <th className="mobile-hide" style={{ width: '14%' }}>Slots</th>
+                      <th style={{ width: '11%' }}>Status</th>
+                      <th style={{ width: '5%' }} aria-label="Actions" />
                     </tr>
                   </thead>
                   <tbody>
@@ -1510,7 +1514,7 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
                       const editable = schedule.status !== 'ongoing' && schedule.status !== 'completed' && canManage;
                       return (
                         <tr key={`${schedule.type}-${schedule.id}`} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
-                          <td style={{ width: 150 }}>
+                          <td>
                             <div className="d-flex align-items-center gap-2">
                               <div className="em-date" style={{ '--c': meta.color }}>
                                 <span className="m">{day ? day.toLocaleDateString('en-US', { month: 'short' }) : '—'}</span>
@@ -1538,7 +1542,7 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
                             <div className="em-strong" style={{ fontSize: '0.85rem' }}>{getBarangayName(schedule.barangay_id)}</div>
                             <div className="em-muted em-ellipsis" style={{ maxWidth: 200 }} title={schedule.venue}>{schedule.venue || '—'}</div>
                           </td>
-                          <td className="mobile-hide" style={{ width: 150 }}>
+                          <td className="mobile-hide">
                             {cap ? (
                               <>
                                 <div className="em-muted"><strong style={{ color: '#1f2328' }}>{cap.used}</strong> / {cap.total} registered</div>
