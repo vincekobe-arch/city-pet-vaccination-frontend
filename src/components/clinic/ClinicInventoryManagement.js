@@ -63,6 +63,12 @@ const getStockStatus = (item) => {
 
 const TYPE_ORDER = { vaccination: 3, deworming: 1, medicine: 2, microchip: 0, equipment: 4 };
 
+// Max quantity allowed in ONE batch (one delivery / lot). Based on the item's unit,
+// with fixed limits for microchips and equipment. Adjust if your clinic receives bigger deliveries.
+const MAX_BATCH_BY_UNIT = { doses: 500, pcs: 1000, tablets: 1000, capsules: 1000, sachets: 1000, vials: 200, bottles: 200, boxes: 100, ml: 20000, mg: 100000 };
+const MAX_BATCH_BY_TYPE = { microchip: 200, equipment: 100 };
+const getMaxBatchQty = (item) => MAX_BATCH_BY_TYPE[item?.item_type] ?? MAX_BATCH_BY_UNIT[item?.unit] ?? 1000;
+
 const ITEMS_PER_PAGE = 10;
 
 // ─── Animated count-up for stat cards ───────────────────────────────────────
@@ -243,6 +249,10 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
     const handleRestock = async () => {
     if (restockLoading) return;
     if (!restockQty || parseInt(restockQty) <= 0) { setError('Enter a valid quantity > 0.'); return; }
+    if (parseInt(restockQty) > getMaxBatchQty(restockItem)) {
+      setError(`A single batch can only have up to ${getMaxBatchQty(restockItem).toLocaleString()} ${restockItem?.unit || ''}. Split larger deliveries into separate batches.`);
+      return;
+    }
     if (!restockBatchNo.trim()) { setBatchNoError('Batch number is required.'); return; }
     setBatchNoError('');
     setRestockLoading(true);
@@ -284,6 +294,10 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
     if (!editingBatch || editBatchSaving) return;
     if (!editingBatch.batch_no?.trim()) { setError('Batch number cannot be empty.'); return; }
     if (parseInt(editingBatch.quantity) < 0) { setError('Quantity cannot be negative.'); return; }
+    if (parseInt(editingBatch.quantity) > getMaxBatchQty(batchItem)) {
+      setError(`A single batch can only have up to ${getMaxBatchQty(batchItem).toLocaleString()} ${batchItem?.unit || ''}.`);
+      return;
+    }
     const batchToSave = editingBatch;
     setEditBatchSaving(true);
     setEditingBatch(null);                 // exit edit mode immediately
@@ -967,8 +981,15 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
                 </Col>
                 <Col xs={6}>
                   <Form.Label style={labelStyle}>Quantity <Req /></Form.Label>
-                  <Form.Control type="number" min="1" value={restockQty}
-                    onChange={e => setRestockQty(e.target.value)} placeholder={`qty in ${restockItem.unit}`} style={inputStyle} />
+                  <Form.Control type="number" min="1" max={getMaxBatchQty(restockItem)} value={restockQty}
+                    onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
+                    onChange={e => setRestockQty(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder={`qty in ${restockItem.unit}`}
+                    isInvalid={parseInt(restockQty) > getMaxBatchQty(restockItem)}
+                    style={{ ...inputStyle, ...(parseInt(restockQty) > getMaxBatchQty(restockItem) ? { borderColor: '#dc3545' } : {}) }} />
+                  <div style={{ fontSize: '0.75rem', marginTop: '0.3rem', color: parseInt(restockQty) > getMaxBatchQty(restockItem) ? '#dc3545' : '#888' }}>
+                    {parseInt(restockQty) > getMaxBatchQty(restockItem) ? 'Max' : 'Up to'} {getMaxBatchQty(restockItem).toLocaleString()} {restockItem.unit} per batch
+                  </div>
                 </Col>
               </Row>
               {!['microchip', 'equipment'].includes(restockItem?.item_type) && (
@@ -989,7 +1010,7 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
         <Modal.Footer style={{ padding: '1rem 1.75rem' }}>
           <Button variant="secondary" onClick={() => setShowRestockModal(false)} disabled={restockLoading} style={cancelBtnStyle}>Cancel</Button>
           <Button onClick={handleRestock}
-            disabled={restockLoading || !restockQty || parseInt(restockQty) <= 0 || !restockBatchNo.trim()}
+            disabled={restockLoading || !restockQty || parseInt(restockQty) <= 0 || parseInt(restockQty) > getMaxBatchQty(restockItem) || !restockBatchNo.trim()}
             style={{ background: '#28a745', border: 'none', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
             {restockLoading ? <><Spinner size="sm" animation="border" className="me-2" />Adding…</> : <><i className="fas fa-plus me-2" />Add Stock</>}
           </Button>
@@ -1049,9 +1070,11 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
                         </td>
                         <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle' }}>
                           {isEditing ? (
-                            <Form.Control size="sm" type="number" min="0" value={editingBatch.quantity}
-                              onChange={e => setEditingBatch(b => ({ ...b, quantity: e.target.value }))}
-                              style={{ border: '2px solid #0d6efd', borderRadius: '6px', width: '80px', fontWeight: '700' }} />
+                            <Form.Control size="sm" type="number" min="0" max={getMaxBatchQty(batchItem)} value={editingBatch.quantity}
+                              onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
+                              onChange={e => setEditingBatch(b => ({ ...b, quantity: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                              title={`Max ${getMaxBatchQty(batchItem)} per batch`}
+                              style={{ border: `2px solid ${parseInt(editingBatch.quantity) > getMaxBatchQty(batchItem) ? '#dc3545' : '#0d6efd'}`, borderRadius: '6px', width: '96px', fontWeight: '700' }} />
                           ) : <span style={{ fontWeight: '700' }}>{batch.quantity} <span style={{ color: '#aaa', fontWeight: '400' }}>{batch.unit}</span></span>}
                         </td>
                         <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle' }}>
@@ -1366,4 +1389,4 @@ function InlineMinStockInput({ item, onSave }) {
       )}
     </div>
   );
-}
+} 

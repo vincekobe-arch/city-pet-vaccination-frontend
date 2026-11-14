@@ -78,10 +78,6 @@ const VetCardView = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   // Newest first
   const sortedVacc = [...vaccinations].sort((a, b) => (parseDate(b.vaccination_date) || 0) - (parseDate(a.vaccination_date) || 0));
   const sortedDeworm = [...dewormings].sort((a, b) => (parseDate(b.deworming_date) || 0) - (parseDate(a.deworming_date) || 0));
@@ -266,9 +262,6 @@ const VetCardView = () => {
             <h1>{pet.name}'s vet card</h1>
             <p>Vaccination and deworming history for this pet.</p>
           </div>
-          <button type="button" className="vc-btn primary" onClick={handlePrint}>
-            <i className="fas fa-print" />Print / Save as PDF
-          </button>
         </div>
 
         <article className="vc-card vet-card-main">

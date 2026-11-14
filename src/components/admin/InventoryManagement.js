@@ -416,6 +416,10 @@ useEffect(() => {
   // ── Filter ────────────────────────────────────────────────────────────────
 const TYPE_ORDER = { microchip: 0, vaccination: 1, medicine: 2, equipment: 3 };
 
+// Max quantity allowed in ONE batch (one delivery / lot). Adjust if your office receives bigger deliveries.
+const MAX_BATCH_QTY = { vaccination: 1000, medicine: 1000, microchip: 500, equipment: 200 };
+const getMaxBatchQty = (type) => MAX_BATCH_QTY[type] || 1000;
+
   const filtered = inventory
     .filter(item => {
       const matchType   = filterType === 'all' || item.item_type === filterType;
@@ -450,6 +454,11 @@ const TYPE_ORDER = { microchip: 0, vaccination: 1, medicine: 2, equipment: 3 };
   const handleRestock = async () => {
   if (!restockQty || parseInt(restockQty) <= 0) {
     setError('Please enter a valid quantity greater than 0.');
+    return;
+  }
+  const maxQty = getMaxBatchQty(restockItem?.item_type);
+  if (parseInt(restockQty) > maxQty) {
+    setError(`A single batch can only have up to ${maxQty.toLocaleString()} ${restockItem?.unit || ''}. Split larger deliveries into separate batches.`);
     return;
   }
   if (!restockBatchNo.trim()) {
@@ -564,6 +573,10 @@ const handleSaveBatch = async () => {
   if (!editingBatch) return;
   if (!editingBatch.batch_no?.trim()) { setError('Batch number cannot be empty.'); return; }
   if (parseInt(editingBatch.quantity) < 0) { setError('Quantity cannot be negative.'); return; }
+  if (parseInt(editingBatch.quantity) > getMaxBatchQty(batchItem?.item_type)) {
+    setError(`A single batch can only have up to ${getMaxBatchQty(batchItem?.item_type).toLocaleString()} ${batchItem?.unit || ''}.`);
+    return;
+  }
   setEditBatchSaving(true);
   try {
     await inventoryAPI.updateBatch(editingBatch.id, {
@@ -1104,11 +1117,19 @@ const handleDeleteClick = (item) => {
             <Form.Control
               type="number"
               min="1"
+              max={getMaxBatchQty(restockItem.item_type)}
               value={restockQty}
-              onChange={e => setRestockQty(e.target.value)}
+              onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
+              onChange={e => setRestockQty(e.target.value.replace(/\D/g, '').slice(0, 5))}
               placeholder={`Enter qty in ${restockItem.unit}`}
-              style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem' }}
+              isInvalid={parseInt(restockQty) > getMaxBatchQty(restockItem.item_type)}
+              style={{ borderRadius: '8px', border: `2px solid ${parseInt(restockQty) > getMaxBatchQty(restockItem.item_type) ? '#dc3545' : '#dee2e6'}`, padding: '0.7rem' }}
             />
+            <div style={{ fontSize: '0.75rem', marginTop: '0.3rem', color: parseInt(restockQty) > getMaxBatchQty(restockItem.item_type) ? '#dc3545' : '#888' }}>
+              {parseInt(restockQty) > getMaxBatchQty(restockItem.item_type)
+                ? `Max ${getMaxBatchQty(restockItem.item_type).toLocaleString()} ${restockItem.unit} per batch`
+                : `Up to ${getMaxBatchQty(restockItem.item_type).toLocaleString()} ${restockItem.unit} per batch`}
+            </div>
           </Col>
         </Row>
 
@@ -1146,6 +1167,7 @@ const handleDeleteClick = (item) => {
         restockLoading ||
         !restockQty ||
         parseInt(restockQty) <= 0 ||
+        parseInt(restockQty) > getMaxBatchQty(restockItem?.item_type) ||
         !restockBatchNo.trim() ||
         (!['microchip', 'equipment'].includes(restockItem?.item_type) && !restockExpDate)
       }
@@ -1209,9 +1231,11 @@ const handleDeleteClick = (item) => {
                   {/* Qty */}
                   <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle' }}>
                     {isEditing ? (
-                      <Form.Control size="sm" type="number" min="0" value={editingBatch.quantity}
-                        onChange={e => setEditingBatch(b => ({ ...b, quantity: e.target.value }))}
-                        style={{ border: '2px solid #0d6efd', borderRadius: '6px', width: '80px', fontWeight: '700' }} />
+                      <Form.Control size="sm" type="number" min="0" max={getMaxBatchQty(batchItem?.item_type)} value={editingBatch.quantity}
+                        onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
+                        onChange={e => setEditingBatch(b => ({ ...b, quantity: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
+                        title={`Max ${getMaxBatchQty(batchItem?.item_type)} per batch`}
+                        style={{ border: `2px solid ${parseInt(editingBatch.quantity) > getMaxBatchQty(batchItem?.item_type) ? '#dc3545' : '#0d6efd'}`, borderRadius: '6px', width: '90px', fontWeight: '700' }} />
                     ) : (
                       <span style={{ fontWeight: '700' }}>{batch.quantity} <span style={{ color: '#aaa', fontWeight: '400' }}>{batch.unit}</span></span>
                     )}

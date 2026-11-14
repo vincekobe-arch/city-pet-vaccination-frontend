@@ -746,6 +746,13 @@ setError('');
       setError('Pet registration number not found. Please enter a valid registration number.');
       return;
     }
+    if (!isEdit) {
+      const w = parseFloat(formData.weight);
+      if (!formData.weight || isNaN(w) || w <= 0 || w > 200) {
+        setError('Please enter the pet\'s weight (0.01–200 kg).');
+        return;
+      }
+    }
     if (type === 'vaccination' && !validateDueDate(formData.vaccination_date, formData.vaccination_next_due_date, 'Vaccination')) return;
     if (type === 'deworming' && !validateDueDate(formData.deworming_date, formData.deworming_next_due_date, 'Deworming')) return;
 
@@ -1892,8 +1899,24 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
                     </Col>
                     <Col md={6}>
                       <Form.Group className="mb-3">
-                        <Form.Label style={{ fontWeight: '600', color: '#333333' }}>Pet Weight (kg)</Form.Label>
-                        <Form.Control type="number" name="weight" value={formData.weight} onChange={handleChange} placeholder="0.00" step="0.01" min="0" max="200" disabled={!formData.pet_id} style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }} />
+                        <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
+                          Pet Weight (kg) {modalMode === 'create' && <span style={{ color: '#dc3545' }}>*</span>}
+                        </Form.Label>
+                        <Form.Control
+                          type="number" name="weight" value={formData.weight} onChange={handleChange}
+                          placeholder="0.00" step="0.01" min="0.01" max="200" disabled={!formData.pet_id}
+                          onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }}
+                          isInvalid={modalMode === 'create' && formData.weight !== '' && (parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200)}
+                          style={{
+                            borderRadius: '8px', padding: '0.75rem',
+                            border: `2px solid ${modalMode === 'create' && formData.weight !== '' && (parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200) ? '#dc3545' : '#dee2e6'}`
+                          }}
+                        />
+                        {modalMode === 'create' && formData.pet_id && (
+                          formData.weight !== '' && (parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200)
+                            ? <small style={{ color: '#dc3545', fontSize: '0.78rem' }}><i className="fas fa-exclamation-circle me-1" />Enter a weight between 0.01 and 200 kg.</small>
+                            : !formData.weight && <small style={{ color: '#888', fontSize: '0.78rem' }}>Weight is required for every new record.</small>
+                        )}
                       </Form.Group>
                     </Col>
                   </Row>
@@ -1923,6 +1946,7 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
                     if (formData.record_type === 'microchip' && !formData.implant_site) return;
                     if (formData.record_type === 'microchip' && !formData.microchip_brand) return;
                     if (!formData.veterinarian_name.trim()) return;
+                    if (modalMode === 'create' && (!formData.weight || parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200)) return;
                     setPendingSubmitEvent(e);
                     setShowConfirmRecordModal(true);
                   }}               
@@ -1947,7 +1971,8 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
                 (formData.record_type === 'microchip' && !formData.implant_date) ||
                 (formData.record_type === 'microchip' && modalMode === 'create' && !selectedMicrochipBatch) ||
                 // Common
-                !formData.veterinarian_name.trim()
+                !formData.veterinarian_name.trim() ||
+                (modalMode === 'create' && (!formData.weight || parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200))
               }
                className="border-0"
                 style={{ background: formLoading || !formData.record_type || (modalMode === 'create' && !getSelectedPet()) || !formData.veterinarian_name.trim() ? '#6c757d' : '#ffc107', color: '#000000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', transition: 'all 0.3s' }}>

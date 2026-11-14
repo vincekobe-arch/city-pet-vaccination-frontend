@@ -929,6 +929,14 @@ setError('');
         setFormLoading(false);
         return;
       }
+      {
+        const w = parseFloat(formData.weight);
+        if (!formData.weight || isNaN(w) || w <= 0 || w > 200) {
+          setError('Please enter the pet\'s weight (0.01–200 kg).');
+          setFormLoading(false);
+          return;
+        }
+      }
 
       try {
         if (formData.record_type === 'vaccination') {
@@ -2486,24 +2494,31 @@ const getSelectedPet = () => {
     <Col md={6}>
       <Form.Group className="mb-3">
         <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-          Pet Weight (kg)
+          Pet Weight (kg) {modalMode === 'create' && <span style={{ color: '#dc3545' }}>*</span>}
         </Form.Label>
         <Form.Control
           type="number"
           name="weight"
           value={formData.weight}
           onChange={handleChange}
+          onKeyDown={e => { if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault(); }}
           placeholder="0.00"
           step="0.01"
-          min="0"
+          min="0.01"
           max="200"
           disabled={!formData.pet_id}
+          isInvalid={modalMode === 'create' && formData.weight !== '' && (parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200)}
           style={{
             borderRadius: '8px',
             padding: '0.75rem',
-            border: '2px solid #dee2e6'
+            border: `2px solid ${modalMode === 'create' && formData.weight !== '' && (parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200) ? '#dc3545' : '#dee2e6'}`
           }}
         />
+        {modalMode === 'create' && formData.pet_id && (
+          formData.weight !== '' && (parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200)
+            ? <small style={{ color: '#dc3545', fontSize: '0.78rem' }}><i className="fas fa-exclamation-circle me-1" />Enter a weight between 0.01 and 200 kg.</small>
+            : !formData.weight && <small style={{ color: '#888', fontSize: '0.78rem' }}>Weight is required for every new record.</small>
+        )}
       </Form.Group>
     </Col>
   </Row>
@@ -2566,6 +2581,7 @@ const getSelectedPet = () => {
                     handleSubmit({ preventDefault: () => {} });
                     return;
                   }
+                  if (!formData.weight || parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200) return;
                   // Check age requirement for vaccination, sterilization, microchip
                   const needsAgeCheck = ['vaccination', 'sterilization', 'microchip'].includes(formData.record_type);
                   if (needsAgeCheck) {
@@ -2601,7 +2617,8 @@ const getSelectedPet = () => {
                   (formData.record_type === 'microchip' && formData.microchip_subtype === 'microchip' && modalMode === 'create' && !selectedMicrochipBatch) ||
                   (formData.record_type === 'microchip' && !formData.implant_date) ||
                   // Common required
-                  !formData.veterinarian_name.trim()
+                  !formData.veterinarian_name.trim() ||
+                  (modalMode === 'create' && (!formData.weight || parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200))
                 }
                 className="border-0"
                 style={{
