@@ -141,6 +141,109 @@ const itemsPerPage = 5;
       .sched-view-modal .modal-body strong { font-size: 0.78rem !important; }
       .sched-view-modal .modal-body p { font-size: 0.85rem !important; margin-bottom: 0.4rem !important; }
     }
+
+    /* ---------------- Event Management ---------------- */
+    @keyframes emIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes emRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes emMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes emToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes emGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .em-anim { animation: emIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .em-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .em-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .em-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .em-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .em-btn.primary { background: #ffc107; color: #1f2328; }
+    .em-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .em-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: emToast 0.35s ease-out; }
+    .em-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .em-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .em-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .em-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .em-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .em-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .em-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .em-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .em-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .em-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .em-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .em-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .em-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .em-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .em-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .em-seg button:hover { color: #1f2328; }
+    .em-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .em-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .em-search, .em-select { position: relative; }
+    .em-search { flex: 1 1 260px; }
+    .em-search > i, .em-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .em-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .em-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.em-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .em-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .em-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .em-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .em-link:hover { text-decoration: underline; }
+
+    .em-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .em-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .em-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .em-table tbody tr { animation: emRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .em-table tbody tr:hover { background: #fafbfc; }
+    .em-table tbody tr:last-child td { border-bottom: none; }
+    .em-table tbody tr.raised { position: relative; z-index: 5; }
+    .em-strong { font-weight: 600; color: #1f2328; }
+    .em-muted { font-size: 0.78rem; color: #6b7280; }
+    .em-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .em-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .em-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .em-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .em-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .em-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .em-bar > div { height: 100%; border-radius: 3px; transform-origin: left; animation: emGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .em-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .em-pill i { font-size: 0.4rem; }
+
+    .em-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .em-icon-btn:hover, .em-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .em-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: emMenu 0.16s ease-out; transform-origin: top right; text-align: left; }
+    .em-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .em-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .em-menu-item:hover { background: #f6f7f9; }
+    .em-menu-item.danger, .em-menu-item.danger i { color: #dc3545; }
+    .em-menu-item.danger:hover { background: #fff5f5; }
+    .em-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .em-empty { text-align: center; padding: 3rem 1rem; }
+    .em-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .em-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .em-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .em-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .em-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .em-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .em-page:hover:not(:disabled) { background: #f3f4f6; }
+    .em-page.on { background: #ffc107; color: #1f2328; }
+    .em-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .em-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .em-btn:focus-visible, .em-seg button:focus-visible, .em-icon-btn:focus-visible, .em-menu-item:focus-visible, .em-page:focus-visible, .em-link:focus-visible, .em-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .em-title { font-size: 1.45rem; }
+      .em-sub { font-size: 0.85rem; }
+      .em-filters select.em-input { min-width: 0; width: 100%; }
+      .em-select { flex: 1 1 140px; }
+      .em-ellipsis { max-width: 160px; }
+      .em-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .em-anim, .em-table tbody tr, .em-menu, .em-toast, .em-bar > div, .em-skel { animation: none !important; }
+    }
   `;
   
   useEffect(() => {
@@ -188,7 +291,7 @@ useEffect(() => {
     allSchedules.filter(s => s.type === 'microchip').length,
     allSchedules.filter(s => s.type === 'other').length,
   ];
-  const colors = ['#ffc107', '#6f42c1', '#28a745', '#6c757d', '#343a40'];
+  const colors = ['#e0a800', '#0aa2c0', '#198754', '#d63384', '#6f42c1'];
 
   schedTypeChartObj.current = new Chart(schedTypeChartRef.current, {
     type: 'bar',
@@ -233,9 +336,9 @@ useEffect(() => {
     data: {
       labels: months.map(m => m.label),
       datasets: [
-        { label: 'All Events',   data: countByMonth('all'),                     borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.08)',  tension: 0.4, pointBackgroundColor: '#ffc107', pointRadius: 5, fill: true, borderWidth: 2.5 },
-        { label: 'Vaccination',  data: countByMonth(['vaccination']),            borderColor: '#e00000', backgroundColor: 'rgba(224,0,0,0.06)',    tension: 0.4, pointBackgroundColor: '#e00000', pointRadius: 5, fill: true, borderWidth: 2.5 },
-        { label: 'Sterilization',data: countByMonth(['sterilization']),          borderColor: '#28a745', backgroundColor: 'rgba(40,167,69,0.06)',  tension: 0.4, pointBackgroundColor: '#28a745', pointRadius: 5, fill: true, borderWidth: 2.5 },
+        { label: 'All Events',   data: countByMonth('all'),                     borderColor: '#1f2328', backgroundColor: 'rgba(31,35,40,0.05)',  tension: 0.4, pointBackgroundColor: '#1f2328', pointRadius: 5, fill: true, borderWidth: 2.5 },
+        { label: 'Vaccination',  data: countByMonth(['vaccination']),            borderColor: '#e0a800', backgroundColor: 'rgba(224,168,0,0.08)',    tension: 0.4, pointBackgroundColor: '#e0a800', pointRadius: 5, fill: true, borderWidth: 2.5 },
+        { label: 'Sterilization',data: countByMonth(['sterilization']),          borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.06)',  tension: 0.4, pointBackgroundColor: '#198754', pointRadius: 5, fill: true, borderWidth: 2.5 },
       ],
     },
     options: {
@@ -1173,575 +1276,349 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
 };
  
 
+  const EV_TYPE_META = {
+    vaccination:   { label: 'Vaccination',   color: '#e0a800', icon: 'fa-syringe' },
+    seminar:       { label: 'Seminar',       color: '#0aa2c0', icon: 'fa-chalkboard-teacher' },
+    sterilization: { label: 'Sterilization', color: '#198754', icon: 'fa-cut' },
+    microchip:     { label: 'Microchip',     color: '#d63384', icon: 'fa-microchip' },
+    deworming:     { label: 'Deworming',     color: '#0d6efd', icon: 'fa-pills' },
+    other:         { label: 'Other',         color: '#6f42c1', icon: 'fa-calendar' },
+  };
+  const evTypeMeta = (s) => {
+    const m = EV_TYPE_META[s.type] || EV_TYPE_META.other;
+    return s.type === 'other' && s.other_event_type ? { ...m, label: s.other_event_type } : m;
+  };
+
+  const fmtClock = (t) => {
+    if (!t) return '';
+    const [h, m] = String(t).split(':').map(Number);
+    if (Number.isNaN(h)) return t;
+    return `${((h + 11) % 12) + 1}:${String(m || 0).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+  };
+  const parseDay = (s) => {
+    const [y, mo, d] = String(s || '').slice(0, 10).split('-').map(Number);
+    return y ? new Date(y, mo - 1, d) : null;
+  };
+
+  const getEvStatus = (schedule) => {
+    if (schedule.status === 'cancelled') return { label: 'Cancelled', color: '#dc3545' };
+    if (schedule.status === 'completed') return { label: 'Completed', color: '#6b7280' };
+    if (schedule.status === 'ongoing')   return { label: 'Ongoing',   color: '#198754' };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const d = parseDay(schedule.scheduled_date);
+    if (d && d < today) return { label: 'Past due', color: '#b88a00' };
+    return { label: 'Upcoming', color: '#0d6efd' };
+  };
+
+  const getCapacity = (schedule) => {
+    const total = schedule.type === 'vaccination' ? getTotalVaccineShots(schedule) : Number(schedule.max_capacity) || 0;
+    if (!total) return null;
+    const used = Number(schedule.current_registrations) || 0;
+    return { used, total, pct: Math.min(100, (used / total) * 100) };
+  };
+
+  const canManage = user?.role === 'super_admin' || user?.role === 'barangay_official';
+  const hasFilters = searchTerm || filterType !== 'all' || filterBarangay !== 'all';
+  const statusTitle = { all: 'All events', upcoming: 'Upcoming events', ongoing: 'Ongoing events', completed: 'Completed events' }[filterStatus] || 'Events';
+
+  const pagerNumbers = (() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  })();
+
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4 schedule-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div>
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-                <i 
-                  className="fas fa-calendar-alt" 
-                  style={{ 
-                    fontSize: '1.5rem', 
-                    color: '#000000',
-                    animation: 'float 3s ease-in-out infinite'
-                  }}
-                ></i><h2 className="sched-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>Event Management</h2>
-              </div>
-              
-            </div>
-          </Col>
-        </Row>
+      <Container fluid className="py-4 schedule-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
+
+        {/* Header */}
+        <div className="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4 em-anim">
+          <div>
+            <h2 className="em-title sched-title">Event Management</h2>
+            <p className="em-sub">Schedule and manage vaccination drives, seminars and other City Vet events.</p>
+          </div>
+          <button type="button" className="em-btn primary lg sched-add-btn" onClick={() => handleOpenModal('create')}>
+            <i className="fas fa-plus" />Add event
+          </button>
+        </div>
 
         {error && (
-        <Row className="mb-4">
-          <Col>
-            <Alert 
-              variant="danger" 
-              dismissible 
-              onClose={() => setError('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #dc3545',
-                background: 'rgba(220, 53, 69, 0.1)',
-                color: '#dc3545'
-              }}
-            >
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
-          </Col>
-        </Row>
-      )}
-
-      {success && (
-        <div style={{
-          position: 'fixed',
-          top: '24px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 99999,
-          minWidth: '320px',
-          maxWidth: '480px',
-          animation: 'dropDown 0.4s ease-out',
-          pointerEvents: 'auto'
-        }}>
-          <Alert
-            variant="success"
-            dismissible
-            onClose={() => setSuccess('')}
-            style={{
-              borderRadius: '14px',
-              border: '2px solid #198754',
-              background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-              color: '#fff',
-              fontWeight: '600',
-              boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '1rem 1.25rem',
-              marginBottom: 0
-            }}
-          >
-            <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
-              <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
-            </div>
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2"></i>
+            {error}
           </Alert>
-        </div>
-      )}
+        )}
 
-      {/* ── Charts Row ── */}
-<Row className="mb-4 g-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+        {success && (
+          <div className="em-toast" role="status">
+            <div className="ic"><i className="fas fa-check" /></div>
+            <div className="flex-grow-1">
+              <div className="t">Success</div>
+              <div className="d">{success}</div>
+            </div>
+            <button type="button" className="em-toast-close" onClick={() => setSuccess('')} aria-label="Close">
+              <i className="fas fa-times" />
+            </button>
+          </div>
+        )}
 
-
-  {/* Bar chart — Events by Type */}
-  <Col md={5}>
-    <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-      <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <i className="fas fa-chart-bar" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
-        <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Events by Type</span>
-      </div>
-      <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
-        {loading
-          ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
-          : <canvas ref={schedTypeChartRef} />
-        }
-      </div>
-    </Card>
-  </Col>
-
-  {/* Line chart — Monthly Trend */}
-  <Col md={7}>
-    <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-      <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <i className="fas fa-chart-line" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
-        <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Monthly Event Trend</span>
-        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#aaa', fontWeight: '500' }}>Last 6 months</span>
-      </div>
-      <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
-        {loading
-          ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
-          : <canvas ref={schedMonthlyChartRef} />
-        }
-      </div>
-    </Card>
-  </Col>
-</Row>
-
-      {/* Filters */}
-      <Row className="mb-4 sched-filters-row" style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-        <Col md={3}>
-          <InputGroup style={{ borderRadius: '12px', overflow: 'hidden' }}>
-            <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
-              <i className="fas fa-search"></i>
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
-              placeholder="Search events..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                border: '2px solid #e9ecef',
-                borderLeft: 'none',
-                borderRight: searchTerm ? 'none' : '2px solid #e9ecef'
-              }}
-            />
-            {searchTerm && (
-              <Button 
-                variant="outline-secondary" 
-                onClick={() => setSearchTerm('')}
-                style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}
-              >
-                <i className="fas fa-times"></i>
-              </Button>
-            )}
-          </InputGroup>
-        </Col>
-        <Col md={3}>
-          <Form.Select
-  value={filterType}
-  onChange={(e) => setFilterType(e.target.value)}
-  style={{
-    borderRadius: '12px',
-    border: '2px solid #e9ecef',
-    fontWeight: '500'
-  }}
->
-  <option value="all">All</option>
-  <option value="vaccination">Vaccination</option>
-  <option value="seminar">Seminar</option>
-  <option value="sterilization">Sterilization</option>
-  <option value="other">Other</option>
-  <option value="microchip">Microchip</option>
-</Form.Select>
-        </Col>
-        <Col md={3}>
-          <Form.Select
-            value={filterBarangay}
-            onChange={(e) => setFilterBarangay(e.target.value)}
-            style={{
-              borderRadius: '12px',
-              border: '2px solid #e9ecef',
-              fontWeight: '500'
-            }}
-          >
-            <option value="all">All</option>
-            {barangays.map(barangay => (
-              <option key={barangay.id} value={barangay.id}>
-                {barangay.name}
-              </option>
-            ))}
-          </Form.Select>
-        </Col>
-        <Col md={3}>
-          <Form.Select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{
-              borderRadius: '12px',
-              border: '2px solid #e9ecef',
-              fontWeight: '500'
-            }}
-          >
-            <option value="upcoming">Upcoming</option>
-            <option value="all">All</option>
-            <option value="ongoing">Ongoing</option>
-            <option value="completed">Completed</option>
-          </Form.Select>
-        </Col>
-      </Row>
-
-      {/* Schedules Table */}
-      <Row style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
-        <Col>
-          <Card 
-  className="border-0"
-  style={{
-    borderRadius: '20px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-    overflow: 'visible'
-  }}
->
-            <Card.Header
-              className="sched-card-header"
-              style={{
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                borderBottom: '2px solid #ffc107',
-                padding: '1.5rem',
-                borderRadius: '20px 20px 0 0'
-              }}
-            >
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                  <i className="fas fa-calendar-check me-2" style={{ color: '#ffc107' }}></i>
-                  {filterStatus === 'all' ? 'All Schedules' : 
-                   filterStatus === 'upcoming' ? 'Upcoming Events' : 
-                   filterStatus === 'ongoing' ? 'Ongoing Schedules' : 
-                   'Completed Schedules'} ({totalSchedules})
-                </h5>
-                <Button 
-  onClick={() => handleOpenModal('create')}
-  className="border-0"
-  style={{
-    background: '#ffc107',
-    color: '#000000',
-    padding: '0.5rem 1.5rem',
-    borderRadius: '8px',
-    fontWeight: '700',
-    boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)',
-    transition: 'all 0.3s'
-  }}
-  onMouseOver={(e) => {
-    e.target.style.transform = 'translateY(-2px)';
-    e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-    e.target.style.background = '#ffb300';
-  }}
-  onMouseOut={(e) => {
-    e.target.style.transform = 'translateY(0)';
-    e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-    e.target.style.background = '#ffc107';
-  }}
->
-  <i className="fas fa-plus me-2"></i>
-  Add Event
-</Button>
+        {/* Charts */}
+        <Row className="mb-4 g-3">
+          <Col md={5}>
+            <div className="em-panel h-100 em-anim" style={{ '--d': '0.06s' }}>
+              <div className="em-panel-head">
+                <div className="em-head-ic" style={{ '--c': '#e0a800' }}><i className="fas fa-chart-bar" /></div>
+                <div>
+                  <div className="em-panel-title">Events by type</div>
+                  <div className="em-panel-sub">All events in the system</div>
+                </div>
               </div>
-            </Card.Header>
-<Card.Body className="sched-card-body" style={{ padding: '2rem' }}>
-              {loading || pageLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa', marginBottom: '0.25rem' }}>
-                    {[12, 20, 15, 18, 15, 10, 10].map((w, i) => (
-                      <div key={i} className="skeleton" style={{ width: `${w}%`, height: '12px', flexShrink: 0 }} />
-                    ))}
-                  </div>
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0f0f0' }}>
-                      <div style={{ width: '12%', flexShrink: 0 }}>
-                        <div className="skeleton" style={{ width: '80%', height: '13px' }} />
-                      </div>
-                      <div style={{ width: '20%', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div className="skeleton" style={{ width: '90%', height: '13px' }} />
-                        <div className="skeleton" style={{ width: '60%', height: '10px' }} />
-                      </div>
-                      <div style={{ width: '15%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                        <div className="skeleton" style={{ width: '70%', height: '12px' }} />
-                      </div>
-                      <div style={{ width: '18%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                        <div className="skeleton" style={{ width: '80%', height: '12px' }} />
-                        <div className="skeleton" style={{ width: '55%', height: '10px' }} />
-                      </div>
-                      <div style={{ width: '15%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                        <div className="skeleton" style={{ width: '65%', height: '12px' }} />
-                      </div>
-                      <div style={{ width: '10%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                        <div className="skeleton" style={{ width: '50%', height: '12px' }} />
-                      </div>
-                      <div style={{ width: '10%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                        <div className="skeleton" style={{ width: '40px', height: '24px', borderRadius: '20px' }} />
-                      </div>
-                      <div style={{ width: '5%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                        <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-                      </div>
-                    </div>
-                  ))}
+              <div style={{ padding: '0.75rem 1.1rem 1rem', height: '210px' }}>
+                {loading
+                  ? <div className="em-skel" style={{ height: '100%' }} />
+                  : <canvas ref={schedTypeChartRef} />}
+              </div>
+            </div>
+          </Col>
+          <Col md={7}>
+            <div className="em-panel h-100 em-anim" style={{ '--d': '0.12s' }}>
+              <div className="em-panel-head">
+                <div className="em-head-ic" style={{ '--c': '#0d6efd' }}><i className="fas fa-chart-line" /></div>
+                <div>
+                  <div className="em-panel-title">Monthly event trend</div>
+                  <div className="em-panel-sub">Last 6 months</div>
                 </div>
-              ) : displaySchedules.length === 0 ? (
-                <div className="text-center py-5">
-                  <i className="fas fa-calendar-times text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                  <h5 style={{ color: '#666666', fontWeight: '600' }}>No Events Found</h5>
-                  <p className="text-muted">
-                    {searchTerm || filterType !== 'all' || filterBarangay !== 'all' 
-                      ? 'Try adjusting your filters' 
-                      : 'Start by adding events for barangays'}
-                  </p>
-                </div>
-              ) : (
-                <div className="table-responsive" style={{ overflow: 'visible' }}>
-<Table hover className="sched-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
-                    <thead>
-  <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Event Details</th>
-    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Location</th>
-    <th className="mobile-hide-datetime" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date & Time</th>
-    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Venue</th>
-    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Capacity</th>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
-  </tr>
-</thead>
-                    <tbody>
-  {paginatedSchedules.map(schedule => (
-    <tr
-      key={`${schedule.type}-${schedule.id}`}
-      style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
-      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'}
-      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-    >
-      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left' }}>
-        <span style={{ fontWeight: '500', color: '#555' }}>
-          {schedule.type === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-          {schedule.type === 'seminar' && <><i className="fas fa-chalkboard-teacher me-1" style={{ color: '#6f42c1' }}></i>Seminar</>}
-          {schedule.type === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-          {schedule.type === 'other' && <><i className="fas fa-calendar me-1" style={{ color: '#343a40' }}></i>{schedule.other_event_type || 'Other'}</>}
-          {schedule.type === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#6c757d' }}></i>Microchip</>}
-        </span>
-      </td>
-      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-        <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{schedule.title}</strong>
-        {schedule.description && (
-          <small style={{ color: '#aaa', fontWeight: '500' }}>{schedule.description.substring(0, 60)}...</small>
-        )}
-      </td>
-      <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        <span style={{ fontWeight: '500', color: '#555' }}>{getBarangayName(schedule.barangay_id)}</span>
-      </td>
-      <td className="mobile-hide-datetime" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        <strong style={{ color: '#333', display: 'block' }}>{new Date(schedule.scheduled_date).toLocaleDateString()}</strong>
-        <small style={{ color: '#aaa', fontWeight: '500' }}>{schedule.start_time} - {schedule.end_time}</small>
-      </td>
-      <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        <small style={{ fontWeight: '500', color: '#555' }}>{schedule.venue}</small>
-      </td>
-      <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        {schedule.type === 'vaccination' ? (
-          <div>
-            <strong style={{ color: '#333' }}>{schedule.current_registrations || 0}</strong>
-            <small className="text-muted">/{getTotalVaccineShots(schedule)}</small>
-          </div>
-        ) : schedule.max_capacity ? (
-          <div>
-            <strong style={{ color: '#333' }}>{schedule.current_registrations || 0}</strong>
-            <small className="text-muted">/{schedule.max_capacity}</small>
-          </div>
-        ) : (
-          <span className="text-muted">-</span>
-        )}
-      </td>
-      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        {schedule.status === 'cancelled' && <Badge style={{ background: '#dc3545', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Cancelled</Badge>}
-        {schedule.status === 'completed' && <Badge style={{ background: '#6c757d', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Completed</Badge>}
-        {schedule.status === 'ongoing' && <Badge style={{ background: '#28a745', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Ongoing</Badge>}
-        {schedule.status === 'scheduled' && (() => {
-          const today = new Date(); today.setHours(0, 0, 0, 0);
-          const scheduleDate = new Date(schedule.scheduled_date); scheduleDate.setHours(0, 0, 0, 0);
-          return scheduleDate < today
-            ? <Badge style={{ background: '#ffc107', color: '#000', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Past Due</Badge>
-            : <Badge style={{ background: '#007bff', fontSize: '0.78rem', padding: '0.35rem 0.7rem', borderRadius: '20px', fontWeight: '600' }}>Upcoming</Badge>;
-        })()}
-      </td>
-      <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-        <div style={{ position: 'relative', display: 'inline-block' }}>
-  <button
-    onClick={() => setShowDropdown(showDropdown === `sched-${schedule.id}` ? null : `sched-${schedule.id}`)}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
-  {showDropdown === `sched-${schedule.id}` && (
-    <>
-      <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
-      <div style={{ position: 'absolute', top: '50%', right: '100%', transform: 'translateY(-50%)', marginRight: '0.25rem', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '185px', zIndex: 1050, overflow: 'hidden' }}>
-        <button onClick={() => { setShowDropdown(null); handleOpenViewModal(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-          <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span>
-        </button>
-        {(user?.role === 'super_admin' || user?.role === 'barangay_official') && (
-          <button onClick={() => { setShowDropdown(null); loadAllRegistrations(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-            <i className="fas fa-users" style={{ width: '18px', textAlign: 'center', color: '#ffc107' }}></i><span>View All Registrations</span>
-          </button>
-        )}
-        {schedule.status !== 'ongoing' && schedule.status !== 'completed' && (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
-          <>
-            <button onClick={() => { setShowDropdown(null); handleOpenModal('edit', schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-              <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Event</span>
-            </button>
-            <button onClick={() => { setShowDropdown(null); handleDeleteClick(schedule); }} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={e => e.currentTarget.style.background = '#fff5f5'} onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-              <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Delete Event</span>
-            </button>
-          </>
-        )}
-      </div>
-    </>
-  )}
-</div>
-      </td>
-    </tr>
-  ))}
-</tbody>
-                  </Table>
-                </div>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Pagination */}
-      {totalSchedules > itemsPerPage && (
-        <Row className="mt-4 sched-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.7s backwards' }}>
-          <Col className="d-flex justify-content-between align-items-center">
-            <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-              Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
-            </span>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button
-                className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                style={{
-                  background: currentPage === 1 ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === 1 ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-left"></i>
-              </button>
-
-              {(() => {
-                const pages = [];
-                
-                if (totalPages <= 3) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    let start = Math.max(1, currentPage - 1);
-                    let end = Math.min(totalPages, start + 2);
-                    if (end - start < 2) start = Math.max(1, end - 2);
-                    
-                    for (let i = start; i <= end; i++) pages.push(i);
-                    
-                  }
-
-                return pages.map((page, idx) => {
-                  if (page === '...') {
-                    return (
-                      <span
-                        key={`ellipsis-${idx}`}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          color: '#6c757d',
-                          fontWeight: '600'
-                        }}
-                      >
-                        ...
-                      </span>
-                    );
-                  }
-
-                  return (
-                    <button
-                      className="page-btn"
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      style={{
-                        background: currentPage === page ? '#ffc107' : '#ffffff',
-                        border: '2px solid',
-                        borderColor: currentPage === page ? '#ffc107' : '#dee2e6',
-                        borderRadius: '8px',
-                        padding: '0.5rem 0.75rem',
-                        minWidth: '40px',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        color: currentPage === page ? '#000000' : '#333333',
-                        transition: 'all 0.2s',
-                        boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none'
-                      }}
-                      onMouseOver={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#f8f9fa';
-                          e.target.style.borderColor = '#ffc107';
-                        }
-                      }}
-                      onMouseOut={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#ffffff';
-                          e.target.style.borderColor = '#dee2e6';
-                        }
-                      }}
-                    >
-                      {page}
-                    </button>
-                  );
-                });
-              })()}
-
-              <button
-                className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                style={{
-                  background: currentPage === totalPages ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === totalPages ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-right"></i>
-              </button>
+              </div>
+              <div style={{ padding: '0.75rem 1.1rem 1rem', height: '210px' }}>
+                {loading
+                  ? <div className="em-skel" style={{ height: '100%' }} />
+                  : <canvas ref={schedMonthlyChartRef} />}
+              </div>
             </div>
           </Col>
         </Row>
-      )}
+
+        {/* Events table */}
+        <div className="em-panel em-anim" style={{ '--d': '0.18s', overflow: 'visible' }}>
+          {/* Toolbar */}
+          <div className="em-toolbar sched-filters-row">
+            <div className="em-toolbar-title">
+              <span>{statusTitle}</span>
+              <span className="em-count">{totalSchedules}</span>
+            </div>
+            <div className="em-seg" role="group" aria-label="Status">
+              {[['upcoming', 'Upcoming'], ['ongoing', 'Ongoing'], ['completed', 'Completed'], ['all', 'All']].map(([v, l]) => (
+                <button key={v} type="button" className={filterStatus === v ? 'on' : ''} onClick={() => setFilterStatus(v)} aria-pressed={filterStatus === v}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="em-filters">
+            <div className="em-search">
+              <i className="fas fa-search" />
+              <input
+                className="em-input"
+                placeholder="Search events..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search events"
+              />
+              {searchTerm && (
+                <button type="button" className="em-clear" onClick={() => setSearchTerm('')} aria-label="Clear search">
+                  <i className="fas fa-times" />
+                </button>
+              )}
+            </div>
+            <div className="em-select">
+              <i className="fas fa-tag" />
+              <select className="em-input" value={filterType} onChange={(e) => setFilterType(e.target.value)} aria-label="Event type">
+                <option value="all">All types</option>
+                <option value="vaccination">Vaccination</option>
+                <option value="seminar">Seminar</option>
+                <option value="sterilization">Sterilization</option>
+                <option value="microchip">Microchip</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="em-select">
+              <i className="fas fa-map-marker-alt" />
+              <select className="em-input" value={filterBarangay} onChange={(e) => setFilterBarangay(e.target.value)} aria-label="Barangay">
+                <option value="all">All barangays</option>
+                {barangays.map(barangay => (
+                  <option key={barangay.id} value={barangay.id}>{barangay.name}</option>
+                ))}
+              </select>
+            </div>
+            {hasFilters && (
+              <button type="button" className="em-link" onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterBarangay('all'); }}>
+                <i className="fas fa-undo me-1" />Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Body */}
+          <div className="sched-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+            {loading || pageLoading ? (
+              <div style={{ padding: '0.5rem 0 1rem' }}>
+                {Array.from({ length: 5 }, (_, i) => (
+                  <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                    <div className="em-skel" style={{ width: 52, height: 52, borderRadius: 12 }} />
+                    <div className="flex-grow-1">
+                      <div className="em-skel mb-2" style={{ width: '40%', height: 13 }} />
+                      <div className="em-skel" style={{ width: '25%', height: 10 }} />
+                    </div>
+                    <div className="em-skel" style={{ width: 110, height: 12 }} />
+                    <div className="em-skel" style={{ width: 80, height: 22, borderRadius: 999 }} />
+                  </div>
+                ))}
+              </div>
+            ) : displaySchedules.length === 0 ? (
+              <div className="em-empty">
+                <div className="ic"><i className="fas fa-calendar-times" /></div>
+                <h6>No events found</h6>
+                <p>{hasFilters ? 'Try changing or clearing the filters.' : 'Start by adding an event for a barangay.'}</p>
+                {!hasFilters && (
+                  <button type="button" className="em-btn primary" onClick={() => handleOpenModal('create')}>
+                    <i className="fas fa-plus" />Add event
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="table-responsive" style={{ overflow: 'visible' }}>
+                <table className="em-table sched-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Event</th>
+                      <th className="mobile-hide">Location</th>
+                      <th className="mobile-hide">Slots</th>
+                      <th>Status</th>
+                      <th style={{ width: 56 }} aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedSchedules.map((schedule, i) => {
+                      const meta = evTypeMeta(schedule);
+                      const st = getEvStatus(schedule);
+                      const cap = getCapacity(schedule);
+                      const day = parseDay(schedule.scheduled_date);
+                      const menuKey = `sched-${schedule.id}`;
+                      const menuOpen = showDropdown === menuKey;
+                      const editable = schedule.status !== 'ongoing' && schedule.status !== 'completed' && canManage;
+                      return (
+                        <tr key={`${schedule.type}-${schedule.id}`} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
+                          <td style={{ width: 150 }}>
+                            <div className="d-flex align-items-center gap-2">
+                              <div className="em-date" style={{ '--c': meta.color }}>
+                                <span className="m">{day ? day.toLocaleDateString('en-US', { month: 'short' }) : '—'}</span>
+                                <span className="d">{day ? day.getDate() : ''}</span>
+                              </div>
+                              <div className="mobile-hide-datetime">
+                                <div className="em-strong" style={{ fontSize: '0.8rem' }}>{day ? day.toLocaleDateString('en-US', { weekday: 'short' }) : ''}</div>
+                                <div className="em-muted" style={{ whiteSpace: 'nowrap' }}>{fmtClock(schedule.start_time)} – {fmtClock(schedule.end_time)}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                              <div className="em-type-ic" style={{ '--c': meta.color }}><i className={`fas ${meta.icon}`} /></div>
+                              <div style={{ minWidth: 0 }}>
+                                <div className="em-strong em-ellipsis" title={schedule.title}>{schedule.title}</div>
+                                <div className="em-muted em-ellipsis" title={schedule.description || ''}>
+                                  <span style={{ color: meta.color, fontWeight: 700 }}>{meta.label}</span>
+                                  {schedule.description ? ` · ${schedule.description}` : ''}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="mobile-hide">
+                            <div className="em-strong" style={{ fontSize: '0.85rem' }}>{getBarangayName(schedule.barangay_id)}</div>
+                            <div className="em-muted em-ellipsis" style={{ maxWidth: 200 }} title={schedule.venue}>{schedule.venue || '—'}</div>
+                          </td>
+                          <td className="mobile-hide" style={{ width: 150 }}>
+                            {cap ? (
+                              <>
+                                <div className="em-muted"><strong style={{ color: '#1f2328' }}>{cap.used}</strong> / {cap.total} registered</div>
+                                <div className="em-bar"><div style={{ width: `${cap.pct}%`, background: cap.pct >= 100 ? '#dc3545' : meta.color }} /></div>
+                              </>
+                            ) : <span className="em-muted">—</span>}
+                          </td>
+                          <td>
+                            <span className="em-pill" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 12%, #fff)` }}>
+                              <i className="fas fa-circle" />{st.label}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button
+                                type="button"
+                                className={`em-icon-btn${menuOpen ? ' on' : ''}`}
+                                onClick={() => setShowDropdown(menuOpen ? null : menuKey)}
+                                aria-label={`Options for ${schedule.title}`}
+                                aria-expanded={menuOpen}
+                              >
+                                <i className="fas fa-ellipsis-v" />
+                              </button>
+                              {menuOpen && (
+                                <>
+                                  <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                                  <div className="em-menu" role="menu">
+                                    <button type="button" role="menuitem" className="em-menu-item" onClick={() => { setShowDropdown(null); handleOpenViewModal(schedule); }}>
+                                      <i className="fas fa-eye" />View details
+                                    </button>
+                                    {canManage && (
+                                      <button type="button" role="menuitem" className="em-menu-item" onClick={() => { setShowDropdown(null); loadAllRegistrations(schedule); }}>
+                                        <i className="fas fa-users" />View registrations
+                                      </button>
+                                    )}
+                                    {editable && (
+                                      <>
+                                        <button type="button" role="menuitem" className="em-menu-item" onClick={() => { setShowDropdown(null); handleOpenModal('edit', schedule); }}>
+                                          <i className="fas fa-pen" />Edit event
+                                        </button>
+                                        <div className="em-menu-sep" />
+                                        <button type="button" role="menuitem" className="em-menu-item danger" onClick={() => { setShowDropdown(null); handleDeleteClick(schedule); }}>
+                                          <i className="fas fa-trash-alt" />Delete event
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalSchedules > itemsPerPage && (
+            <div className="em-foot sched-pagination">
+              <span className="em-muted page-info" style={{ fontSize: '0.84rem' }}>
+                Showing <strong style={{ color: '#1f2328' }}>{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalSchedules)}</strong> of {totalSchedules}
+              </span>
+              <div className="d-flex align-items-center gap-1">
+                <button type="button" className="em-page nav page-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
+                  <i className="fas fa-chevron-left" />
+                </button>
+                {pagerNumbers.map(n => (
+                  <button key={n} type="button" className={`em-page page-btn${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+                ))}
+                <button type="button" className="em-page nav page-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
+                  <i className="fas fa-chevron-right" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
       {/* View Schedule Modal */}
       <Modal show={showViewModal} onHide={handleCloseViewModal} size="lg" className="sched-view-modal" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
