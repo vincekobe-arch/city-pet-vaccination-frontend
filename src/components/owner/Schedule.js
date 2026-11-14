@@ -118,6 +118,13 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
     @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
     @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
 
+    @keyframes ptToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    .pt-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: ptToast 0.35s ease-out; }
+    .pt-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pt-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .pt-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .pt-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .pt-toast-close:hover { background: #f3f4f6; color: #1f2328; }
     @keyframes dropDown {
       0% { opacity: 0; transform: translateY(-30px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -1411,41 +1418,15 @@ const getVaccineDetails = (schedule) => {
       <style>{styles}</style>
       <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
       {floatingSuccess && (
-        <div style={{
-          position: 'fixed',
-          top: '24px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 99999,
-          minWidth: '320px',
-          maxWidth: '480px',
-          animation: 'dropDown 0.4s ease-out',
-          pointerEvents: 'auto'
-        }}>
-          <Alert
-            variant="success"
-            dismissible
-            onClose={() => setFloatingSuccess('')}
-            style={{
-              borderRadius: '14px',
-              border: '2px solid #198754',
-              background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-              color: '#fff',
-              fontWeight: '600',
-              boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '1rem 1.25rem',
-              marginBottom: 0
-            }}
-          >
-            <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '1rem' }}>Registered!</div>
-              <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{floatingSuccess}</div>
-            </div>
-          </Alert>
+        <div className="pt-toast" role="status">
+          <div className="ic"><i className="fas fa-check" /></div>
+          <div className="flex-grow-1">
+            <div className="t">Success</div>
+            <div className="d">{floatingSuccess}</div>
+          </div>
+          <button type="button" className="pt-toast-close" onClick={() => setFloatingSuccess('')} aria-label="Close">
+            <i className="fas fa-times" />
+          </button>
         </div>
       )}
 
