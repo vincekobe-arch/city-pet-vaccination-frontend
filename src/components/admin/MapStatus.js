@@ -323,7 +323,7 @@ export default function MapStatus() {
     }
     printStyleEl.innerHTML = `
       @media print {
-        @page { margin: 0; size: A4 landscape; }
+        @page { margin: 0 !important; size: A4 landscape; }
         html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         body > *:not(#rabies-print-area) { display: none !important; visibility: hidden !important; }
         #rabies-print-area {
@@ -331,7 +331,9 @@ export default function MapStatus() {
           position: fixed !important; inset: 0 !important;
           width: 100vw !important; height: 100vh !important;
           z-index: 99999 !important; background: #fff !important;
+          visibility: visible !important;
         }
+        #rabies-print-area * { visibility: visible !important; }
         .no-print { display: none !important; }
         #print-map-inner svg { overflow: visible !important; }
       }
@@ -351,7 +353,7 @@ export default function MapStatus() {
       background: #fff; z-index: 99999;
       display: flex; flex-direction: column;
       font-family: "Segoe UI", Arial, sans-serif; color: #1f2328;
-      overflow: hidden; visibility: hidden;
+      overflow: hidden; visibility: hidden; pointer-events: none;
     `;
 
     // Header: system + report title on the left, status and report number on the right
@@ -435,17 +437,10 @@ export default function MapStatus() {
     footer.style.cssText = `display:flex;justify-content:space-between;align-items:center;padding:0 28px;height:${FOOTER_H}px;box-sizing:border-box;flex-shrink:0;font-size:8.5px;color:#9ca3af;border-top:1px solid #e5e7eb;`;
     footer.innerHTML = `<span>Generated ${esc(generated)} via PetUnity</span><span>For official use of the City Veterinary Office</span>`;
 
-    // Close button (screen only)
-    const btnBar = document.createElement('div');
-    btnBar.className = 'no-print';
-    btnBar.style.cssText = 'position:absolute;bottom:26px;right:14px;z-index:100000;';
-    btnBar.innerHTML = `<button onclick="document.getElementById('rabies-print-area').remove();window._printMapInst=null;window.__setPrinting&&window.__setPrinting(false);" style="background:#fff;color:#1f2328;border:1px solid #d1d5db;border-radius:8px;padding:7px 16px;font-weight:600;font-size:12px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.12);">Close</button>`;
-
     container.appendChild(header);
     container.appendChild(infoBar);
     container.appendChild(mapWrapper);
     container.appendChild(footer);
-    container.appendChild(btnBar);
     document.body.appendChild(container);
 
     setTimeout(() => {
@@ -484,7 +479,7 @@ export default function MapStatus() {
         if (printed) return;
         printed = true;
         setTimeout(() => {
-          container.style.visibility = 'visible';
+          // The layout stays hidden on screen; the print styles make it visible only on paper
           setTimeout(() => {
             window.print();
             setTimeout(() => {
