@@ -554,15 +554,17 @@ useEffect(() => {
       setPetDetails(pet);
       setShowDetailsModal(true);
 
-      // If pet has a microchip number, fetch the microchip record separately to get qr_code
-      if (pet.microchip_number) {
-        setQrLoading(true);
-        try {
+      // Every pet gets a QR code on registration (pets.qr_code).
+      // Older pets without one fall back to their microchip record.
+      setQrLoading(true);
+      try {
+        let qrCode = pet.qr_code;
+        if (!qrCode && pet.microchip_number) {
           const microchipRes = await microchipAPI.getByPetId(petId);
-          const microchipRecord = microchipRes.data.microchip_record;
-
-          if (microchipRecord && microchipRecord.qr_code) {
-            const jsonStr = atob(microchipRecord.qr_code);
+          qrCode = microchipRes.data.microchip_record?.qr_code;
+        }
+        if (qrCode) {
+            const jsonStr = atob(qrCode);
             const parsed = JSON.parse(jsonStr);
             const QRCode = (await import('qrcode')).default;
             const dataURL = await QRCode.toDataURL(JSON.stringify(parsed), {
@@ -571,12 +573,11 @@ useEffect(() => {
               color: { dark: '#000000', light: '#ffffff' },
             });
             setQrDataURL(dataURL);
-          }
-        } catch {
-          setQrDataURL('');
-        } finally {
-          setQrLoading(false);
         }
+      } catch {
+        setQrDataURL('');
+      } finally {
+        setQrLoading(false);
       }
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -2676,12 +2677,12 @@ const handleRegisterPet = async (e) => {
                   </Card.Body>
                 </Card>
 
-                {petDetails.microchip_number && (
+                {(petDetails.qr_code || petDetails.microchip_number) && (
                   <Card className="border-0 mb-3" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
                     <Card.Header style={{ background: 'rgba(67,97,238,0.08)', borderBottom: '2px solid rgba(67,97,238,0.2)', borderRadius: '15px 15px 0 0' }}>
                       <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
                         <i className="fas fa-qrcode me-2" style={{ color: '#4361ee' }}></i>
-                        Microchip QR Code
+                        Pet QR Code
                       </h6>
                     </Card.Header>
                     <Card.Body className="text-center">
@@ -2697,12 +2698,15 @@ const handleRegisterPet = async (e) => {
                             alt="Pet QR Code"
                             style={{ width: '160px', height: '160px', borderRadius: '10px', border: '3px solid #4361ee', padding: '4px', background: '#fff', boxShadow: '0 4px 16px rgba(67,97,238,0.15)' }}
                           />
-                          <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem', fontFamily: 'monospace' }}>{petDetails.microchip_number}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem', fontFamily: 'monospace' }}>{petDetails.registration_number}</div>
+                          {petDetails.microchip_number && (
+                            <div style={{ fontSize: '0.72rem', color: '#aaa', fontFamily: 'monospace' }}>Microchip: {petDetails.microchip_number}</div>
+                          )}
                           <button
                             onClick={() => {
                               const link = document.createElement('a');
                               link.href = qrDataURL;
-                              link.download = `QR_${petDetails.name}_${petDetails.microchip_number}.png`;
+                              link.download = `QR_${petDetails.name}_${petDetails.registration_number}.png`;
                               link.click();
                             }}
                             style={{ marginTop: '0.75rem', background: '#4361ee', border: 'none', color: '#fff', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}

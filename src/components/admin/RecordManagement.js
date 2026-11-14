@@ -1,4 +1,4 @@
-  import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
   import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, Modal, Form, InputGroup, Tabs, Tab } from 'react-bootstrap';
   import { vaccinationAPI, dewormingAPI, sterilizationAPI, microchipAPI, petAPI, handleAPIError } from '../../services/api';
   import { getUser } from '../../utils/auth';
@@ -155,7 +155,7 @@ const [filterClinic, setFilterClinic] = useState('city_vet');
       dosage: '',
       procedure_type: '',
       sterilization_date: todayPH(),
-      microchip_subtype: '',
+      microchip_subtype: 'microchip',
       microchip_number: '',
       implant_date: todayPH(),
       implant_site: '',
@@ -399,7 +399,7 @@ const loadInventoryVaccines = async () => {
         dosage: '',
         procedure_type: '',
         sterilization_date: todayPH(),
-        microchip_subtype: '',
+        microchip_subtype: 'microchip',
         microchip_number: '',
         implant_date: todayPH(),
         implant_site: '',
@@ -434,7 +434,7 @@ const loadInventoryVaccines = async () => {
         dosage: '',
         procedure_type: '',
         sterilization_date: todayPH(),
-        microchip_subtype: '',
+        microchip_subtype: 'microchip',
         microchip_number: '',
         implant_date: todayPH(),
         implant_site: '',
@@ -484,7 +484,7 @@ const loadInventoryVaccines = async () => {
         });
       } else if (type === 'microchip') {
         setFormData({ ...emptyBase,
-          microchip_subtype: record.microchip_number ? 'microchip' : 'qr',
+          microchip_subtype: 'microchip',
           microchip_number: record.microchip_number || '',
           implant_date: record.implant_date?.split('T')[0] || '',
           implant_site: record.implant_site || '',
@@ -686,10 +686,14 @@ setError('');
     const handleRecordTypeSelect = (type) => {
       setFormData(prev => ({
         ...prev,
-        record_type: type
+        record_type: type,
+        microchip_subtype: 'microchip'
       }));
       setSelectedVaccineBatch(null);
       setSelectedMicrochipBatch(null);
+      // QR codes are now generated automatically when a pet is registered,
+      // so a microchip record is always a physical microchip
+      if (type === 'microchip') loadMicrochipBatches();
     };
 
     const handleSubmit = async (e) => {
@@ -2938,37 +2942,6 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                   {/* Microchip Fields */}
                   {formData.record_type === 'microchip' && (
                     <>
-                      {/* Subtype selector */}
-                      <Row className="mb-3">
-                        <Col md={12}>
-                          <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                            Identification Type <span style={{ color: '#dc3545' }}>*</span>
-                          </Form.Label>
-                          <div style={{ display: 'flex', gap: '1rem' }}>
-                            <div
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, microchip_subtype: 'microchip' }));
-                                setSelectedMicrochipBatch(null);
-                                loadMicrochipBatches();
-                              }}
-                              style={{ flex: 1, padding: '1rem', border: formData.microchip_subtype === 'microchip' ? '3px solid #4361ee' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.microchip_subtype === 'microchip' ? '#eef0ff' : '#ffffff', transition: 'all 0.3s' }}
-                            >
-                              <i className="fas fa-microchip" style={{ fontSize: '1.8rem', color: '#4361ee', marginBottom: '0.4rem', display: 'block' }}></i>
-                              <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>Microchip</div>
-                              <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.2rem' }}>Enter chip number manually</div>
-                            </div>
-                            <div
-                              onClick={() => setFormData(prev => ({ ...prev, microchip_subtype: 'qr' }))}
-                              style={{ flex: 1, padding: '1rem', border: formData.microchip_subtype === 'qr' ? '3px solid #28a745' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.microchip_subtype === 'qr' ? '#e6f9e9' : '#ffffff', transition: 'all 0.3s' }}
-                            >
-                              <i className="fas fa-qrcode" style={{ fontSize: '1.8rem', color: '#28a745', marginBottom: '0.4rem', display: 'block' }}></i>
-                              <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>QR Code</div>
-                              <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.2rem' }}>Auto-generated from pet data</div>
-                            </div>
-                          </div>
-                        </Col>
-                      </Row>
-
                       {/* Microchip subtype: manual number input + batch */}
                       {formData.microchip_subtype === 'microchip' && (
                         <>
@@ -3048,18 +3021,6 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                             </Col>
                           </Row>
                         </>
-                      )}
-
-                      {/* QR subtype: auto-generated notice */}
-                      {formData.microchip_subtype === 'qr' && (
-                        <Row>
-                          <Col md={12}>
-                            <Alert variant="info" className="mb-3" style={{ borderRadius: '10px' }}>
-                              <i className="fas fa-info-circle me-2"></i>
-                              A QR code will be <strong>automatically generated</strong> from the pet's profile data upon saving. No number input needed.
-                            </Alert>
-                          </Col>
-                        </Row>
                       )}
 
                       {/* Common microchip fields */}
