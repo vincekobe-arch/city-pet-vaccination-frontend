@@ -166,12 +166,9 @@ const VetCardView = () => {
     .vc-empty { border: 1px dashed #dfe2e6; border-radius: 12px; padding: 2rem 1rem; text-align: center; color: #6b7280; font-size: 0.9rem; }
     .vc-empty i { display: block; font-size: 1.5rem; color: #c4c9d0; margin-bottom: 0.6rem; }
 
-    .vc-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; padding-top: 1.5rem; border-top: 1px solid #eef0f3; }
-    .vc-foot-note { font-size: 0.8rem; color: #6b7280; line-height: 1.6; max-width: 520px; }
+    .vc-foot { padding-top: 1.5rem; border-top: 1px solid #eef0f3; background: #ffffff; color: #6b7280; }
+    .vc-foot-note { font-size: 0.8rem; color: #6b7280; line-height: 1.6; }
     .vc-foot-note strong { color: #1f2328; }
-    .vc-sign { text-align: center; min-width: 220px; }
-    .vc-sign-line { border-top: 1px solid #1f2328; margin-bottom: 0.3rem; height: 2.5rem; border-top: none; border-bottom: 1px solid #9ca3af; }
-    .vc-sign small { font-size: 0.74rem; color: #6b7280; }
 
     .vc-state { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #ffffff; padding: 2rem; }
     .vc-state-box { text-align: center; max-width: 420px; }
@@ -244,7 +241,6 @@ const VetCardView = () => {
   const age = calcAge(pet.birth_date);
   const isActive = pet.is_active === undefined || pet.is_active === null ? true : !!Number(pet.is_active);
   const ownerName = `${pet.owner_first_name || ''} ${pet.owner_last_name || ''}`.trim();
-  const generatedAt = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   const DueCell = ({ value }) => {
     const info = dueInfo(value);
@@ -278,7 +274,7 @@ const VetCardView = () => {
         <article className="vc-card vet-card-main">
 
           {/* Card header */}
-          <header className="vc-head">
+          <div className="vc-head">
             <div className="vc-brand">
               <div className="vc-logo">
                 <img src="/logo.png" alt="PetUnity logo" onError={e => { e.target.style.display = 'none'; }} />
@@ -292,7 +288,7 @@ const VetCardView = () => {
               <small>Registration no.</small>
               <strong>{pet.registration_number || '—'}</strong>
             </div>
-          </header>
+          </div>
 
           <div className="vc-body">
 
@@ -435,17 +431,12 @@ const VetCardView = () => {
             </section>
 
             {/* Footer */}
-            <footer className="vc-foot">
+            <div className="vc-foot">
               <div className="vc-foot-note">
                 <strong>PetUnity</strong> · Keep this card for your pet's records and bring it to every vaccination or check-up.
                 For questions, contact your local barangay office.
-                <div style={{ marginTop: '0.35rem', color: '#9ca3af' }}>Generated {generatedAt}</div>
               </div>
-              <div className="vc-sign">
-                <div className="vc-sign-line" />
-                <small>Signature over printed name of attending veterinarian</small>
-              </div>
-            </footer>
+            </div>
           </div>
         </article>
       </div>
