@@ -198,6 +198,9 @@ function MainContent({ user, handleLogin, darkMode }) {
         <Route path="/clinic/reports" element={user?.role === 'private_clinic' ? <ClinicReports /> : <Navigate to="/login" replace />} />
         <Route path="/clinic/inventory" element={user?.role === 'private_clinic' ? <ClinicInventoryManagement /> : <Navigate to="/login" replace />} />
 
+        {/* Vet Card View (opens in a new tab from Vet Cards / My Pets) */}
+        <Route path="/vet-card-view/:petId" element={user ? <VetCardView /> : <Navigate to="/login" replace />} />
+
         {/* Edit Profile */}
         <Route path="/edit-profile" element={user ? <EditProfile darkMode={darkMode} /> : <Navigate to="/login" replace />} />
 
