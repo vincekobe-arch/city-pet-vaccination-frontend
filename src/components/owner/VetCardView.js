@@ -380,7 +380,8 @@ const VetCardView = () => {
               )}
             </section>
 
-            {/* Dewormings */}
+            {/* Dewormings (only shown when the pet has records) */}
+            {sortedDeworm.length > 0 && (
             <section className="vc-section">
               <div className="vc-section-head">
                 <h3 className="vc-section-title">
@@ -390,12 +391,6 @@ const VetCardView = () => {
                 </h3>
                 {lastDeworm && <span className="vc-section-meta">Last given {fmtDate(lastDeworm)}</span>}
               </div>
-              {sortedDeworm.length === 0 ? (
-                <div className="vc-empty">
-                  <i className="fas fa-tablets" />
-                  No deworming records yet. Ask your veterinarian about a deworming schedule.
-                </div>
-              ) : (
                 <div className="vc-table-wrap">
                   <table className="vc-table deworming-table">
                     <thead>
@@ -427,8 +422,8 @@ const VetCardView = () => {
                     </tbody>
                   </table>
                 </div>
-              )}
             </section>
+            )}
 
             {/* Footer */}
             <div className="vc-foot">
