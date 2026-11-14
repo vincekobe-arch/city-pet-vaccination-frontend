@@ -91,6 +91,34 @@ const formatDate = (value) => {
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+// Pops a marker onto the map: it starts at size 0 and springs up past full size, then settles.
+// Returns a function that cancels the animation.
+const popInMarker = (marker, map, { url, w, h, ax, ay }, delay) => {
+  const google = window.google;
+  const iconAt = (k) => ({
+    url,
+    scaledSize: new google.maps.Size(Math.max(1, w * k), Math.max(1, h * k)),
+    anchor: new google.maps.Point(ax * k, ay * k),
+  });
+  if (prefersReducedMotion()) { marker.setIcon(iconAt(1)); marker.setMap(map); return () => {}; }
+  let raf;
+  const timer = setTimeout(() => {
+    marker.setIcon(iconAt(0.01));
+    marker.setMap(map);
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / 450);
+      // easeOutBack: overshoots to about 110% then settles at 100%
+      const c = 1.9;
+      const k = 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2);
+      marker.setIcon(iconAt(Math.max(0.01, k)));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  }, delay);
+  return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+};
+
 /* ------------------------------------------------------------------ */
 /* Building blocks                                                    */
 /* ------------------------------------------------------------------ */
@@ -121,6 +149,7 @@ export default function OwnerMapStatus() {
   const clinicMarkersRef = useRef({});
   const infoWindowRef    = useRef(null);
   const animRef          = useRef([]);
+  const clinicAnimRef    = useRef([]);
 
   const [reports,      setReports]      = useState([]);
   const [clinics,      setClinics]      = useState([]);
@@ -184,7 +213,7 @@ export default function OwnerMapStatus() {
       : { color: '#198754', icon: 'fa-check-circle', title: 'All clear', text: 'No active rabies zones right now' };
 
   // Stop zone animations when leaving the page
-  useEffect(() => () => animRef.current.forEach(stop => stop()), []);
+  useEffect(() => () => { animRef.current.forEach(stop => stop()); clinicAnimRef.current.forEach(stop => stop()); }, []);
 
   // Init map
   useEffect(() => {
@@ -321,7 +350,7 @@ export default function OwnerMapStatus() {
       circlesRef.current.push(label);
     });
 
-    filtered.forEach(report => {
+    filtered.forEach((report, index) => {
       const lat = parseFloat(report.latitude), lng = parseFloat(report.longitude);
       if (isNaN(lat) || isNaN(lng)) return;
       const isPos = report.status === 'positive_rabies';
@@ -342,21 +371,18 @@ export default function OwnerMapStatus() {
           </div>
         </div>`;
 
-      const marker = new google.maps.Marker({
-        position: { lat, lng }, map,
-        zIndex: isPos ? 800 : 700,
-        animation: reduced ? null : google.maps.Animation.DROP,
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+      const iconUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
               <path d="M16 1C8 1 2 7 2 15c0 10 14 25 14 25s14-15 14-25C30 7 24 1 16 1z" fill="${color}" stroke="white" stroke-width="2"/>
               <text x="16" y="21" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="15" fill="${isPos ? '#ffffff' : '#1f2328'}">${isPos ? '!' : '?'}</text>
-            </svg>`)}`,
-          scaledSize: new google.maps.Size(32, 42),
-          anchor: new google.maps.Point(16, 41),
-        },
+            </svg>`)}`;
+      const marker = new google.maps.Marker({
+        position: { lat, lng },
+        zIndex: isPos ? 800 : 700,
         title: isPos ? 'Positive rabies' : 'Suspected rabies',
       });
+      // One by one, starting after the zones begin to grow
+      animRef.current.push(popInMarker(marker, map, { url: iconUrl, w: 32, h: 42, ax: 16, ay: 41 }, 250 + index * 140));
       marker.addListener('click', () => {
         infoWindowRef.current.setContent(popupHtml);
         infoWindowRef.current.open({ map, anchor: marker });
@@ -371,10 +397,13 @@ export default function OwnerMapStatus() {
     const google = window.google;
     const map = mapInstanceRef.current;
 
+    clinicAnimRef.current.forEach(stop => stop());
+    clinicAnimRef.current = [];
     Object.values(clinicMarkersRef.current).forEach(({ marker }) => marker.setMap(null));
     clinicMarkersRef.current = {};
+    const reportDelay = 250 + reports.length * 140;
 
-    allClinics.forEach(clinic => {
+    allClinics.forEach((clinic, index) => {
       const lat = parseFloat(clinic.latitude), lng = parseFloat(clinic.longitude);
       if (isNaN(lat) || isNaN(lng)) return;
       const isCityVet = clinic.id === 'cityvet';
@@ -396,22 +425,19 @@ export default function OwnerMapStatus() {
         </div>`;
 
       const size = isCityVet ? 40 : 32;
-      const marker = new google.maps.Marker({
-        position: { lat, lng }, map,
-        zIndex: isCityVet ? 1000 : 500,
-        title: clinic.clinic_name,
-        animation: prefersReducedMotion() ? null : google.maps.Animation.DROP,
-        icon: {
-          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+      const iconUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
               <rect x="2" y="2" width="36" height="36" rx="10" fill="${color}" stroke="white" stroke-width="2.5"/>
               <rect x="17" y="10" width="6" height="20" rx="1.5" fill="${isCityVet ? '#1f2328' : '#ffffff'}"/>
               <rect x="10" y="17" width="20" height="6" rx="1.5" fill="${isCityVet ? '#1f2328' : '#ffffff'}"/>
-            </svg>`)}`,
-          scaledSize: new google.maps.Size(size, size),
-          anchor: new google.maps.Point(size / 2, size / 2),
-        },
+            </svg>`)}`;
+      const marker = new google.maps.Marker({
+        position: { lat, lng },
+        zIndex: isCityVet ? 1000 : 500,
+        title: clinic.clinic_name,
       });
+      // Clinics pop in one by one after the case markers
+      clinicAnimRef.current.push(popInMarker(marker, map, { url: iconUrl, w: size, h: size, ax: size / 2, ay: size / 2 }, reportDelay + 150 + index * 120));
       const open = () => {
         infoWindowRef.current.setContent(popupHtml);
         infoWindowRef.current.open({ map, anchor: marker });
@@ -419,7 +445,7 @@ export default function OwnerMapStatus() {
       marker.addListener('click', open);
       clinicMarkersRef.current[clinic.id] = { marker, open };
     });
-  }, [clinics, mapReady]);
+  }, [clinics, reports, mapReady]);
 
   const focusClinic = (clinic) => {
     const map = mapInstanceRef.current;
