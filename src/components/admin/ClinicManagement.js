@@ -262,7 +262,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   const [displayCounts, setDisplayCounts] = useState({ active: 0, inactive: 0, specs: 0 });
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -632,89 +632,170 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
       .clinic-filter-search { flex: 0 0 100% !important; max-width: 100% !important; }
       .clinic-filter-select { flex: 0 0 50% !important; max-width: 50% !important; }
     }
+
+    /* ---------------- Clinic Management ---------------- */
+    @keyframes ckIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ckRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ckMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes ckToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes ckGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .ck-anim { animation: ckIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .ck-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .ck-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .ck-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .ck-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .ck-btn.primary { background: #ffc107; color: #1f2328; }
+    .ck-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .ck-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: ckToast 0.35s ease-out; }
+    .ck-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ck-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .ck-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .ck-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .ck-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .ck-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .ck-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .ck-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .ck-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .ck-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .ck-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .ck-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .ck-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .ck-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .ck-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .ck-seg button:hover { color: #1f2328; }
+    .ck-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .ck-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .ck-search, .ck-select { position: relative; }
+    .ck-search { flex: 1 1 260px; }
+    .ck-search > i, .ck-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .ck-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .ck-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.ck-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .ck-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .ck-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .ck-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .ck-link:hover { text-decoration: underline; }
+
+    .ck-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .ck-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .ck-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .ck-table tbody tr { animation: ckRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .ck-table tbody tr:hover { background: #fafbfc; }
+    .ck-table tbody tr:last-child td { border-bottom: none; }
+    .ck-table tbody tr.raised { position: relative; z-index: 5; }
+    .ck-strong { font-weight: 600; color: #1f2328; }
+    .ck-muted { font-size: 0.78rem; color: #6b7280; }
+    .ck-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ck-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .ck-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .ck-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .ck-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .ck-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .ck-bar > div { height: 100%; border-radius: 3px; transform-origin: left; animation: ckGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .ck-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .ck-pill i { font-size: 0.4rem; }
+
+    .ck-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .ck-icon-btn:hover, .ck-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .ck-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: ckMenu 0.16s ease-out; transform-origin: top right; text-align: left; }
+    .ck-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .ck-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .ck-menu-item:hover { background: #f6f7f9; }
+    .ck-menu-item.danger, .ck-menu-item.danger i { color: #dc3545; }
+    .ck-menu-item.danger:hover { background: #fff5f5; }
+    .ck-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .ck-empty { text-align: center; padding: 3rem 1rem; }
+    .ck-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .ck-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .ck-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .ck-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .ck-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .ck-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .ck-page:hover:not(:disabled) { background: #f3f4f6; }
+    .ck-page.on { background: #ffc107; color: #1f2328; }
+    .ck-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .ck-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .ck-btn:focus-visible, .ck-seg button:focus-visible, .ck-icon-btn:focus-visible, .ck-menu-item:focus-visible, .ck-page:focus-visible, .ck-link:focus-visible, .ck-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .ck-title { font-size: 1.45rem; }
+      .ck-sub { font-size: 0.85rem; }
+      .ck-filters select.ck-input { min-width: 0; width: 100%; }
+      .ck-select { flex: 1 1 140px; }
+      .ck-ellipsis { max-width: 160px; }
+      .ck-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ck-anim, .ck-table tbody tr, .ck-menu, .ck-toast, .ck-bar > div, .ck-skel { animation: none !important; }
+    }
+    .ck-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
+    .ck-filters { padding-top: 1rem; }
+    .ck-table { table-layout: fixed; }
+    .ck-logo { width: 38px; height: 38px; border-radius: 10px; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
+    .ck-logo.off { background: #f3f4f6; color: #9ca3af; }
+    .ck-ic { width: 14px; margin-right: 0.4rem; color: #9ca3af; font-size: 0.72rem; }
+    .ck-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 6px; background: #f3f4f6; color: #4b5563; }
+    .ck-spec { display: inline-block; max-width: 100%; font-size: 0.74rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; background: rgba(10,162,192,0.1); color: #0a8aa3; vertical-align: middle; }
+    .ck-pill.on { background: rgba(25,135,84,0.12); color: #198754; }
+    .ck-pill.off { background: #f3f4f6; color: #6b7280; }
+    .ck-menu-item.success, .ck-menu-item.success i { color: #198754; }
+    .ck-menu-item.success:hover { background: #f0fdf4; }
+    @media (max-width: 768px) {
+      .ck-table { table-layout: auto; }
+      .ck-table th { width: auto !important; }
+    }
   `;
 
   // ── Shared input style ─────────────────────────────────────────────────────
   const inputStyle = { borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' };
   const labelStyle = { fontWeight: '600', color: '#333333' };
 
+  const ckPagerNumbers = (() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  })();
+  const hasClinicFilters = searchTerm || filterSpecialization;
+  const clinicInitials = (name) => (name || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
   return (
     <>
       <style>{styles}</style>
       <Container fluid className="py-4 clinic-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
 
-        {/* ── Page Title ── */}
-        <Row style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div className="mb-4">
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-                <i className="fas fa-hospital"
-                  style={{ fontSize: '1.5rem', color: '#000000', animation: 'float 3s ease-in-out infinite' }}
-                ></i>
-                <h2 className="clinic-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>
-                  Private Clinic Management
-                </h2>
-              </div>
-            </div>
-          </Col>
-        </Row>
+        {/* Header */}
+        <div className="mb-4 ck-anim">
+          <h2 className="ck-title clinic-title">Private Clinic Management</h2>
+          <p className="ck-sub">Private veterinary clinics with PetUnity accounts that can add pet records.</p>
+        </div>
 
-        {/* ── Alerts ── */}
         {error && (
-          <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-            <Col>
-              <Alert variant="danger" dismissible onClose={() => setError('')}
-                style={{ borderRadius: '12px', border: '2px solid #dc3545', background: 'rgba(220,53,69,0.1)', color: '#dc3545' }}>
-                <i className="fas fa-exclamation-triangle me-2"></i>{error}
-              </Alert>
-            </Col>
-          </Row>
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2"></i>{error}
+          </Alert>
         )}
         {success && (
-          <div style={{
-            position: 'fixed',
-            top: '24px',
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            zIndex: 99999,
-            pointerEvents: 'none'
-          }}>
-            <div style={{
-              minWidth: '320px',
-              maxWidth: '480px',
-              animation: 'dropDown 0.4s ease-out',
-              pointerEvents: 'auto'
-            }}>
-              <Alert
-                variant="success"
-                dismissible
-                onClose={() => setSuccess('')}
-                style={{
-                  borderRadius: '14px',
-                  border: '2px solid #198754',
-                  background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-                  color: '#fff',
-                  fontWeight: '600',
-                  boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '1rem 1.25rem',
-                  marginBottom: 0
-                }}
-              >
-                <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-                <div>
-                  <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
-                  <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
-                </div>
-              </Alert>
+          <div className="ck-toast" role="status">
+            <div className="ic"><i className="fas fa-check" /></div>
+            <div className="flex-grow-1">
+              <div className="t">Success</div>
+              <div className="d">{success}</div>
             </div>
+            <button type="button" className="ck-toast-close" onClick={() => setSuccess('')} aria-label="Close">
+              <i className="fas fa-times" />
+            </button>
           </div>
         )}
-
         {/* ── Stat Cards ── */}
         <Row className="mb-4" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px' }}>
           {[
@@ -849,300 +930,200 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
           ))}
         </Row>
 
-        {/* ── Search & Filters ── */}
-        <Row className="mb-4 g-2 align-items-center clinic-filter-row" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-          <Col className="clinic-filter-search">
-            <InputGroup style={{ borderRadius: '12px', overflow: 'hidden' }}>
-              <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none', color: '#333333' }}>
-                <i className="fas fa-search"></i>
-              </InputGroup.Text>
-              <Form.Control
-                type="text"
+        {/* Clinics table */}
+        <div className="ck-panel ck-anim" style={{ '--d': '0.18s', overflow: 'visible' }}>
+          {/* Header */}
+          <div className="ck-toolbar">
+            <div className="ck-toolbar-title">
+              <span>Private clinics</span>
+              <span className="ck-count">{filteredClinics.length}</span>
+            </div>
+            <div className="d-flex align-items-center flex-wrap gap-2">
+              <div className="ck-seg" role="group" aria-label="Status">
+                {[['active', 'Active'], ['inactive', 'Inactive'], ['all', 'All']].map(([v, l]) => (
+                  <button key={v} type="button" className={filterStatus === v ? 'on' : ''} onClick={() => { setFilterStatus(v); setShowDropdown(null); }} aria-pressed={filterStatus === v}>{l}</button>
+                ))}
+              </div>
+              <button type="button" className="ck-btn primary clinic-add-btn" onClick={handleAddClinic}>
+                <i className="fas fa-plus" />Add clinic
+              </button>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="ck-filters">
+            <div className="ck-search">
+              <i className="fas fa-search" />
+              <input
+                className="ck-input"
                 placeholder="Search by clinic name, owner, email, username..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                style={{
-                  border: '2px solid #e9ecef',
-                  borderLeft: 'none',
-                  borderRight: searchTerm ? 'none' : '2px solid #e9ecef',
-                  background: '#ffffff',
-                  color: '#333333'
-                }}
+                aria-label="Search clinics"
               />
               {searchTerm && (
-                <Button variant="outline-secondary" onClick={() => setSearchTerm('')}
-                  style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}>
-                  <i className="fas fa-times"></i>
-                </Button>
-              )}
-            </InputGroup>
-          </Col>
-          <Col xs={6} md={3} className="clinic-filter-select">
-            <Form.Select value={filterSpecialization} onChange={e => setFilterSpecialization(e.target.value)}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #e9ecef',
-                fontWeight: '500',
-                background: '#ffffff',
-                color: '#333333'
-              }}>
-              <option value="">All Specializations</option>
-              {specializations.map(s => <option key={s} value={s}>{s}</option>)}
-            </Form.Select>
-          </Col>
-          <Col xs={6} md={3} className="clinic-filter-select">
-            <Form.Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #e9ecef',
-                fontWeight: '500',
-                background: '#ffffff',
-                color: '#333333'
-              }}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="all">All Status</option>
-            </Form.Select>
-          </Col>
-        </Row>
-
-        {/* ── Clinics Table ── */}
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-          <Col>
-            <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'visible' }}>
-              <Card.Header className="clinic-card-header" style={{ background: 'linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
-                <div className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                    <i className="fas fa-hospital me-2" style={{ color: '#ffc107' }}></i>
-                    Private Clinics ({filteredClinics.length})
-                  </h5>
-                  <Button onClick={handleAddClinic} className="border-0 clinic-add-btn"
-                    style={{ background: '#ffc107', color: '#000000', padding: '0.5rem 1.5rem', borderRadius: '8px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.4)', transition: 'all 0.3s' }}
-                    onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.background = '#ffb300'; }}
-                    onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.background = '#ffc107'; }}>
-                    <i className="fas fa-plus me-2"></i>Add New Clinic
-                  </Button>
-                </div>
-              </Card.Header>
-
-              <Card.Body className="clinic-card-body" style={{ padding: '2rem' }}>
-                {loading ? (
-                  <div className="table-responsive" style={{ overflow: 'visible' }}>
-                    <Table className="clinic-table" style={{ marginBottom: 0 }}>
-                      <thead style={{ background: '#f8f9fa' }}>
-                        <tr>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Clinic</th>
-                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Code</th>
-                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Owner</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Contact</th>
-                          <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Specialization</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Status</th>
-                          <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Array.from({ length: itemsPerPage }).map((_, i) => (
-                          <tr key={`skel-${i}`} style={{ height: '73px' }}>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                                <div className="skeleton" style={{ width: '100px', height: '13px' }} />
-                                <div className="skeleton" style={{ width: '70px', height: '10px' }} />
-                              </div>
-                            </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '6px' }} />
-                              </div>
-                            </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '90px', height: '13px' }} />
-                              </div>
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                                <div className="skeleton" style={{ width: '120px', height: '10px' }} />
-                                <div className="skeleton" style={{ width: '80px', height: '10px' }} />
-                              </div>
-                            </td>
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '6px' }} />
-                              </div>
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '60px', height: '22px', borderRadius: '8px' }} />
-                              </div>
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                ) : filteredClinics.length === 0 ? (
-                  <div className="text-center py-5">
-                    <i className="fas fa-hospital text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                    <h5 style={{ color: '#666666', fontWeight: '600' }}>
-                      {searchTerm || filterSpecialization || filterStatus !== 'active' ? 'No Clinics Found' : 'No Clinics Added Yet'}
-                    </h5>
-                    <p className="text-muted">
-                      {searchTerm || filterSpecialization || filterStatus !== 'active'
-                        ? 'Try adjusting your search or filters.'
-                        : 'Start by adding private clinics to the system.'}
-                    </p>
-                    {!searchTerm && !filterSpecialization && filterStatus === 'active' && (
-                      <Button onClick={handleAddClinic} className="border-0"
-                        style={{ background: '#ffc107', color: '#000000', padding: '0.6rem 1.5rem', borderRadius: '12px', fontWeight: '600', boxShadow: '0 4px 15px rgba(255,193,7,0.3)' }}>
-                        <i className="fas fa-plus me-2"></i>Add First Clinic
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="table-responsive" style={{ overflow: 'visible' }}>
-  <Table hover className="clinic-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
-    <thead>
-      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Clinic</th>
-        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Code</th>
-        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Owner</th>
-        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact</th>
-        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Specialization</th>
-        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
-        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {paginatedClinics.map(clinic => (
-                          <tr key={clinic.id}
-  style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
-  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,193,7,0.05)'}
-  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-
-                            {/* Clinic Name */}
-<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{clinic.clinic_name}</strong>
-  <small style={{ color: '#aaa', fontWeight: '500' }}><i className="fas fa-user me-1"></i>{clinic.username}</small>
-</td>
-
-                            {/* Code */}
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <Badge bg="secondary" style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem', borderRadius: '6px' }}>
-                                {clinic.clinic_code || '—'}
-                              </Badge>
-                            </td>
-
-                            {/* Owner */}
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <span style={{ fontWeight: '500', color: '#555' }}>{clinic.owner_name}</span>
-                            </td>
-
-                            {/* Contact */}
-<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <small style={{ fontWeight: '500', color: '#555' }}>
-    <i className="fas fa-envelope me-1"></i>{clinic.email}
-  </small>
-</td>
-
-                            {/* Specialization */}
-                            <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              {clinic.specialization
-                                ? <Badge bg="info" style={{ fontSize: '0.78rem', padding: '0.35rem 0.6rem', borderRadius: '6px' }}>{clinic.specialization}</Badge>
-                                : <span className="text-muted">—</span>}
-                            </td>
-
-                            {/* Status */}
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <Badge bg={clinic.is_active == 1 ? 'success' : 'secondary'}
-                                style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>
-                                {clinic.is_active == 1 ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </td>
-
-                            {/* Actions dropdown */}
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <button
-                                ref={showDropdown === clinic.id ? dropdownButtonRef : null}
-                                onClick={(e) => {
-                                  if (showDropdown === clinic.id) { setShowDropdown(null); return; }
-                                  const rect = e.currentTarget.getBoundingClientRect();
-                                  dropdownButtonRef.current = e.currentTarget;
-                                  setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 185 });
-                                  setShowDropdown(clinic.id);
-                                }}
-                                style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
-                                onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                                onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                                <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                        
-                      </tbody>
-                    </Table>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* ── Pagination ── */}
-        {filteredClinics.length > itemsPerPage && (
-          <Row className="mt-4 clinic-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
-            <Col className="d-flex justify-content-between align-items-center">
-              <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
-              </span>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <button className="page-btn" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}
-                  style={{ background: currentPage === 1 ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === 1 ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
-                  onMouseOver={e => { if (currentPage !== 1) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={e => { if (currentPage !== 1) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}>
-                  <i className="fas fa-chevron-left"></i>
+                <button type="button" className="ck-clear" onClick={() => setSearchTerm('')} aria-label="Clear search">
+                  <i className="fas fa-times" />
                 </button>
-                {(() => {
-                  const pages = [];
-                  if (totalPages <= 3) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    let start = Math.max(1, currentPage - 1);
-                    let end = Math.min(totalPages, start + 2);
-                    if (end - start < 2) start = Math.max(1, end - 2);
-                    if (start > 1) pages.push('...');
-                    for (let i = start; i <= end; i++) pages.push(i);
-                    if (end < totalPages) pages.push('...');
-                  }
-                  return pages.map((page, idx) =>
-                    page === '...' ? (
-                      <span key={`e-${idx}`} style={{ padding: '0.5rem 0.25rem', color: '#6c757d', fontWeight: '600' }}>...</span>
-                    ) : (
-                      <button className="page-btn" key={page} onClick={() => setCurrentPage(page)}
-                        style={{ background: currentPage === page ? '#ffc107' : '#ffffff', border: '2px solid', borderColor: currentPage === page ? '#ffc107' : '#dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', minWidth: '40px', cursor: 'pointer', fontWeight: '700', color: currentPage === page ? '#000000' : '#333333', boxShadow: currentPage === page ? '0 2px 8px rgba(255,193,7,0.3)' : 'none', transition: 'all 0.2s' }}
-                        onMouseOver={e => { if (currentPage !== page) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                        onMouseOut={e => { if (currentPage !== page) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}>
-                        {page}
-                      </button>
-                    )
-                  );
-                })()}
-                <button className="page-btn" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
-                  style={{ background: currentPage === totalPages ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === totalPages ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
-                  onMouseOver={e => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={e => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}>
-                  <i className="fas fa-chevron-right"></i>
+              )}
+            </div>
+            <div className="ck-select">
+              <i className="fas fa-stethoscope" />
+              <select className="ck-input" value={filterSpecialization} onChange={e => setFilterSpecialization(e.target.value)} aria-label="Specialization">
+                <option value="">All specializations</option>
+                {specializations.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            {hasClinicFilters && (
+              <button type="button" className="ck-link" onClick={() => { setSearchTerm(''); setFilterSpecialization(''); }}>
+                <i className="fas fa-undo me-1" />Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Body */}
+          <div className="clinic-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+            {loading ? (
+              <div style={{ padding: '0.5rem 0 1rem' }}>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                    <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 10 }} />
+                    <div className="flex-grow-1">
+                      <div className="skeleton" style={{ width: '25%', height: 13, marginBottom: 8 }} />
+                      <div className="skeleton" style={{ width: '15%', height: 10 }} />
+                    </div>
+                    <div className="skeleton" style={{ width: 160, height: 12 }} />
+                    <div className="skeleton" style={{ width: 70, height: 22, borderRadius: 999 }} />
+                  </div>
+                ))}
+              </div>
+            ) : filteredClinics.length === 0 ? (
+              <div className="ck-empty">
+                <div className="ic"><i className="fas fa-hospital" /></div>
+                <h6>{hasClinicFilters || filterStatus !== 'active' ? 'No clinics found' : 'No clinics added yet'}</h6>
+                <p>{hasClinicFilters || filterStatus !== 'active' ? 'Try changing or clearing the filters.' : 'Start by adding private clinics to the system.'}</p>
+                {!hasClinicFilters && filterStatus === 'active' && (
+                  <button type="button" className="ck-btn primary" onClick={handleAddClinic}>
+                    <i className="fas fa-plus" />Add first clinic
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="table-responsive" style={{ overflow: 'visible' }}>
+                <table className="ck-table clinic-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '26%' }}>Clinic</th>
+                      <th className="mobile-hide" style={{ width: '11%' }}>Code</th>
+                      <th className="mobile-hide" style={{ width: '16%' }}>Owner</th>
+                      <th style={{ width: '20%' }}>Contact</th>
+                      <th className="mobile-hide" style={{ width: '13%' }}>Specialization</th>
+                      <th style={{ width: '9%' }}>Status</th>
+                      <th style={{ width: '5%' }} aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedClinics.map((clinic, i) => {
+                      const active = clinic.is_active == 1;
+                      const menuOpen = showDropdown === clinic.id;
+                      return (
+                        <tr key={clinic.id} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                              <div className={`ck-logo${active ? '' : ' off'}`}>{clinicInitials(clinic.clinic_name)}</div>
+                              <div style={{ minWidth: 0 }}>
+                                <div className="ck-strong ck-ellipsis" title={clinic.clinic_name}>{clinic.clinic_name}</div>
+                                <div className="ck-muted ck-ellipsis"><i className="fas fa-user-circle ck-ic" />{clinic.username}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="mobile-hide">
+                            <span className="ck-code">{clinic.clinic_code || '—'}</span>
+                          </td>
+                          <td className="mobile-hide">
+                            <div className="ck-ellipsis" style={{ fontSize: '0.85rem' }} title={clinic.owner_name}>{clinic.owner_name || '—'}</div>
+                          </td>
+                          <td>
+                            <div className="ck-ellipsis" style={{ fontSize: '0.84rem' }} title={clinic.email}><i className="fas fa-envelope ck-ic" />{clinic.email || '—'}</div>
+                            {clinic.phone && <div className="ck-muted"><i className="fas fa-phone-alt ck-ic" />{clinic.phone}</div>}
+                          </td>
+                          <td className="mobile-hide">
+                            {clinic.specialization
+                              ? <span className="ck-spec ck-ellipsis" title={clinic.specialization}>{clinic.specialization}</span>
+                              : <span className="ck-muted">—</span>}
+                          </td>
+                          <td>
+                            <span className={`ck-pill ${active ? 'on' : 'off'}`}>
+                              <i className="fas fa-circle" />{active ? 'Active' : 'Inactive'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button
+                                type="button"
+                                className={`ck-icon-btn${menuOpen ? ' on' : ''}`}
+                                onClick={() => setShowDropdown(menuOpen ? null : clinic.id)}
+                                aria-label={`Options for ${clinic.clinic_name}`}
+                                aria-expanded={menuOpen}
+                              >
+                                <i className="fas fa-ellipsis-v" />
+                              </button>
+                              {menuOpen && (
+                                <>
+                                  <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                                  <div className="ck-menu" role="menu">
+                                    <button type="button" role="menuitem" className="ck-menu-item" onClick={() => { setShowDropdown(null); handleViewClinic(clinic); }}>
+                                      <i className="fas fa-eye" />View details
+                                    </button>
+                                    {active ? (
+                                      <>
+                                        <button type="button" role="menuitem" className="ck-menu-item" onClick={() => { setShowDropdown(null); handleEditClinic(clinic); }}>
+                                          <i className="fas fa-pen" />Edit clinic
+                                        </button>
+                                        <div className="ck-menu-sep" />
+                                        <button type="button" role="menuitem" className="ck-menu-item danger" onClick={() => { setShowDropdown(null); handleDeleteClinic(clinic); }}>
+                                          <i className="fas fa-ban" />Deactivate
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button type="button" role="menuitem" className="ck-menu-item success" onClick={() => { setShowDropdown(null); setSelectedClinic(clinic); setShowRestoreModal(true); }}>
+                                        <i className="fas fa-undo" />Restore clinic
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          {filteredClinics.length > itemsPerPage && (
+            <div className="ck-foot clinic-pagination">
+              <span className="ck-muted page-info" style={{ fontSize: '0.84rem' }}>
+                Showing <strong style={{ color: '#1f2328' }}>{startIdx + 1}–{Math.min(startIdx + itemsPerPage, filteredClinics.length)}</strong> of {filteredClinics.length}
+              </span>
+              <div className="d-flex align-items-center gap-1">
+                <button type="button" className="ck-page nav page-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
+                  <i className="fas fa-chevron-left" />
+                </button>
+                {ckPagerNumbers.map(n => (
+                  <button key={n} type="button" className={`ck-page page-btn${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+                ))}
+                <button type="button" className="ck-page nav page-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
+                  <i className="fas fa-chevron-right" />
                 </button>
               </div>
-            </Col>
-          </Row>
-        )}
-
+            </div>
+          )}
+        </div>
 
         {/* ════════════════════════════════════════════════════════════════
             ADD CLINIC MODAL
@@ -1833,72 +1814,6 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
 
       </Container>
 
-      {/* ── Ellipsis Dropdown Portal ── */}
-      {showDropdown !== null && (
-        <>
-          <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
-          <div style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            transform: 'translateY(-50%)',
-            background: '#ffffff',
-            border: '1px solid #e0e0e0',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            minWidth: '170px',
-            zIndex: 1050,
-            overflow: 'hidden',
-            zoom: '0.75',
-          }}>
-            {(() => {
-              const clinic = clinics.find(c => c.id === showDropdown);
-              if (!clinic) return null;
-              return (
-                <>
-                  <button onClick={() => { setShowDropdown(null); handleViewClinic(clinic); }}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }}
-                    onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                    onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                    <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span>View Details</span>
-                  </button>
-                  {clinic.is_active == 1 ? (
-                    <>
-                      <button onClick={() => { setShowDropdown(null); handleEditClinic(clinic); }}
-                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
-                        onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                        <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                        <span>Edit Clinic</span>
-                      </button>
-                      <button onClick={() => { setShowDropdown(null); handleDeleteClinic(clinic); }}
-                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
-                        onMouseOver={e => e.currentTarget.style.background = '#fff5f5'}
-                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                        <img src="/remove.png" alt="Deactivate" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                        <span>Deactivate</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button onClick={() => {
-  setShowDropdown(null);
-  setSelectedClinic(clinic);
-  setShowRestoreModal(true);
-}}
-                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
-                      onMouseOver={e => e.currentTarget.style.background = '#f0fff4'}
-                      onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                      <img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                      <span>Restore Clinic</span>
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </>
-      )}
     </>
   );
 };

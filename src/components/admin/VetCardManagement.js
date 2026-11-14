@@ -12,7 +12,7 @@ const VetCardManagement = () => {
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 5;
+const itemsPerPage = 10;
 
 const [searchTerm, setSearchTerm] = useState('');
 const [filterSpecies, setFilterSpecies] = useState('all');
@@ -69,6 +69,128 @@ const [filterSpecies, setFilterSpecies] = useState('all');
       .vc-pagination { font-size: 0.75rem !important; }
       .vc-pagination .page-btn { padding: 0.35rem 0.55rem !important; min-width: 32px !important; font-size: 0.75rem !important; }
       .vc-pagination .page-info { font-size: 0.75rem !important; }
+    }
+
+    /* ---------------- Vet Card Management ---------------- */
+    @keyframes vmIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes vmRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes vmMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes vmToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes vmGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .vm-anim { animation: vmIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .vm-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .vm-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .vm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .vm-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .vm-btn.primary { background: #ffc107; color: #1f2328; }
+    .vm-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .vm-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: vmToast 0.35s ease-out; }
+    .vm-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vm-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .vm-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .vm-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .vm-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .vm-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .vm-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .vm-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .vm-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .vm-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .vm-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .vm-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .vm-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .vm-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .vm-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .vm-seg button:hover { color: #1f2328; }
+    .vm-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .vm-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .vm-search, .vm-select { position: relative; }
+    .vm-search { flex: 1 1 260px; }
+    .vm-search > i, .vm-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .vm-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .vm-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.vm-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .vm-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .vm-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .vm-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .vm-link:hover { text-decoration: underline; }
+
+    .vm-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .vm-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .vm-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .vm-table tbody tr { animation: vmRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .vm-table tbody tr:hover { background: #fafbfc; }
+    .vm-table tbody tr:last-child td { border-bottom: none; }
+    .vm-table tbody tr.raised { position: relative; z-index: 5; }
+    .vm-strong { font-weight: 600; color: #1f2328; }
+    .vm-muted { font-size: 0.78rem; color: #6b7280; }
+    .vm-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vm-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .vm-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .vm-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .vm-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .vm-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .vm-bar > div { height: 100%; border-radius: 3px; transform-origin: left; animation: vmGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .vm-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .vm-pill i { font-size: 0.4rem; }
+
+    .vm-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .vm-icon-btn:hover, .vm-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .vm-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: vmMenu 0.16s ease-out; transform-origin: top right; text-align: left; }
+    .vm-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .vm-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .vm-menu-item:hover { background: #f6f7f9; }
+    .vm-menu-item.danger, .vm-menu-item.danger i { color: #dc3545; }
+    .vm-menu-item.danger:hover { background: #fff5f5; }
+    .vm-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .vm-empty { text-align: center; padding: 3rem 1rem; }
+    .vm-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .vm-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .vm-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .vm-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .vm-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .vm-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .vm-page:hover:not(:disabled) { background: #f3f4f6; }
+    .vm-page.on { background: #ffc107; color: #1f2328; }
+    .vm-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .vm-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .vm-btn:focus-visible, .vm-seg button:focus-visible, .vm-icon-btn:focus-visible, .vm-menu-item:focus-visible, .vm-page:focus-visible, .vm-link:focus-visible, .vm-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .vm-title { font-size: 1.45rem; }
+      .vm-sub { font-size: 0.85rem; }
+      .vm-filters select.vm-input { min-width: 0; width: 100%; }
+      .vm-select { flex: 1 1 140px; }
+      .vm-ellipsis { max-width: 160px; }
+      .vm-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .vm-anim, .vm-table tbody tr, .vm-menu, .vm-toast, .vm-bar > div, .vm-skel { animation: none !important; }
+    }
+    .vm-toolbar { border-bottom: 1px solid #eef0f3; }
+    .vm-filters { padding-top: 1rem; }
+    .vm-table { table-layout: fixed; }
+    .vm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .vm-face { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,193,7,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .vm-face img { width: 28px; height: 28px; object-fit: contain; }
+    .vm-gender { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.84rem; font-weight: 500; }
+    .vm-gender.male i { color: #0d6efd; }
+    .vm-gender.female i { color: #d63384; }
+    .vm-num { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700; color: #9ca3af; }
+    .vm-num i { font-size: 0.75rem; }
+    .vm-num.has { color: #1f2328; }
+    .vm-num.has i { color: var(--c); }
+    .vm-btn.ghost { background: #fff; color: #1f2328; border: 1px solid #e5e7eb; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+    .vm-btn.ghost:hover { background: #fff8e1; border-color: #ffc107; }
+    @media (max-width: 768px) {
+      .vm-table { table-layout: auto; }
+      .vm-table th { width: auto !important; }
     }
   `;
   
@@ -205,71 +327,40 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
 
   
 
+  const vmPagerNumbers = (() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  })();
+  const hasVcFilters = searchTerm || filterSpecies !== 'all';
+
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4 vc-management-page" style={{ backgroundColor: '#ffffffff', transition: 'all 0.3s ease' }}>
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div>
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-                <i 
-                  className="fas fa-id-card" 
-                  style={{ 
-                    fontSize: '1.5rem', 
-                    color: '#000000',
-                    animation: 'float 3s ease-in-out infinite'
-                  }}
-                ></i>
-                <h2 className="vc-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>Vet Card Management</h2>
-              </div>
-              
-            </div>
-          </Col>
-        </Row>
+      <Container fluid className="py-4 vc-management-page" style={{ backgroundColor: '#ffffff', transition: 'all 0.3s ease' }}>
+
+        {/* Header */}
+        <div className="mb-4 vm-anim">
+          <h2 className="vm-title vc-title">Vet Card Management</h2>
+          <p className="vm-sub">Pets with an issued vet card and their health record counts.</p>
+        </div>
 
         {error && (
-        <Row className="mb-4">
-          <Col>
-            <Alert 
-              variant="danger" 
-              dismissible 
-              onClose={() => setError('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #dc3545',
-                background: 'rgba(220, 53, 69, 0.1)',
-                color: '#dc3545'
-              }}
-            >
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
-          </Col>
-        </Row>
-      )}
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2"></i>
+            {error}
+          </Alert>
+        )}
 
-      {success && (
-        <Row className="mb-4">
-          <Col>
-            <Alert 
-              variant="success" 
-              dismissible 
-              onClose={() => setSuccess('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #28a745',
-                background: 'rgba(40, 167, 69, 0.1)',
-                color: '#28a745'
-              }}
-            >
-              <i className="fas fa-check-circle me-2"></i>
-              {success}
-            </Alert>
-          </Col>
-        </Row>
-      )}
-
+        {success && (
+          <Alert variant="success" dismissible onClose={() => setSuccess('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-check-circle me-2"></i>
+            {success}
+          </Alert>
+        )}
       {/* Statistics Cards */}
       <Row className="mb-4" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px' }}>
         {[
@@ -404,387 +495,151 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
         ))}
       </Row>
 
-      {/* Filters */}
-<Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-  <Col xs={12} md={6} className="mb-2 mb-md-0">
-    <InputGroup style={{ borderRadius: '12px', overflow: 'hidden' }}>
-      <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none', color: '#333333' }}>
-        <i className="fas fa-search"></i>
-      </InputGroup.Text>
-      <Form.Control
-        type="text"
-        placeholder="Search by pet name or registration number..."
-        value={searchTerm}
-        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-        style={{
-          border: '2px solid #e9ecef',
-          borderLeft: 'none',
-          borderRight: searchTerm ? 'none' : '2px solid #e9ecef',
-          background: '#ffffff',
-          color: '#333333'
-        }}
-      />
-      {searchTerm && (
-        <Button
-          variant="outline-secondary"
-          onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
-          style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}
-        >
-          <i className="fas fa-times"></i>
-        </Button>
-      )}
-    </InputGroup>
-  </Col>
-  <Col xs={6} md={3}>
-    <Form.Select
-      value={filterSpecies}
-      onChange={(e) => { setFilterSpecies(e.target.value); setCurrentPage(1); }}
-      style={{
-        borderRadius: '12px',
-        border: '2px solid #e9ecef',
-        fontWeight: '500',
-        background: '#ffffff',
-        color: '#333333'
-      }}
-    >
-      <option value="all">All Species</option>
-      <option value="dog">Dogs</option>
-      <option value="cat">Cats</option>
-    </Form.Select>
-  </Col>
-</Row>
+      {/* Pets with vet cards */}
+      <div className="vm-panel vm-anim" style={{ '--d': '0.18s' }}>
+        <div className="vm-toolbar">
+          <div className="vm-toolbar-title">
+            <span>Pets with vet cards</span>
+            <span className="vm-count">{petsWithCards.length}</span>
+          </div>
+        </div>
 
-      {/* Pets WITH Vet Cards */}
-      {(loading || petsWithCards.length > 0) && (
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-          <Col>
-            <Card 
-              className="border-0"
-              style={{
-                borderRadius: '20px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                overflow: 'hidden'
-              }}
-            >
-              <Card.Header
-                className="vc-card-header"
-                style={{
-                  background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                  borderBottom: '2px solid #ffc107',
-                  padding: '1.5rem',
-                  borderRadius: '20px 20px 0 0'
-                }}
-              >
-                <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                  <i className="fas fa-check-circle me-2" style={{ color: '#ffc107' }}></i>
-                  Pets with Vet Cards ({petsWithCards.length})
-                </h5>
-              </Card.Header>
-              <Card.Body className="vc-card-body" style={{ padding: '2rem' }}>
-                <div className="table-responsive">
-                  <Table hover className="vc-table" style={{ marginBottom: 0, tableLayout: 'fixed', width: '100%' }}>
-                    <thead style={{ background: '#f8f9fa' }}>
-                      <tr>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '18%' }}>Species/Breed</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '22%' }}>Pet Information</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Gender</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Vaccinations</th>
-                        <th className="mobile-hide" style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Dewormings</th>
-                        <th style={{ fontWeight: '600', color: '#333', padding: '1rem', textAlign: 'center', width: '15%' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-  {loading ? (
-    Array.from({ length: itemsPerPage }).map((_, i) => (
-      <tr key={`skel-${i}`}>
-        <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-            <div className="skeleton" style={{ width: '40px', height: '40px', borderRadius: '8px' }} />
-            <div className="skeleton" style={{ width: '60px', height: '10px' }} />
-          </div>
-        </td>
-        <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-            <div className="skeleton" style={{ width: '80px', height: '13px' }} />
-            <div className="skeleton" style={{ width: '100px', height: '10px' }} />
-          </div>
-        </td>
-        <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div className="skeleton" style={{ width: '60px', height: '13px' }} />
-          </div>
-        </td>
-        <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div className="skeleton" style={{ width: '30px', height: '13px' }} />
-          </div>
-        </td>
-        <td className="mobile-hide" style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div className="skeleton" style={{ width: '30px', height: '13px' }} />
-          </div>
-        </td>
-        <td style={{ padding: '1rem', textAlign: 'center', verticalAlign: 'middle' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-          </div>
-        </td>
-      </tr>
-    ))
-  ) : paginatedPetsWithCards.map((pet) => (
-                        <tr 
-                          key={pet.id}
-                          style={{
-                            transition: 'all 0.2s ease',
-                            cursor: 'pointer'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                          }}
-                        >
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '18%' }}>
-                            <div className="d-flex flex-column align-items-center">
-                              <img 
-                                src={getPetFaceImage(pet.species)}
-                                alt={pet.species}
-                                className="pet-img"
-                                style={{ 
-                                  width: '40px', 
-                                  height: '40px', 
-                                  objectFit: 'contain',
-                                  marginBottom: '0.5rem'
-                                }}
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'flex';
-                                }}
-                              />
-                              <i 
-                                className="fas fa-paw" 
-                                style={{ fontSize: '2rem', color: '#ffc107', display: 'none', marginBottom: '0.5rem' }}
-                              ></i>
-                              {pet.breed && (
-                                <small className="text-muted" style={{ fontWeight: '500', marginTop: '0.25rem' }}>
-                                  {pet.breed}
-                                </small>
-                              )}
-                            </div>
-                          </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '22%' }}>
-                            <div>
-                              <strong style={{ fontSize: '1rem', color: '#333' }}>{pet.name}</strong>
-                              <br />
-                              <small className="text-muted" style={{ fontWeight: '500' }}>
-                                <i className="fas fa-barcode me-1"></i>
-                                {pet.registration_number || 'N/A'}
-                              </small>
-                            </div>
-                          </td>
-                          <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                            <span className="text-capitalize" style={{ fontWeight: '500' }}>
-                              {pet.gender === 'male' ? (
-                                <><i className="fas fa-mars text-primary me-1"></i>Male</>
-                              ) : (
-                                <><i className="fas fa-venus text-danger me-1"></i>Female</>
-                              )}
-                            </span>
-                          </td>
-                          <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-  <span style={{ fontSize: '1.1rem', fontWeight: '600', color: pet.vaccination_count > 0 ? '#007bff' : '#6c757d' }}>
-    {pet.vaccination_count || 0}
-  </span>
-</td>
-                          <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-  <span style={{ fontSize: '1.1rem', fontWeight: '600', color: pet.deworming_count > 0 ? '#007bff' : '#6c757d' }}>
-    {pet.deworming_count || 0}
-  </span>
-</td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '15%' }}>
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="p-0"
-                              style={{ textDecoration: 'none' }}
-                              onClick={() => handleViewVetCard(pet.id)}
-                              title="View Vet Card"
-                            >
-                              <img 
-                                src="/view.png" 
-                                alt="View" 
-                                style={{ 
-                                  width: '24px', 
-                                  height: '24px',
-                                  transition: 'transform 0.2s ease'
-                                }} 
-                                onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-                                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                              />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
-                      }
-                      {!loading && Array.from({ length: emptyRows }).map((_, index) => (
-  <tr key={`empty-${index}`} className="empty-row" style={{ pointerEvents: 'none' }}>
-    <td style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
-    <td style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
-    <td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
-    <td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
-    <td className="mobile-hide" style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
-    <td style={{ height: '73px', borderBottom: '1px solid #dee2e6', background: 'transparent', padding: 0 }}></td>
-  </tr>
-))}
-                    </tbody>
-                  </Table>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      )}
-
-      {/* Pagination */}
-      {petsWithCards.length > itemsPerPage && (
-        <Row className="mt-4 vc-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-          <Col className="d-flex justify-content-between align-items-center">
-            <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-              Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
-            </span>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button
-                className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                style={{
-                  background: currentPage === 1 ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === 1 ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-left"></i>
+        <div className="vm-filters">
+          <div className="vm-search">
+            <i className="fas fa-search" />
+            <input
+              className="vm-input"
+              placeholder="Search by pet name or registration number..."
+              value={searchTerm}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              aria-label="Search pets"
+            />
+            {searchTerm && (
+              <button type="button" className="vm-clear" onClick={() => { setSearchTerm(''); setCurrentPage(1); }} aria-label="Clear search">
+                <i className="fas fa-times" />
               </button>
+            )}
+          </div>
+          <div className="vm-select">
+            <i className="fas fa-paw" />
+            <select className="vm-input" value={filterSpecies} onChange={(e) => { setFilterSpecies(e.target.value); setCurrentPage(1); }} aria-label="Species">
+              <option value="all">All species</option>
+              <option value="dog">Dogs</option>
+              <option value="cat">Cats</option>
+            </select>
+          </div>
+          {hasVcFilters && (
+            <button type="button" className="vm-link" onClick={() => { setSearchTerm(''); setFilterSpecies('all'); setCurrentPage(1); }}>
+              <i className="fas fa-undo me-1" />Clear filters
+            </button>
+          )}
+        </div>
 
-              {(() => {
-                const pages = [];
+        <div className="vc-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+          {loading ? (
+            <div style={{ padding: '0.5rem 0 1rem' }}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                  <div className="skeleton" style={{ width: 40, height: 40, borderRadius: '50%' }} />
+                  <div className="flex-grow-1">
+                    <div className="skeleton" style={{ width: '25%', height: 13, marginBottom: 8 }} />
+                    <div className="skeleton" style={{ width: '15%', height: 10 }} />
+                  </div>
+                  <div className="skeleton" style={{ width: 140, height: 12 }} />
+                  <div className="skeleton" style={{ width: 90, height: 30, borderRadius: 9 }} />
+                </div>
+              ))}
+            </div>
+          ) : petsWithCards.length === 0 ? (
+            <div className="vm-empty">
+              <div className="ic"><i className="fas fa-id-card" /></div>
+              <h6>No vet cards found</h6>
+              <p>{hasVcFilters ? 'Try changing or clearing the filters.' : 'Pets with an issued vet card will show here.'}</p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="vm-table vc-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '28%' }}>Pet</th>
+                    <th style={{ width: '18%' }}>Species / breed</th>
+                    <th className="mobile-hide" style={{ width: '13%' }}>Gender</th>
+                    <th className="mobile-hide" style={{ width: '14%' }}>Vaccinations</th>
+                    <th className="mobile-hide" style={{ width: '14%' }}>Dewormings</th>
+                    <th style={{ width: '13%' }} aria-label="Actions" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedPetsWithCards.map((pet, i) => (
+                    <tr key={pet.id} style={{ animationDelay: `${i * 0.04}s` }}>
+                      <td>
+                        <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                          <div className="vm-face">
+                            <img
+                              src={getPetFaceImage(pet.species)}
+                              alt=""
+                              className="pet-img"
+                              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                            />
+                            <i className="fas fa-paw" style={{ display: 'none', color: '#e0a800' }} />
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="vm-strong vm-ellipsis" title={pet.name}>{pet.name}</div>
+                            <div className="vm-muted vm-mono vm-ellipsis">{pet.registration_number || 'N/A'}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="vm-strong text-capitalize" style={{ fontSize: '0.85rem' }}>{pet.species}</div>
+                        <div className="vm-muted vm-ellipsis">{pet.breed || 'Mixed'}</div>
+                      </td>
+                      <td className="mobile-hide">
+                        {pet.gender === 'male'
+                          ? <span className="vm-gender male"><i className="fas fa-mars" />Male</span>
+                          : <span className="vm-gender female"><i className="fas fa-venus" />Female</span>}
+                      </td>
+                      <td className="mobile-hide">
+                        <span className={`vm-num${pet.vaccination_count > 0 ? ' has' : ''}`} style={{ '--c': '#e0a800' }}>
+                          <i className="fas fa-syringe" />{pet.vaccination_count || 0}
+                        </span>
+                      </td>
+                      <td className="mobile-hide">
+                        <span className={`vm-num${pet.deworming_count > 0 ? ' has' : ''}`} style={{ '--c': '#0d6efd' }}>
+                          <i className="fas fa-pills" />{pet.deworming_count || 0}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button type="button" className="vm-btn ghost" onClick={() => handleViewVetCard(pet.id)} title="Opens in a new tab">
+                          <i className="fas fa-id-card" />View card
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
-                if (totalPages <= 3) {
-                  for (let i = 1; i <= totalPages; i++) pages.push(i);
-                } else {
-                  let start = Math.max(1, currentPage - 1);
-                  let end = Math.min(totalPages, start + 2);
-                  if (end - start < 2) start = Math.max(1, end - 2);
-                  
-                  for (let i = start; i <= end; i++) pages.push(i);
-                  
-                }
-
-                return pages.map((page, idx) => {
-                  if (page === '...') {
-                    return (
-                      <span
-                        key={`ellipsis-${idx}`}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          color: '#6c757d',
-                          fontWeight: '600'
-                        }}
-                      >
-                        ...
-                      </span>
-                    );
-                  }
-
-                  return (
-                    <button
-                      className="page-btn"
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      style={{
-                        background: currentPage === page ? '#ffc107' : '#ffffff',
-                        border: '2px solid',
-                        borderColor: currentPage === page ? '#ffc107' : '#dee2e6',
-                        borderRadius: '8px',
-                        padding: '0.5rem 0.75rem',
-                        minWidth: '40px',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        color: currentPage === page ? '#000000' : '#333333',
-                        transition: 'all 0.2s',
-                        boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none'
-                      }}
-                      onMouseOver={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#f8f9fa';
-                          e.target.style.borderColor = '#ffc107';
-                        }
-                      }}
-                      onMouseOut={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#ffffff';
-                          e.target.style.borderColor = '#dee2e6';
-                        }
-                      }}
-                    >
-                      {page}
-                    </button>
-                  );
-                });
-              })()}
-
-              <button
-                className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                style={{
-                  background: currentPage === totalPages ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === totalPages ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-right"></i>
+        {petsWithCards.length > itemsPerPage && (
+          <div className="vm-foot vc-pagination">
+            <span className="vm-muted page-info" style={{ fontSize: '0.84rem' }}>
+              Showing <strong style={{ color: '#1f2328' }}>{startIdx + 1}–{Math.min(endIdx, petsWithCards.length)}</strong> of {petsWithCards.length}
+            </span>
+            <div className="d-flex align-items-center gap-1">
+              <button type="button" className="vm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
+                <i className="fas fa-chevron-left" />
+              </button>
+              {vmPagerNumbers.map(n => (
+                <button key={n} type="button" className={`vm-page page-btn${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+              ))}
+              <button type="button" className="vm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
+                <i className="fas fa-chevron-right" />
               </button>
             </div>
-          </Col>
-        </Row>
-      )}
-
+          </div>
+        )}
+      </div>
     </Container>
     </>
   );

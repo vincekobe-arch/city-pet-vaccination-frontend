@@ -62,7 +62,7 @@ const [editLoading, setEditLoading]     = useState(false);
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 8;
+const itemsPerPage = 10;
 
 const [displayCounts, setDisplayCounts] = useState({ totalItems: 0, totalStock: 0, lowStock: 0, outOfStock: 0 });
 const [hasAnimated, setHasAnimated] = useState(false);
@@ -166,6 +166,160 @@ useEffect(() => {
     .inv-table th, .inv-table td { font-size: 0.7rem !important; padding: 0.4rem 0.25rem !important; }
     .inv-table .mobile-hide { display: none !important; }
     .inv-pagination { font-size: 0.75rem !important; }
+  }
+
+    /* ---------------- Inventory Management ---------------- */
+    @keyframes ivIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ivRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ivMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes ivToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes ivGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .iv-anim { animation: ivIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .iv-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .iv-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .iv-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .iv-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .iv-btn.primary { background: #ffc107; color: #1f2328; }
+    .iv-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .iv-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: ivToast 0.35s ease-out; }
+    .iv-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .iv-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .iv-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .iv-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .iv-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .iv-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .iv-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .iv-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .iv-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .iv-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .iv-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .iv-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .iv-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .iv-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .iv-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .iv-seg button:hover { color: #1f2328; }
+    .iv-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .iv-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .iv-search, .iv-select { position: relative; }
+    .iv-search { flex: 1 1 260px; }
+    .iv-search > i, .iv-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .iv-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .iv-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.iv-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .iv-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .iv-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .iv-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .iv-link:hover { text-decoration: underline; }
+
+    .iv-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .iv-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .iv-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .iv-table tbody tr { animation: ivRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .iv-table tbody tr:hover { background: #fafbfc; }
+    .iv-table tbody tr:last-child td { border-bottom: none; }
+    .iv-table tbody tr.raised { position: relative; z-index: 5; }
+    .iv-strong { font-weight: 600; color: #1f2328; }
+    .iv-muted { font-size: 0.78rem; color: #6b7280; }
+    .iv-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .iv-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .iv-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .iv-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .iv-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .iv-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .iv-bar > div { height: 100%; border-radius: 3px; transfoiv-origin: left; animation: ivGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .iv-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .iv-pill i { font-size: 0.4rem; }
+
+    .iv-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .iv-icon-btn:hover, .iv-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .iv-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: ivMenu 0.16s ease-out; transfoiv-origin: top right; text-align: left; }
+    .iv-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .iv-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .iv-menu-item:hover { background: #f6f7f9; }
+    .iv-menu-item.danger, .iv-menu-item.danger i { color: #dc3545; }
+    .iv-menu-item.danger:hover { background: #fff5f5; }
+    .iv-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .iv-empty { text-align: center; padding: 3rem 1rem; }
+    .iv-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .iv-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .iv-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .iv-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .iv-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .iv-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .iv-page:hover:not(:disabled) { background: #f3f4f6; }
+    .iv-page.on { background: #ffc107; color: #1f2328; }
+    .iv-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .iv-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .iv-btn:focus-visible, .iv-seg button:focus-visible, .iv-icon-btn:focus-visible, .iv-menu-item:focus-visible, .iv-page:focus-visible, .iv-link:focus-visible, .iv-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .iv-title { font-size: 1.45rem; }
+      .iv-sub { font-size: 0.85rem; }
+      .iv-filters select.iv-input { min-width: 0; width: 100%; }
+      .iv-select { flex: 1 1 140px; }
+      .iv-ellipsis { max-width: 160px; }
+      .iv-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .iv-anim, .iv-table tbody tr, .iv-menu, .iv-toast, .iv-bar > div, .iv-skel { animation: none !important; }
+    }
+    .iv-table { table-layout: fixed; }
+    .iv-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.01em; }
+    .iv-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
+    .iv-filters { border-bottom: 1px solid #eef0f3; padding-top: 1rem; }
+    .iv-tabs { display: inline-flex; gap: 0.25rem; padding: 4px; border-radius: 12px; background: #f3f4f6; max-width: 100%; overflow-x: auto; }
+    .iv-tab { display: inline-flex; align-items: center; gap: 0.45rem; border: none; background: transparent; padding: 0.45rem 0.85rem; border-radius: 9px; font-size: 0.85rem; font-weight: 600; color: #5b6270; white-space: nowrap; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .iv-tab i { font-size: 0.78rem; }
+    .iv-tab .count { font-size: 0.72rem; padding: 0.02rem 0.45rem; border-radius: 999px; background: rgba(0,0,0,0.06); color: #6b7280; }
+    .iv-tab:hover { color: #1f2328; }
+    .iv-tab.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .iv-tab.on .count { background: #1f2328; color: #fff; }
+    .iv-tab:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+    .iv-seg button.inactive.on { color: #dc3545; }
+    .iv-chip { display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .iv-chip i { font-size: 0.68rem; }
+    .iv-chip.city { background: rgba(255,193,7,0.14); color: #8a6700; }
+    .iv-chip.clinic { background: rgba(25,135,84,0.1); color: #198754; }
+    .iv-chip.missed { background: rgba(220,53,69,0.1); color: #dc3545; }
+    .iv-chip.archived { background: #f3f4f6; color: #6b7280; }
+    .iv-menu-item.success, .iv-menu-item.success i { color: #198754; }
+    .iv-menu-item.success:hover { background: #f0fdf4; }
+    @media (max-width: 768px) {
+      .iv-table { table-layout: auto; }
+      .iv-table th { width: auto !important; }
+      .iv-toolbar .iv-btn span { display: none; }
+    }
+  .iv-legend { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; font-size: 0.76rem; color: #6b7280; margin-left: auto; }
+  .iv-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+  .iv-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .iv-row td:first-child { box-shadow: inset 3px 0 0 transparent; }
+  .iv-row.low td:first-child { box-shadow: inset 3px 0 0 #ffc107; }
+  .iv-row.out td:first-child { box-shadow: inset 3px 0 0 #dc3545; }
+  .iv-species { display: inline-flex; align-items: center; font-size: 0.66rem; font-weight: 700; padding: 0.05rem 0.45rem; border-radius: 999px; text-transform: capitalize; }
+  .iv-stock { font-size: 0.84rem; color: #9ca3af; white-space: nowrap; }
+  .iv-stock strong { font-size: 1rem; color: #1f2328; }
+  .iv-stock strong.low { color: #b88a00; }
+  .iv-stock strong.out { color: #dc3545; }
+  .iv-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 120px; }
+  .iv-bar > div { height: 100%; border-radius: 3px; background: #198754; transform-origin: left; animation: ivGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+  .iv-bar > div.low { background: #ffc107; }
+  .iv-bar > div.out { background: #dc3545; }
+  @keyframes ivGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  .iv-pill i { font-size: 0.68rem; }
+  .iv-dot { position: absolute; top: -3px; right: -3px; background: #dc3545; color: #fff; border-radius: 999px; font-size: 0.55rem; font-weight: 700; min-width: 16px; padding: 0.05rem 0.3rem; text-align: center; line-height: 1.5; border: 2px solid #fff; pointer-events: none; }
+  .iv-count-badge { background: #dc3545; color: #fff; border-radius: 999px; font-size: 0.62rem; font-weight: 700; padding: 0.05rem 0.42rem; }
+  .iv-menu { min-width: 210px; }
+  .iv-menu-item.info, .iv-menu-item.info i { color: #0d6efd; }
+  .iv-menu-item.info:hover { background: #f0f4ff; }
+  @media (max-width: 768px) {
+    .iv-legend { display: none; }
   }
 `;
 
@@ -497,6 +651,22 @@ const handleDeleteClick = (item) => {
     }
   };
 
+  const invTotalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const invStart = (currentPage - 1) * itemsPerPage;
+  const invPageItems = filtered.slice(invStart, invStart + itemsPerPage);
+  const invPagerNumbers = (() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 1);
+    const end = Math.min(invTotalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  })();
+  const typeCounts = inventory.reduce((acc, i) => { acc[i.item_type] = (acc[i.item_type] || 0) + 1; return acc; }, {});
+  const invTabs = [
+    { key: 'all', label: 'All', count: inventory.length },
+    ...Object.keys(TYPE_CONFIG).map(k => ({ key: k, label: TYPE_CONFIG[k].label, count: typeCounts[k] || 0, icon: TYPE_CONFIG[k].icon, color: TYPE_CONFIG[k].color })),
+  ];
   return (
     <>
       {toast.visible && (
@@ -515,29 +685,19 @@ const handleDeleteClick = (item) => {
         </div>
       )}
       <style>{styles}</style>
-      <Container fluid className="py-4 inv-page" style={{ backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
+      <Container fluid className="py-4 inv-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
 
         {/* Header */}
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div className="d-flex align-items-center" style={{ gap: '0.75rem' }}>
-              <i className="fas fa-boxes" style={{ fontSize: '1.5rem', color: '#1a1a1a', animation: 'float 3s ease-in-out infinite' }} />
-              <div>
-                <h2 className="inv-title" style={{ fontWeight: '700', color: '#333', fontSize: '1.9rem', marginBottom: 0 }}>Inventory Management</h2>
-                <small style={{ color: '#888', fontWeight: '500' }}>Track vaccination, sterilization & microchip supplies</small>
-              </div>
-            </div>
-          </Col>
-        </Row>
+        <div className="mb-4 iv-anim">
+          <h2 className="iv-title inv-title">Inventory Management</h2>
+          <p className="iv-sub">Track vaccination, sterilization and microchip supplies and their batches.</p>
+        </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')}
-            style={{ borderRadius: '12px', border: '2px solid #dc3545', marginBottom: '1.5rem' }}>
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
             <i className="fas fa-exclamation-triangle me-2" />{error}
           </Alert>
         )}
-
-
         {/* Stat Cards */}
         <Row className="mb-4 inv-stat-row" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px', animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
           {[
@@ -578,316 +738,221 @@ const handleDeleteClick = (item) => {
           ))}
         </Row>
 
-        {/* Search & Filter Row */}
-        <Row className="mb-4 inv-filters-row" style={{ animation: 'dropDown 0.4s ease-out 0.15s backwards' }}>
-          <Col md={4}>
-            <InputGroup style={{ borderRadius: '12px', overflow: 'hidden' }}>
-              <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
-                <i className="fas fa-search" />
-              </InputGroup.Text>
-              <Form.Control
-                type="text"
+        {/* Stock table */}
+        <div className="iv-panel iv-anim" style={{ '--d': '0.18s', overflow: 'visible' }}>
+          {/* Header */}
+          <div className="iv-toolbar">
+            <div className="iv-tabs" role="tablist">
+              {invTabs.map(t => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={filterType === t.key}
+                  className={`iv-tab${filterType === t.key ? ' on' : ''}`}
+                  onClick={() => { setFilterType(t.key); setCurrentPage(1); setShowDropdown(null); }}
+                >
+                  {t.icon && <i className={`fas ${t.icon}`} style={{ color: filterType === t.key ? t.color : undefined }} />}
+                  {t.label}
+                  <span className="count">{t.count}</span>
+                </button>
+              ))}
+            </div>
+            <button type="button" className="iv-btn primary" onClick={() => setShowAddModal(true)}>
+              <i className="fas fa-plus" />Add item
+            </button>
+          </div>
+
+          {/* Filters */}
+          <div className="iv-filters inv-filters-row">
+            <div className="iv-search">
+              <i className="fas fa-search" />
+              <input
+                className="iv-input"
                 placeholder="Search items..."
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                style={{ border: '2px solid #e9ecef', borderLeft: 'none', borderRight: searchTerm ? 'none' : '2px solid #e9ecef' }}
+                onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                aria-label="Search items"
               />
               {searchTerm && (
-                <Button variant="outline-secondary" onClick={() => setSearchTerm('')}
-                  style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}>
+                <button type="button" className="iv-clear" onClick={() => { setSearchTerm(''); setCurrentPage(1); }} aria-label="Clear search">
                   <i className="fas fa-times" />
-                </Button>
+                </button>
               )}
-            </InputGroup>
-          </Col>
-          <Col md={3}>
-            <Form.Select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '100%' }}
-            >
-              <option value="all">All</option>
-<option value="vaccination">Vaccination</option>
-<option value="medicine">Medicine</option>
-<option value="microchip">Microchip</option>
-<option value="equipment">Equipment</option>
+            </div>
+            <div className="iv-legend">
+              <span><i style={{ background: '#198754' }} />In stock</span>
+              <span><i style={{ background: '#e0a800' }} />Low stock</span>
+              <span><i style={{ background: '#dc3545' }} />Out of stock</span>
+            </div>
+          </div>
 
-            </Form.Select>
-          </Col>
-        </Row>
-
-        {/* Table Card */}
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
-          <Col>
-            <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-
-              {/* Card Header */}
-              <Card.Header className="inv-card-header" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
-                <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                  <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                    <i className="fas fa-boxes me-2" style={{ color: '#ffc107' }} />
-                    Stock Levels ({filtered.length} items)
-                  </h5>
-                  <Button
-                    onClick={() => setShowAddModal(true)}
-                    className="border-0"
-                    style={{ background: '#ffc107', color: '#000000', padding: '0.5rem 1.5rem', borderRadius: '8px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.4)', transition: 'all 0.3s' }}
-                    onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 6px 20px rgba(255,193,7,0.6)'; e.target.style.background = '#ffb300'; }}
-                    onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 15px rgba(255,193,7,0.4)'; e.target.style.background = '#ffc107'; }}
-                  >
-                    <i className="fas fa-plus me-2" />Add Item
-                  </Button>
-                </div>
-              </Card.Header>
-
-              <Card.Body className="inv-card-body" style={{ padding: '1.5rem' }}>
-                {loading ? (
-                  <div className="table-responsive">
-                    <Table className="inv-table" style={{ marginBottom: 0, width: '100%', tableLayout: 'fixed' }}>
-                      <thead>
-                        <tr style={{ background: '#f8f9fa' }}>
-                          <th className="mobile-hide-type" style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '16%' }}>Type</th>
-                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '22%' }}>Item Name</th>
-                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '13%', textAlign: 'center' }}>Current Stock</th>
-                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '18%' }}>Min. Threshold</th>
-                          <th className="mobile-hide-status" style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '15%', textAlign: 'center' }}>Status</th>
-                          <th className="mobile-hide-restock" style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '11%', textAlign: 'center' }}>Last Restocked</th>
-                          <th style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', width: '5%', textAlign: 'center' }}>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Array.from({ length: itemsPerPage }).map((_, i) => (
-                          <tr key={`skel-${i}`} style={{ height: '68px' }}>
-                            <td className="mobile-hide-type" style={{ padding: '1rem', verticalAlign: 'middle' }}>
-                              <div className="skeleton" style={{ width: '90px', height: '22px', borderRadius: '20px' }} />
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle' }}>
-                              <div className="skeleton" style={{ width: '80%', height: '13px' }} />
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '50px', height: '13px' }} />
-                              </div>
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle' }}>
-                              <div className="skeleton" style={{ width: '60px', height: '28px', borderRadius: '6px' }} />
-                            </td>
-                            <td className="mobile-hide-status" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '80px', height: '22px', borderRadius: '20px' }} />
-                              </div>
-                            </td>
-                            <td className="mobile-hide-restock" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '70px', height: '13px' }} />
-                              </div>
-                            </td>
-                            <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '50%' }} />
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+          {/* Body */}
+          <div className="inv-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+            {loading ? (
+              <div style={{ padding: '0.5rem 0 1rem' }}>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                    <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 10 }} />
+                    <div className="flex-grow-1">
+                      <div className="skeleton" style={{ width: '30%', height: 13, marginBottom: 8 }} />
+                      <div className="skeleton" style={{ width: '15%', height: 10 }} />
+                    </div>
+                    <div className="skeleton" style={{ width: 140, height: 12 }} />
+                    <div className="skeleton" style={{ width: 90, height: 22, borderRadius: 999 }} />
                   </div>
-                ) : filtered.length === 0 ? (
-                  <div className="text-center py-5">
-                    <i className="fas fa-box-open" style={{ fontSize: '3rem', color: '#e0e0e0' }} />
-                    <h5 className="mt-3" style={{ color: '#666' }}>No items found</h5>
-                    <p className="text-muted">Try adjusting your filters</p>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <Table hover className="inv-table" style={{ marginBottom: 0, width: '100%', tableLayout: 'fixed' }}>
-                      <thead>
-                        <tr style={{ background: '#f8f9fa' }}>
-                          {[
-                            { label: 'Type',           width: '16%', align: 'left',   className: 'mobile-hide-type' },
-                            { label: 'Item Name',      width: '22%', align: 'left'   },
-                            { label: 'Current Stock',  width: '13%', align: 'center' },
-                            { label: 'Min. Threshold', width: '18%', align: 'left'   },
-                            { label: 'Status',         width: '15%', align: 'center', className: 'mobile-hide-status' },
-{ label: 'Last Restocked', width: '11%', align: 'center', className: 'mobile-hide-restock' },
-                            { label: 'Actions',        width: '5%',  align: 'center' },
-                          ].map(h => (
-  <th key={h.label} className={h.className || ''} style={{ fontWeight: '600', color: '#555', padding: '0.9rem 1rem', fontSize: '0.82rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', width: h.width, textAlign: h.align }}>{h.label}</th>
-))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const startIdx       = (currentPage - 1) * itemsPerPage;
-                          const pageItems      = filtered.slice(startIdx, startIdx + itemsPerPage);
-                          
-                          return (
-                            <>
-                              {pageItems.map(item => {
-                                const typeCfg    = TYPE_CONFIG[item.item_type] || TYPE_CONFIG.microchip;
-                                const status     = getStockStatus(item);
-                                const speciesCfg = item.species ? (SPECIES_COLORS[item.species] || {}) : null;
-                                return (
-                                  <tr key={item.id} className="inv-row" style={{ transition: 'all 0.2s', borderLeft: parseInt(item.current_stock) === 0 ? '3px solid #dc3545' : parseInt(item.current_stock) < 10 ? '3px solid #ffc107' : '3px solid transparent' }}>
-
-                                    {/* Type */}
-<td className="mobile-hide-type" style={{ padding: '1rem', verticalAlign: 'middle', width: '16%', overflow: 'hidden' }}>
-                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.65rem', borderRadius: '20px', background: typeCfg.bg, color: typeCfg.color, fontWeight: '700', fontSize: '0.75rem' }}>
-                                        <i className={`fas ${typeCfg.icon}`} />
-                                        {typeCfg.label}
-                                      </span>
-                                    </td>
-
-                                    {/* Name */}
-                                    <td style={{ padding: '1rem', verticalAlign: 'middle', fontWeight: '600', color: '#333', fontSize: '0.9rem', lineHeight: '1.4', width: '22%', overflow: 'hidden' }}>
-                                      <div style={{ wordBreak: 'break-word', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>
-                                        {item.item_name}
-                                      </div>
-                                    </td>
-
-                                   {/* Current Stock */}
-                                    <td style={{ padding: '1rem', verticalAlign: 'middle', width: '13%' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: '700', color: parseInt(item.current_stock) === 0 ? '#dc3545' : parseInt(item.current_stock) < 10 ? '#ffc107' : '#333', fontSize: '0.92rem', whiteSpace: 'nowrap' }}>
-                                        {item.current_stock} <span style={{ fontWeight: '400', color: '#aaa', fontSize: '0.78rem' }}>{item.unit}</span>
-                                      </div>
-                                    </td>
-
-                                    {/* Min Threshold */}
-                                    <td style={{ padding: '1rem', verticalAlign: 'middle', width: '18%', overflow: 'hidden' }}>
-                                      <InlineMinStockInput item={item} onSave={async (itm, val) => {
-                                        try {
-                                          await inventoryAPI.update(itm.id, { minimum_stock: val });
-                                          showSuccess(`Min. threshold updated for ${itm.item_name}.`);
-                                          loadInventory();
-                                        } catch (err) {
-                                          const { message } = handleAPIError(err);
-                                          setError(message);
-                                        }
-                                      }} />
-                                    </td>
-
-                                    {/* Status */}
-<td className="mobile-hide-status" style={{ padding: '1rem', verticalAlign: 'middle', width: '15%' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.3rem 0.7rem', borderRadius: '20px', background: status.bg, color: status.color, fontWeight: '700', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                                          <i className={`fas ${status.icon}`} style={{ fontSize: '0.7rem' }} />
-                                          {status.label}
-                                        </span>
-                                      </div>
-                                    </td>
-
-                                    {/* Last Restocked */}
-<td className="mobile-hide-restock" style={{ padding: '1rem', verticalAlign: 'middle', width: '11%' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '0.82rem' }}>
-                                        {item.last_restocked_at
-                                          ? new Date(item.last_restocked_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
-                                          : <span className="text-muted">Never</span>}
-                                      </div>
-                                    </td>
-
-                                    {/* Actions — ellipsis dropdown */}
-                                    <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center', width: '5%', overflow: 'hidden' }}>
-                                      <div style={{ position: 'relative', display: 'inline-block' }}>
-                                        <button
-                                          ref={showDropdown === item.id ? dropdownButtonRef : null}
-                                          onClick={(e) => {
-                                            if (showDropdown === item.id) {
-                                              setShowDropdown(null);
-                                            } else {
-                                              const rect = e.currentTarget.getBoundingClientRect();
-                                              dropdownButtonRef.current = e.currentTarget;
-                                              setDropdownPos({
-                                                top: rect.top / ZOOM + (rect.height / ZOOM) / 2,
-                                                left: (rect.left / ZOOM) - 185,
-                                              });
-                                              setShowDropdown(item.id);
-                                            }
-                                          }}
-                                          style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                                          onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                                          onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                          <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="iv-empty">
+                <div className="ic"><i className="fas fa-box-open" /></div>
+                <h6>No items found</h6>
+                <p>{searchTerm || filterType !== 'all' ? 'Try changing or clearing the filters.' : 'Add your first supply item to start tracking stock.'}</p>
+              </div>
+            ) : (
+              <div className="table-responsive" style={{ overflow: 'visible' }}>
+                <table className="iv-table inv-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '30%' }}>Item</th>
+                      <th style={{ width: '18%' }}>Current stock</th>
+                      <th style={{ width: '16%' }}>Min. threshold</th>
+                      <th className="mobile-hide-status" style={{ width: '14%' }}>Status</th>
+                      <th className="mobile-hide-restock" style={{ width: '16%' }}>Last restocked</th>
+                      <th style={{ width: '6%' }} aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invPageItems.map((item, i) => {
+                      const typeCfg = TYPE_CONFIG[item.item_type] || TYPE_CONFIG.microchip;
+                      const status = getStockStatus(item);
+                      const stock = parseInt(item.current_stock) || 0;
+                      const min = parseInt(item.minimum_stock) || 0;
+                      const level = stock === 0 ? 'out' : stock < 10 ? 'low' : 'ok';
+                      const barPct = Math.min(100, (stock / Math.max(min * 2, 20)) * 100);
+                      const speciesCfg = item.species ? (SPECIES_COLORS[item.species] || null) : null;
+                      const expired = expiredBatchMap[item.id] || 0;
+                      const menuOpen = showDropdown === item.id;
+                      return (
+                        <tr key={item.id} className={`iv-row ${level}${menuOpen ? ' raised' : ''}`} style={{ animationDelay: `${i * 0.04}s` }}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                              <div className="iv-type-ic" style={{ '--c': typeCfg.color }}><i className={`fas ${typeCfg.icon}`} /></div>
+                              <div style={{ minWidth: 0 }}>
+                                <div className="iv-strong iv-ellipsis" title={item.item_name}>{item.item_name}</div>
+                                <div className="d-flex align-items-center gap-1 flex-wrap">
+                                  <span className="iv-muted" style={{ color: typeCfg.color, fontWeight: 700 }}>{typeCfg.label}</span>
+                                  {speciesCfg && (
+                                    <span className="iv-species" style={{ background: speciesCfg.bg, color: speciesCfg.color }}>{item.species === 'both' || item.species === 'all' ? 'Dogs & cats' : item.species}</span>
+                                  )}
+                                  {expired > 0 && (
+                                    <span className="iv-species" style={{ background: 'rgba(220,53,69,0.1)', color: '#dc3545' }}>
+                                      <i className="fas fa-exclamation-circle me-1" />{expired} expired
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="iv-stock">
+                              <strong className={level}>{stock}</strong> <span>{item.unit}</span>
+                            </div>
+                            <div className="iv-bar"><div className={level} style={{ width: `${barPct}%` }} /></div>
+                          </td>
+                          <td>
+                            <InlineMinStockInput item={item} onSave={async (itm, val) => {
+                              try {
+                                await inventoryAPI.update(itm.id, { minimum_stock: val });
+                                showSuccess(`Min. threshold updated for ${itm.item_name}.`);
+                                loadInventory();
+                              } catch (err) {
+                                const { message } = handleAPIError(err);
+                                setError(message);
+                              }
+                            }} />
+                          </td>
+                          <td className="mobile-hide-status">
+                            <span className="iv-pill" style={{ color: level === 'low' ? '#b88a00' : status.color, background: status.bg }}>
+                              <i className={`fas ${status.icon}`} />{status.label}
+                            </span>
+                          </td>
+                          <td className="mobile-hide-restock">
+                            {item.last_restocked_at
+                              ? <span style={{ fontSize: '0.85rem' }}>{new Date(item.last_restocked_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                              : <span className="iv-muted">Never</span>}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button
+                                type="button"
+                                className={`iv-icon-btn${menuOpen ? ' on' : ''}`}
+                                onClick={() => setShowDropdown(menuOpen ? null : item.id)}
+                                aria-label={`Options for ${item.item_name}`}
+                                aria-expanded={menuOpen}
+                              >
+                                <i className="fas fa-ellipsis-v" />
+                              </button>
+                              {expired > 0 && <span className="iv-dot">{expired}</span>}
+                              {menuOpen && (
+                                <>
+                                  <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                                  <div className="iv-menu" role="menu">
+                                    <button type="button" role="menuitem" className="iv-menu-item success" onClick={() => { handleOpenRestock(item); setShowDropdown(null); }}>
+                                      <i className="fas fa-plus" />Add stock
+                                    </button>
+                                    <button type="button" role="menuitem" className="iv-menu-item info" onClick={() => { handleOpenBatches(item); setShowDropdown(null); }}>
+                                      <i className="fas fa-layer-group" /><span style={{ flex: 1 }}>View batches</span>
+                                      {expired > 0 && <span className="iv-count-badge">{expired}</span>}
+                                    </button>
+                                    <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { setViewItem(item); setShowViewModal(true); setShowDropdown(null); }}>
+                                      <i className="fas fa-eye" />View details
+                                    </button>
+                                    {item.item_type !== 'microchip' && (
+                                      <>
+                                        <button type="button" role="menuitem" className="iv-menu-item" onClick={() => { handleOpenEditItem(item); setShowDropdown(null); }}>
+                                          <i className="fas fa-pen" />Edit item
                                         </button>
-                                        {expiredBatchMap[item.id] > 0 && (
-                                          <span style={{ position: 'absolute', top: '2px', right: '2px', background: '#dc3545', color: '#fff', borderRadius: '999px', fontSize: '0.5rem', fontWeight: '700', padding: '0.08rem 0.32rem', minWidth: '14px', textAlign: 'center', lineHeight: '1.5', pointerEvents: 'none', border: '1.5px solid #fff' }}>
-                                            {expiredBatchMap[item.id]}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                              
-                            </>
-                          );
-                        })()}
-                      </tbody>
-                    </Table>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+                                        <div className="iv-menu-sep" />
+                                        <button type="button" role="menuitem" className="iv-menu-item danger" onClick={() => { setShowDropdown(null); handleDeleteClick(item); }}>
+                                          <i className="fas fa-trash-alt" />Delete item
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-        {/* Pagination */}
-        {filtered.length > itemsPerPage && (
-          <Row className="mt-4 inv-pagination">
-            <Col className="d-flex justify-content-between align-items-center">
-              <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{Math.ceil(filtered.length / itemsPerPage)}</strong>
+          {/* Pagination */}
+          {filtered.length > itemsPerPage && (
+            <div className="iv-foot">
+              <span className="iv-muted" style={{ fontSize: '0.84rem' }}>
+                Showing <strong style={{ color: '#1f2328' }}>{invStart + 1}–{Math.min(invStart + itemsPerPage, filtered.length)}</strong> of {filtered.length}
               </span>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {/* Prev */}
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                  style={{ background: currentPage === 1 ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === 1 ? '#adb5bd' : '#333', transition: 'all 0.2s' }}
-                  onMouseOver={e => { if (currentPage !== 1) { e.target.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={e => { e.target.style.borderColor = '#dee2e6'; }}>
+              <div className="d-flex align-items-center gap-1">
+                <button type="button" className="iv-page nav" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
                   <i className="fas fa-chevron-left" />
                 </button>
-
-                {/* Page numbers with ellipsis */}
-                {(() => {
-                  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-                  const pages = [];
-                  if (totalPages <= 5) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    pages.push(1);
-                    if (currentPage > 3) pages.push('...');
-                    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
-                    if (currentPage < totalPages - 2) pages.push('...');
-                    pages.push(totalPages);
-                  }
-                  return pages.map((page, idx) => page === '...' ? (
-                    <span key={`ellipsis-${idx}`} style={{ padding: '0.5rem 0.4rem', color: '#6c757d', fontWeight: '600' }}>...</span>
-                  ) : (
-                    <button key={page} onClick={() => setCurrentPage(page)}
-                      style={{ background: currentPage === page ? '#ffc107' : '#fff', border: '2px solid', borderColor: currentPage === page ? '#ffc107' : '#dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', minWidth: '40px', cursor: 'pointer', fontWeight: '700', color: currentPage === page ? '#000' : '#333', transition: 'all 0.2s', boxShadow: currentPage === page ? '0 2px 8px rgba(255,193,7,0.3)' : 'none' }}
-                      onMouseOver={e => { if (currentPage !== page) { e.currentTarget.style.borderColor = '#ffc107'; } }}
-                      onMouseOut={e => { if (currentPage !== page) { e.currentTarget.style.borderColor = '#dee2e6'; } }}>
-                      {page}
-                    </button>
-                  ));
-                })()}
-
-                {/* Next */}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(p + 1, Math.ceil(filtered.length / itemsPerPage)))}
-                  disabled={currentPage === Math.ceil(filtered.length / itemsPerPage)}
-                  style={{ background: currentPage === Math.ceil(filtered.length / itemsPerPage) ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === Math.ceil(filtered.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === Math.ceil(filtered.length / itemsPerPage) ? '#adb5bd' : '#333', transition: 'all 0.2s' }}
-                  onMouseOver={e => { if (currentPage !== Math.ceil(filtered.length / itemsPerPage)) { e.target.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={e => { e.target.style.borderColor = '#dee2e6'; }}>
+                {invPagerNumbers.map(n => (
+                  <button key={n} type="button" className={`iv-page${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+                ))}
+                <button type="button" className="iv-page nav" onClick={() => setCurrentPage(p => Math.min(p + 1, invTotalPages))} disabled={currentPage === invTotalPages} aria-label="Next page">
                   <i className="fas fa-chevron-right" />
                 </button>
               </div>
-            </Col>
-          </Row>
-        )}
+            </div>
+          )}
+        </div>
 
       </Container>
 
@@ -1354,92 +1419,6 @@ const handleDeleteClick = (item) => {
         </Modal.Footer>
       </Modal>
 
-      {/* ── Ellipsis Dropdown Portal ── */}
-      {showDropdown !== null && (
-        <>
-          <div
-            onClick={() => setShowDropdown(null)}
-            style={{ position: 'fixed', inset: 0, zIndex: 1049 }}
-          />
-          <div style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            transform: 'translateY(-50%)',
-            zoom: '0.75',
-            background: '#ffffff',
-            border: '1px solid #e0e0e0',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            minWidth: '185px',
-            zIndex: 1050,
-            overflow: 'hidden',
-          }}>
-            {(() => {
-              const item = inventory.find(i => i.id === showDropdown);
-              if (!item) return null;
-              return (
-                <>
-                  <button
-                    onClick={() => { handleOpenRestock(item); setShowDropdown(null); }}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', transition: 'background 0.2s' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'}
-                    onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                  >
-                    <i className="fas fa-plus" style={{ fontSize: '1rem', width: '18px', textAlign: 'center', color: '#28a745' }} />
-                    <span>Add Stock</span>
-                  </button>
-                  <button
-                    onClick={() => { handleOpenBatches(item); setShowDropdown(null); }}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#0d6efd', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#f0f4ff'}
-                    onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                  >
-                    <i className="fas fa-layer-group" style={{ fontSize: '1rem', width: '18px', textAlign: 'center', color: '#0d6efd' }} />
-                    <span style={{ flex: 1 }}>View Batches</span>
-                    {expiredBatchMap[item.id] > 0 && (
-                      <span style={{ background: '#dc3545', color: '#fff', borderRadius: '999px', fontSize: '0.6rem', fontWeight: '700', padding: '0.1rem 0.42rem', minWidth: '17px', textAlign: 'center', lineHeight: '1.4' }}>
-                        {expiredBatchMap[item.id]}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => { setViewItem(item); setShowViewModal(true); setShowDropdown(null); }}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'}
-                    onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                  >
-                    <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span>View Details</span>
-                  </button>
-                  {item.item_type !== 'microchip' && (
-                    <button
-                      onClick={() => { handleOpenEditItem(item); setShowDropdown(null); }}
-                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#6f42c1', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                      onMouseOver={(e) => e.currentTarget.style.background = '#f8f0ff'}
-                      onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                    >
-                      <i className="fas fa-edit" style={{ fontSize: '1rem', width: '18px', textAlign: 'center', color: '#6f42c1' }} />
-                      <span>Edit Item</span>
-                    </button>
-                  )}
-                  {item.item_type !== 'microchip' && (
-                    <button
-                      onClick={() => handleDeleteClick(item)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                      onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'}
-                      onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                    >
-                      <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                      <span>Delete Item</span>
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </>
-      )}
 
       {/* ── Edit Item Modal ── */}
       <Modal show={showEditItemModal} onHide={() => !editItemLoading && setShowEditItemModal(false)} centered style={{ zoom: '0.75' }}>
