@@ -433,15 +433,36 @@ const streamRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
-  const bg = darkMode
-    ? 'linear-gradient(180deg, #0d0d0d 0%, #111111 100%)'
-    : 'linear-gradient(180deg, #ffffff 0%, #f9f9f9 100%)';
+  const sidebarWidth = collapsed ? '76px' : '248px';
 
-  const border = darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)';
-  const textColor = darkMode ? '#e0e0e0' : '#1a1a1a';
-  const subTextColor = darkMode ? '#666' : '#aaa';
-
-  const sidebarWidth = collapsed ? '72px' : '240px';
+  // Colors for light and dark mode, used by the CSS below
+  const themeVars = darkMode ? {
+    '--sb-bg': '#0f0f10',
+    '--sb-border': 'rgba(255,255,255,0.08)',
+    '--sb-text': '#e5e7eb',
+    '--sb-muted': '#a1a1aa',
+    '--sb-faint': '#71717a',
+    '--sb-hover': 'rgba(255,255,255,0.05)',
+    '--sb-active-bg': 'rgba(255,193,7,0.13)',
+    '--sb-active-text': '#ffd24d',
+    '--sb-icon': '#8b8b94',
+    '--sb-pill': 'rgba(255,255,255,0.05)',
+    '--sb-menu-bg': '#18181b',
+    '--sb-shadow': '0 12px 32px rgba(0,0,0,0.5)',
+  } : {
+    '--sb-bg': '#ffffff',
+    '--sb-border': '#eef0f3',
+    '--sb-text': '#1f2328',
+    '--sb-muted': '#5b6270',
+    '--sb-faint': '#9ca3af',
+    '--sb-hover': '#f5f6f8',
+    '--sb-active-bg': 'rgba(255,193,7,0.14)',
+    '--sb-active-text': '#1f2328',
+    '--sb-icon': '#7b8190',
+    '--sb-pill': '#f6f7f9',
+    '--sb-menu-bg': '#ffffff',
+    '--sb-shadow': '0 12px 32px rgba(16,24,40,0.12)',
+  };
 
   // ─── Nav link configs per role ───────────────────────────────────────────
   const getLandingLinks = () => [
@@ -457,7 +478,6 @@ const streamRef = useRef(null);
       case 'super_admin':
         return [
           { label: 'Dashboard', icon: 'fa-home', to: '/super-admin/dashboard' },
-          
           { label: 'Users', icon: 'fa-users', dropdown: true, dropdownKey: 'users', children: [
             { label: 'Admins', icon: 'fa-user-tie', to: '/super-admin/officials' },
             { label: 'Community', icon: 'fa-users', to: '/super-admin/owners' },
@@ -469,7 +489,7 @@ const streamRef = useRef(null);
           { label: 'Dashboard', icon: 'fa-home', to: '/admin/dashboard' },
           { label: 'Pets', icon: 'fa-paw', dropdown: true, dropdownKey: 'pets', children: [
             { label: 'Pets', icon: 'fa-dog', to: '/admin/pets' },
-            { label: 'Vet  Cards', icon: 'fa-id-card', to: '/admin/vet-cards' },
+            { label: 'Vet Cards', icon: 'fa-id-card', to: '/admin/vet-cards' },
           ]},
           { label: 'Community', icon: 'fa-users', to: '/admin/owners', badge: pendingVerifCount },
           { label: 'Records', icon: 'fa-syringe', to: '/admin/vaccinations' },
@@ -488,12 +508,12 @@ const streamRef = useRef(null);
           { label: 'Map Status', icon: 'fa-map-marked-alt', to: '/community/map-status' },
         ];
       case 'private_clinic':
-  return [
-    { label: 'Dashboard', icon: 'fa-home', to: '/clinic/dashboard' },
-    { label: 'Records', icon: 'fa-clipboard-list', to: '/clinic/records' },
-    { label: 'Reports', icon: 'fa-flag', to: '/clinic/reports' },
-    { label: 'Inventory', icon: 'fa-boxes', to: '/clinic/inventory', badge: expiredBatchCount },
-  ];
+        return [
+          { label: 'Dashboard', icon: 'fa-home', to: '/clinic/dashboard' },
+          { label: 'Records', icon: 'fa-clipboard-list', to: '/clinic/records' },
+          { label: 'Reports', icon: 'fa-flag', to: '/clinic/reports' },
+          { label: 'Inventory', icon: 'fa-boxes', to: '/clinic/inventory', badge: expiredBatchCount },
+        ];
       default:
         return [];
     }
@@ -501,398 +521,319 @@ const streamRef = useRef(null);
 
   const links = getAuthLinks();
 
-  const roleConfig = {
-    super_admin: { name: 'Super Admin', color: '#ef4444', icon: 'fa-crown' },
-    barangay_official: { name: 'Barangay Admin', color: '#ffc107', icon: 'fa-shield-alt' },
-    
-    private_clinic: { name: 'Private Clinic', color: '#22c55e', icon: 'fa-hospital' },
-  };
-  const role = user ? roleConfig[user.role] : null;
+  // Current page (for the top bar title)
+  const currentPage = (() => {
+    for (const link of links) {
+      if (link.to && isActive(link.to)) return { label: link.label, icon: link.icon };
+      const child = link.children?.find(c => isActive(c.to));
+      if (child) return { label: child.label, icon: child.icon, parent: link.label };
+    }
+    return null;
+  })();
 
-  // ─── Verification handlers ───────────────────────────────────────────────
+  // Name, sub-label and initials shown in the profile button
+  const displayName = !user ? '' :
+    user.role === 'super_admin' ? 'Super Admin'
+    : user.role === 'private_clinic' ? (user.clinic_name || `${user.first_name} ${user.last_name}`)
+    : `${user.first_name} ${user.last_name}`;
+  const initials = (displayName || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+
+  const roleLabel = (() => {
+    if (!user) return null;
+    const rc = {
+      super_admin:       { name: 'Super Admin', color: '#ef4444', icon: 'fa-crown' },
+      barangay_official: { name: user.office_role || 'Barangay Admin', color: '#e0a800', icon: 'fa-shield-alt' },
+      private_clinic:    { name: 'Private Clinic', color: '#22c55e', icon: 'fa-hospital' },
+    };
+    return rc[user.role] || null;
+  })();
+  const verification = user?.role === 'pet_owner' && ownerProfile
+    ? (VERIFICATION_CONFIG[ownerProfile.verification_status] || VERIFICATION_CONFIG.not_verified)
+    : null;
+  const pillSub = verification
+    ? { name: verification.label, color: verification.color, icon: verification.icon }
+    : (user?.role === 'super_admin' ? null : roleLabel);
+
+  const goToEditProfile = () => {
+    closeDropdown();
+    setSidebarAnim('sidebar-slide-out');
+    setMobileNavAnim('mobile-nav-slide-out');
+    setMobileTopAnim('mobile-top-slide-out');
+    setTimeout(() => {
+      navigate('/edit-profile', { state: { from: location.pathname } });
+    }, 260);
+  };
+
+  const toggleGroup = (key) => {
+    if (key === 'users') setUsersDropdownOpen(o => !o);
+    else setPetsDropdownOpen(o => !o);
+  };
 
   // ─── Shared link renderer ────────────────────────────────────────────────
-  const renderLink = (link, idx) => {
-  // Dropdown group renderer
-  if (link.dropdown) {
-    const anyChildActive = link.children?.some(c => isActive(c.to));
-    const isOpen = link.dropdownKey === 'users' ? usersDropdownOpen : petsDropdownOpen;
+  const renderLink = (link, idx, isMobile) => {
+    const compact = collapsed && !isMobile;
 
-    const groupStyle = {
-      display: 'flex',
-      alignItems: 'center',
-      gap: collapsed ? 0 : '0.75rem',
-      padding: collapsed ? '0.75rem' : '0.7rem 1rem',
-      borderRadius: '12px',
-      marginBottom: '3px',
-      cursor: 'pointer',
-      transition: 'all 0.25s ease',
-      background: anyChildActive
-        ? 'linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(255,179,0,0.15) 100%)'
-        : 'transparent',
-      color: anyChildActive ? '#ffc107' : (darkMode ? '#bbbbbb' : '#333333'),
-      fontWeight: anyChildActive ? '700' : '500',
-      fontSize: '0.875rem',
-      justifyContent: collapsed ? 'center' : 'flex-start',
-      position: 'relative',
-      whiteSpace: 'nowrap',
-      userSelect: 'none',
-    };
+    if (link.dropdown) {
+      const anyChildActive = link.children?.some(c => isActive(c.to));
+      const isOpen = link.dropdownKey === 'users' ? usersDropdownOpen : petsDropdownOpen;
+      return (
+        <div key={idx} className={`sb-group${isOpen && !compact ? ' open' : ''}`}>
+          <button
+            type="button"
+            className={`sb-link${anyChildActive ? ' child-active' : ''}${anyChildActive && compact ? ' active' : ''}`}
+            onClick={() => {
+              if (compact) {
+                // Expand the sidebar so the sub-pages can be reached
+                setCollapsed(false);
+                if (!isOpen) toggleGroup(link.dropdownKey);
+              } else {
+                toggleGroup(link.dropdownKey);
+              }
+            }}
+            aria-expanded={isOpen && !compact}
+            title={compact ? link.label : undefined}
+          >
+            <i className={`fas ${link.icon} ic`} />
+            {!compact && (
+              <>
+                <span className="sb-label">{link.label}</span>
+                <i className="fas fa-chevron-down sb-chev" />
+              </>
+            )}
+          </button>
 
-    return (
-      <div key={idx}>
-        <div
-          style={groupStyle}
-          onClick={() => {
-            if (!collapsed) {
-              if (link.dropdownKey === 'users') setUsersDropdownOpen(o => !o);
-              else setPetsDropdownOpen(o => !o);
-            }
-          }}
-          onMouseOver={(e) => {
-            if (!anyChildActive) {
-              e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.12)';
-              e.currentTarget.style.color = darkMode ? '#ffffff' : '#1a1a1a';
-            }
-          }}
-          onMouseOut={(e) => {
-            if (!anyChildActive) {
-              e.currentTarget.style.background = anyChildActive ? 'linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(255,179,0,0.15) 100%)' : 'transparent';
-              e.currentTarget.style.color = anyChildActive ? '#ffc107' : (darkMode ? '#bbbbbb' : '#333333');
-            }
-          }}
-          title={collapsed ? link.label : undefined}
-        >
-          <i className={`fas ${link.icon}`} style={{
-            fontSize: '0.95rem',
-            width: '18px',
-            textAlign: 'center',
-            flexShrink: 0,
-            color: anyChildActive ? '#ffc107' : (darkMode ? '#888888' : '#666666'),
-          }} />
-          {!collapsed && (
-            <>
-              <span style={{ flex: 1, letterSpacing: '0.01em' }}>{link.label}</span>
-              <i
-                className={`fas fa-chevron-${isOpen ? 'up' : 'down'}`}
-                style={{
-                  fontSize: '0.65rem',
-                  color: darkMode ? '#666' : '#aaa',
-                  transition: 'transform 0.25s',
-                  transform: isOpen ? 'rotate(0deg)' : 'rotate(0deg)',
-                }}
-              />
-            </>
+          {!compact && isOpen && (
+            <div className="sb-children">
+              {link.children?.map((child, cIdx) => {
+                const childActive = isActive(child.to);
+                return (
+                  <Link
+                    key={cIdx}
+                    to={child.to}
+                    className={`sb-sublink${childActive ? ' active' : ''}`}
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <i className={`fas ${child.icon} ic`} />
+                    <span className="sb-label">{child.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           )}
         </div>
+      );
+    }
 
-        {/* Children drawer */}
-        {!collapsed && isOpen && (
-          <div style={{
-            marginLeft: '1.25rem',
-            marginBottom: '4px',
-            borderLeft: `2px solid ${darkMode ? 'rgba(255,193,7,0.2)' : 'rgba(255,193,7,0.3)'}`,
-            paddingLeft: '0.5rem',
-            overflow: 'hidden',
-            animation: 'dropdownFadeIn 0.2s ease forwards',
-          }}>
-            {link.children?.map((child, cIdx) => {
-              const childActive = isActive(child.to);
-              return (
-                <Link
-                  key={cIdx}
-                  to={child.to}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.6rem',
-                    padding: '0.55rem 0.75rem',
-                    borderRadius: '10px',
-                    marginBottom: '2px',
-                    textDecoration: 'none',
-                    background: childActive
-                      ? 'linear-gradient(135deg, #ffc107 0%, #ffb300 100%)'
-                      : 'transparent',
-                    color: childActive ? '#1a1a1a' : (darkMode ? '#bbbbbb' : '#444444'),
-                    fontWeight: childActive ? '700' : '500',
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s',
-                    boxShadow: childActive ? '0 3px 10px rgba(255,193,7,0.3)' : 'none',
-                  }}
-                  onClick={() => setMobileOpen(false)}
-                  onMouseOver={(e) => {
-                    if (!childActive) {
-                      e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.1)';
-                      e.currentTarget.style.color = darkMode ? '#fff' : '#1a1a1a';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (!childActive) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#444444';
-                    }
-                  }}
-                >
-                  <i className={`fas ${child.icon}`} style={{
-                    fontSize: '0.82rem',
-                    width: '16px',
-                    textAlign: 'center',
-                    color: childActive ? '#1a1a1a' : (darkMode ? '#888' : '#777'),
-                  }} />
-                  <span>{child.label}</span>
-                </Link>
-              );
-            })}
+    const active = link.to ? isActive(link.to) : false;
+    const content = (
+      <>
+        <i className={`fas ${link.icon} ic`} />
+        {!compact && <span className="sb-label">{link.label}</span>}
+        {link.badge > 0 && (
+          <span className={`sb-badge${compact ? ' dot' : ''}`}>{link.badge > 9 ? '9+' : link.badge}</span>
+        )}
+      </>
+    );
+
+    if (link.to) {
+      return (
+        <Link
+          key={idx}
+          to={link.to}
+          className={`sb-link${active ? ' active' : ''}`}
+          onClick={() => setMobileOpen(false)}
+          title={compact ? link.label : undefined}
+          aria-current={active ? 'page' : undefined}
+        >
+          {content}
+        </Link>
+      );
+    }
+
+    return (
+      <button key={idx} type="button" className="sb-link" onClick={link.action} title={compact ? link.label : undefined}>
+        {content}
+      </button>
+    );
+  };
+
+  // ─── Sidebar inner content ───────────────────────────────────────────────
+  const sidebarContent = (isMobile = false) => {
+    const compact = collapsed && !isMobile;
+    return (
+      <div className={`sb-inner${compact ? ' sb-collapsed' : ''}`}>
+        {/* Logo */}
+        <div className="sb-brand">
+          <Link to="/" className="sb-brand-link" title="PetUnity">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="sb-logo"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+            {!compact && (
+              <span className="sb-brand-text">
+                <span className="name"><span style={{ color: '#ffc107' }}>Pet</span>Unity</span>
+                <span className="sub">Muntinlupa City</span>
+              </span>
+            )}
+          </Link>
+        </div>
+
+        {/* Nav links */}
+        <nav className="sb-nav">
+          {!compact && links.length > 0 && <div className="sb-section">Main menu</div>}
+          {links.map((link, idx) => renderLink(link, idx, isMobile))}
+        </nav>
+
+        {/* Collapse toggle */}
+        {!isMobile && (
+          <div className="sb-foot">
+            <button
+              type="button"
+              className="sb-link sb-collapse-btn"
+              onClick={() => setCollapsed(!collapsed)}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              <i className={`fas ${collapsed ? 'fa-angle-double-right' : 'fa-angle-double-left'} ic`} />
+              {!collapsed && <span className="sb-label">Collapse</span>}
+            </button>
           </div>
         )}
       </div>
     );
-  }
-
-  const active = link.to ? isActive(link.to) : false;
-  const commonStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: collapsed ? 0 : '0.75rem',
-    padding: collapsed ? '0.75rem' : '0.7rem 1rem',
-    borderRadius: '12px',
-    marginBottom: '3px',
-    cursor: 'pointer',
-    transition: 'all 0.25s ease',
-    background: active
-      ? 'linear-gradient(135deg, #ffc107 0%, #ffb300 100%)'
-      : 'transparent',
-    color: active ? '#1a1a1a' : (darkMode ? '#bbbbbb' : '#333333'),
-    fontWeight: active ? '700' : '500',
-    fontSize: '0.875rem',
-    textDecoration: 'none',
-    justifyContent: collapsed ? 'center' : 'flex-start',
-    position: 'relative',
-    overflow: 'hidden',
-    whiteSpace: 'nowrap',
-    boxShadow: active ? '0 4px 14px rgba(255,193,7,0.35)' : 'none',
   };
 
-  const iconStyle = {
-    fontSize: '0.95rem',
-    width: '18px',
-    textAlign: 'center',
-    flexShrink: 0,
-    color: active ? '#1a1a1a' : (darkMode ? '#888888' : '#666666'),
-    transition: 'color 0.2s',
-  };
-
-  const handleMouseOver = (e) => {
-    if (!active) {
-      e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.12)';
-      e.currentTarget.style.color = darkMode ? '#ffffff' : '#1a1a1a';
+  const mobileLinks = links.flatMap((link, idx) => {
+    if (link.dropdown) {
+      return (link.children || []).map((child, cIdx) => ({ ...child, _key: `${idx}-${cIdx}` }));
     }
-  };
-  const handleMouseOut = (e) => {
-    if (!active) {
-      e.currentTarget.style.background = 'transparent';
-      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#333333';
-    }
-  };
-
-  const icon = <i className={`fas ${link.icon}`} style={iconStyle} />;
-
-  const content = (
-    <>
-      {icon}
-      {!collapsed && <span style={{ flex: 1, letterSpacing: '0.01em' }}>{link.label}</span>}
-      {!collapsed && link.badge > 0 && (
-        <span style={{
-          background: '#ef4444',
-          color: '#fff',
-          borderRadius: '999px',
-          fontSize: '0.6rem',
-          fontWeight: '700',
-          padding: '0.1rem 0.42rem',
-          minWidth: '17px',
-          textAlign: 'center',
-          lineHeight: '1.4',
-          flexShrink: 0,
-        }}>
-          {link.badge > 9 ? '9+' : link.badge}
-        </span>
-      )}
-    </>
-  );
-
-  if (link.to) {
-    return (
-      <Link
-        key={idx}
-        to={link.to}
-        style={commonStyle}
-        onMouseOver={handleMouseOver}
-        onMouseOut={handleMouseOut}
-        onClick={() => setMobileOpen(false)}
-        title={collapsed ? link.label : undefined}
-      >
-        {content}
-      </Link>
-    );
-  }
-
-  return (
-    <div
-      key={idx}
-      style={commonStyle}
-      onMouseOver={handleMouseOver}
-      onMouseOut={handleMouseOut}
-      onClick={link.action}
-      title={collapsed ? link.label : undefined}
-    >
-      {content}
-    </div>
-  );
-};
-
-  // ─── Sidebar inner content ───────────────────────────────────────────────
-  const sidebarContent = (isMobile = false) => (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100vh',
-        overflow: 'hidden',
-        padding: '0',
-      }}
-    >
-      {/* ── Logo + Collapse btn ── */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed && !isMobile ? 'center' : 'space-between',
-          padding: '1.1rem 1rem 1rem',
-          borderBottom: `1px solid ${border}`,
-          flexShrink: 0,
-        }}
-      >
-        {(!collapsed || isMobile) && (
-          <Link
-            to="/"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.6rem',
-              textDecoration: 'none',
-              flex: 1,
-              overflow: 'hidden',
-            }}
-          >
-            <img
-              src="/logo.png"
-              alt="Logo"
-              style={{ width: '36px', height: '36px', objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(255,193,7,0.4))' }}
-              onError={(e) => { e.target.style.display = 'none'; }}
-            />
-            <span style={{ fontWeight: '700', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>
-              <span style={{ color: '#ffc107' }}>Pet</span>
-              <span style={{ color: textColor }}>Unity</span>
-            </span>
-          </Link>
-        )}
-
-        {collapsed && !isMobile && (
-          <img
-            src="/logo.png"
-            alt="Logo"
-            style={{ width: '32px', height: '32px', objectFit: 'contain', filter: 'drop-shadow(0 0 6px rgba(255,193,7,0.4))' }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-        )}
-
-        {!isMobile && (
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.3rem',
-              borderRadius: '8px',
-              color: darkMode ? '#666' : '#aaa',
-              transition: 'all 0.2s',
-              flexShrink: 0,
-              marginLeft: collapsed ? 0 : '0.3rem',
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.color = '#ffc107'; e.currentTarget.style.background = 'rgba(255,193,7,0.1)'; }}
-            onMouseOut={(e) => { e.currentTarget.style.color = darkMode ? '#666' : '#aaa'; e.currentTarget.style.background = 'transparent'; }}
-            title={collapsed ? 'Expand' : 'Collapse'}
-          >
-            <i className={`fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`} style={{ fontSize: '0.75rem' }} />
-          </button>
-        )}
-      </div>
-
-      {/* ── Nav links — scrollable, never pushes bottom out ── */}
-      <nav style={{
-  flex: 1,
-  overflowY: 'auto',
-  overflowX: 'hidden',
-  padding: '1rem 0.5rem 0.75rem',
-  scrollbarWidth: 'none',
-  minHeight: 0
-}}>
-  {!collapsed && role && (
-    <div style={{ padding: '0 0.6rem', marginBottom: '0.5rem' }}>
-      <span style={{
-        fontSize: '0.62rem',
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: '0.1em',
-        color: darkMode ? '#333333' : '#cccccc',
-      }}>
-        Menu
-      </span>
-    </div>
-  )}
-  {links.map((link, idx) => renderLink(link, idx))}
-</nav>
-
-      {/* ── Bottom section — empty, no profile/dark mode here anymore ── */}
-      <div style={{ flexShrink: 0 }} />
-    </div>
-  );
+    return [{ ...link, _key: String(idx) }];
+  });
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
         .sidebar-scroll::-webkit-scrollbar { display: none; }
         nav::-webkit-scrollbar { display: none; }
+
+        /* ── Sidebar ── */
+        .sb-inner { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--sb-bg); color: var(--sb-text); }
+        .sb-brand { display: flex; align-items: center; height: 64px; padding: 0 1.1rem; border-bottom: 1px solid var(--sb-border); flex-shrink: 0; }
+        .sb-collapsed .sb-brand { justify-content: center; padding: 0; }
+        .sb-brand-link { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; min-width: 0; }
+        .sb-logo { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+        .sb-brand-text { display: flex; flex-direction: column; line-height: 1.15; white-space: nowrap; animation: sbFade 0.25s ease; }
+        .sb-brand-text .name { font-weight: 800; font-size: 1.15rem; color: var(--sb-text); letter-spacing: -0.01em; }
+        .sb-brand-text .sub { font-size: 0.68rem; font-weight: 600; color: var(--sb-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+
+        .sb-nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 1rem 0.75rem; scrollbar-width: none; min-height: 0; }
+        .sb-section { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--sb-faint); padding: 0 0.85rem; margin-bottom: 0.5rem; white-space: nowrap; }
+
+        .sb-link { position: relative; display: flex; align-items: center; gap: 0.75rem; width: 100%; height: 42px; padding: 0 0.85rem; margin-bottom: 2px; border: none; border-radius: 10px; background: transparent; color: var(--sb-muted); font-size: 0.875rem; font-weight: 500; text-decoration: none; text-align: left; white-space: nowrap; cursor: pointer; transition: background 0.18s ease, color 0.18s ease; }
+        .sb-link:hover { background: var(--sb-hover); color: var(--sb-text); }
+        .sb-link .ic { width: 20px; text-align: center; font-size: 0.95rem; color: var(--sb-icon); flex-shrink: 0; transition: color 0.18s ease, transform 0.18s ease; }
+        .sb-link:hover .ic { color: var(--sb-text); }
+        .sb-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        .sb-link.active { background: var(--sb-active-bg); color: var(--sb-active-text); font-weight: 600; }
+        .sb-link.active .ic { color: #e0a800; }
+        .sb-link.active::before { content: ''; position: absolute; left: -0.75rem; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: #ffc107; animation: sbBar 0.25s ease-out; }
+        .sb-link.child-active { color: var(--sb-text); font-weight: 600; }
+        .sb-link.child-active .ic { color: #e0a800; }
+        .sb-chev { font-size: 0.65rem; color: var(--sb-faint); transition: transform 0.25s ease; }
+        .sb-group.open .sb-chev { transform: rotate(180deg); }
+        .sb-children { margin: 0 0 6px 1.6rem; padding-left: 0.6rem; border-left: 1px solid var(--sb-border); animation: sbDrop 0.22s ease-out; }
+        .sb-sublink { display: flex; align-items: center; gap: 0.6rem; height: 36px; padding: 0 0.75rem; margin-bottom: 2px; border-radius: 8px; color: var(--sb-muted); font-size: 0.84rem; font-weight: 500; text-decoration: none; transition: background 0.18s ease, color 0.18s ease; }
+        .sb-sublink .ic { width: 16px; text-align: center; font-size: 0.8rem; color: var(--sb-icon); }
+        .sb-sublink:hover { background: var(--sb-hover); color: var(--sb-text); }
+        .sb-sublink.active { background: var(--sb-active-bg); color: var(--sb-active-text); font-weight: 600; }
+        .sb-sublink.active .ic { color: #e0a800; }
+
+        .sb-badge { background: #ef4444; color: #fff; border-radius: 999px; font-size: 0.62rem; font-weight: 700; padding: 0.1rem 0.42rem; min-width: 18px; text-align: center; line-height: 1.4; flex-shrink: 0; }
+        .sb-badge.dot { position: absolute; top: 5px; right: 12px; font-size: 0.55rem; min-width: 16px; padding: 0.05rem 0.3rem; box-shadow: 0 0 0 2px var(--sb-bg); }
+
+        .sb-collapsed .sb-link { justify-content: center; gap: 0; padding: 0; }
+        .sb-collapsed .sb-link .ic { font-size: 1.02rem; }
+        .sb-collapsed .sb-link.active::before { left: -0.75rem; }
+
+        .sb-foot { flex-shrink: 0; padding: 0.6rem 0.75rem 0.85rem; border-top: 1px solid var(--sb-border); }
+        .sb-collapse-btn { margin-bottom: 0; }
+
+        .sb-link:focus-visible, .sb-sublink:focus-visible, .sb-brand-link:focus-visible, .sb-icon-btn:focus-visible, .profile-pill:focus-visible, .sb-menu-item:focus-visible, .sb-tab:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
+
+        @keyframes sbFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes sbBar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        @keyframes sbDrop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Top bar ── */
+        .sb-page { display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 0; padding-left: 1.5rem; }
+        .sb-page .ic { width: 34px; height: 34px; border-radius: 10px; background: var(--sb-active-bg); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+        .sb-page .crumb { font-size: 0.72rem; color: var(--sb-faint); font-weight: 600; line-height: 1.1; }
+        .sb-page .title { font-size: 0.98rem; font-weight: 700; color: var(--sb-text); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sb-icon-btn { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--sb-border); background: var(--sb-bg); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.18s ease, border-color 0.18s ease; padding: 0; }
+        .sb-icon-btn:hover { background: var(--sb-hover); border-color: #ffc107; }
+        .sb-icon-btn img { width: 18px; height: 18px; object-fit: contain; }
+
+        .profile-pill { display: flex; align-items: center; gap: 0.65rem; padding: 0.3rem 0.75rem 0.3rem 0.3rem; border-radius: 999px; background: var(--sb-pill); border: 1px solid var(--sb-border); cursor: pointer; user-select: none; transition: background 0.18s ease, border-color 0.18s ease; }
+        .profile-pill:hover, .profile-pill.open { border-color: rgba(255,193,7,0.6); background: var(--sb-active-bg); }
+        .sb-avatar { position: relative; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #ffd54f, #ffb300); color: #1f2328; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; flex-shrink: 0; letter-spacing: 0.02em; }
+        .sb-avatar.lg { width: 44px; height: 44px; font-size: 0.95rem; }
+        .sb-avatar .online { position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; border: 2px solid var(--sb-bg); }
+        .sb-pill-text { line-height: 1.25; min-width: 0; }
+        .sb-pill-name { font-size: 0.82rem; font-weight: 700; color: var(--sb-text); white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+        .sb-pill-sub { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; }
+        .profile-pill .sb-chev { margin-left: 0.15rem; }
+        .profile-pill.open .sb-chev { transform: rotate(180deg); }
+
+        .profile-dropdown-menu { position: absolute; top: calc(100% + 0.5rem); right: 0; min-width: 260px; background: var(--sb-menu-bg); border: 1px solid var(--sb-border); border-radius: 14px; box-shadow: var(--sb-shadow); z-index: 10001; padding: 0.4rem; overflow: hidden; }
+        .sb-menu-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.7rem 0.85rem; }
+        .sb-menu-head .n { font-size: 0.9rem; font-weight: 700; color: var(--sb-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .sb-menu-head .e { font-size: 0.75rem; color: var(--sb-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .sb-chip { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.35rem; border-radius: 999px; padding: 0.15rem 0.55rem; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+        .sb-menu-sep { height: 1px; background: var(--sb-border); margin: 0.3rem 0.2rem; }
+        .sb-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.6rem 0.7rem; border: none; border-radius: 9px; background: transparent; color: var(--sb-text); font-size: 0.84rem; font-weight: 500; text-align: left; cursor: pointer; transition: background 0.15s ease; }
+        .sb-menu-item .ic { width: 28px; height: 28px; border-radius: 8px; background: var(--sb-hover); color: var(--sb-muted); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+        .sb-menu-item:hover { background: var(--sb-hover); }
+        .sb-menu-item.warn { color: #b88a00; }
+        .sb-menu-item.warn .ic { background: rgba(255,193,7,0.15); color: #e0a800; }
+        .sb-menu-item.danger { color: #ef4444; }
+        .sb-menu-item.danger .ic { background: rgba(239,68,68,0.1); color: #ef4444; }
+        .sb-menu-item.danger:hover { background: rgba(239,68,68,0.07); }
+
+        /* ── Mobile bottom bar ── */
+        .sb-tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 62px; height: 56px; padding: 0 0.6rem; text-decoration: none; color: var(--sb-icon); }
+        .sb-tab i { font-size: 1.05rem; transition: transform 0.2s ease; }
+        .sb-tab span { font-size: 0.62rem; font-weight: 600; white-space: nowrap; }
+        .sb-tab.active { color: #e0a800; }
+        .sb-tab.active span { color: var(--sb-text); font-weight: 700; }
+        .sb-tab.active i { transform: translateY(-1px); }
+        .sb-tab.active::before { content: ''; position: absolute; top: 0; left: 50%; width: 26px; height: 3px; margin-left: -13px; border-radius: 0 0 3px 3px; background: #ffc107; animation: sbFade 0.25s ease; }
+        .sb-tab .sb-badge { position: absolute; top: 6px; right: 12px; font-size: 0.5rem; min-width: 15px; padding: 0.05rem 0.3rem; }
+
         @media (max-width: 991px) {
           .sidebar-desktop { display: none !important; }
           .sidebar-spacer  { display: none !important; }
           .sidebar-bottom-bar { display: flex !important; }
-          .top-navbar-bar { left: 0 !important; top: 0 !important; height: 64px !important; padding-right: 0.75rem !important; gap: 0.4rem !important; }
+          .top-navbar-bar { left: 0 !important; top: 0 !important; height: 64px !important; padding-right: 0.75rem !important; gap: 0.5rem !important; }
           .flex-grow-1 main, main.flex-grow-1 { padding-bottom: 64px !important; }
           .sidebar-mobile-toggle { display: none !important; }
           .navbar-toggler { display: none !important; }
           .modal { zoom: 0.75 !important; }
-          .profile-pill { padding: 0.25rem 0.5rem !important; gap: 0.3rem !important; }
-          .profile-pill > div:first-child { width: 22px !important; height: 22px !important; }
-          .profile-pill > div:first-child i { font-size: 0.55rem !important; }
-          .profile-pill > div:first-child > div:last-child { width: 6px !important; height: 6px !important; }
-          .profile-pill > div:nth-child(2) > div:first-child { font-size: 0.7rem !important; }
-          .profile-pill > div:nth-child(2) > div:last-child { font-size: 0.55rem !important; }
-          .profile-pill > i:last-child { display: none !important; }
+          .sb-page { display: none !important; }
+          .profile-pill { padding: 0.2rem 0.5rem 0.2rem 0.2rem !important; gap: 0.4rem !important; }
+          .profile-pill .sb-avatar { width: 28px !important; height: 28px !important; font-size: 0.65rem !important; }
+          .profile-pill .sb-pill-name { font-size: 0.72rem !important; max-width: 120px !important; }
+          .profile-pill .sb-pill-sub { font-size: 0.56rem !important; }
+          .profile-pill .sb-chev { display: none !important; }
           .landing-brand { display: none !important; }
           .landing-register-btn { display: none !important; }
           .landing-nav-label { display: none !important; }
           .landing-nav-icon { font-size: 1.1rem !important; margin: 0 !important; }
           .landing-nav-links { display: none !important; }
           .navbar-mobile-brand { display: flex !important; }
-          .profile-dropdown-menu { zoom: 0.82 !important; min-width: 190px !important; right: -0.25rem !important; }
-          .logout-modal-body { padding: 1.75rem !important; }
-          .logout-modal-body h5 { font-size: 1.1rem !important; }
-          .logout-modal-body p { font-size: 0.88rem !important; }
-          .logout-modal-body .btn { padding: 0.55rem 1.1rem !important; font-size: 0.85rem !important; min-width: 100px !important; }
-          .logout-modal-icon { width: 64px !important; height: 64px !important; margin-bottom: 0.85rem !important; }
-          .logout-modal-icon img { width: 32px !important; height: 32px !important; }
+          .profile-dropdown-menu { zoom: 0.85 !important; min-width: 230px !important; right: -0.25rem !important; }
+          .logout-modal-body { padding: 1.5rem !important; }
         }
         @media (min-width: 992px) {
           .sidebar-mobile-overlay { display: none !important; }
@@ -900,6 +841,11 @@ const streamRef = useRef(null);
           .sidebar-bottom-bar { display: none !important; }
           .qr-scanner-icon { display: none !important; }
         }
+        @media (prefers-reduced-motion: reduce) {
+          .sb-brand-text, .sb-children, .sb-link.active::before, .sb-tab.active::before { animation: none !important; }
+          .sb-link, .sb-sublink, .sb-chev, .profile-pill { transition: none !important; }
+        }
+
         @keyframes sidebarSlideOut {
           0%   { opacity: 1; transform: translateX(0); }
           100% { opacity: 0; transform: translateX(-30px); }
@@ -924,50 +870,47 @@ const streamRef = useRef(null);
           0%   { opacity: 0; transform: translateY(-30px); }
           100% { opacity: 1; transform: translateY(0); }
         }
-        .sidebar-slide-out {
-          animation: sidebarSlideOut 0.28s cubic-bezier(0.4,0,0.2,1) forwards;
+        .sidebar-slide-out { animation: sidebarSlideOut 0.28s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .sidebar-slide-in { animation: sidebarSlideIn 0.32s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .mobile-nav-slide-out { animation: mobileNavSlideOut 0.28s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .mobile-nav-slide-in { animation: mobileNavSlideIn 0.32s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .mobile-top-slide-out { animation: mobileTopSlideOut 0.28s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .mobile-top-slide-in { animation: mobileTopSlideIn 0.32s cubic-bezier(0.4,0,0.2,1) forwards; }
+        @keyframes dropdownFadeIn {
+          0%   { opacity: 0; transform: translateY(-8px) scale(0.98); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .sidebar-slide-in {
-          animation: sidebarSlideIn 0.32s cubic-bezier(0.4,0,0.2,1) forwards;
+        @keyframes dropdownFadeOut {
+          0%   { opacity: 1; transform: translateY(0) scale(1); }
+          100% { opacity: 0; transform: translateY(-8px) scale(0.98); }
         }
-        .mobile-nav-slide-out {
-          animation: mobileNavSlideOut 0.28s cubic-bezier(0.4,0,0.2,1) forwards;
-        }
-        .mobile-nav-slide-in {
-          animation: mobileNavSlideIn 0.32s cubic-bezier(0.4,0,0.2,1) forwards;
-        }
-        .mobile-top-slide-out {
-          animation: mobileTopSlideOut 0.28s cubic-bezier(0.4,0,0.2,1) forwards;
-        }
-        .mobile-top-slide-in {
-          animation: mobileTopSlideIn 0.32s cubic-bezier(0.4,0,0.2,1) forwards;
-        }
-          @keyframes dropdownFadeIn {
-  0% {
-    opacity: 0;
-    transform: translateY(-16px);
-    max-height: 0;
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 500px;
-  }
-}
-@keyframes dropdownFadeOut {
-  0% {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 500px;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-16px);
-    max-height: 0;
-  }
-}
-    .modal { z-index: 99999 !important; }
+        .modal { z-index: 99999 !important; }
         .modal-backdrop { z-index: 99998 !important; }
+
+        /* ── Modals ── */
+        .sb-modal .modal-content { border: none; border-radius: 16px; box-shadow: 0 24px 60px rgba(16,24,40,0.2); overflow: hidden; }
+        .sb-modal-head { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; border-bottom: 1px solid #eef0f3; }
+        .sb-modal-head .ic { width: 40px; height: 40px; border-radius: 11px; background: rgba(255,193,7,0.15); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+        .sb-modal-head .t { font-weight: 700; font-size: 1rem; color: #1f2328; line-height: 1.2; }
+        .sb-modal-head .s { font-size: 0.78rem; color: #6b7280; }
+        .sb-modal-close { margin-left: auto; width: 32px; height: 32px; border-radius: 8px; border: none; background: transparent; color: #6b7280; display: flex; align-items: center; justify-content: center; }
+        .sb-modal-close:hover { background: #f3f4f6; color: #1f2328; }
+        .sb-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.65rem 1.2rem; border-radius: 10px; font-weight: 600; font-size: 0.9rem; border: 1px solid transparent; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+        .sb-btn.primary { background: #ffc107; color: #1f2328; }
+        .sb-btn.primary:hover { background: #f0b400; box-shadow: 0 4px 12px rgba(255,193,7,0.35); transform: translateY(-1px); }
+        .sb-btn.ghost { background: #fff; color: #1f2328; border-color: #e5e7eb; }
+        .sb-btn.ghost:hover { background: #f6f7f9; }
+        .sb-btn.danger { background: #ef4444; color: #fff; }
+        .sb-btn.danger:hover { background: #dc2626; box-shadow: 0 4px 12px rgba(239,68,68,0.3); transform: translateY(-1px); }
+        .sb-pet-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.9rem 1rem; border-radius: 12px; background: #fafbfc; border: 1px solid #eef0f3; margin-bottom: 0.85rem; }
+        .sb-pet-head .pic { width: 48px; height: 48px; border-radius: 12px; background: #fff; border: 1px solid #eef0f3; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .sb-pet-head .pic img { width: 32px; height: 32px; object-fit: contain; }
+        .sb-details { border: 1px solid #eef0f3; border-radius: 12px; overflow: hidden; margin-bottom: 1rem; }
+        .sb-details .row-i { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0.85rem; font-size: 0.82rem; animation: sbFade 0.3s ease backwards; }
+        .sb-details .row-i + .row-i { border-top: 1px solid #f3f4f6; }
+        .sb-details .k { color: #6b7280; font-weight: 500; white-space: nowrap; }
+        .sb-details .v { color: #1f2328; font-weight: 600; text-align: right; word-break: break-word; }
+
         @keyframes scanSuccess {
           0%   { transform: scale(0.5); opacity: 0; }
           50%  { transform: scale(1.15); opacity: 1; }
@@ -996,15 +939,9 @@ const streamRef = useRef(null);
           60%     { transform: translateX(-6px); }
           80%     { transform: translateX(6px); }
         }
-        .scan-error-overlay {
-          animation: scanError 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
-        }
-        .scan-error-icon {
-          animation: shake 0.5s ease-in-out 0.3s;
-        }
-        .scan-success-overlay {
-          animation: scanSuccess 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
-        }
+        .scan-error-overlay { animation: scanError 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+        .scan-error-icon { animation: shake 0.5s ease-in-out 0.3s; }
+        .scan-success-overlay { animation: scanSuccess 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
         .scan-line {
           position: absolute;
           left: 8px; right: 8px;
@@ -1015,17 +952,17 @@ const streamRef = useRef(null);
         }
       ` }} />
 
-      {/* ── Top Navbar Profile Bar ── */}
+      {/* ── Top bar ── */}
       {!isLandingPage && user && (
         <div className={`top-navbar-bar ${mobileTopAnim}`} style={{
+          ...themeVars,
           position: 'fixed',
           top: 0,
           left: sidebarWidth,
           right: 0,
           height: '64px',
-          background: darkMode ? '#0d0d0d' : '#ffffff',
-          borderBottom: `1px solid ${border}`,
-          backdropFilter: 'none',
+          background: 'var(--sb-bg)',
+          borderBottom: '1px solid var(--sb-border)',
           zIndex: 10000,
           display: 'flex',
           alignItems: 'center',
@@ -1033,31 +970,45 @@ const streamRef = useRef(null);
           paddingRight: '1.5rem',
           gap: '0.75rem',
           transition: 'left 0.3s cubic-bezier(0.4,0,0.2,1)',
-          boxShadow: darkMode ? '0 2px 12px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)',
         }}>
-          {/* Logo — mobile only */}
-          <div className="navbar-mobile-brand" style={{ display: 'none', alignItems: 'center', gap: '0.4rem', flex: 1, paddingLeft: '0.75rem' }}>
-            <img src="/logo.png" alt="Logo" style={{ width: '26px', height: '26px', objectFit: 'contain', filter: 'drop-shadow(0 0 4px rgba(255,193,7,0.4))' }} onError={e => e.target.style.display = 'none'} />
-            <span style={{ fontWeight: '700', fontSize: '1rem' }}>
-              <span style={{ color: '#ffc107' }}>Pet</span>
-              <span style={{ color: textColor }}>Unity</span>
-            </span>
+          {/* Current page — desktop */}
+          <div className="sb-page">
+            {currentPage && (
+              <>
+                <div className="ic"><i className={`fas ${currentPage.icon}`} /></div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="crumb">{currentPage.parent || 'PetUnity'}</div>
+                  <div className="title">{currentPage.label}</div>
+                </div>
+              </>
+            )}
           </div>
 
-          
+          {/* Logo — mobile only */}
+          <div className="navbar-mobile-brand" style={{ display: 'none', alignItems: 'center', gap: '0.45rem', flex: 1, paddingLeft: '0.85rem' }}>
+            <img src="/logo.png" alt="Logo" style={{ width: '28px', height: '28px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+            <span style={{ fontWeight: '800', fontSize: '1.05rem', color: 'var(--sb-text)' }}>
+              <span style={{ color: '#ffc107' }}>Pet</span>Unity
+            </span>
+          </div>
 
           {/* QR Scanner — mobile only, non-super_admin only */}
           {user?.role !== 'super_admin' && (
             <>
-              <img
-                src="/scanner.png"
-                alt="QR Scanner"
-                className="qr-scanner-icon"
-                style={{ width: '20px', height: '20px', objectFit: 'contain', cursor: 'pointer', opacity: 0.6, transition: 'opacity 0.2s' }}
+              <button
+                type="button"
+                className="qr-scanner-icon sb-icon-btn"
                 onClick={() => setShowScannerModal(true)}
-                onMouseOver={e => e.currentTarget.style.opacity = '1'}
-                onMouseOut={e => e.currentTarget.style.opacity = '0.6'}
-              />
+                aria-label="Scan pet QR code"
+                title="Scan pet QR code"
+              >
+                <img
+                  src="/scanner.png"
+                  alt=""
+                  onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'inline'; }}
+                />
+                <i className="fas fa-qrcode" style={{ display: 'none', color: 'var(--sb-text)' }} />
+              </button>
 
               {/* QR Scanner Modal */}
               <Modal
@@ -1065,15 +1016,20 @@ const streamRef = useRef(null);
                 onHide={() => setShowScannerModal(false)}
                 centered
                 size="sm"
+                dialogClassName="sb-modal"
                 style={{ zIndex: 99999 }}
               >
-                <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107' }}>
-                  <Modal.Title style={{ fontWeight: '700', fontSize: '1rem' }}>
-                    <i className="fas fa-qrcode me-2" style={{ color: '#ffc107' }} />
-                    Scan Pet QR Code
-                  </Modal.Title>
-                </Modal.Header>
-                <Modal.Body style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
+                <div className="sb-modal-head">
+                  <div className="ic"><i className="fas fa-qrcode" /></div>
+                  <div>
+                    <div className="t">{scanResult ? 'Pet details' : 'Scan pet QR code'}</div>
+                    <div className="s">{scanResult ? 'From the pet\'s QR code' : 'Point your camera at the QR code'}</div>
+                  </div>
+                  <button type="button" className="sb-modal-close" onClick={() => setShowScannerModal(false)} aria-label="Close">
+                    <i className="fas fa-times" />
+                  </button>
+                </div>
+                <Modal.Body style={{ padding: '1.1rem 1.25rem 1.25rem', maxHeight: '75vh', overflowY: 'auto' }}>
                   {scanResult ? (
                     (() => {
                       try {
@@ -1096,65 +1052,54 @@ const streamRef = useRef(null);
                         ].filter(r => r.value && r.value !== 'N/A' && r.value !== 'null' && r.value !== 'Unknown');
                         return (
                           <div>
-                            {/* Pet header */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderRadius: '12px', marginBottom: '1rem', borderBottom: '2px solid #ffc107' }}>
-                              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0 }}>
-                                <img src={speciesIcon} alt={data.species} style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+                            <div className="sb-pet-head">
+                              <div className="pic">
+                                <img src={speciesIcon} alt={data.species} onError={e => e.target.style.display = 'none'} />
                               </div>
-                              <div>
-                                <div style={{ fontWeight: '800', fontSize: '1.05rem', color: '#333' }}>{data.name}</div>
-                                <div style={{ fontSize: '0.72rem', color: '#888', fontWeight: '600', textTransform: 'capitalize' }}>{data.species}</div>
+                              <div style={{ minWidth: 0 }}>
+                                <div style={{ fontWeight: '800', fontSize: '1.05rem', color: '#1f2328' }}>{data.name}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: '600', textTransform: 'capitalize' }}>{data.species}{data.breed && data.breed !== 'Unknown' ? ` · ${data.breed}` : ''}</div>
                               </div>
-                              <div style={{ marginLeft: 'auto' }}>
-                                <span style={{ background: 'rgba(25,135,84,0.1)', border: '1px solid rgba(25,135,84,0.3)', color: '#198754', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700', padding: '0.2rem 0.6rem' }}>
-                                  <i className="fas fa-check-circle me-1" />Verified
-                                </span>
-                              </div>
+                              <span style={{ marginLeft: 'auto', background: 'rgba(25,135,84,0.1)', color: '#198754', borderRadius: '999px', fontSize: '0.66rem', fontWeight: '700', padding: '0.2rem 0.6rem', whiteSpace: 'nowrap' }}>
+                                <i className="fas fa-check-circle me-1" />Registered
+                              </span>
                             </div>
 
-                            {/* Details table */}
-                            <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #f0f0f0', overflow: 'hidden', marginBottom: '1rem' }}>
+                            <div className="sb-details">
                               {rows.map((row, i) => (
-                                <div key={row.label} style={{ display: 'flex', borderBottom: i < rows.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
-                                  <div style={{ width: '130px', flexShrink: 0, padding: '0.55rem 0.75rem', fontWeight: '600', color: '#888', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em', background: '#fafafa' }}>{row.label}</div>
-                                  <div style={{ flex: 1, padding: '0.55rem 0.75rem', fontWeight: '600', color: '#333', fontSize: '0.82rem', textTransform: ['Species','Gender','Sterilized'].includes(row.label) ? 'capitalize' : 'none' }}>{row.value}</div>
+                                <div key={row.label} className="row-i" style={{ animationDelay: `${i * 0.03}s` }}>
+                                  <span className="k">{row.label}</span>
+                                  <span className="v" style={{ textTransform: ['Species', 'Gender', 'Sterilized'].includes(row.label) ? 'capitalize' : 'none' }}>{row.value}</span>
                                 </div>
                               ))}
                             </div>
 
-                            <Button
-                              onClick={() => setScanResult('')}
-                              style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', width: '100%' }}
-                            >
-                              <i className="fas fa-redo me-2" />Scan Again
-                            </Button>
+                            <button type="button" className="sb-btn primary w-100" onClick={() => setScanResult('')}>
+                              <i className="fas fa-redo" />Scan another
+                            </button>
                           </div>
                         );
                       } catch {
                         return (
                           <div>
-                            <div style={{ background: 'rgba(220,53,69,0.07)', border: '1.5px solid rgba(220,53,69,0.3)', borderRadius: '10px', padding: '1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#dc3545' }}>
-                              <i className="fas fa-exclamation-triangle me-2" />Could not read QR code data.
+                            <div style={{ background: 'rgba(220,53,69,0.06)', border: '1px solid rgba(220,53,69,0.25)', borderRadius: '10px', padding: '0.85rem 1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#b02a37' }}>
+                              <i className="fas fa-exclamation-triangle me-2" />Could not read the QR code data.
                             </div>
-                            <Button onClick={() => setScanResult('')} style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', width: '100%' }}>
-                              <i className="fas fa-redo me-2" />Scan Again
-                            </Button>
+                            <button type="button" className="sb-btn primary w-100" onClick={() => setScanResult('')}>
+                              <i className="fas fa-redo" />Try again
+                            </button>
                           </div>
                         );
                       }
                     })()
                   ) : (
                     <div>
-                      <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: '1rem', textAlign: 'center' }}>
-                        Point your camera at a pet's microchip QR code.
-                      </p>
-
                       {/* Scanner + overlays — scanner div always stays mounted */}
-                      <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', minHeight: '260px' }}>
-                        <div id="qr-reader" style={{ width: '100%', borderRadius: '12px', overflow: 'hidden' }} />
+                      <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', minHeight: '260px', background: '#111' }}>
+                        <div id="qr-reader" style={{ width: '100%', borderRadius: '14px', overflow: 'hidden' }} />
                         <div className="scan-line" style={{ display: scanSucess || scanError ? 'none' : 'block' }} />
                         <div style={{
-                          position: 'absolute', inset: 0, borderRadius: '12px',
+                          position: 'absolute', inset: 0, borderRadius: '14px',
                           border: `3px solid ${scanError ? 'rgba(220,53,69,0.6)' : 'rgba(255,193,7,0.6)'}`,
                           pointerEvents: 'none',
                           animation: 'scanPulse 2s ease-in-out infinite',
@@ -1164,21 +1109,20 @@ const streamRef = useRef(null);
                         {/* Success overlay */}
                         {scanSucess && (
                           <div className="scan-success-overlay" style={{
-                            position: 'absolute', inset: 0, borderRadius: '12px',
-                            background: 'rgba(255,255,255,0.96)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                            position: 'absolute', inset: 0, borderRadius: '14px',
+                            background: 'rgba(255,255,255,0.97)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.65rem',
                           }}>
                             <div style={{
-                              width: '72px', height: '72px', borderRadius: '50%',
-                              background: 'linear-gradient(135deg, #ffc107, #ffb300)',
+                              width: '68px', height: '68px', borderRadius: '50%',
+                              background: '#198754',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              animation: 'scanPulse 0.8s ease-in-out 2',
-                              boxShadow: '0 8px 24px rgba(255,193,7,0.4)',
+                              boxShadow: '0 8px 24px rgba(25,135,84,0.35)',
                             }}>
-                              <i className="fas fa-check" style={{ fontSize: '2rem', color: '#fff' }} />
+                              <i className="fas fa-check" style={{ fontSize: '1.8rem', color: '#fff' }} />
                             </div>
-                            <div style={{ fontWeight: '800', fontSize: '1rem', color: '#333' }}>Scan Complete!</div>
-                            <div style={{ fontSize: '0.75rem', color: '#888' }}>Loading pet information...</div>
+                            <div style={{ fontWeight: '700', fontSize: '1rem', color: '#1f2328' }}>Scan complete</div>
+                            <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>Loading pet information...</div>
                             <Spinner animation="border" size="sm" style={{ color: '#ffc107' }} />
                           </div>
                         )}
@@ -1186,35 +1130,34 @@ const streamRef = useRef(null);
                         {/* Error overlay */}
                         {scanError && (
                           <div className="scan-error-overlay" style={{
-                            position: 'absolute', inset: 0, borderRadius: '12px',
-                            background: 'rgba(255,255,255,0.96)',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                            position: 'absolute', inset: 0, borderRadius: '14px',
+                            background: 'rgba(255,255,255,0.97)',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.65rem',
                             padding: '1rem',
                           }}>
                             <div className="scan-error-icon" style={{
-                              width: '72px', height: '72px', borderRadius: '50%',
-                              background: 'linear-gradient(135deg, #dc3545, #b02a37)',
+                              width: '68px', height: '68px', borderRadius: '50%',
+                              background: '#dc3545',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: '0 8px 24px rgba(220,53,69,0.4)',
+                              boxShadow: '0 8px 24px rgba(220,53,69,0.35)',
                             }}>
-                              <i className="fas fa-times" style={{ fontSize: '2rem', color: '#fff' }} />
+                              <i className="fas fa-times" style={{ fontSize: '1.8rem', color: '#fff' }} />
                             </div>
-                            <div style={{ fontWeight: '800', fontSize: '1rem', color: '#333' }}>Not Recognized</div>
-                            <div style={{ fontSize: '0.75rem', color: '#888', textAlign: 'center', lineHeight: 1.5 }}>
-                              Not a registered pet microchip QR code.
+                            <div style={{ fontWeight: '700', fontSize: '1rem', color: '#1f2328' }}>Not recognized</div>
+                            <div style={{ fontSize: '0.78rem', color: '#6b7280', textAlign: 'center', lineHeight: 1.5 }}>
+                              This is not a registered PetUnity pet QR code.
                             </div>
-                            <div style={{ background: 'rgba(220,53,69,0.07)', border: '1.5px solid rgba(220,53,69,0.2)', borderRadius: '8px', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem', width: '100%' }}>
-                              <i className="fas fa-info-circle" style={{ color: '#dc3545', fontSize: '0.78rem', flexShrink: 0 }} />
-                              <span style={{ fontSize: '0.7rem', color: '#dc3545', fontWeight: '600' }}>Resuming scanner automatically...</span>
+                            <div style={{ fontSize: '0.72rem', color: '#b02a37', fontWeight: '600' }}>
+                              <i className="fas fa-sync-alt me-1" />Resuming the scanner...
                             </div>
                           </div>
                         )}
                       </div>
 
-                      <p style={{ fontSize: '0.72rem', color: '#bbb', marginTop: '0.75rem', textAlign: 'center' }}>
-                        <i className="fas fa-lightbulb me-1" style={{ color: '#ffc107' }} />
-                        Make sure the QR code is well lit and in frame
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.85rem', padding: '0.6rem 0.75rem', borderRadius: '10px', background: '#fafbfc', border: '1px solid #eef0f3', fontSize: '0.76rem', color: '#6b7280' }}>
+                        <i className="fas fa-lightbulb" style={{ color: '#e0a800' }} />
+                        Keep the QR code well lit and inside the frame.
+                      </div>
                     </div>
                   )}
                 </Modal.Body>
@@ -1222,9 +1165,13 @@ const streamRef = useRef(null);
             </>
           )}
 
-          {/* Profile pill */}
+          {/* Profile button */}
           <div style={{ position: 'relative' }}>
             <div
+              role="button"
+              tabIndex={0}
+              aria-haspopup="menu"
+              aria-expanded={showProfileDropdown && !dropdownClosing}
               onClick={() => {
                 if (dropdownOpenRef.current) {
                   closeDropdown();
@@ -1233,185 +1180,93 @@ const streamRef = useRef(null);
                   setShowProfileDropdown(true);
                 }
               }}
-              className="profile-pill"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.6rem',
-                padding: '0.4rem 0.75rem',
-                borderRadius: '999px',
-                background: darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                border: `1px solid ${border}`,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                userSelect: 'none',
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); }
               }}
-              onMouseOver={e => e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.08)'}
-              onMouseOut={e => e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
+              className={`profile-pill${showProfileDropdown && !dropdownClosing ? ' open' : ''}`}
             >
-              {/* Avatar */}
-              <div style={{
-                width: '30px', height: '30px', borderRadius: '50%',
-                background: darkMode ? '#222' : '#f0f0f0',
-                border: `1.5px solid ${border}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                position: 'relative', flexShrink: 0,
-              }}>
-                <i className="fas fa-user" style={{ fontSize: '0.75rem', color: darkMode ? '#bbb' : '#555' }} />
-                <div style={{
-                  position: 'absolute', bottom: 0, right: 0,
-                  width: '8px', height: '8px', background: '#22c55e',
-                  borderRadius: '50%', border: `2px solid ${darkMode ? '#0d0d0d' : '#fff'}`,
-                }} />
+              <div className="sb-avatar">
+                {initials}
+                <span className="online" />
               </div>
-
-              {/* Name + role */}
-              <div style={{ lineHeight: 1.3 }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: textColor, whiteSpace: 'nowrap' }}>
-  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'private_clinic' ? (user.clinic_name || `${user.first_name} ${user.last_name}`) : `${user.first_name} ${user.last_name}`}
-
-</div>
-                {(() => {
-                  if (user.role === 'pet_owner' && ownerProfile) {
-                    const cfg = VERIFICATION_CONFIG[ownerProfile.verification_status] || VERIFICATION_CONFIG.not_verified;
-                    return <div style={{ fontSize: '0.65rem', fontWeight: '600', color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.3px' }}><i className={`fas ${cfg.icon} me-1`} style={{ fontSize: '0.55rem' }} />{cfg.label}</div>;
-                  }
-                  const rc = {  barangay_official: { name: user.office_role || 'Barangay Admin', color: '#ffc107' }, private_clinic: { name: 'Private Clinic', color: '#22c55e' } };
-                  const r = rc[user.role];
-                  return r ? <div style={{ fontSize: '0.65rem', fontWeight: '600', color: r.color, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{r.name}</div> : null;
-                })()}
+              <div className="sb-pill-text">
+                <div className="sb-pill-name">{displayName}</div>
+                {pillSub && (
+                  <div className="sb-pill-sub" style={{ color: pillSub.color }}>
+                    {verification && <i className={`fas ${pillSub.icon} me-1`} style={{ fontSize: '0.55rem' }} />}
+                    {pillSub.name}
+                  </div>
+                )}
               </div>
-
-              <i className={`fas fa-chevron-${showProfileDropdown ? 'up' : 'down'}`} style={{ fontSize: '0.65rem', color: subTextColor, marginLeft: '0.2rem' }} />
+              <i className="fas fa-chevron-down sb-chev" />
             </div>
 
             {/* Dropdown */}
             {(showProfileDropdown || dropdownClosing) && (
               <>
-                <div 
-  onClick={() => closeDropdown()} 
-  style={{ 
-    position: 'fixed', 
-    inset: 0, 
-    zIndex: 10000,
-    background: 'transparent',
-    cursor: 'default'
-  }} 
-/>
-                <div className="profile-dropdown-menu" style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 0.5rem)',
-                  right: 0,
-                  background: darkMode ? '#1a1a1a' : '#ffffff',
-                  border: `1px solid ${border}`,
-                  borderRadius: '14px',
-                  boxShadow: darkMode ? '0 8px 32px rgba(0,0,0,0.5)' : '0 8px 32px rgba(0,0,0,0.12)',
-                  minWidth: '220px',
-                  zIndex: 10001,
-                  padding: '0.5rem',
-                  animation: `${dropdownClosing ? 'dropdownFadeOut' : 'dropdownFadeIn'} 0.2s cubic-bezier(0.4,0,0.2,1) forwards`,
-                  transformOrigin: 'top center',
-                  overflow: 'hidden',
-                }}>
-                  {/* User info header */}
-                  <div style={{ padding: '0.6rem 0.75rem 0.75rem', borderBottom: `1px solid ${border}`, marginBottom: '0.4rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '700', color: textColor, whiteSpace: 'nowrap' }}>
-  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'private_clinic' ? (user.clinic_name || `${user.first_name} ${user.last_name}`) : `${user.first_name} ${user.last_name}`}
-
-</div>
-                    <div style={{ fontSize: '0.7rem', color: subTextColor, marginTop: '0.15rem' }}>{user.email}</div>
-{(() => {
-  const rc = { super_admin: { name: 'Super Admin', color: '#ef4444' }, barangay_official: { name: user.office_role || 'Barangay Admin', color: '#ffc107' }, private_clinic: { name: 'Private Clinic', color: '#22c55e' } };
-  const r = rc[user.role];
-  return r ? (
-    <div style={{ marginTop: '0.3rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: r.color + '18', border: `1px solid ${r.color}44`, borderRadius: '50px', padding: '0.15rem 0.6rem' }}>
-      <i className="fas fa-shield-alt" style={{ fontSize: '0.55rem', color: r.color }} />
-      <span style={{ fontSize: '0.62rem', fontWeight: '700', color: r.color, textTransform: 'uppercase' }}>{r.name}</span>
-    </div>
-  ) : null;
-})()}
-
-                    {/* Verification status for pet_owner */}
-                    {user.role === 'pet_owner' && ownerProfile && (() => {
-                      const cfg = VERIFICATION_CONFIG[ownerProfile.verification_status] || VERIFICATION_CONFIG.not_verified;
-                      return (
-                        <div style={{ marginTop: '0.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: cfg.color + '18', border: `1px solid ${cfg.color}44`, borderRadius: '50px', padding: '0.15rem 0.6rem' }}>
-                          <i className={`fas ${cfg.icon}`} style={{ fontSize: '0.55rem', color: cfg.color }} />
-                          <span style={{ fontSize: '0.62rem', fontWeight: '700', color: cfg.color, textTransform: 'uppercase' }}>{cfg.label}</span>
+                <div
+                  onClick={() => closeDropdown()}
+                  style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'transparent', cursor: 'default' }}
+                />
+                <div
+                  className="profile-dropdown-menu"
+                  role="menu"
+                  style={{
+                    animation: `${dropdownClosing ? 'dropdownFadeOut' : 'dropdownFadeIn'} 0.2s cubic-bezier(0.4,0,0.2,1) forwards`,
+                    transformOrigin: 'top right',
+                  }}
+                >
+                  {/* User info */}
+                  <div className="sb-menu-head">
+                    <div className="sb-avatar lg">{initials}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="n">{displayName}</div>
+                      {user.email && <div className="e">{user.email}</div>}
+                      {verification ? (
+                        <div className="sb-chip" style={{ color: verification.color, background: verification.color + '18' }}>
+                          <i className={`fas ${verification.icon}`} style={{ fontSize: '0.55rem' }} />{verification.label}
                         </div>
-                      );
-                    })()}
+                      ) : roleLabel ? (
+                        <div className="sb-chip" style={{ color: roleLabel.color, background: roleLabel.color + '18' }}>
+                          <i className={`fas ${roleLabel.icon}`} style={{ fontSize: '0.55rem' }} />{roleLabel.name}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
 
-                  <div style={{ height: '1px', background: border, margin: '0.2rem 0' }} />
+                  <div className="sb-menu-sep" />
 
-                  {/* Verify Account button for pet_owner */}
-                  {user.role === 'pet_owner' && ownerProfile && (() => {
-                    const canVerify = ownerProfile.verification_status === 'not_verified' || ownerProfile.verification_status === 'semi_verified';
-                    return canVerify ? (
-                      <button
-                        onClick={() => { closeDropdown(); setShowVerifyModal(true); }}
-                        style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'transparent', border: 'none', borderRadius: '8px', color: '#ffc107', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background 0.2s', marginBottom: '0.2rem' }}
-                        onMouseOver={e => e.currentTarget.style.background = 'rgba(255,193,7,0.08)'}
-                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <i className="fas fa-id-card" style={{ fontSize: '0.75rem' }} />
-                        Verify Account
-                      </button>
-                    ) : null;
-                  })()}
+                  {/* Verify Account — community */}
+                  {user.role === 'pet_owner' && ownerProfile &&
+                    (ownerProfile.verification_status === 'not_verified' || ownerProfile.verification_status === 'semi_verified') && (
+                    <button type="button" role="menuitem" className="sb-menu-item warn" onClick={() => { closeDropdown(); setShowVerifyModal(true); }}>
+                      <span className="ic"><i className="fas fa-id-card" /></span>
+                      Verify account
+                    </button>
+                  )}
 
                   {/* Update Password — super admin only */}
                   {user.role === 'super_admin' && (
-                    <button
-                      onClick={() => {
-                        closeDropdown();
-                        setSidebarAnim('sidebar-slide-out');
-                        setMobileNavAnim('mobile-nav-slide-out');
-                        setMobileTopAnim('mobile-top-slide-out');
-                        setTimeout(() => {
-                          navigate('/edit-profile', { state: { from: location.pathname } });
-                        }, 260);
-                      }}
-                      style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'transparent', border: 'none', borderRadius: '8px', color: textColor, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background 0.2s', marginBottom: '0.2rem' }}
-                      onMouseOver={e => e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <i className="fas fa-key" style={{ fontSize: '0.75rem', width: '16px', textAlign: 'center' }} />
-                      Update Password
+                    <button type="button" role="menuitem" className="sb-menu-item" onClick={goToEditProfile}>
+                      <span className="ic"><i className="fas fa-key" /></span>
+                      Update password
                     </button>
                   )}
 
                   {/* Edit Profile */}
                   {(user.role === 'barangay_official' || user.role === 'pet_owner' || user.role === 'private_clinic') && (
-                    <button
-                      onClick={() => {
-                        closeDropdown();
-                        setSidebarAnim('sidebar-slide-out');
-                        setMobileNavAnim('mobile-nav-slide-out');
-                        setMobileTopAnim('mobile-top-slide-out');
-                        setTimeout(() => {
-                          navigate('/edit-profile', { state: { from: location.pathname } });
-                        }, 260);
-                      }}
-                      style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'transparent', border: 'none', borderRadius: '8px', color: textColor, fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background 0.2s', marginBottom: '0.2rem' }}
-                      onMouseOver={e => e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <i className="fas fa-user-edit" style={{ fontSize: '0.75rem', width: '16px', textAlign: 'center' }} />
-                      Edit Profile
+                    <button type="button" role="menuitem" className="sb-menu-item" onClick={goToEditProfile}>
+                      <span className="ic"><i className="fas fa-user-edit" /></span>
+                      Edit profile
                     </button>
                   )}
 
+                  <div className="sb-menu-sep" />
+
                   {/* Sign out */}
-                  <button
-                    onClick={() => { closeDropdown(); setShowLogoutModal(true); }}
-                    style={{ width: '100%', padding: '0.6rem 0.75rem', background: 'transparent', border: 'none', borderRadius: '8px', color: '#ef4444', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'background 0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
-                    onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <i className="fas fa-sign-out-alt" style={{ fontSize: '0.75rem' }} />
-                    Sign Out
+                  <button type="button" role="menuitem" className="sb-menu-item danger" onClick={() => { closeDropdown(); setShowLogoutModal(true); }}>
+                    <span className="ic"><i className="fas fa-sign-out-alt" /></span>
+                    Sign out
                   </button>
                 </div>
               </>
@@ -1431,16 +1286,16 @@ const streamRef = useRef(null);
           }}
         />
       )}
-      
 
-      {/* ── Desktop Sidebar — fixed so bottom section never scrolls away ── */}
+      {/* ── Desktop Sidebar ── */}
       <div
         className={`sidebar-desktop ${sidebarAnim}`}
         style={{
+          ...themeVars,
           width: sidebarWidth,
           height: '100vh',
-          background: darkMode ? '#0d0d0d' : '#ffffff',
-          borderRight: `1px solid ${border}`,
+          background: 'var(--sb-bg)',
+          borderRight: '1px solid var(--sb-border)',
           position: 'fixed',
           top: 0,
           left: 0,
@@ -1448,37 +1303,31 @@ const streamRef = useRef(null);
           transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
           overflow: 'hidden',
           zIndex: 10000,
-          boxShadow: darkMode
-            ? '2px 0 20px rgba(0,0,0,0.4)'
-            : '2px 0 20px rgba(0,0,0,0.06)',
         }}
       >
         {sidebarContent(false)}
       </div>
 
-      
-
-      {/* ── Mobile toggle button (hidden — replaced by bottom nav) ── */}
-
       {/* ── Bottom Nav Bar (mobile only) ── */}
       {!isLandingPage && user && (
         <div
           className={`sidebar-bottom-bar ${mobileNavAnim}`}
-        style={{
-          display: 'none',
+          style={{
+            ...themeVars,
+            display: 'none',
             position: 'fixed',
             bottom: 0,
             left: 0,
             right: 0,
             height: '56px',
-            background: darkMode ? '#111111' : '#ffffff',
-            borderTop: `1px solid ${border}`,
+            background: 'var(--sb-bg)',
+            borderTop: '1px solid var(--sb-border)',
             zIndex: 10000,
             alignItems: 'center',
             overflowX: 'auto',
             overflowY: 'hidden',
             scrollbarWidth: 'none',
-            boxShadow: darkMode ? '0 -2px 12px rgba(0,0,0,0.3)' : '0 -2px 12px rgba(0,0,0,0.06)',
+            boxShadow: darkMode ? '0 -2px 12px rgba(0,0,0,0.3)' : '0 -2px 12px rgba(16,24,40,0.05)',
             WebkitOverflowScrolling: 'touch',
           }}
         >
@@ -1486,72 +1335,25 @@ const streamRef = useRef(null);
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0',
             width: '100%',
-            padding: '0 0.5rem',
+            padding: '0 0.25rem',
             height: '100%',
-            justifyContent: user?.role === 'pet_owner' ? 'center' : 'flex-start',
+            justifyContent: user?.role === 'pet_owner' ? 'space-around' : 'flex-start',
             minWidth: user?.role === 'pet_owner' ? 'unset' : 'max-content',
           }}>
-            {links.flatMap((link, idx) => {
-              if (link.dropdown) {
-                return (link.children || []).map((child, cIdx) => ({
-                  ...child,
-                  _key: `${idx}-${cIdx}`
-                }));
-              }
-              return [{ ...link, _key: String(idx) }];
-            }).map((link) => {
+            {mobileLinks.map((link) => {
               const active = link.to ? isActive(link.to) : false;
               const inner = (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '2px',
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  background: active ? 'rgba(255,193,7,0.15)' : 'transparent',
-                  transition: 'background 0.2s',
-                  position: 'relative',
-                  minWidth: '56px',
-                }}>
-                  <i className={`fas ${link.icon}`} style={{
-                    fontSize: '1.1rem',
-                    color: active ? '#ffc107' : (darkMode ? '#888' : '#666'),
-                  }} />
-                  <span style={{
-                    fontSize: '0.6rem',
-                    fontWeight: active ? '700' : '500',
-                    color: active ? '#ffc107' : (darkMode ? '#888' : '#666'),
-                    whiteSpace: 'nowrap',
-                  }}>{link.label}</span>
-                  {link.badge > 0 && (
-                    <span style={{
-                      position: 'absolute',
-                      top: '2px',
-                      right: '6px',
-                      background: '#ef4444',
-                      color: '#fff',
-                      borderRadius: '999px',
-                      fontSize: '0.5rem',
-                      fontWeight: '700',
-                      padding: '0.08rem 0.32rem',
-                      minWidth: '14px',
-                      textAlign: 'center',
-                      lineHeight: '1.5',
-                    }}>
-                      {link.badge > 9 ? '9+' : link.badge}
-                    </span>
-                  )}
-                </div>
+                <>
+                  <i className={`fas ${link.icon}`} />
+                  <span>{link.label}</span>
+                  {link.badge > 0 && <span className="sb-badge">{link.badge > 9 ? '9+' : link.badge}</span>}
+                </>
               );
               return link.to ? (
-                <Link key={link._key} to={link.to} style={{ textDecoration: 'none' }}>{inner}</Link>
+                <Link key={link._key} to={link.to} className={`sb-tab${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined}>{inner}</Link>
               ) : (
-                <div key={link._key} onClick={link.action}>{inner}</div>
+                <div key={link._key} className="sb-tab" onClick={link.action}>{inner}</div>
               );
             })}
           </div>
@@ -1564,19 +1366,18 @@ const streamRef = useRef(null);
           className="sidebar-mobile-overlay"
           style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex' }}
         >
-          {/* Backdrop */}
           <div
             style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}
             onClick={() => setMobileOpen(false)}
           />
-          {/* Drawer */}
           <div
             style={{
+              ...themeVars,
               position: 'relative',
               width: '256px',
               height: '100%',
-              background: bg,
-              borderRight: `1px solid ${border}`,
+              background: 'var(--sb-bg)',
+              borderRight: '1px solid var(--sb-border)',
               zIndex: 1,
               overflowY: 'auto',
             }}
@@ -1593,35 +1394,28 @@ const streamRef = useRef(null);
         backdrop="static"
         keyboard={false}
         centered
+        dialogClassName="sb-modal"
         style={{ zoom: '0.75', zIndex: 99999 }}
       >
-        <Modal.Body className="logout-modal-body" style={{ padding: '2.5rem', background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)', borderRadius: '20px', border: '1px solid rgba(255,193,7,0.2)' }}>
-          <div className="text-center mb-4">
-            <div className="logout-modal-icon" style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,193,7,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', border: '3px solid rgba(255,193,7,0.3)', boxShadow: '0 8px 24px rgba(255,193,7,0.2)' }}>
-              <img
-                src="/logout.png"
-                alt="Logout"
-                style={{ width: '40px', height: '40px', objectFit: 'contain' }}
-                onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<i class="fas fa-sign-out-alt" style="font-size: 2.4rem; color: #ffc107;"></i>'; }}
-              />
-            </div>
-            <h5 style={{ fontWeight: '700', color: '#212529', marginBottom: '0.75rem', fontSize: '1.3rem' }}>Confirm Logout</h5>
-            <p style={{ fontSize: '1rem', color: '#6c757d', lineHeight: '1.6', marginBottom: 0 }}>Are you sure you want to logout from your account?</p>
+        <Modal.Body className="logout-modal-body" style={{ padding: '2rem 2rem 1.5rem', textAlign: 'center' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '18px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem', fontSize: '1.6rem' }}>
+            <i className="fas fa-sign-out-alt" />
           </div>
-          <div className="d-flex gap-3 justify-content-center">
-            <Button
-              variant="secondary"
-              onClick={() => setShowLogoutModal(false)}
-              style={{ borderRadius: '12px', padding: '0.75rem 1.75rem', fontWeight: '700', minWidth: '120px' }}
-            >
-              <i className="fas fa-times me-2" />Cancel
-            </Button>
-            <Button
+          <h5 style={{ fontWeight: '700', color: '#1f2328', marginBottom: '0.4rem', fontSize: '1.2rem' }}>Sign out?</h5>
+          <p style={{ fontSize: '0.92rem', color: '#6b7280', lineHeight: '1.6', marginBottom: '1.5rem' }}>
+            You will need to sign in again to use your account.
+          </p>
+          <div className="d-flex gap-2">
+            <button type="button" className="sb-btn ghost flex-fill" onClick={() => setShowLogoutModal(false)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="sb-btn danger flex-fill"
               onClick={() => { setShowLogoutModal(false); onLogout(); navigate('/login'); }}
-              style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', border: 'none', color: '#1a1a1a', borderRadius: '12px', padding: '0.75rem 1.75rem', fontWeight: '700', minWidth: '120px' }}
             >
-              <i className="fas fa-sign-out-alt me-2" />Yes, Logout
-            </Button>
+              <i className="fas fa-sign-out-alt" />Sign out
+            </button>
           </div>
         </Modal.Body>
       </Modal>
