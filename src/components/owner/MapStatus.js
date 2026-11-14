@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Alert, Button } from 'react-bootstrap';
+import { Container, Row, Col, Alert } from 'react-bootstrap';
 import { reportsAPI, clinicAPI, handleAPIError } from '../../services/api';
 
 const INFO_WINDOW_CSS = `
@@ -91,56 +91,22 @@ const formatDate = (value) => {
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const CountUp = ({ value = 0, duration = 1200, delay = 350 }) => {
-  const target = Number(value) || 0;
-  const [n, setN] = useState(prefersReducedMotion() ? target : 0);
-  useEffect(() => {
-    if (prefersReducedMotion()) { setN(target); return; }
-    let raf, start;
-    const timer = setTimeout(() => {
-      const tick = (ts) => {
-        if (!start) start = ts;
-        const p = Math.min(1, (ts - start) / duration);
-        setN(Math.round(target * (1 - Math.pow(1 - p, 3))));
-        if (p < 1) raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    }, delay);
-    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
-  }, [target]);
-  return n;
-};
-
 /* ------------------------------------------------------------------ */
 /* Building blocks                                                    */
 /* ------------------------------------------------------------------ */
-const Panel = ({ icon, iconColor, title, subtitle, children, bodyStyle, style }) => (
-  <div className="dash-panel" style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', ...style }}>
+const Panel = ({ icon, iconColor, title, subtitle, action, children, bodyStyle, style }) => (
+  <div className="dash-panel side-panel" style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', ...style }}>
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1.1rem 1.25rem 0.6rem' }}>
-      <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: `${iconColor}1f`, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div className="panel-icon" style={{ width: '34px', height: '34px', borderRadius: '10px', background: `linear-gradient(135deg, ${iconColor}2e, ${iconColor}12)`, boxShadow: `inset 0 0 0 1px ${iconColor}33`, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <i className={`fas ${icon}`} style={{ fontSize: '0.9rem' }} />
       </div>
-      <div>
-        <h5 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: t.text }}>{title}</h5>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h5 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: t.text, letterSpacing: '-0.01em' }}>{title}</h5>
         {subtitle && <div style={{ fontSize: '0.8rem', color: t.muted, marginTop: '0.15rem' }}>{subtitle}</div>}
       </div>
+      {action}
     </div>
     <div style={{ padding: '0.4rem 1.25rem 1.2rem', flex: 1, ...bodyStyle }}>{children}</div>
-  </div>
-);
-
-const SummaryTile = ({ icon, color, value, label, note, loading }) => (
-  <div className="dash-panel h-100" style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-    <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: `${color}1f`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <i className={`fas ${icon}`} style={{ fontSize: '1.15rem' }} />
-    </div>
-    <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: '1.9rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>
-        {loading ? <span className="skeleton" style={{ display: 'inline-block', width: '2ch', height: '1em', verticalAlign: 'middle' }} /> : <CountUp value={value} />}
-      </div>
-      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: t.text, marginTop: '0.3rem' }}>{label}</div>
-      <div style={{ fontSize: '0.76rem', color: t.muted }}>{note}</div>
-    </div>
   </div>
 );
 
@@ -154,6 +120,7 @@ export default function OwnerMapStatus() {
   const circlesRef       = useRef([]);
   const clinicMarkersRef = useRef({});
   const infoWindowRef    = useRef(null);
+  const animRef          = useRef([]);
 
   const [reports,      setReports]      = useState([]);
   const [clinics,      setClinics]      = useState([]);
@@ -164,6 +131,8 @@ export default function OwnerMapStatus() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [updatedAt,    setUpdatedAt]    = useState(null);
+  const [clinicQuery,  setClinicQuery]  = useState('');
+  const [activeClinic, setActiveClinic] = useState(null);
 
   // Load Google Maps
   useEffect(() => {
@@ -200,9 +169,22 @@ export default function OwnerMapStatus() {
     }
   };
 
+  const allClinics     = [CITY_VET, ...clinics];
   const positiveCount  = reports.filter(r => r.status === 'positive_rabies').length;
   const suspectedCount = reports.filter(r => r.status === 'suspected_rabies').length;
-  const allClinics     = [CITY_VET, ...clinics];
+  const shownClinics   = allClinics.filter(c => {
+    const q = clinicQuery.trim().toLowerCase();
+    return !q || [c.clinic_name, c.specialization, c.owner_name].join(' ').toLowerCase().includes(q);
+  });
+
+  const alert = positiveCount > 0
+    ? { color: POSITIVE, icon: 'fa-exclamation-triangle', title: 'High alert', text: `${positiveCount} active danger ${positiveCount === 1 ? 'zone' : 'zones'}${suspectedCount ? `, ${suspectedCount} alert ${suspectedCount === 1 ? 'zone' : 'zones'}` : ''}` }
+    : suspectedCount > 0
+      ? { color: SUSPECTED, icon: 'fa-eye', title: 'Stay watchful', text: `${suspectedCount} suspected ${suspectedCount === 1 ? 'case' : 'cases'} under review` }
+      : { color: '#198754', icon: 'fa-check-circle', title: 'All clear', text: 'No active rabies zones right now' };
+
+  // Stop zone animations when leaving the page
+  useEffect(() => () => animRef.current.forEach(stop => stop()), []);
 
   // Init map
   useEffect(() => {
@@ -275,10 +257,13 @@ export default function OwnerMapStatus() {
     const google = window.google;
     const map = mapInstanceRef.current;
 
+    animRef.current.forEach(stop => stop());
+    animRef.current = [];
     markersRef.current.forEach(m => m.setMap(null));
     circlesRef.current.forEach(c => c.setMap(null));
     markersRef.current = [];
     circlesRef.current = [];
+    const reduced = prefersReducedMotion();
 
     const filtered = reports.filter(r => (filterStatus === 'all' || r.status === filterStatus) && r.latitude && r.longitude);
 
@@ -297,17 +282,43 @@ export default function OwnerMapStatus() {
     circleOwners.forEach(owner => {
       const isPos = owner.status === 'positive_rabies';
       const color = isPos ? POSITIVE : SUSPECTED;
+      const center = { lat: owner.lat, lng: owner.lng };
       const circle = new google.maps.Circle({
-        map, center: { lat: owner.lat, lng: owner.lng }, radius: 1000,
+        map, center, radius: reduced ? 1000 : 0,
         strokeColor: color, strokeOpacity: 0.85, strokeWeight: 2,
         fillColor: color, fillOpacity: isPos ? 0.12 : 0.1, clickable: false,
       });
+      circlesRef.current.push(circle);
+
+      if (!reduced) {
+        // The zone grows out from the case, then a soft ripple keeps pulsing outward
+        const ripple = new google.maps.Circle({
+          map, center, radius: 1000, strokeColor: color, strokeOpacity: 0, strokeWeight: 2,
+          fillOpacity: 0, clickable: false,
+        });
+        circlesRef.current.push(ripple);
+        let raf; const start = performance.now();
+        const period = isPos ? 2200 : 3200;
+        const tick = (now) => {
+          const e = now - start;
+          const grow = Math.min(1, e / 900);
+          circle.setRadius(1000 * (1 - Math.pow(1 - grow, 3)));
+          if (e > 900) {
+            const p = ((e - 900) % period) / period;
+            ripple.setOptions({ radius: 1000 + 450 * p, strokeOpacity: 0.6 * (1 - p) });
+          }
+          raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        animRef.current.push(() => cancelAnimationFrame(raf));
+      }
+
       const label = new google.maps.Marker({
         position: { lat: owner.lat + 0.0085, lng: owner.lng }, map, clickable: false,
         icon: { url: 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg"/>', scaledSize: new google.maps.Size(1, 1) },
         label: { text: isPos ? '1 km danger zone' : '1 km alert zone', color: '#ffffff', fontSize: '11px', fontWeight: '700' },
       });
-      circlesRef.current.push(circle, label);
+      circlesRef.current.push(label);
     });
 
     filtered.forEach(report => {
@@ -334,6 +345,7 @@ export default function OwnerMapStatus() {
       const marker = new google.maps.Marker({
         position: { lat, lng }, map,
         zIndex: isPos ? 800 : 700,
+        animation: reduced ? null : google.maps.Animation.DROP,
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
@@ -388,6 +400,7 @@ export default function OwnerMapStatus() {
         position: { lat, lng }, map,
         zIndex: isCityVet ? 1000 : 500,
         title: clinic.clinic_name,
+        animation: prefersReducedMotion() ? null : google.maps.Animation.DROP,
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
@@ -415,6 +428,11 @@ export default function OwnerMapStatus() {
     map.panTo({ lat: parseFloat(clinic.latitude), lng: parseFloat(clinic.longitude) });
     map.setZoom(16);
     entry.open();
+    setActiveClinic(clinic.id);
+    if (!prefersReducedMotion()) {
+      entry.marker.setAnimation(window.google.maps.Animation.BOUNCE);
+      setTimeout(() => entry.marker.setAnimation(null), 1400);
+    }
     if (window.innerWidth < 992 && mapRef.current) mapRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
@@ -465,23 +483,50 @@ export default function OwnerMapStatus() {
         .side-stack .dash-panel:nth-child(2) { animation-delay: 0.5s; }
         .side-stack .dash-panel:nth-child(3) { animation-delay: 0.6s; }
 
-        .map-filter { border: none; background: transparent; color: #cfd6e4; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: background 0.15s ease; }
-        .map-filter:hover { background: rgba(255,255,255,0.08); }
-        .map-filter.active { background: #ffffff; color: #1f2328; }
+        @keyframes pulseDot { 0% { box-shadow: 0 0 0 0 var(--c); } 70% { box-shadow: 0 0 0 8px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+        @keyframes radar    { to { transform: rotate(360deg); } }
+        @keyframes ring     { 0% { transform: scale(0.4); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
+        @keyframes rowIn    { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeUp   { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); animation: pulseDot 1.8s ease-out infinite; flex-shrink: 0; }
+        .status-chip { display: inline-flex; align-items: center; gap: 0.65rem; padding: 0.55rem 0.95rem 0.55rem 0.75rem; border-radius: 12px; border: 1px solid; animation: fadeUp 0.5s ease-out 0.2s backwards; }
+
+        .side-panel { transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease; }
+        .side-panel:hover { box-shadow: 0 10px 28px rgba(16,24,40,0.08); transform: translateY(-2px); border-color: #dfe3e8 !important; }
+        .stagger > * { animation: rowIn 0.4s ease-out backwards; }
+        ${Array.from({ length: 12 }, (_, i) => `.stagger > *:nth-child(${i + 1}) { animation-delay: ${0.45 + i * 0.06}s; }`).join('\n        ')}
+
+        .seg { position: relative; display: flex; padding: 4px; border-radius: 12px; background: rgba(13,20,36,0.78); backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+        .seg-indicator { position: absolute; top: 4px; bottom: 4px; left: 4px; width: 96px; border-radius: 9px; background: #ffffff; transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+        .map-filter { position: relative; z-index: 1; width: 96px; border: none; background: transparent; color: #cfd6e4; font-size: 0.8rem; font-weight: 600; padding: 0.42rem 0; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: color 0.25s ease; }
+        .map-filter:hover { color: #ffffff; }
+        .map-filter.active { color: #1f2328; }
+
+        .radar { position: relative; width: 120px; height: 120px; border-radius: 50%; border: 1px solid rgba(255,193,7,0.25); background: radial-gradient(circle, rgba(255,193,7,0.06) 0 30%, transparent 31%), radial-gradient(circle, transparent 0 60%, rgba(255,193,7,0.08) 61% 62%, transparent 63%); }
+        .radar::before { content: ''; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, rgba(255,193,7,0.45), transparent 25%); animation: radar 1.6s linear infinite; }
+        .radar::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255,193,7,0.5); animation: ring 1.6s ease-out infinite; }
+
+        .clinic-search { width: 100%; border: 1px solid ${t.border}; background: ${t.subtle}; border-radius: 10px; padding: 0.5rem 0.75rem 0.5rem 2.1rem; font-size: 0.84rem; color: ${t.text}; outline: none; transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease; }
+        .clinic-search:focus { border-color: ${CLINIC}; background: #ffffff; box-shadow: 0 0 0 3px ${CLINIC}22; }
+        .clinic-row .chev { transition: transform 0.2s ease, color 0.2s ease; }
+        .clinic-row:hover .chev { transform: translateX(3px); color: ${CLINIC} !important; }
+        .clinic-row.active { background: ${CLINIC}0f !important; box-shadow: inset 3px 0 0 ${CLINIC}; }
         .map-btn:hover { background: rgba(13,20,36,0.95) !important; }
         .clinic-row { transition: background 0.15s ease; }
         .clinic-row:hover { background: ${t.subtle}; }
         .map-filter:focus-visible, .map-btn:focus-visible, .clinic-row:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
 
-        .map-card { position: relative; height: 680px; border-radius: 14px; overflow: hidden; border: 1px solid ${t.border}; }
+        .map-col { display: flex; flex-direction: column; }
+        .map-card { position: relative; flex: 1 1 auto; height: 100%; min-height: 560px; border-radius: 14px; overflow: hidden; border: 1px solid ${t.border}; box-shadow: 0 12px 32px rgba(16,24,40,0.10); }
         .map-fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh !important; z-index: 10002; border-radius: 0 !important; border: none !important; zoom: 1.3333; }
 
         .dashboard-page { zoom: 0.75; min-height: 100vh; display: flex; flex-direction: column; }
         @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } .map-fullscreen { zoom: 1.1111; } }
         @media (min-width: 1920px) { .dashboard-page { zoom: 1; } .map-fullscreen { zoom: 1; } }
-        @media (max-width: 991px) { .map-card { height: 520px; } }
+        @media (max-width: 991px) { .map-card { flex: none; height: 520px; min-height: 0; } }
         @media (max-width: 768px) { .mobile-map-title { font-size: 1.5rem !important; } .map-card { height: 460px; } }
-        @media (prefers-reduced-motion: reduce) { .dash-panel, .skeleton { animation: none !important; } }
+        @media (prefers-reduced-motion: reduce) { .dash-panel, .skeleton, .stagger > *, .pulse-dot, .status-chip, .radar::before, .radar::after { animation: none !important; } .seg-indicator, .side-panel { transition: none !important; } }
       `}</style>
 
       <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff' }}>
@@ -492,17 +537,28 @@ export default function OwnerMapStatus() {
             <h2 className="mobile-map-title" style={{ fontWeight: 700, color: t.text, fontSize: '2rem', marginBottom: '0.25rem' }}>
               <i className="fas fa-map-marked-alt me-2" style={{ fontSize: '1.5rem' }} />Map Status
             </h2>
-            <div style={{ fontSize: '0.95rem', color: t.muted }}>Active rabies cases and veterinary clinics in Muntinlupa City</div>
-          </Col>
-          <Col xs="auto" className="d-flex align-items-center gap-3">
-            {updatedAt && (
-              <span className="d-none d-md-inline" style={{ fontSize: '0.8rem', color: t.muted }}>
-                Updated {updatedAt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}
+            <div style={{ fontSize: '0.95rem', color: t.muted, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', color: '#198754', background: 'rgba(25,135,84,0.1)', padding: '0.15rem 0.5rem', borderRadius: '20px' }}>
+                <span className="pulse-dot" style={{ '--c': 'rgba(25,135,84,0.6)', width: '6px', height: '6px' }} />LIVE
               </span>
+              Active rabies cases and veterinary clinics in Muntinlupa City
+            </div>
+          </Col>
+          <Col xs={12} md="auto" className="mt-3 mt-md-0">
+            {!loading && (
+              <div className="status-chip" role="status" style={{ background: `${alert.color}0d`, borderColor: `${alert.color}33` }}>
+                <span className="pulse-dot" style={{ '--c': `${alert.color}88` }} />
+                <div style={{ lineHeight: 1.25 }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: alert.color }}>
+                    <i className={`fas ${alert.icon} me-1`} />{alert.title}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: t.muted }}>
+                    {alert.text}
+                    {updatedAt && <> · Updated {updatedAt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}</>}
+                  </div>
+                </div>
+              </div>
             )}
-            <Button variant="outline-secondary" size="sm" onClick={loadData} disabled={loading} style={{ borderRadius: '8px', fontWeight: 600 }}>
-              <i className={`fas fa-sync-alt me-1 ${loading ? 'fa-spin' : ''}`} /> Refresh
-            </Button>
           </Col>
         </Row>
 
@@ -512,30 +568,15 @@ export default function OwnerMapStatus() {
           </Alert>
         )}
 
-        {/* Summary */}
-        <Row className="g-3 mb-4 dash-section" style={{ '--d': '0.1s' }}>
-          <Col xs={12} md={4}>
-            <SummaryTile icon="fa-exclamation-circle" color={POSITIVE} value={positiveCount} loading={loading}
-              label="Positive rabies" note={positiveCount === 1 ? 'Active danger zone' : 'Active danger zones'} />
-          </Col>
-          <Col xs={12} md={4}>
-            <SummaryTile icon="fa-question-circle" color={SUSPECTED} value={suspectedCount} loading={loading}
-              label="Suspected rabies" note={suspectedCount === 1 ? 'Active alert zone' : 'Active alert zones'} />
-          </Col>
-          <Col xs={12} md={4}>
-            <SummaryTile icon="fa-clinic-medical" color={CLINIC} value={allClinics.length} loading={loading}
-              label="Vet clinics" note="Including the City Veterinary Office" />
-          </Col>
-        </Row>
-
-        <Row className="g-4 dash-section" style={{ '--d': '0.3s', flex: '1 1 auto' }}>
+        <Row className="g-4 dash-section" style={{ '--d': '0.15s', flex: '1 1 auto' }}>
 
           {/* Map */}
-          <Col lg={8}>
+          <Col lg={8} className="map-col">
             <div className={`dash-panel map-card ${isFullscreen ? 'map-fullscreen' : ''}`}>
               {/* Top bar */}
               <div style={{ position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', pointerEvents: 'none' }}>
-                <div style={{ display: 'flex', gap: '2px', padding: '4px', borderRadius: '10px', background: 'rgba(13,20,36,0.8)', backdropFilter: 'blur(6px)', pointerEvents: 'auto' }} role="group" aria-label="Filter cases">
+                <div className="seg" style={{ pointerEvents: 'auto' }} role="group" aria-label="Filter cases">
+                  <span className="seg-indicator" style={{ transform: `translateX(${FILTERS.findIndex(f => f.v === filterStatus) * 96}px)` }} />
                   {FILTERS.map(f => (
                     <button key={f.v} type="button" className={`map-filter ${filterStatus === f.v ? 'active' : ''}`} onClick={() => setFilterStatus(f.v)} aria-pressed={filterStatus === f.v}>
                       {f.v !== 'all' && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: f.color }} />}
@@ -544,10 +585,11 @@ export default function OwnerMapStatus() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'auto' }}>
-                  <span className="d-none d-sm-inline" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', background: 'rgba(13,20,36,0.8)', padding: '0.45rem 0.75rem', borderRadius: '10px' }}>
+                  <span className="d-none d-sm-inline-flex" style={{ alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', background: 'rgba(13,20,36,0.78)', backdropFilter: 'blur(8px)', padding: '0.5rem 0.8rem', borderRadius: '10px', boxShadow: '0 6px 20px rgba(0,0,0,0.25)' }}>
+                    <span className="pulse-dot" style={{ '--c': filteredCount ? 'rgba(220,53,69,0.7)' : 'rgba(25,135,84,0.7)', background: filteredCount ? POSITIVE : '#22a855' }} />
                     {loading ? 'Loading…' : `${filteredCount} active ${filteredCount === 1 ? 'case' : 'cases'}`}
                   </span>
-                  <button type="button" className="map-btn" onClick={toggleFullscreen} style={{ ...glassBtn, borderRadius: '10px' }}
+                  <button type="button" className="map-btn" onClick={toggleFullscreen} style={{ ...glassBtn, borderRadius: '10px', boxShadow: '0 6px 20px rgba(0,0,0,0.25)' }}
                     title={isFullscreen ? 'Exit full screen' : 'Full screen'} aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}>
                     <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} />
                   </button>
@@ -555,9 +597,9 @@ export default function OwnerMapStatus() {
               </div>
 
               {loading && (
-                <div style={{ position: 'absolute', inset: 0, zIndex: 5, background: '#0d1424', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: '#a9b4cc' }}>
-                  <i className="fas fa-map-marked-alt" style={{ fontSize: '1.8rem', opacity: 0.6 }} />
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Loading map data…</span>
+                <div style={{ position: 'absolute', inset: 0, zIndex: 5, background: 'radial-gradient(circle at center, #15203a 0%, #0d1424 70%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.1rem', color: '#a9b4cc' }}>
+                  <div className="radar" />
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', letterSpacing: '0.02em' }}>Scanning for active cases…</span>
                 </div>
               )}
 
@@ -581,6 +623,7 @@ export default function OwnerMapStatus() {
           <Col lg={4} className="side-stack" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             <Panel icon="fa-info-circle" iconColor="#ffc107" title="Reading the map">
+              <div className="stagger">
               {[
                 { swatch: <div style={{ width: '28px', height: '14px', borderRadius: '4px', border: `2px solid ${POSITIVE}`, background: `${POSITIVE}1f` }} />, label: '1 km danger zone', desc: 'A positive rabies case was confirmed here. Keep pets indoors.' },
                 { swatch: <div style={{ width: '28px', height: '14px', borderRadius: '4px', border: `2px solid ${SUSPECTED}`, background: `${SUSPECTED}1f` }} />, label: '1 km alert zone', desc: 'A suspected case is being checked. Watch your pets closely.' },
@@ -595,16 +638,24 @@ export default function OwnerMapStatus() {
                   </div>
                 </div>
               ))}
+              </div>
             </Panel>
 
-            <Panel icon="fa-clinic-medical" iconColor={CLINIC} title="Vet clinics" subtitle="Select a clinic to see it on the map" bodyStyle={{ padding: '0.2rem 0.75rem 0.75rem' }}>
-              <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+            <Panel icon="fa-clinic-medical" iconColor={CLINIC} title="Vet clinics" subtitle="Select a clinic to see it on the map" bodyStyle={{ padding: '0.2rem 0.75rem 0.75rem' }}
+              action={!loading && <span style={{ fontSize: '0.75rem', fontWeight: 700, color: CLINIC, background: `${CLINIC}14`, padding: '0.2rem 0.55rem', borderRadius: '20px' }}>{allClinics.length}</span>}>
+              <div style={{ position: 'relative', margin: '0 0.5rem 0.5rem' }}>
+                <i className="fas fa-search" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: t.faint }} />
+                <input className="clinic-search" type="search" placeholder="Search clinics" value={clinicQuery} onChange={e => setClinicQuery(e.target.value)} aria-label="Search clinics" />
+              </div>
+              <div className="stagger" style={{ maxHeight: '220px', overflowY: 'auto' }}>
                 {loading ? (
                   [0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: '42px', margin: '0 0.5rem 0.5rem' }} />)
-                ) : allClinics.map(clinic => {
+                ) : shownClinics.length === 0 ? (
+                  <div style={{ padding: '1rem 0.5rem', textAlign: 'center', fontSize: '0.82rem', color: t.faint }}>No clinics match "{clinicQuery}"</div>
+                ) : shownClinics.map(clinic => {
                   const isCityVet = clinic.id === 'cityvet';
                   return (
-                    <button key={clinic.id} type="button" className="clinic-row" onClick={() => focusClinic(clinic)}
+                    <button key={clinic.id} type="button" className={`clinic-row ${activeClinic === clinic.id ? 'active' : ''}`} onClick={() => focusClinic(clinic)}
                       style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.7rem', padding: '0.6rem 0.5rem', borderRadius: '10px', cursor: 'pointer' }}>
                       <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: `${isCityVet ? CITYVET : CLINIC}1f`, color: isCityVet ? '#b38600' : CLINIC, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <i className="fas fa-clinic-medical" style={{ fontSize: '0.8rem' }} />
@@ -615,7 +666,7 @@ export default function OwnerMapStatus() {
                           {isCityVet ? 'City government clinic' : (clinic.specialization || 'Private clinic')}
                         </div>
                       </div>
-                      <i className="fas fa-chevron-right" style={{ fontSize: '0.7rem', color: t.faint }} />
+                      <i className="fas fa-chevron-right chev" style={{ fontSize: '0.7rem', color: t.faint }} />
                     </button>
                   );
                 })}
@@ -623,6 +674,7 @@ export default function OwnerMapStatus() {
             </Panel>
 
             <Panel icon="fa-shield-alt" iconColor="#198754" title="Keep your pets safe">
+              <div className="stagger">
               {[
                 { icon: 'fa-syringe',  tip: "Keep your pet's anti-rabies vaccination up to date." },
                 { icon: 'fa-home',     tip: 'Keep pets indoors when a danger zone is nearby.' },
@@ -636,6 +688,7 @@ export default function OwnerMapStatus() {
                   <span style={{ fontSize: '0.84rem', color: t.text, lineHeight: 1.5 }}>{item.tip}</span>
                 </div>
               ))}
+              </div>
             </Panel>
           </Col>
         </Row>
