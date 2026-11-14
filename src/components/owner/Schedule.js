@@ -336,7 +336,7 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
       setTimeout(() => {
         handleViewClick({ ...schedule, type });
         // Clear the URL parameter
-        window.history.replaceState({}, '', '/owner/schedule');
+        window.history.replaceState({}, '', window.location.pathname);
       }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -567,7 +567,7 @@ const OwnerDashboard = () => {
                   </div>
                 </div>
                 {isVerified() && dashboardData.upcomingTotal > 0 && (
-                  <a href="/owner/schedule" className="od-link">View calendar <i className="fas fa-arrow-right" style={{ fontSize: '0.7rem' }} /></a>
+                  <a href="/community/schedule" className="od-link">View calendar <i className="fas fa-arrow-right" style={{ fontSize: '0.7rem' }} /></a>
                 )}
               </div>
               <div className="od-panel-body">
@@ -623,7 +623,7 @@ const OwnerDashboard = () => {
                               </div>
                             </div>
                           )}
-                          <a href={`/owner/schedule?view=${event.type}-${event.id}`} className="od-btn">View</a>
+                          <a href={`/community/schedule?view=${event.type}-${event.id}`} className="od-btn">View</a>
                         </div>
                       );
                     })}
