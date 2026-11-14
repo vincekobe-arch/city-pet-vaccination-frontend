@@ -2394,7 +2394,7 @@ onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
                         style={{ flex: '1', padding: '1.5rem', border: formData.record_type === 'microchip' ? '3px solid #4361ee' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'microchip' ? '#eef0ff' : '#ffffff', transition: 'all 0.3s' }}>
                         <img src="/microchip.png" alt="Microchip" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
                         <i className="fas fa-microchip" style={{ fontSize: '2.5rem', color: '#4361ee', marginBottom: '0.5rem', display: 'none' }}></i>
-                        <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Microchip / QR</div>
+                        <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Microchip</div>
                       </div>
                     </div>
                   </Form.Group>

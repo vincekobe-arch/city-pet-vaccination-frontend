@@ -46,7 +46,9 @@ const [microchipSchedules, setMicrochipSchedules] = useState([]);
   const [lastRegistrationData, setLastRegistrationData] = useState(null);
 const [showDropdown, setShowDropdown] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
+  const [calMonth, setCalMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1); });
+  const [selectedDate, setSelectedDate] = useState(null);
   const [vaccineRegistrationCounts, setVaccineRegistrationCounts] = useState({});
   const [inventoryItems, setInventoryItems] = useState([]);
   
@@ -177,6 +179,127 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
         max-width: 100% !important;
         flex: 0 0 100% !important;
       }
+    }
+    /* ---------------- Calendar page ---------------- */
+    @keyframes evIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes evPop { 0% { transform: scale(0.85); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+    @keyframes evFade { from { opacity: 0; } to { opacity: 1; } }
+    .ev-anim { animation: evIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .ev-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; padding: 1.1rem; box-shadow: 0 1px 3px rgba(16,24,40,0.04); }
+
+    .ev-req-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid rgba(224,168,0,0.35); background: rgba(255,193,7,0.08); color: #8a6700; font-weight: 600; font-size: 0.85rem; transition: background 0.2s ease, transform 0.2s ease; }
+    .ev-req-btn:hover { background: rgba(255,193,7,0.16); transform: translateY(-1px); }
+
+    .ev-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; }
+    .ev-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #e9ecef; background: #fff; color: #1f2328; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transition: background 0.15s ease, border-color 0.15s ease; }
+    .ev-icon-btn:hover { background: #f6f7f9; border-color: #dfe3e8; }
+    .ev-link { border: none; background: none; padding: 0; color: #0d6efd; font-size: 0.78rem; font-weight: 600; }
+    .ev-link:hover { text-decoration: underline; }
+
+    .ev-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .ev-cal-week { margin-bottom: 4px; }
+    .ev-cal-week > div { text-align: center; font-size: 0.7rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.25rem 0; }
+    .ev-cal-grid:not(.ev-cal-week) { animation: evFade 0.3s ease-out; }
+    .ev-day { position: relative; aspect-ratio: 1 / 1; border: none; border-radius: 10px; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #1f2328; font-size: 0.85rem; font-weight: 500; transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease; }
+    .ev-day:hover { background: #f3f4f6; }
+    .ev-day.out { color: #c4c9d0; }
+    .ev-day.has { font-weight: 700; background: #fafbfc; }
+    .ev-day.has:hover { background: #f1f3f5; transform: translateY(-1px); }
+    .ev-day.today .num { box-shadow: inset 0 0 0 1.5px #e0a800; border-radius: 50%; width: 1.7em; height: 1.7em; display: inline-flex; align-items: center; justify-content: center; }
+    .ev-day.selected { background: #1f2328 !important; color: #fff !important; animation: evPop 0.3s ease-out; }
+    .ev-day.selected.today .num { box-shadow: inset 0 0 0 1.5px #ffc107; }
+    .ev-day .dots { display: flex; gap: 2px; height: 5px; }
+    .ev-day .dots i { width: 5px; height: 5px; border-radius: 50%; display: block; }
+    .ev-cal-foot { border-top: 1px solid #eef0f3; margin-top: 0.85rem; padding-top: 0.75rem; min-height: 2.2rem; }
+    .ev-legend { display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; margin-top: 0.65rem; }
+    .ev-legend span { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; color: #6b7280; }
+    .ev-legend i { width: 8px; height: 8px; border-radius: 50%; display: block; }
+
+    .ev-chips { display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.4rem; scrollbar-width: thin; }
+    .ev-chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid #e5e7eb; background: #fff; color: #4b5563; font-size: 0.82rem; font-weight: 600; transition: all 0.2s ease; }
+    .ev-chip i { color: var(--c); font-size: 0.75rem; transition: color 0.2s ease; }
+    .ev-chip .count { font-size: 0.72rem; background: #f3f4f6; color: #6b7280; border-radius: 999px; padding: 0.05rem 0.45rem; transition: all 0.2s ease; }
+    .ev-chip:hover { border-color: var(--c); color: #1f2328; }
+    .ev-chip.active { background: var(--c); border-color: var(--c); color: #fff; box-shadow: 0 4px 12px rgba(16,24,40,0.12); }
+    .ev-chip.active i { color: #fff; }
+    .ev-chip.active .count { background: rgba(255,255,255,0.25); color: #fff; }
+    .ev-select { position: relative; }
+    .ev-select > i { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.75rem; pointer-events: none; z-index: 1; }
+    .ev-select .form-select { padding: 0.5rem 2rem 0.5rem 2rem; border-radius: 10px; border: 1px solid #e5e7eb; font-size: 0.85rem; }
+    .ev-select .form-select:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+
+    .ev-group { margin-bottom: 1rem; }
+    .ev-group-head { font-size: 0.78rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin: 0.25rem 0 0.5rem 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+    .ev-today-tag { text-transform: none; letter-spacing: 0; font-size: 0.7rem; color: #198754; background: rgba(25,135,84,0.1); padding: 0.1rem 0.5rem; border-radius: 999px; }
+
+    .ev-card { display: flex; align-items: stretch; gap: 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid var(--c); border-radius: 12px; padding: 1rem; margin-bottom: 0.65rem; transition: box-shadow 0.25s ease, transform 0.25s ease; }
+    .ev-card:hover { box-shadow: 0 10px 26px rgba(16,24,40,0.08); transform: translateY(-2px); }
+    .ev-date { flex-shrink: 0; width: 64px; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5rem 0; line-height: 1.1; }
+    .ev-date .m { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--c); letter-spacing: 0.06em; }
+    .ev-date .d { font-size: 1.55rem; font-weight: 800; color: #1f2328; }
+    .ev-date .w { font-size: 0.68rem; color: #6b7280; }
+    .ev-main { flex: 1; min-width: 0; }
+    .ev-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.35rem; }
+    .ev-tag { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px; }
+    .ev-title { font-weight: 700; font-size: 1.02rem; color: #1f2328; margin-bottom: 0.3rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ev-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.82rem; color: #6b7280; }
+    .ev-meta i { margin-right: 0.35rem; color: #9ca3af; }
+    .ev-slots { display: flex; align-items: center; gap: 0.65rem; margin-top: 0.6rem; font-size: 0.76rem; color: #6b7280; }
+    .ev-slots-bar { flex: 0 1 180px; height: 6px; background: #eef0f3; border-radius: 3px; overflow: hidden; }
+    .ev-slots-bar > div { height: 100%; border-radius: 3px; transform-origin: left; animation: evGrow 1s cubic-bezier(0.22, 1, 0.36, 1) backwards; animation-delay: calc(var(--d, 0s) + 0.2s); }
+    @keyframes evGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .ev-actions { display: flex; flex-direction: column; justify-content: center; gap: 0.4rem; flex-shrink: 0; }
+
+    .ev-btn { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 9px; padding: 0.45rem 0.85rem; font-size: 0.82rem; font-weight: 600; border: 1px solid transparent; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease; }
+    .ev-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ev-btn.primary { background: #ffc107; color: #1f2328; }
+    .ev-btn.primary:hover:not(:disabled) { background: #f0b400; box-shadow: 0 4px 12px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .ev-btn.neutral { background: #1f2328; color: #fff; }
+    .ev-btn.neutral:hover:not(:disabled) { background: #000; }
+    .ev-btn.danger { background: #fff; color: #dc3545; border-color: rgba(220,53,69,0.35); }
+    .ev-btn.danger:hover:not(:disabled) { background: rgba(220,53,69,0.06); }
+    .ev-btn.ghost { background: #fff; color: #1f2328; border-color: #e5e7eb; }
+    .ev-btn.ghost:hover:not(:disabled) { background: #f6f7f9; }
+    .ev-empty-icon { width: 64px; height: 64px; margin: 0 auto; border-radius: 16px; background: #f3f4f6; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+
+    .ev-day:focus-visible, .ev-chip:focus-visible, .ev-btn:focus-visible, .ev-icon-btn:focus-visible, .ev-link:focus-visible, .ev-req-btn:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    /* ---------------- Modals ---------------- */
+    .ev-modal { max-width: 540px; }
+    .ev-modal.sm { max-width: 440px; }
+    .ev-modal .modal-content { border: none; border-radius: 16px; box-shadow: 0 24px 60px rgba(16,24,40,0.2); overflow: hidden; }
+    .ev-modal-head { border-bottom: 1px solid #eef0f3 !important; padding: 1.1rem 1.5rem !important; }
+    .ev-modal-icon { width: 42px; height: 42px; border-radius: 12px; background: color-mix(in srgb, var(--c) 14%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0; }
+    .ev-modal-icon.lg { width: 58px; height: 58px; border-radius: 16px; font-size: 1.5rem; animation: evPop 0.4s ease-out; }
+    .ev-modal-label { font-size: 0.72rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.5rem; }
+    .ev-age-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+    .ev-age { display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 0.7rem; border-radius: 10px; border: 1px solid #eef0f3; background: #fafbfc; }
+    .ev-age > i { width: 30px; height: 30px; border-radius: 8px; background: color-mix(in srgb, var(--c) 14%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
+    .ev-age .t { font-size: 0.78rem; font-weight: 700; color: #1f2328; }
+    .ev-age .a { font-size: 0.72rem; color: #6b7280; }
+    .ev-checklist { border: 1px solid #eef0f3; border-radius: 12px; overflow: hidden; }
+    .ev-check { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.65rem 0.85rem; font-size: 0.85rem; color: #1f2328; line-height: 1.45; animation: evIn 0.35s ease-out backwards; }
+    .ev-check + .ev-check { border-top: 1px solid #eef0f3; }
+    ${Array.from({ length: 6 }, (_, i) => `.ev-check:nth-child(${i + 1}) { animation-delay: ${0.08 + i * 0.05}s; }`).join('\n    ')}
+    .ev-check .ic { width: 24px; height: 24px; border-radius: 7px; background: #f3f4f6; color: #4b5563; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; }
+    .ev-check .ic.ok { background: rgba(25,135,84,0.12); color: #198754; }
+    .ev-tips { margin: 0; padding-left: 1.1rem; font-size: 0.84rem; color: #4b5563; line-height: 1.55; }
+    .ev-tips li { margin-bottom: 0.25rem; }
+    .ev-tips li::marker { color: #0d6efd; }
+    .ev-warning { display: flex; gap: 0.6rem; align-items: flex-start; margin-top: 1rem; padding: 0.75rem 0.9rem; border-radius: 10px; background: rgba(220,53,69,0.06); border: 1px solid rgba(220,53,69,0.2); color: #b02a37; font-size: 0.82rem; line-height: 1.5; }
+    .ev-warning i { margin-top: 3px; }
+
+    @media (max-width: 768px) {
+      .ev-card { flex-wrap: wrap; }
+      .ev-date { width: 54px; }
+      .ev-actions { flex-direction: row; width: 100%; }
+      .ev-actions .ev-btn { flex: 1; justify-content: center; }
+      .ev-title { white-space: normal; }
+      .ev-age-grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ev-anim, .ev-day.selected, .ev-check, .ev-modal-icon.lg, .ev-slots-bar > div, .ev-cal-grid { animation: none !important; }
+      .ev-card, .ev-chip, .ev-btn, .ev-day { transition: none !important; }
     }
   `;
 
@@ -1168,7 +1291,102 @@ const getVaccineDetails = (schedule) => {
   }
 };
 
-  const filteredSchedules = getFilteredSchedules();
+  /* ---------------- Calendar + list helpers ---------------- */
+  const TYPE_META = {
+    vaccination:   { label: 'Vaccination',   color: '#e0a800', icon: 'fa-syringe' },
+    deworming:     { label: 'Deworming',     color: '#0d6efd', icon: 'fa-pills' },
+    seminar:       { label: 'Seminar',       color: '#0aa2c0', icon: 'fa-graduation-cap' },
+    sterilization: { label: 'Sterilization', color: '#198754', icon: 'fa-cut' },
+    microchip:     { label: 'Microchip',     color: '#d63384', icon: 'fa-microchip' },
+    other:         { label: 'Other event',   color: '#6f42c1', icon: 'fa-calendar-check' },
+  };
+  const typeMeta = (type) => TYPE_META[type] || { label: type, color: '#6c757d', icon: 'fa-calendar' };
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const dateKey = (schedule) => String(schedule.scheduled_date || '').slice(0, 10);
+  const keyToDate = (key) => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); };
+  const todayKey = toKey(new Date());
+
+  // "13:30:00" -> "1:30 PM"
+  const formatClock = (value) => {
+    if (!value) return '';
+    const [h, m] = String(value).split(':');
+    const hour = parseInt(h, 10);
+    return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`;
+  };
+
+  // Status pill: Today / Ongoing / Soon / This week / Upcoming
+  const getStatusMeta = (schedule) => {
+    const now = new Date();
+    const day = keyToDate(dateKey(schedule));
+    const [sh, sm] = (schedule.start_time || '0:0').split(':');
+    const [eh, em] = (schedule.end_time || '23:59').split(':');
+    const start = new Date(day); start.setHours(+sh, +sm, 0, 0);
+    const end = new Date(day);   end.setHours(+eh, +em, 0, 0);
+    if (schedule.status === 'cancelled') return { label: 'Cancelled', color: '#dc3545' };
+    if (schedule.status === 'completed' || now > end) return { label: 'Ended', color: '#6c757d' };
+    if (now >= start) return { label: 'Ongoing', color: '#198754' };
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff = Math.round((day - today) / 86400000);
+    if (diff === 0) return { label: 'Today', color: '#198754' };
+    if (diff <= 3) return { label: 'Soon', color: '#e0a800' };
+    if (diff <= 7) return { label: 'This week', color: '#0aa2c0' };
+    return { label: 'Upcoming', color: '#0d6efd' };
+  };
+
+  // Slots taken / total for the capacity bar
+  const getSlots = (schedule) => {
+    const taken = Number(schedule.current_registrations || 0);
+    const total = schedule.type === 'vaccination' ? getTotalVaccineShots(schedule) : Number(schedule.max_capacity || 0);
+    return total > 0 ? { taken, total, left: Math.max(0, total - taken) } : null;
+  };
+
+  // Same rules as the old card menu: what the owner can do with this event
+  const getEventAction = (schedule) => {
+    if (['ongoing', 'completed', 'cancelled'].includes(schedule.status)) return null;
+    const start = keyToDate(dateKey(schedule));
+    const [sh, sm] = (schedule.start_time || '0:0').split(':');
+    start.setHours(+sh, +sm, 0, 0);
+    if (new Date() >= start) return null;
+
+    if (schedule.type === 'seminar') {
+      const regs = currentRegistrations.filter(r => r.schedule_id === schedule.id && r.schedule_type === 'seminar' && r.status !== 'cancelled');
+      if (regs.length > 0) {
+        return {
+          label: 'Cancel registration', icon: 'fa-times', tone: 'danger',
+          onClick: () => { setPetToCancel({ petId: null, registrationId: regs[0].id }); setShowCancelConfirm(true); },
+        };
+      }
+    }
+    if (isScheduleRegistered(schedule)) {
+      return { label: 'Manage registration', icon: 'fa-user-edit', tone: 'neutral', onClick: () => handleRegisterClick(schedule) };
+    }
+    return { label: 'Register', icon: 'fa-plus', tone: 'primary', onClick: () => handleRegisterClick(schedule) };
+  };
+  const typeFiltered = [...getFilteredSchedules()].sort((a, b) =>
+    dateKey(a).localeCompare(dateKey(b)) || String(a.start_time).localeCompare(String(b.start_time)));
+  const filteredSchedules = selectedDate ? typeFiltered.filter(s => dateKey(s) === selectedDate) : typeFiltered;
+
+  // Events per day for the calendar dots (respects the type, place and registration filters)
+  const eventsByDate = typeFiltered.reduce((acc, s) => { (acc[dateKey(s)] = acc[dateKey(s)] || []).push(s); return acc; }, {});
+
+  // 6-week grid for the visible month
+  const calendarDays = (() => {
+    const first = new Date(calMonth.getFullYear(), calMonth.getMonth(), 1);
+    const start = new Date(first); start.setDate(1 - first.getDay());
+    return Array.from({ length: 42 }, (_, i) => {
+      const date = new Date(start); date.setDate(start.getDate() + i);
+      return { date, key: toKey(date), inMonth: date.getMonth() === calMonth.getMonth() };
+    });
+  })();
+
+  // Current page of events, grouped by date
+  const totalPages = Math.max(1, Math.ceil(filteredSchedules.length / itemsPerPage));
+  const pagedGroups = Object.entries(
+    filteredSchedules.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+      .reduce((acc, s) => { (acc[dateKey(s)] = acc[dateKey(s)] || []).push(s); return acc; }, {})
+  );
 
   if (loading) {
     return (
@@ -1227,38 +1445,26 @@ const getVaccineDetails = (schedule) => {
         </div>
       )}
 
-      <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
+      <Row className="mb-4 align-items-end" style={{ animation: 'dropDown 0.4s ease-out' }}>
         <Col>
-          <div>
-            <div className="d-flex align-items-center" style={{ gap: '0.75rem', flexWrap: 'wrap' }}>
-              <i
-                className="fas fa-calendar-alt"
-                style={{ fontSize: '1.5rem', color: '#000000', animation: 'float 3s ease-in-out infinite' }}
-              />
-              <h2 className="sched-page-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>Event Calendar</h2>
-              <button
-              onClick={() => setShowRequirementsReminderModal(true)}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                padding: '0.35rem 0.9rem', borderRadius: '999px',
-                background: 'rgba(255,193,7,0.12)', border: '1.5px solid rgba(255,193,7,0.4)',
-                fontSize: '0.78rem', fontWeight: '700', color: '#b38600',
-                cursor: 'pointer', transition: 'all 0.2s'
-              }}
-              onMouseOver={e => { e.currentTarget.style.background = 'rgba(255,193,7,0.22)'; }}
-              onMouseOut={e => { e.currentTarget.style.background = 'rgba(255,193,7,0.12)'; }}
-            >
-              <i className="fas fa-clipboard-list" style={{ fontSize: '0.75rem' }} />
-              Requirements Reminder
-            </button>
-            </div>
-            {!verifLoading && ownerProfile?.verification_status === 'pending' && (
-              <div style={{ marginTop:'0.5rem', fontSize:'0.8rem', color:'#856404', display:'flex', alignItems:'center', gap:'0.4rem' }}>
-                <i className="fas fa-hourglass-half" />
-                Your ID is under review. We'll notify you once verified.
-              </div>
-            )}
+          <h2 className="sched-page-title" style={{ fontWeight: 700, color: '#1f2328', fontSize: '2rem', marginBottom: '0.25rem' }}>
+            <i className="fas fa-calendar-alt me-2" style={{ fontSize: '1.5rem' }} />Event Calendar
+          </h2>
+          <div style={{ fontSize: '0.95rem', color: '#6b7280' }}>
+            Free vaccination, deworming, sterilization and other City Vet events near you
           </div>
+          {!verifLoading && ownerProfile?.verification_status === 'pending' && (
+            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#856404', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <i className="fas fa-hourglass-half" />
+              Your ID is under review. We'll notify you once verified.
+            </div>
+          )}
+        </Col>
+        <Col xs={12} md="auto" className="mt-3 mt-md-0">
+          <button type="button" className="ev-req-btn" onClick={() => setShowRequirementsReminderModal(true)}>
+            <i className="fas fa-clipboard-check" />
+            Event requirements
+          </button>
         </Col>
       </Row>
 
@@ -1326,1045 +1532,337 @@ const getVaccineDetails = (schedule) => {
           </Col>
         </Row>
       ) : isVerified() && (
-        <>
-          <Card 
-            className="border-0"
-            style={{ 
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-              animation: 'dropDown 0.4s ease-out 0.1s backwards'
-            }}
-          >
-            <Card.Header 
-              style={{
-                background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
-                borderBottom: 'none',
-                padding: '2rem 1.5rem',
-                borderRadius: '20px 20px 0 0'
-              }}
-            >
-              {/* Tab Pills */}
-              <div className="sched-tab-row" style={{
-                display: 'flex',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
-                marginBottom: '1.5rem'
-              }}>
-                <button
-                  className="sched-tab-btn"
-                  onClick={() => { setActiveTab('all'); setCurrentPage(1); }}
-                  style={{
-                    background: activeTab === 'all' 
-                      ? 'rgba(255, 193, 7, 0.12)' 
-                      : '#ffffff',
-                    color: activeTab === 'all' ? '#000000' : '#6c757d',
-                    border: activeTab === 'all' ? 'none' : '2px solid #e0e0e0',
-                    padding: '0.875rem 1.5rem',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: activeTab === 'all' 
-                      ? '0 4px 15px rgba(255, 193, 7, 0.3)' 
-                      : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    minWidth: '140px',
-                    justifyContent: 'center'
-                  }}
-                  onMouseOver={(e) => {
-                    if (activeTab !== 'all') {
-                      e.target.style.borderColor = '#ffc107';
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (activeTab !== 'all') {
-                      e.target.style.borderColor = '#e0e0e0';
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                    }
-                  }}
-                >
-                  <i className="fas fa-calendar"></i>
-                  <span>All Events</span>
-                  <span className="sched-tab-count" style={{
-                    fontSize: '0.8rem',
-                    fontWeight: '700',
-                    opacity: activeTab === 'all' ? 1 : 0.6
-                  }}>
-                    {getAllSchedules().length}
-                  </span>
-                </button>
+        <Row className="g-4" style={{ flex: '1 1 auto' }}>
 
-                <button
-                  className="sched-tab-btn"
-                  onClick={() => { setActiveTab('vaccination'); setCurrentPage(1); }}
-                  style={{
-                    background: activeTab === 'vaccination' 
-                      ? 'rgba(255, 193, 7, 0.12)' 
-                      : '#ffffff',
-                    color: activeTab === 'vaccination' ? '#000000' : '#6c757d',
-                    border: activeTab === 'vaccination' ? 'none' : '2px solid #e0e0e0',
-                    padding: '0.875rem 1.5rem',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: activeTab === 'vaccination' 
-                      ? '0 4px 15px rgba(255, 193, 7, 0.3)' 
-                      : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    minWidth: '140px',
-                    justifyContent: 'center'
-                  }}
-                  onMouseOver={(e) => {
-                    if (activeTab !== 'vaccination') {
-                      e.target.style.borderColor = '#ffc107';
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (activeTab !== 'vaccination') {
-                      e.target.style.borderColor = '#e0e0e0';
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                    }
-                  }}
-                >
-                  <i className="fas fa-syringe"></i>
-                  <span>Vaccination</span>
-                  <span className="sched-tab-count" style={{
-                    fontSize: '0.8rem',
-                    fontWeight: '700',
-                    opacity: activeTab === 'vaccination' ? 1 : 0.6
-                  }}>
-                    {vaccinationSchedules.length}
-                  </span>
+          {/* ---------------- Calendar ---------------- */}
+          <Col lg={4} xl={3}>
+            <div className="ev-panel ev-anim" style={{ '--d': '0.1s' }}>
+              <div className="ev-cal-head">
+                <button type="button" className="ev-icon-btn" aria-label="Previous month"
+                  onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
+                  <i className="fas fa-chevron-left" />
                 </button>
-
-                <button
-                  className="sched-tab-btn"
-                  onClick={() => { setActiveTab('seminar'); setCurrentPage(1); }}
-                  style={{
-                    background: activeTab === 'seminar' 
-                      ? 'rgba(255, 193, 7, 0.12)' 
-                      : '#ffffff',
-                    color: activeTab === 'seminar' ? '#000000' : '#6c757d',
-                    border: activeTab === 'seminar' ? 'none' : '2px solid #e0e0e0',
-                    padding: '0.875rem 1.5rem',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: activeTab === 'seminar' 
-                      ? '0 4px 15px rgba(255, 193, 7, 0.3)' 
-                      : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    minWidth: '140px',
-                    justifyContent: 'center'
-                  }}
-                  onMouseOver={(e) => {
-                    if (activeTab !== 'seminar') {
-                      e.target.style.borderColor = '#ffc107';
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (activeTab !== 'seminar') {
-                      e.target.style.borderColor = '#e0e0e0';
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                    }
-                  }}
-                >
-                  <i className="fas fa-graduation-cap"></i>
-                  <span>Seminars</span>
-                  <span className="sched-tab-count" style={{
-                    fontSize: '0.8rem',
-                    fontWeight: '700',
-                    opacity: activeTab === 'seminar' ? 1 : 0.6
-                  }}>
-                    {seminarSchedules.length}
-                  </span>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1f2328' }}>
+                    {calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </div>
+                  <button type="button" className="ev-link" onClick={() => { const n = new Date(); setCalMonth(new Date(n.getFullYear(), n.getMonth(), 1)); setSelectedDate(todayKey); setCurrentPage(1); }}>
+                    Jump to today
+                  </button>
+                </div>
+                <button type="button" className="ev-icon-btn" aria-label="Next month"
+                  onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
+                  <i className="fas fa-chevron-right" />
                 </button>
-
-                <button
-                  className="sched-tab-btn"
-                  onClick={() => { setActiveTab('sterilization'); setCurrentPage(1); }}
-                  style={{
-                    background: activeTab === 'sterilization' 
-                      ? 'rgba(255, 193, 7, 0.12)' 
-                      : '#ffffff',
-                    color: activeTab === 'sterilization' ? '#000000' : '#6c757d',
-                    border: activeTab === 'sterilization' ? 'none' : '2px solid #e0e0e0',
-                    padding: '0.875rem 1.5rem',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    fontSize: '0.95rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: activeTab === 'sterilization' 
-                      ? '0 4px 15px rgba(255, 193, 7, 0.3)' 
-                      : '0 2px 8px rgba(0, 0, 0, 0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    minWidth: '140px',
-                    justifyContent: 'center'
-                  }}
-                  onMouseOver={(e) => {
-                    if (activeTab !== 'sterilization') {
-                      e.target.style.borderColor = '#ffc107';
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (activeTab !== 'sterilization') {
-                      e.target.style.borderColor = '#e0e0e0';
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-                    }
-                  }}
-                >
-                  <i className="fas fa-cut"></i>
-                  <span>Sterilization</span>
-                  <span className="sched-tab-count" style={{
-                    fontSize: '0.8rem',
-                    fontWeight: '700',
-                    opacity: activeTab === 'sterilization' ? 1 : 0.6
-                  }}>
-                    {sterilizationSchedules.length}
-                  </span>
-                </button>
-                <button
-  className="sched-tab-btn"
-  onClick={() => { setActiveTab('microchip'); setCurrentPage(1); }}
-  style={{
-    background: activeTab === 'microchip'
-      ? 'rgba(255, 193, 7, 0.12)'
-      : '#ffffff',
-    color: activeTab === 'microchip' ? '#000000' : '#6c757d',
-    border: activeTab === 'microchip' ? 'none' : '2px solid #e0e0e0',
-    padding: '0.875rem 1.5rem',
-    borderRadius: '12px',
-    fontWeight: '700',
-    fontSize: '0.95rem',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    boxShadow: activeTab === 'microchip'
-      ? '0 4px 15px rgba(255, 193, 7, 0.3)'
-      : '0 2px 8px rgba(0, 0, 0, 0.05)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    minWidth: '140px',
-    justifyContent: 'center'
-  }}
-  onMouseOver={(e) => {
-    if (activeTab !== 'microchip') {
-      e.target.style.borderColor = '#ffc107';
-      e.target.style.transform = 'translateY(-2px)';
-      e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-    }
-  }}
-  onMouseOut={(e) => {
-    if (activeTab !== 'microchip') {
-      e.target.style.borderColor = '#e0e0e0';
-      e.target.style.transform = 'translateY(0)';
-      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-    }
-  }}
->
-  <i className="fas fa-microchip"></i>
-  <span>Microchip</span>
-  <span className="sched-tab-count" style={{
-    fontSize: '0.8rem',
-    fontWeight: '700',
-    opacity: activeTab === 'microchip' ? 1 : 0.6
-  }}>
-    {microchipSchedules.length}
-  </span>
-</button>
-<button
-  className="sched-tab-btn"
-  onClick={() => { setActiveTab('other'); setCurrentPage(1); }}
-  style={{
-    background: activeTab === 'other'
-      ? 'rgba(255, 193, 7, 0.12)' 
-      : '#ffffff',
-    color: activeTab === 'other' ? '#000000' : '#6c757d',
-    border: activeTab === 'other' ? 'none' : '2px solid #e0e0e0',
-    padding: '0.875rem 1.5rem',
-    borderRadius: '12px',
-    fontWeight: '700',
-    fontSize: '0.95rem',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    boxShadow: activeTab === 'other' 
-      ? '0 4px 15px rgba(255, 193, 7, 0.3)' 
-      : '0 2px 8px rgba(0, 0, 0, 0.05)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-    minWidth: '140px',
-    justifyContent: 'center'
-  }}
-  onMouseOver={(e) => {
-    if (activeTab !== 'other') {
-      e.target.style.borderColor = '#ffc107';
-      e.target.style.transform = 'translateY(-2px)';
-      e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
-    }
-  }}
-  onMouseOut={(e) => {
-    if (activeTab !== 'other') {
-      e.target.style.borderColor = '#e0e0e0';
-      e.target.style.transform = 'translateY(0)';
-      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.05)';
-    }
-  }}
->
-  <i className="fas fa-calendar-check"></i>
-  <span>Other Events</span>
-  <span className="sched-tab-count" style={{
-    fontSize: '0.8rem',
-    fontWeight: '700',
-    opacity: activeTab === 'other' ? 1 : 0.6
-  }}>
-    {otherSchedules.length}
-  </span>
-</button>
               </div>
 
-              <div className="mt-3">
-                <Row className="align-items-center sched-filter-row">
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label style={{ fontWeight: '600', color: '#333333', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                        <i className="fas fa-map-marker-alt me-2"></i>
-                        Filter by Place:
-                      </Form.Label>
-                      <Form.Select
-                        value={selectedBarangay}
-                        onChange={(e) => { setSelectedBarangay(e.target.value); setCurrentPage(1); }}
-                        style={{
-                          borderRadius: '10px',
-                          padding: '0.75rem',
-                          border: '2px solid #e0e0e0',
-                          fontWeight: '500',
-                          fontSize: '0.95rem'
-                        }}
-                      >
-                        <option value="all">All Places ({getAllSchedules().length})</option>
-                        {barangays.map(barangay => (
-                          <option key={barangay} value={barangay}>
-                            {barangay} ({getBarangayCount(barangay)})
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    <Form.Group>
-                      <Form.Label style={{ fontWeight: '600', color: '#333333', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                        <i className="fas fa-filter me-2"></i>
-                        Filter by Status:
-                      </Form.Label>
-                      <Form.Select
-                        value={filterRegistration}
-                        onChange={(e) => { setFilterRegistration(e.target.value); setCurrentPage(1); }}
-                        style={{
-                          borderRadius: '10px',
-                          padding: '0.75rem',
-                          border: '2px solid #e0e0e0',
-                          fontWeight: '500',
-                          fontSize: '0.95rem'
-                        }}
-                      >
-                        <option value="all">All Events</option>
-                        <option value="registered">Registered</option>
-                        <option value="unregistered">Unregistered</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={6} className="text-end">
-                    <div style={{ 
-                      padding: '0.75rem 1.25rem',
-                      background: 'rgba(255, 193, 7, 0.1)',
-                      borderRadius: '10px',
-                      display: 'inline-block',
-                      border: '2px solid rgba(255, 193, 7, 0.3)'
-                    }}>
-                      <small style={{ color: '#333333', fontWeight: '600', fontSize: '0.95rem' }}>
-                        Showing <strong style={{ color: '#000000' }}>{filteredSchedules.length}</strong> event{filteredSchedules.length !== 1 ? 's' : ''}
-                      </small>
-                    </div>
-                  </Col>
-                </Row>
+              <div className="ev-cal-grid ev-cal-week">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d.slice(0, 2)}</div>)}
               </div>
-            </Card.Header>
+              <div className="ev-cal-grid" key={calMonth.toISOString()}>
+                {calendarDays.map(({ date, key, inMonth }) => {
+                  const dayEvents = eventsByDate[key] || [];
+                  const types = [...new Set(dayEvents.map(e => e.type))].slice(0, 3);
+                  const isSelected = selectedDate === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`ev-day${inMonth ? '' : ' out'}${key === todayKey ? ' today' : ''}${isSelected ? ' selected' : ''}${dayEvents.length ? ' has' : ''}`}
+                      onClick={() => { setSelectedDate(isSelected ? null : key); setCurrentPage(1); if (!inMonth) setCalMonth(new Date(date.getFullYear(), date.getMonth(), 1)); }}
+                      aria-pressed={isSelected}
+                      aria-label={`${date.toDateString()}${dayEvents.length ? `, ${dayEvents.length} event${dayEvents.length > 1 ? 's' : ''}` : ''}`}
+                    >
+                      <span className="num">{date.getDate()}</span>
+                      <span className="dots">
+                        {types.map(tp => <i key={tp} style={{ background: isSelected ? '#fff' : typeMeta(tp).color }} />)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            <Card.Body style={{ padding: '1.5rem' }}>
+              <div className="ev-cal-foot">
+                {selectedDate ? (
+                  <div className="d-flex align-items-center justify-content-between gap-2">
+                    <span style={{ fontSize: '0.82rem', color: '#1f2328', fontWeight: 600 }}>
+                      {keyToDate(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                      <span style={{ color: '#6b7280', fontWeight: 500 }}> · {(eventsByDate[selectedDate] || []).length} event{(eventsByDate[selectedDate] || []).length === 1 ? '' : 's'}</span>
+                    </span>
+                    <button type="button" className="ev-link" onClick={() => { setSelectedDate(null); setCurrentPage(1); }}>Show all dates</button>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>Select a date to see its events.</span>
+                )}
+              </div>
+
+              <div className="ev-legend">
+                {Object.entries(TYPE_META).map(([key, m]) => (
+                  <span key={key}><i style={{ background: m.color }} />{m.label}</span>
+                ))}
+              </div>
+            </div>
+          </Col>
+
+          {/* ---------------- Events ---------------- */}
+          <Col lg={8} xl={9}>
+            <div className="ev-panel ev-anim" style={{ '--d': '0.18s', padding: '1rem 1.25rem' }}>
+              <div className="ev-chips" role="tablist" aria-label="Event type">
+                {[{ key: 'all', label: 'All events', icon: 'fa-th-large', count: getAllSchedules().length },
+                  ...['vaccination', 'deworming', 'seminar', 'sterilization', 'microchip', 'other'].map(k => ({
+                    key: k, label: typeMeta(k).label, icon: typeMeta(k).icon,
+                    count: { vaccination: vaccinationSchedules, deworming: dewormingSchedules, seminar: seminarSchedules, sterilization: sterilizationSchedules, microchip: microchipSchedules, other: otherSchedules }[k].length,
+                  }))].map(tab => (
+                  <button key={tab.key} type="button" role="tab" aria-selected={activeTab === tab.key}
+                    className={`ev-chip${activeTab === tab.key ? ' active' : ''}`}
+                    style={{ '--c': tab.key === 'all' ? '#1f2328' : typeMeta(tab.key).color }}
+                    onClick={() => { setActiveTab(tab.key); setCurrentPage(1); }}>
+                    <i className={`fas ${tab.icon}`} />
+                    {tab.label}
+                    <span className="count">{tab.count}</span>
+                  </button>
+                ))}
+              </div>
+              <Row className="g-2 align-items-center mt-1">
+                <Col xs={12} md={4}>
+                  <div className="ev-select">
+                    <i className="fas fa-map-marker-alt" />
+                    <Form.Select size="sm" value={selectedBarangay} onChange={(e) => { setSelectedBarangay(e.target.value); setCurrentPage(1); }} aria-label="Filter by place">
+                      <option value="all">All places ({getAllSchedules().length})</option>
+                      {barangays.map(b => <option key={b} value={b}>{b} ({getBarangayCount(b)})</option>)}
+                    </Form.Select>
+                  </div>
+                </Col>
+                <Col xs={12} md={4}>
+                  <div className="ev-select">
+                    <i className="fas fa-filter" />
+                    <Form.Select size="sm" value={filterRegistration} onChange={(e) => { setFilterRegistration(e.target.value); setCurrentPage(1); }} aria-label="Filter by registration">
+                      <option value="all">Registered and not registered</option>
+                      <option value="registered">Registered only</option>
+                      <option value="unregistered">Not registered</option>
+                    </Form.Select>
+                  </div>
+                </Col>
+                <Col xs={12} md={4} className="text-md-end">
+                  <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+                    <strong style={{ color: '#1f2328' }}>{filteredSchedules.length}</strong> event{filteredSchedules.length !== 1 ? 's' : ''}
+                    {selectedDate ? ` on ${keyToDate(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ' upcoming'}
+                  </span>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="mt-3">
               {filteredSchedules.length === 0 ? (
-                <div className="text-center py-5">
-                  <i className="fas fa-calendar-times text-muted mb-3" style={{ fontSize: '4rem' }}></i>
-                  <h5 className="text-muted" style={{ fontWeight: '600' }}>No Events Found</h5>
-                  <p className="text-muted" style={{ fontSize: '1rem' }}>
-                    {selectedBarangay !== 'all' 
-                      ? `No upcoming events in ${selectedBarangay}. Try selecting a different place.`
-                      : 'Check back later for scheduled events in your area.'
-                    }
+                <div className="ev-panel ev-anim text-center" style={{ '--d': '0.25s', padding: '3rem 1.5rem' }}>
+                  <div className="ev-empty-icon"><i className="fas fa-calendar-times" /></div>
+                  <h5 style={{ fontWeight: 700, color: '#1f2328', marginTop: '1rem' }}>No events found</h5>
+                  <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
+                    {selectedDate
+                      ? 'There are no events on this date. Pick another highlighted date on the calendar.'
+                      : selectedBarangay !== 'all'
+                        ? `No upcoming events in ${selectedBarangay}. Try another place.`
+                        : 'Check back later for scheduled events in your area.'}
                   </p>
+                  {(selectedDate || selectedBarangay !== 'all' || filterRegistration !== 'all' || activeTab !== 'all') && (
+                    <button type="button" className="ev-btn ghost" onClick={() => { setSelectedDate(null); setSelectedBarangay('all'); setFilterRegistration('all'); setActiveTab('all'); setCurrentPage(1); }}>
+                      <i className="fas fa-undo" /> Clear filters
+                    </button>
+                  )}
                 </div>
               ) : (
                 <>
-                <Row>
-                  {filteredSchedules.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((schedule, index) => (
-                    <Col key={`${schedule.type}-${schedule.id}`} xs={12} lg={6} xl={4} className="mb-4 sched-card-col" style={{ animation: `dropDown 0.4s ease-out ${0.2 + (index * 0.1)}s backwards` }}>
-                      <Card 
-  key={`${schedule.type}-${schedule.id}`} 
-  className="h-100 border-0"
-  style={{
-    borderRadius: '16px',
-    boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-    transition: 'all 0.3s ease',
-    overflow: 'hidden',
-    position: 'relative',
-    background: '#ffffff'
-  }}
-  onMouseOver={(e) => {
-    e.currentTarget.style.transform = 'translateY(-8px)';
-    e.currentTarget.style.boxShadow = '0 12px 32px rgba(0,0,0,0.12)';
-  }}
-  onMouseOut={(e) => {
-    e.currentTarget.style.transform = 'translateY(0)';
-    e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)';
-  }}
->
-  {/* Registered Badge */}
-  {isScheduleRegistered(schedule) && (
-    <div style={{
-      position: 'absolute', bottom: '12px', left: '12px',
-      background: 'linear-gradient(135deg, #198754, #157347)',
-      color: '#ffffff', fontSize: '0.65rem', fontWeight: '800',
-      padding: '0.25rem 0.75rem', zIndex: 20,
-      borderRadius: '20px',
-      boxShadow: '0 2px 8px rgba(25,135,84,0.4)',
-      letterSpacing: '0.05em', textTransform: 'uppercase',
-      pointerEvents: 'none',
-      display: 'flex', alignItems: 'center', gap: '0.3rem'
-    }}>
-      <i className="fas fa-check-circle" style={{ fontSize: '0.6rem' }}></i>
-      Registered
-    </div>
-  )}
-  {/* Menu Button */}
-  <div style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10 }}>
-    <button
-      onClick={() => setShowDropdown(showDropdown === `${schedule.type}-${schedule.id}` ? null : `${schedule.type}-${schedule.id}`)}
-      style={{
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '50%',
-        padding: '0.5rem',
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      onMouseOver={(e) => e.target.style.background = 'rgba(0,0,0,0.05)'}
-      onMouseOut={(e) => e.target.style.background = 'transparent'}
-    >
-      <img 
-        src="/ellipsis.png" 
-        alt="Menu"
-        style={{ width: '20px', height: '20px', objectFit: 'contain' }}
-      />
-    </button>
-    
-    {showDropdown === `${schedule.type}-${schedule.id}` && (
-      <>
-        <div
-          onClick={() => setShowDropdown(null)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999
-          }}
-        />
-        
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: '0.5rem',
-            background: '#ffffff',
-            border: '1px solid rgba(0,0,0,0.08)',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-            minWidth: '180px',
-            zIndex: 1000,
-            overflow: 'hidden'
-          }}
-        >
-          <button
-            onClick={() => handleViewClick(schedule)}
-            style={{
-              width: '100%',
-              padding: '0.875rem 1.25rem',
-              border: 'none',
-              background: '#ffffff',
-              textAlign: 'left',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.875rem',
-              fontSize: '0.9rem',
-              color: '#333333',
-              fontWeight: '600',
-              transition: 'background 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-            onMouseOut={(e) => e.target.style.background = '#ffffff'}
-          >
-            <img 
-              src="/view.png" 
-              alt="View"
-              style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-            />
-            <span>View Details</span>
-          </button>
-          
-          {schedule.status !== 'ongoing' && schedule.status !== 'completed' && schedule.status !== 'cancelled' && (() => {
-            const now = new Date();
-            const scheduleDate = new Date(schedule.scheduled_date);
-            const [startHour, startMinute] = schedule.start_time.split(':');
-            scheduleDate.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-            return now < scheduleDate;
-          })() && (() => {
-            // Check if user is registered for seminar
-            if (schedule.type === 'seminar') {
-              const registrations = currentRegistrations.filter(r => 
-                r.schedule_id === schedule.id && 
-                r.schedule_type === 'seminar' &&
-                r.status !== 'cancelled'
-              );
-              
-              if (registrations.length > 0) {
-                // Show cancel option
-                return (
-                  <button
-                    onClick={() => {
-                      setPetToCancel({ petId: null, registrationId: registrations[0].id });
-                      setShowCancelConfirm(true);
-                      setShowDropdown(null);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '0.875rem 1.25rem',
-                      border: 'none',
-                      background: '#ffffff',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.875rem',
-                      fontSize: '0.9rem',
-                      color: '#dc3545',
-                      fontWeight: '600',
-                      borderTop: '1px solid rgba(0,0,0,0.06)',
-                      transition: 'background 0.2s'
-                    }}
-                    onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-                    onMouseOut={(e) => e.target.style.background = '#ffffff'}
-                  >
-                    <img 
-                      src="/cancel.png" 
-                      alt="Cancel"
-                      style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-                    />
-                    <span>Cancel Registration</span>
-                  </button>
-                );
-              }
-            }
-            
-            // Check if registered for vaccination/deworming/sterilization/microchip/other
-            const isReg = isScheduleRegistered(schedule);
-            
-            if (isReg) {
-              return (
-                <button
-                  onClick={() => handleRegisterClick(schedule)}
-                  style={{
-                    width: '100%',
-                    padding: '0.875rem 1.25rem',
-                    border: 'none',
-                    background: '#ffffff',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.875rem',
-                    fontSize: '0.9rem',
-                    color: '#333333',
-                    fontWeight: '600',
-                    borderTop: '1px solid rgba(0,0,0,0.06)',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'}
-                  onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                >
-                  <img 
-                    src="/register.png" 
-                    alt="Register"
-                    style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-                  />
-                  <span>Register / Cancel</span>
-                </button>
-              );
-            }
+                  {pagedGroups.map(([key, items], gi) => (
+                    <div key={key} className="ev-group">
+                      <div className="ev-group-head ev-anim" style={{ '--d': `${0.2 + gi * 0.05}s` }}>
+                        {keyToDate(key).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        {key === todayKey && <span className="ev-today-tag">Today</span>}
+                      </div>
+                      {items.map((schedule, i) => {
+                        const meta = typeMeta(schedule.type);
+                        const status = getStatusMeta(schedule);
+                        const slots = getSlots(schedule);
+                        const action = getEventAction(schedule);
+                        const registered = isScheduleRegistered(schedule);
+                        const d = keyToDate(dateKey(schedule));
+                        const pct = slots ? Math.min(100, Math.round((slots.taken / slots.total) * 100)) : 0;
+                        return (
+                          <div key={`${schedule.type}-${schedule.id}`} className="ev-card ev-anim" style={{ '--d': `${0.25 + gi * 0.05 + i * 0.06}s`, '--c': meta.color }}>
+                            <div className="ev-date">
+                              <span className="m">{d.toLocaleDateString('en-US', { month: 'short' })}</span>
+                              <span className="d">{d.getDate()}</span>
+                              <span className="w">{d.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                            </div>
 
-            // Show register option
-            return (
-              <button
-                onClick={() => handleRegisterClick(schedule)}
-                style={{
-                  width: '100%',
-                  padding: '0.875rem 1.25rem',
-                  border: 'none',
-                  background: '#ffffff',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.875rem',
-                  fontSize: '0.9rem',
-                  color: '#333333',
-                  fontWeight: '600',
-                  borderTop: '1px solid rgba(0,0,0,0.06)',
-                  transition: 'background 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-                onMouseOut={(e) => e.target.style.background = '#ffffff'}
-              >
-                <img 
-                  src="/register.png" 
-                  alt="Register"
-                  style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-                />
-                <span>{isScheduleRegistered(schedule) ? 'Register / Cancel' : 'Register'}</span>
-              </button>
-            );
-          })()}
-        </div>
-      </>
-    )}
-  </div>
+                            <div className="ev-main">
+                              <div className="ev-tags">
+                                <span className="ev-tag" style={{ color: meta.color, background: `${meta.color}14` }}>
+                                  <i className={`fas ${meta.icon}`} />{meta.label}
+                                </span>
+                                <span className="ev-tag" style={{ color: status.color, background: `${status.color}14` }}>{status.label}</span>
+                                {registered && (
+                                  <span className="ev-tag" style={{ color: '#198754', background: 'rgba(25,135,84,0.1)' }}>
+                                    <i className="fas fa-check-circle" />Registered
+                                  </span>
+                                )}
+                              </div>
+                              <div className="ev-title">{schedule.title}</div>
+                              <div className="ev-meta">
+                                <span><i className="far fa-clock" />{formatClock(schedule.start_time)} – {formatClock(schedule.end_time)}</span>
+                                {schedule.venue && <span><i className="fas fa-building" />{schedule.venue}</span>}
+                                {(schedule.custom_place || schedule.barangay_name) && <span><i className="fas fa-map-marker-alt" />{schedule.custom_place || schedule.barangay_name}</span>}
+                              </div>
+                              {slots && (
+                                <div className="ev-slots">
+                                  <div className="ev-slots-bar"><div style={{ width: `${pct}%`, background: slots.left === 0 ? '#dc3545' : slots.left <= 10 ? '#e0a800' : '#198754' }} /></div>
+                                  <span>
+                                    {slots.left === 0 ? 'Fully booked' : `${slots.left} of ${slots.total} ${schedule.type === 'vaccination' ? 'vaccine slots' : 'slots'} left`}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
 
-  {/* Card Header */}
-  <Card.Header 
-  className="d-flex align-items-center justify-content-between"
-  style={{
-    background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-    borderBottom: '2px solid #ffc107',
-    paddingRight: '3.5rem',
-    borderRadius: '16px 16px 0 0'
-  }}
->
-  <div className="flex-grow-1">
-    <div className="mb-2">
-      {getScheduleTypeBadge(schedule.type)}
-    </div>
-    <h5 className="mb-1" style={{ fontWeight: '700', color: '#333333' }}>{schedule.title}</h5>
-    <small className="text-muted" style={{ fontSize: '0.85rem' }}>
-      <i className="fas fa-map-marker-alt me-1"></i>
-      {schedule.custom_place || schedule.barangay_name}
-    </small>
-  </div>
-  <div>
-    {getScheduleStatusBadge(schedule)}
-  </div>
-</Card.Header>
-
-  {/* Card Body */}
-  <Card.Body style={{ padding: '1.5rem' }}>
-    {/* Date */}
-    <div style={{ 
-      marginBottom: '1.25rem',
-      paddingBottom: '1.25rem',
-      borderBottom: '1px solid #f0f0f0'
-    }}>
-      <div style={{ 
-        color: '#999999', 
-        fontWeight: '600', 
-        fontSize: '0.7rem', 
-        textTransform: 'uppercase', 
-        letterSpacing: '0.05em',
-        marginBottom: '0.5rem' 
-      }}>
-        Date
-      </div>
-      <div style={{ 
-        fontWeight: '600', 
-        color: '#1a1a1a', 
-        fontSize: '0.95rem', 
-        display: 'flex', 
-        alignItems: 'center' 
-      }}>
-        <img 
-          src="/date.png" 
-          alt="Date"
-          style={{ 
-            width: '20px', 
-            height: '20px', 
-            marginRight: '0.75rem', 
-            objectFit: 'contain',
-            opacity: 0.8
-          }}
-        />
-        <span>{new Date(schedule.scheduled_date).toLocaleDateString()}</span>
-      </div>
-    </div>
-
-    {/* Time */}
-    <div style={{ 
-      marginBottom: '1.25rem',
-      paddingBottom: '1.25rem',
-      borderBottom: '1px solid #f0f0f0'
-    }}>
-      <div style={{ 
-        color: '#999999', 
-        fontWeight: '600', 
-        fontSize: '0.7rem', 
-        textTransform: 'uppercase', 
-        letterSpacing: '0.05em',
-        marginBottom: '0.5rem' 
-      }}>
-        Time
-      </div>
-      <div style={{ 
-        fontWeight: '600', 
-        color: '#1a1a1a', 
-        fontSize: '0.95rem', 
-        display: 'flex', 
-        alignItems: 'center' 
-      }}>
-        <img 
-          src="/time.png" 
-          alt="Time"
-          style={{ 
-            width: '20px', 
-            height: '20px', 
-            marginRight: '0.75rem', 
-            objectFit: 'contain',
-            opacity: 0.8
-          }}
-        />
-        <span>{schedule.start_time} - {schedule.end_time}</span>
-      </div>
-    </div>
-
-    {/* Venue */}
-    <div style={{ marginBottom: '1.25rem' }}>
-      <div style={{ 
-        color: '#999999', 
-        fontWeight: '600', 
-        fontSize: '0.7rem', 
-        textTransform: 'uppercase', 
-        letterSpacing: '0.05em',
-        marginBottom: '0.5rem' 
-      }}>
-        Venue
-      </div>
-      <div style={{ 
-        fontWeight: '600', 
-        color: '#1a1a1a', 
-        fontSize: '0.95rem', 
-        display: 'flex', 
-        alignItems: 'center' 
-      }}>
-        <img 
-          src="/venue.png" 
-          alt="Venue"
-          style={{ 
-            width: '20px', 
-            height: '20px', 
-            marginRight: '0.75rem', 
-            objectFit: 'contain',
-            opacity: 0.8
-          }}
-        />
-        <span>{schedule.venue}</span>
-      </div>
-    </div>
-
-  
-
-    {/* Capacity (if exists) */}
-    {schedule.type === 'vaccination' ? (
-      <div style={{ marginTop: '1.5rem' }}>
-        <div 
-          style={{
-            background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(255, 193, 7, 0.12) 100%)',
-            padding: '1rem 1.25rem',
-            borderRadius: '12px',
-            border: '1px solid rgba(255, 193, 7, 0.2)'
-          }}
-        >
-          <div className="d-flex justify-content-between align-items-center">
-            <span style={{ 
-              fontWeight: '600', 
-              color: '#1a1a1a',
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <i className="fas fa-syringe" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-              Total Vaccine Slots
-            </span>
-            <Badge 
-              bg={getTotalVaccineShots(schedule) - (schedule.current_registrations || 0) > 10 ? 'success' : getTotalVaccineShots(schedule) - (schedule.current_registrations || 0) > 0 ? 'warning' : 'danger'}
-              style={{
-                fontSize: '0.875rem',
-                fontWeight: '700',
-                padding: '0.5rem 0.875rem',
-                borderRadius: '8px'
-              }}
-            >
-              {schedule.current_registrations || 0} / {getTotalVaccineShots(schedule)}
-            </Badge>
-          </div>
-        </div>
-      </div>
-    ) : schedule.max_capacity ? (
-      <div style={{ marginTop: '1.5rem' }}>
-        <div 
-          style={{
-            background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.08) 0%, rgba(255, 193, 7, 0.12) 100%)',
-            padding: '1rem 1.25rem',
-            borderRadius: '12px',
-            border: '1px solid rgba(255, 193, 7, 0.2)'
-          }}
-        >
-          <div className="d-flex justify-content-between align-items-center">
-            <span style={{ 
-              fontWeight: '600', 
-              color: '#1a1a1a',
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              <i className="fas fa-users" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-              Available Slots
-            </span>
-            <Badge 
-              bg={getAvailableSpots(schedule) > 10 ? 'success' : getAvailableSpots(schedule) > 0 ? 'warning' : 'danger'}
-              style={{
-                fontSize: '0.875rem',
-                fontWeight: '700',
-                padding: '0.5rem 0.875rem',
-                borderRadius: '8px'
-              }}
-            >
-              {schedule.current_registrations || 0} / {schedule.max_capacity}
-            </Badge>
-          </div>
-        </div>
-      </div>
-    ) : null}
-  </Card.Body>
-</Card>
-                    </Col>
+                            <div className="ev-actions">
+                              <button type="button" className="ev-btn ghost" onClick={() => handleViewClick(schedule)}>
+                                <i className="fas fa-eye" /> Details
+                              </button>
+                              {action && (
+                                <button type="button" className={`ev-btn ${action.tone}`} onClick={action.onClick}
+                                  disabled={action.tone === 'primary' && slots && slots.left === 0}>
+                                  <i className={`fas ${action.icon}`} /> {action.tone === 'primary' && slots && slots.left === 0 ? 'Full' : action.label}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ))}
-                </Row>
 
-                {/* Pagination */}
-                {filteredSchedules.length > itemsPerPage && (
-                  <Row className="mt-4 sched-pagination">
-                    <Col className="d-flex justify-content-between align-items-center">
-                      <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                        Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{Math.ceil(filteredSchedules.length / itemsPerPage)}</strong>
-                      </span>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        <button
-                          onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-                          disabled={currentPage === 1}
-                          style={{ background: currentPage === 1 ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === 1 ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
-                          onMouseOver={e => { if (currentPage !== 1) { e.target.style.borderColor = '#ffc107'; } }}
-                          onMouseOut={e => { e.target.style.borderColor = '#dee2e6'; }}
-                        >
-                          <i className="fas fa-chevron-left" />
+                  {totalPages > 1 && (
+                    <div className="d-flex justify-content-between align-items-center mt-3 sched-pagination">
+                      <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>Page <strong style={{ color: '#1f2328' }}>{currentPage}</strong> of {totalPages}</span>
+                      <div className="d-flex gap-2">
+                        <button type="button" className="ev-btn ghost" disabled={currentPage === 1} onClick={() => setCurrentPage(p => Math.max(1, p - 1))}>
+                          <i className="fas fa-chevron-left" /> Previous
                         </button>
-                        {(() => {
-                          const totalPages = Math.ceil(filteredSchedules.length / itemsPerPage);
-                          const pages = [];
-                          if (totalPages <= 5) {
-                            for (let i = 1; i <= totalPages; i++) pages.push(i);
-                          } else {
-                            pages.push(1);
-                            if (currentPage > 3) pages.push('...');
-                            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
-                            if (currentPage < totalPages - 2) pages.push('...');
-                            pages.push(totalPages);
-                          }
-                          return pages.map((page, idx) => page === '...' ? (
-                            <span key={`e-${idx}`} style={{ padding: '0.5rem 0.4rem', color: '#6c757d', fontWeight: '600' }}>...</span>
-                          ) : (
-                            <button key={page} onClick={() => setCurrentPage(page)}
-                              style={{ background: currentPage === page ? '#ffc107' : '#ffffff', border: '2px solid', borderColor: currentPage === page ? '#ffc107' : '#dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', minWidth: '40px', cursor: 'pointer', fontWeight: '700', color: currentPage === page ? '#000' : '#333', transition: 'all 0.2s', boxShadow: currentPage === page ? '0 2px 8px rgba(255,193,7,0.3)' : 'none' }}
-                              onMouseOver={e => { if (currentPage !== page) e.currentTarget.style.borderColor = '#ffc107'; }}
-                              onMouseOut={e => { if (currentPage !== page) e.currentTarget.style.borderColor = '#dee2e6'; }}>
-                              {page}
-                            </button>
-                          ));
-                        })()}
-                        <button
-                          onClick={() => setCurrentPage(p => Math.min(p + 1, Math.ceil(filteredSchedules.length / itemsPerPage)))}
-                          disabled={currentPage === Math.ceil(filteredSchedules.length / itemsPerPage)}
-                          style={{ background: currentPage === Math.ceil(filteredSchedules.length / itemsPerPage) ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === Math.ceil(filteredSchedules.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === Math.ceil(filteredSchedules.length / itemsPerPage) ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
-                          onMouseOver={e => { if (currentPage !== Math.ceil(filteredSchedules.length / itemsPerPage)) e.target.style.borderColor = '#ffc107'; }}
-                          onMouseOut={e => { e.target.style.borderColor = '#dee2e6'; }}
-                        >
-                          <i className="fas fa-chevron-right" />
+                        <button type="button" className="ev-btn ghost" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}>
+                          Next <i className="fas fa-chevron-right" />
                         </button>
                       </div>
-                    </Col>
-                  </Row>
-                )}
+                    </div>
+                  )}
                 </>
               )}
-            </Card.Body>
-          </Card>
-        </>
+            </div>
+          </Col>
+        </Row>
       )}
 
       {/* Requirements Reminder Modal — opened by the header button, read-only */}
-      <Modal show={showRequirementsReminderModal} onHide={() => setShowRequirementsReminderModal(false)} size="md" centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '800', color: '#7a5000' }}>
-            <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }} />
-            Event Requirements & Reminders
-          </Modal.Title>
+      <Modal show={showRequirementsReminderModal} onHide={() => setShowRequirementsReminderModal(false)} centered scrollable dialogClassName="ev-modal" style={{ zoom: '0.75' }}>
+        <Modal.Header closeButton className="ev-modal-head">
+          <div className="d-flex align-items-center gap-3">
+            <div className="ev-modal-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-clipboard-check" /></div>
+            <div>
+              <Modal.Title as="h5" style={{ fontWeight: 700, color: '#1f2328', margin: 0 }}>Event requirements</Modal.Title>
+              <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>Please check these before bringing your pet</div>
+            </div>
+          </div>
         </Modal.Header>
-        <Modal.Body style={{ padding: '1.75rem' }}>
-          <div style={{ background: 'rgba(255,193,7,0.08)', border: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px', padding: '1.1rem 1.25rem', marginBottom: '1.1rem' }}>
-            <div style={{ fontWeight: '800', color: '#7a5000', fontSize: '0.95rem', marginBottom: '0.4rem' }}>
-              <i className="fas fa-question-circle me-2" style={{ color: '#ffc107' }} />
-              Are you sure your pet is 3 months old or above?
-            </div>
-            <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: 0, lineHeight: 1.6 }}>
-              The minimum age requirement for this event is <strong>3 months old</strong>. Pets younger than this may not respond safely to the procedure.
-            </p>
-          </div>
-          <div style={{ background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.1rem' }}>
-            <div style={{ fontWeight: '700', color: '#333', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-              <i className="fas fa-list-check me-2" style={{ color: '#198754' }} />
-              Full Requirements Checklist
-            </div>
+        <Modal.Body style={{ padding: '1.25rem 1.5rem' }}>
+          <div className="ev-modal-label">Minimum age per event</div>
+          <div className="ev-age-grid">
             {[
-              { icon: 'fa-birthday-cake', color: '#ffc107', text: 'At least 3 months old' },
-              { icon: 'fa-heartbeat', color: '#dc3545', text: 'Pet must be visibly healthy — no fever, vomiting, diarrhea, or lethargy' },
-              { icon: 'fa-utensils', color: '#0d6efd', text: 'Well-fed and hydrated before the event' },
-              { icon: 'fa-bath', color: '#0dcaf0', text: 'Bathed or clean to prevent cross-contamination' },
-              { icon: 'fa-paw', color: '#6f42c1', text: 'Dogs must be on a leash; cats must be in a carrier' },
-              { icon: 'fa-notes-medical', color: '#198754', text: 'Bring any existing pet health records or documents if available' },
+              { type: 'vaccination', age: '3 months' },
+              { type: 'deworming', age: '2 weeks' },
+              { type: 'sterilization', age: '6 months' },
+            ].map(r => (
+              <div key={r.type} className="ev-age" style={{ '--c': typeMeta(r.type).color }}>
+                <i className={`fas ${typeMeta(r.type).icon}`} />
+                <div>
+                  <div className="t">{typeMeta(r.type).label}</div>
+                  <div className="a">{r.age} old and above</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="ev-modal-label mt-3">Checklist</div>
+          <div className="ev-checklist">
+            {[
+              { icon: 'fa-heartbeat', text: 'Your pet is visibly healthy, with no fever, vomiting, diarrhea, or weakness.' },
+              { icon: 'fa-utensils', text: 'Your pet is fed and has had water before the event.' },
+              { icon: 'fa-bath', text: 'Your pet is bathed or clean to prevent spreading illness.' },
+              { icon: 'fa-paw', text: 'Dogs are on a leash and cats are inside a carrier.' },
+              { icon: 'fa-notes-medical', text: 'Bring your pet\'s vet card or past health records, if any.' },
             ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', marginBottom: '0.55rem' }}>
-                <i className={`fas ${item.icon}`} style={{ color: item.color, fontSize: '0.85rem', marginTop: '3px', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.84rem', color: '#444', lineHeight: 1.5 }}>{item.text}</span>
+              <div key={i} className="ev-check">
+                <span className="ic"><i className={`fas ${item.icon}`} /></span>
+                <span>{item.text}</span>
               </div>
             ))}
           </div>
-          <div style={{ background: 'rgba(13,110,253,0.05)', border: '1.5px solid rgba(13,110,253,0.2)', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.1rem' }}>
-            <div style={{ fontWeight: '700', color: '#0d6efd', fontSize: '0.88rem', marginBottom: '0.6rem' }}>
-              <i className="fas fa-lightbulb me-2" />
-              Tips for Pet Owners
-            </div>
-            {[
-              'If your pet was adopted, start counting their age from the date you adopted them.',
-              'If you are unsure of your pet\'s exact age, consult a vet for an estimated age based on teeth and size.',
-              'A pet showing any signs of illness on the event day may be turned away — reschedule if needed.',
-              'Arrive early to avoid long queues and ensure your pet is attended to on time.',
-            ].map((tip, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.45rem' }}>
-                <i className="fas fa-circle" style={{ color: '#0d6efd', fontSize: '0.4rem', marginTop: '6px', flexShrink: 0 }} />
-                <span style={{ fontSize: '0.82rem', color: '#444', lineHeight: 1.5 }}>{tip}</span>
-              </div>
-            ))}
-          </div>
-          <div style={{ background: 'rgba(220,53,69,0.06)', border: '1.5px solid rgba(220,53,69,0.25)', borderRadius: '10px', padding: '0.85rem 1rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-              <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.9rem', marginTop: '2px', flexShrink: 0 }} />
-              <span style={{ fontSize: '0.82rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
-                If your pet is found unqualified on the day of the event, <strong>your reserved slot will be forfeited (masasayang)</strong> and cannot be transferred.
-              </span>
-            </div>
+
+          <div className="ev-modal-label mt-3">Helpful tips</div>
+          <ul className="ev-tips">
+            <li>For adopted pets with no birth date, count their age from the day you adopted them.</li>
+            <li>Not sure of your pet's age? A vet can estimate it from the teeth and size.</li>
+            <li>A pet that looks sick on the event day may be turned away, so register for a later event instead.</li>
+            <li>Come early to avoid long lines.</li>
+          </ul>
+
+          <div className="ev-warning">
+            <i className="fas fa-exclamation-triangle" />
+            <span>If your pet does not meet the requirements on the event day, <strong>your reserved slot will be forfeited</strong> and cannot be transferred.</span>
           </div>
         </Modal.Body>
-        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1rem 1.75rem' }}>
-          <Button onClick={() => setShowRequirementsReminderModal(false)} className="border-0 w-100"
-            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.7rem', fontWeight: '700' }}>
-            <i className="fas fa-check me-2" />Got it!
-          </Button>
+        <Modal.Footer style={{ borderTop: '1px solid #eef0f3', padding: '0.9rem 1.5rem' }}>
+          <button type="button" className="ev-btn primary w-100 justify-content-center" style={{ padding: '0.65rem' }} onClick={() => setShowRequirementsReminderModal(false)}>
+            <i className="fas fa-check" /> I understand
+          </button>
         </Modal.Footer>
       </Modal>
 
       {/* Pre-Submit Confirmation Modal — short summary shown before submitting */}
-      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} size="md" centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '800', color: '#7a5000', fontSize: '1.1rem' }}>
-            <i className="fas fa-check-circle me-2" style={{ color: '#ffc107' }} />
-            Confirm Registration
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem', textAlign: 'center' }}>
-          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(255,193,7,0.12)', border: '2px solid rgba(255,193,7,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
-            <i className="fas fa-paw" style={{ fontSize: '2rem', color: '#ffc107' }} />
+      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} centered dialogClassName="ev-modal sm" style={{ zoom: '0.75' }}>
+        <Modal.Body style={{ padding: '1.75rem 1.75rem 1.25rem' }}>
+          <div className="text-center">
+            <div className="ev-modal-icon lg" style={{ '--c': '#e0a800', margin: '0 auto 1rem' }}><i className="fas fa-paw" /></div>
+            <h5 style={{ fontWeight: 700, color: '#1f2328', marginBottom: '0.35rem' }}>Before you register</h5>
+            <p style={{ fontSize: '0.88rem', color: '#6b7280', marginBottom: '1.1rem' }}>
+              Please confirm that every pet you selected meets these requirements.
+            </p>
           </div>
-          <p style={{ fontWeight: '700', color: '#333', fontSize: '1.05rem', marginBottom: '0.75rem' }}>
-            Is your pet <span style={{ color: '#ffc107' }}>3 months old or above</span> and <span style={{ color: '#198754' }}>healthy</span>?
-          </p>
-          <p style={{ fontSize: '0.88rem', color: '#777', marginBottom: '1.25rem', lineHeight: 1.65, maxWidth: '360px', margin: '0 auto 1.25rem' }}>
-            By proceeding, you confirm that your pet meets all the event requirements. Unqualified pets will have their reserved slot forfeited on the day of the event.
-          </p>
-          <button
-            onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); setShowRequirementsReminderModal(true); }}
-            style={{ background: 'none', border: 'none', color: '#0d6efd', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
-          >
-            <i className="fas fa-clipboard-list me-1" />
-            View full requirements reminder
-          </button>
+          <div className="ev-checklist">
+            {[
+              { icon: 'fa-birthday-cake', text: `${{ vaccination: '3 months', deworming: '2 weeks', sterilization: '6 months' }[scheduleType] || 'The required age'} old or above` },
+              { icon: 'fa-heartbeat', text: 'Healthy, with no signs of illness' },
+              { icon: 'fa-paw', text: 'On a leash or in a carrier on the event day' },
+            ].map((item, i) => (
+              <div key={i} className="ev-check">
+                <span className="ic ok"><i className="fas fa-check" /></span>
+                <span>{item.text}</span>
+              </div>
+            ))}
+          </div>
+          <div className="ev-warning mt-3" style={{ marginBottom: 0 }}>
+            <i className="fas fa-info-circle" />
+            <span>Pets that do not qualify on the event day will lose their reserved slot.</span>
+          </div>
+          <div className="text-center mt-3">
+            <button type="button" className="ev-link" onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); setShowRequirementsReminderModal(true); }}>
+              <i className="fas fa-clipboard-list me-1" />View all requirements
+            </button>
+          </div>
         </Modal.Body>
-        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1.25rem 2rem', gap: '0.75rem' }}>
-          <Button variant="secondary" onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }}
-            style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600', fontSize: '0.9rem', flex: 1 }}>
-            <i className="fas fa-arrow-left me-2" />Back
-          </Button>
-          <Button onClick={handleVaccinationConfirmProceed} className="border-0"
-            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '700', fontSize: '0.9rem', flex: 1, boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
-            <i className="fas fa-check me-2" />Proceed
-          </Button>
+        <Modal.Footer style={{ borderTop: '1px solid #eef0f3', padding: '0.9rem 1.5rem', gap: '0.6rem', flexWrap: 'nowrap' }}>
+          <button type="button" className="ev-btn ghost flex-fill justify-content-center" style={{ padding: '0.6rem' }} onClick={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }}>
+            <i className="fas fa-arrow-left" /> Back
+          </button>
+          <button type="button" className="ev-btn primary flex-fill justify-content-center" style={{ padding: '0.6rem' }} onClick={handleVaccinationConfirmProceed}>
+            <i className="fas fa-check" /> Yes, register
+          </button>
         </Modal.Footer>
       </Modal>
 
