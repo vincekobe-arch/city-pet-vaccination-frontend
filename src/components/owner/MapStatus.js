@@ -1,36 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Spinner, Alert, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Alert, Button } from 'react-bootstrap';
 import { reportsAPI, clinicAPI, handleAPIError } from '../../services/api';
 
-const LEAFLET_CSS = `
+const INFO_WINDOW_CSS = `
   .gm-style .gm-style-iw-c {
     padding: 0 !important;
-    border-radius: 16px !important;
-    background: #0d1424 !important;
-    border: 1px solid rgba(255,255,255,0.12) !important;
-    box-shadow: 0 12px 36px rgba(0,0,0,0.55) !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35) !important;
     overflow: hidden !important;
   }
   .gm-style .gm-style-iw-d { overflow: hidden !important; padding: 0 !important; max-height: none !important; }
   .gm-style .gm-style-iw-tc { display: none !important; }
   .gm-style .gm-style-iw-ch { display: none !important; }
-  .gm-style .gm-style-iw-chr {
-    position: absolute !important; top: 6px !important; right: 6px !important;
-    height: auto !important; z-index: 3;
-  }
+  .gm-style .gm-style-iw-chr { position: absolute !important; top: 6px !important; right: 6px !important; height: auto !important; z-index: 3; }
   .gm-style .gm-ui-hover-effect {
-    top: 0 !important; right: 0 !important;
-    width: 26px !important; height: 26px !important;
-    background: rgba(255,255,255,0.14) !important;
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,0.25) !important;
-    border-radius: 50% !important;
-    opacity: 1 !important;
+    top: 0 !important; right: 0 !important; width: 24px !important; height: 24px !important;
+    background: rgba(255,255,255,0.85) !important; border-radius: 50% !important; opacity: 1 !important;
   }
-  .gm-style .gm-ui-hover-effect > span {
-    margin: 6px !important; width: 12px !important; height: 12px !important;
-    background-color: #ffffff !important;
-  }
+  .gm-style .gm-ui-hover-effect > span { margin: 6px !important; width: 12px !important; height: 12px !important; background-color: #1f2328 !important; }
 `;
 
 const MUNTINLUPA_CENTER = [14.4081, 121.0415];
@@ -62,418 +50,373 @@ const BOUNDARY = [
   [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
 ];
 
-const getDistMeters = (lat1, lng1, lat2, lng2) => {
-  const R = 6371000, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+const CITY_VET = {
+  id: 'cityvet',
+  clinic_name: 'City Veterinary Office',
+  owner_name: 'City Veterinarian',
+  phone: null,
+  specialization: 'Government veterinary office',
+  latitude: 14.395293,
+  longitude: 121.044737,
 };
 
-const STATS_CONFIG = [
-  { key: 'positive_rabies',  label: 'Positive Rabies',  color: '#e00000', icon: '☣️', bg: 'rgba(224,0,0,0.08)',   description: 'Active Danger Zones' },
-  { key: 'suspected_rabies', label: 'Suspected Rabies', color: '#f0c800', icon: '⚠️', bg: 'rgba(240,200,0,0.10)', description: 'Active Alert Zones'  },
-  { key: 'clinics',          label: 'Vet Clinics',      color: '#0d6efd', icon: '🏥', bg: 'rgba(13,110,253,0.08)', description: 'Nearby Vet Clinics'  },
-];
+const POSITIVE = '#dc3545';
+const SUSPECTED = '#e0a800';
+const CLINIC = '#0d6efd';
+const CITYVET = '#ffc107';
 
+const t = {
+  panel: '#ffffff', border: '#e9ecef', subtle: '#f6f7f9', track: '#eef0f3',
+  text: '#1f2328', muted: '#6b7280', faint: '#9ca3af',
+};
+
+const getDistMeters = (lat1, lng1, lat2, lng2) => {
+  const R = 6371000, dLat = (lat2 - lat1) * Math.PI / 180, dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+// Escape text from the database before putting it inside map popups
+const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+const toDate = (value) => (value ? new Date(String(value).replace(' ', 'T')) : null);
+const formatDate = (value) => {
+  const d = toDate(value);
+  return d && !isNaN(d) ? d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+};
+
+/* ------------------------------------------------------------------ */
+/* Animation helpers                                                  */
+/* ------------------------------------------------------------------ */
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const CountUp = ({ value = 0, duration = 1200, delay = 350 }) => {
+  const target = Number(value) || 0;
+  const [n, setN] = useState(prefersReducedMotion() ? target : 0);
+  useEffect(() => {
+    if (prefersReducedMotion()) { setN(target); return; }
+    let raf, start;
+    const timer = setTimeout(() => {
+      const tick = (ts) => {
+        if (!start) start = ts;
+        const p = Math.min(1, (ts - start) / duration);
+        setN(Math.round(target * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, delay);
+    return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
+  }, [target]);
+  return n;
+};
+
+/* ------------------------------------------------------------------ */
+/* Building blocks                                                    */
+/* ------------------------------------------------------------------ */
+const Panel = ({ icon, iconColor, title, subtitle, children, bodyStyle, style }) => (
+  <div className="dash-panel" style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', overflow: 'hidden', display: 'flex', flexDirection: 'column', ...style }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '1.1rem 1.25rem 0.6rem' }}>
+      <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: `${iconColor}1f`, color: iconColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <i className={`fas ${icon}`} style={{ fontSize: '0.9rem' }} />
+      </div>
+      <div>
+        <h5 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: t.text }}>{title}</h5>
+        {subtitle && <div style={{ fontSize: '0.8rem', color: t.muted, marginTop: '0.15rem' }}>{subtitle}</div>}
+      </div>
+    </div>
+    <div style={{ padding: '0.4rem 1.25rem 1.2rem', flex: 1, ...bodyStyle }}>{children}</div>
+  </div>
+);
+
+const SummaryTile = ({ icon, color, value, label, note, loading }) => (
+  <div className="dash-panel h-100" style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: `${color}1f`, color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <i className={`fas ${icon}`} style={{ fontSize: '1.15rem' }} />
+    </div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: '1.9rem', fontWeight: 800, color: t.text, lineHeight: 1 }}>
+        {loading ? <span className="skeleton" style={{ display: 'inline-block', width: '2ch', height: '1em', verticalAlign: 'middle' }} /> : <CountUp value={value} />}
+      </div>
+      <div style={{ fontSize: '0.88rem', fontWeight: 600, color: t.text, marginTop: '0.3rem' }}>{label}</div>
+      <div style={{ fontSize: '0.76rem', color: t.muted }}>{note}</div>
+    </div>
+  </div>
+);
+
+/* ------------------------------------------------------------------ */
+/* Page                                                               */
+/* ------------------------------------------------------------------ */
 export default function OwnerMapStatus() {
-  const mapRef          = useRef(null);
-  const mapInstanceRef  = useRef(null);
-  const markersRef      = useRef([]);
-  const circlesRef      = useRef([]);
-  const clinicMarkersRef = useRef([]);
-const infoWindowRef    = useRef(null);
+  const mapRef           = useRef(null);
+  const mapInstanceRef   = useRef(null);
+  const markersRef       = useRef([]);
+  const circlesRef       = useRef([]);
+  const clinicMarkersRef = useRef({});
+  const infoWindowRef    = useRef(null);
 
-  const [reports,       setReports]       = useState([]);
-  const [clinics,       setClinics]       = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [error,         setError]         = useState('');
-  const [leafletLoaded, setLeafletLoaded] = useState(false);
-const [mapReady,      setMapReady]      = useState(false);
-  const [filterStatus,  setFilterStatus]  = useState('all');
-  const [isFullscreen,  setIsFullscreen]  = useState(false);
-  const [stats,         setStats]         = useState({ positive_rabies: 0, suspected_rabies: 0, clinics: 0 });
+  const [reports,      setReports]      = useState([]);
+  const [clinics,      setClinics]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState('');
+  const [mapsLoaded,   setMapsLoaded]   = useState(false);
+  const [mapReady,     setMapReady]     = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [updatedAt,    setUpdatedAt]    = useState(null);
 
   // Load Google Maps
-useEffect(() => {
-  if (window.google && window.google.maps) { setLeafletLoaded(true); return; }
-  let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
-  if (!script) {
-    script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-  }
-  const onLoad = () => setLeafletLoaded(true);
-  script.addEventListener('load', onLoad);
-  return () => script.removeEventListener('load', onLoad);
-}, []);
+  useEffect(() => {
+    if (window.google && window.google.maps) { setMapsLoaded(true); return; }
+    let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (!script) {
+      script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+    const onLoad = () => setMapsLoaded(true);
+    script.addEventListener('load', onLoad);
+    return () => script.removeEventListener('load', onLoad);
+  }, []);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [reportsRes, clinicsRes] = await Promise.all([
-  reportsAPI.getMapReports(),
-  clinicAPI.getAll(),
-]);
-      const allReports = reportsRes.data.reports || [];
-      // Only keep active rabies-related reports
-      const rabiesReports = allReports.filter(r =>
-        (r.status === 'positive_rabies' || r.status === 'suspected_rabies') &&
-        r.status !== 'resolved'
-      );
+      setError('');
+      const [reportsRes, clinicsRes] = await Promise.all([reportsAPI.getMapReports(), clinicAPI.getAll()]);
+      const rabiesReports = (reportsRes.data.reports || []).filter(r => r.status === 'positive_rabies' || r.status === 'suspected_rabies');
       const activeClinics = (clinicsRes.data.clinics || []).filter(c => c.is_active == 1 && c.latitude && c.longitude);
       setReports(rabiesReports);
       setClinics(activeClinics);
-      setStats({
-        positive_rabies:  rabiesReports.filter(r => r.status === 'positive_rabies').length,
-        suspected_rabies: rabiesReports.filter(r => r.status === 'suspected_rabies').length,
-        clinics: activeClinics.length + 1, // +1 for city vet
-      });
+      setUpdatedAt(new Date());
     } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
+      setError(handleAPIError(err).message);
     } finally {
       setLoading(false);
     }
   };
 
+  const positiveCount  = reports.filter(r => r.status === 'positive_rabies').length;
+  const suspectedCount = reports.filter(r => r.status === 'suspected_rabies').length;
+  const allClinics     = [CITY_VET, ...clinics];
+
   // Init map
-useEffect(() => {
-  if (!leafletLoaded || !mapRef.current || mapInstanceRef.current) return;
+  useEffect(() => {
+    if (!mapsLoaded || !mapRef.current || mapInstanceRef.current) return;
 
-  const initMap = () => {
-    if (!mapRef.current) return;
-    const el = mapRef.current;
-    if (!el.offsetWidth || !el.offsetHeight) { setTimeout(initMap, 150); return; }
+    const initMap = () => {
+      if (!mapRef.current) return;
+      const el = mapRef.current;
+      if (!el.offsetWidth || !el.offsetHeight) { setTimeout(initMap, 150); return; }
 
+      const google = window.google;
+      const map = new google.maps.Map(el, {
+        center: { lat: MUNTINLUPA_CENTER[0], lng: MUNTINLUPA_CENTER[1] },
+        zoom: 13,
+        minZoom: 8,
+        maxZoom: 22,
+        gestureHandling: 'greedy',
+        zoomControl: false,
+        cameraControl: false,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        restriction: {
+          latLngBounds: {
+            north: MUNTINLUPA_BOUNDS[1][0], south: MUNTINLUPA_BOUNDS[0][0],
+            west:  MUNTINLUPA_BOUNDS[0][1], east:  MUNTINLUPA_BOUNDS[1][1],
+          },
+          strictBounds: false,
+        },
+        backgroundColor: '#0d1424',
+        styles: [
+          { elementType: 'geometry', stylers: [{ color: '#0d1424' }] },
+          { elementType: 'labels.text.stroke', stylers: [{ color: '#0d1424' }] },
+          { elementType: 'labels.text.fill', stylers: [{ color: '#7d8aa5' }] },
+          { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#2a3550' }] },
+          { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#a9b4cc' }] },
+          { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+          { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#10231f' }] },
+          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1c2640' }] },
+          { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#0d1424' }] },
+          { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#6b7896' }] },
+          { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#2b3858' }] },
+          { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#1c2640' }] },
+          { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#9aa6c2' }] },
+          { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#15203a' }] },
+          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#060a14' }] },
+          { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3d4a6b' }] },
+        ],
+      });
+
+      new google.maps.Polygon({
+        paths: BOUNDARY.map(([lat, lng]) => ({ lat, lng })),
+        strokeColor: '#ffc107', strokeOpacity: 0.8, strokeWeight: 2.5,
+        fillColor: '#ffc107', fillOpacity: 0, map,
+      });
+
+      infoWindowRef.current = new google.maps.InfoWindow();
+      map.addListener('click', () => infoWindowRef.current && infoWindowRef.current.close());
+
+      mapInstanceRef.current = map;
+      setMapReady(true);
+    };
+
+    initMap();
+  }, [mapsLoaded]);
+
+  // Report markers + 1 km zones
+  useEffect(() => {
+    if (!mapInstanceRef.current || !mapReady) return;
     const google = window.google;
-    const map = new google.maps.Map(el, {
-      center: { lat: MUNTINLUPA_CENTER[0], lng: MUNTINLUPA_CENTER[1] },
-      zoom: 13,
-      minZoom: 8,
-      maxZoom: 22,
-      gestureHandling: 'greedy',
-      zoomControl: false,
-      cameraControl: false,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: false,
-      restriction: {
-        latLngBounds: {
-          north: MUNTINLUPA_BOUNDS[1][0],
-          south: MUNTINLUPA_BOUNDS[0][0],
-          west:  MUNTINLUPA_BOUNDS[0][1],
-          east:  MUNTINLUPA_BOUNDS[1][1],
-        },
-        strictBounds: false,
-      },
-      backgroundColor: '#0d1424',
-      styles: [
-        { elementType:'geometry', stylers:[{ color:'#0d1424' }] },
-        { elementType:'labels.text.stroke', stylers:[{ color:'#0d1424' }] },
-        { elementType:'labels.text.fill', stylers:[{ color:'#7d8aa5' }] },
-        { featureType:'administrative', elementType:'geometry.stroke', stylers:[{ color:'#2a3550' }] },
-        { featureType:'administrative.locality', elementType:'labels.text.fill', stylers:[{ color:'#a9b4cc' }] },
-        { featureType:'poi', elementType:'labels', stylers:[{ visibility:'off' }] },
-        { featureType:'poi.park', elementType:'geometry', stylers:[{ color:'#10231f' }] },
-        { featureType:'road', elementType:'geometry', stylers:[{ color:'#1c2640' }] },
-        { featureType:'road', elementType:'geometry.stroke', stylers:[{ color:'#0d1424' }] },
-        { featureType:'road', elementType:'labels.text.fill', stylers:[{ color:'#6b7896' }] },
-        { featureType:'road.highway', elementType:'geometry', stylers:[{ color:'#2b3858' }] },
-        { featureType:'road.highway', elementType:'geometry.stroke', stylers:[{ color:'#1c2640' }] },
-        { featureType:'road.highway', elementType:'labels.text.fill', stylers:[{ color:'#9aa6c2' }] },
-        { featureType:'transit', elementType:'geometry', stylers:[{ color:'#15203a' }] },
-        { featureType:'water', elementType:'geometry', stylers:[{ color:'#060a14' }] },
-        { featureType:'water', elementType:'labels.text.fill', stylers:[{ color:'#3d4a6b' }] },
-      ],
+    const map = mapInstanceRef.current;
+
+    markersRef.current.forEach(m => m.setMap(null));
+    circlesRef.current.forEach(c => c.setMap(null));
+    markersRef.current = [];
+    circlesRef.current = [];
+
+    const filtered = reports.filter(r => (filterStatus === 'all' || r.status === filterStatus) && r.latitude && r.longitude);
+
+    // Positive cases first, so a suspected case inside a danger zone does not draw a second circle
+    const sorted = [...filtered].sort((a, b) => (b.status === 'positive_rabies') - (a.status === 'positive_rabies'));
+    const circleOwners = [];
+    sorted.forEach(report => {
+      const lat = parseFloat(report.latitude), lng = parseFloat(report.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const covered = circleOwners.some(o =>
+        (o.status === 'positive_rabies' || report.status === 'suspected_rabies') && getDistMeters(lat, lng, o.lat, o.lng) <= 1000
+      );
+      if (!covered) circleOwners.push({ lat, lng, status: report.status });
     });
 
-    new google.maps.Polygon({
-      paths: BOUNDARY.map(([lat, lng]) => ({ lat, lng })),
-      strokeColor: '#ffc107',
-      strokeOpacity: 0.8,
-      strokeWeight: 2.5,
-      fillColor: '#ffc107',
-      fillOpacity: 0,
-      map,
-    });
-
-    infoWindowRef.current = new google.maps.InfoWindow();
-    map.addListener('click', () => infoWindowRef.current && infoWindowRef.current.close());
-
-    mapInstanceRef.current = map;
-    setMapReady(true);
-  };
-
-  initMap();
-}, [leafletLoaded]);
-
-  // Render report markers + danger circles
-useEffect(() => {
-  if (!mapInstanceRef.current || !mapReady) return;
-  const google = window.google;
-  const map = mapInstanceRef.current;
-
-  markersRef.current.forEach(m => m.setMap(null));
-  circlesRef.current.forEach(c => c.setMap(null));
-  markersRef.current = [];
-  circlesRef.current = [];
-
-  const filtered = reports.filter(r => {
-    if (filterStatus !== 'all' && r.status !== filterStatus) return false;
-    return r.latitude && r.longitude;
-  });
-
-  const sortedRabies = [...filtered].sort((a, b) => {
-    if (a.status === 'positive_rabies' && b.status !== 'positive_rabies') return -1;
-    if (b.status === 'positive_rabies' && a.status !== 'positive_rabies') return 1;
-    return 0;
-  });
-
-  const circleOwners = [];
-  sortedRabies.forEach(report => {
-    const lat = parseFloat(report.latitude);
-    const lng = parseFloat(report.longitude);
-    if (isNaN(lat) || isNaN(lng)) return;
-    const isWithin = circleOwners.some(owner => {
-      if (owner.status === 'positive_rabies') return getDistMeters(lat, lng, owner.lat, owner.lng) <= 1000;
-      if (owner.status === 'suspected_rabies' && report.status === 'suspected_rabies') return getDistMeters(lat, lng, owner.lat, owner.lng) <= 1000;
-      return false;
-    });
-    if (!isWithin) circleOwners.push({ lat, lng, status: report.status });
-  });
-
-  circleOwners.forEach(owner => {
-    const isPos = owner.status === 'positive_rabies';
-    try {
+    circleOwners.forEach(owner => {
+      const isPos = owner.status === 'positive_rabies';
+      const color = isPos ? POSITIVE : SUSPECTED;
       const circle = new google.maps.Circle({
-        map,
-        center: { lat: owner.lat, lng: owner.lng },
-        radius: 1000,
-        strokeColor:   isPos ? '#e00000' : '#f0c800',
-        strokeOpacity: 0.85,
-        strokeWeight:  2.5,
-        fillColor:     isPos ? '#e00000' : '#f0c800',
-        fillOpacity:   isPos ? 0.12 : 0.10,
-        clickable: false,
+        map, center: { lat: owner.lat, lng: owner.lng }, radius: 1000,
+        strokeColor: color, strokeOpacity: 0.85, strokeWeight: 2,
+        fillColor: color, fillOpacity: isPos ? 0.12 : 0.1, clickable: false,
       });
-      const labelMarker = new google.maps.Marker({
-        position: { lat: owner.lat + 0.0085, lng: owner.lng },
-        map,
+      const label = new google.maps.Marker({
+        position: { lat: owner.lat + 0.0085, lng: owner.lng }, map, clickable: false,
+        icon: { url: 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg"/>', scaledSize: new google.maps.Size(1, 1) },
+        label: { text: isPos ? '1 km danger zone' : '1 km alert zone', color: '#ffffff', fontSize: '11px', fontWeight: '700' },
+      });
+      circlesRef.current.push(circle, label);
+    });
+
+    filtered.forEach(report => {
+      const lat = parseFloat(report.latitude), lng = parseFloat(report.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const isPos = report.status === 'positive_rabies';
+      const color = isPos ? POSITIVE : SUSPECTED;
+
+      const popupHtml = `
+        <div style="width:230px;font-family:inherit;">
+          <div style="padding:0.8rem 0.95rem;border-bottom:1px solid #eef0f3;border-left:4px solid ${color};">
+            <div style="font-weight:700;font-size:0.9rem;color:#1f2328;padding-right:22px;">${isPos ? 'Positive rabies' : 'Suspected rabies'}</div>
+            <div style="font-size:0.75rem;color:#6b7280;margin-top:2px;">Reported ${esc(formatDate(report.created_at))}</div>
+          </div>
+          <div style="padding:0.75rem 0.95rem;">
+            <div style="font-size:0.72rem;color:#6b7280;">Barangay</div>
+            <div style="font-size:0.85rem;color:#1f2328;font-weight:600;margin-bottom:0.6rem;">${esc(report.barangay_name || 'Not specified')}</div>
+            <div style="font-size:0.78rem;color:#1f2328;background:${color}14;border-radius:8px;padding:0.5rem 0.6rem;line-height:1.4;">
+              ${isPos ? 'Keep pets indoors and avoid stray animals within 1 km.' : 'Watch your pets closely and avoid stray animals within 1 km.'}
+            </div>
+          </div>
+        </div>`;
+
+      const marker = new google.maps.Marker({
+        position: { lat, lng }, map,
+        zIndex: isPos ? 800 : 700,
         icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg"/>',
-          scaledSize: new google.maps.Size(1, 1),
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+              <path d="M16 1C8 1 2 7 2 15c0 10 14 25 14 25s14-15 14-25C30 7 24 1 16 1z" fill="${color}" stroke="white" stroke-width="2"/>
+              <text x="16" y="21" text-anchor="middle" font-family="Arial" font-weight="bold" font-size="15" fill="${isPos ? '#ffffff' : '#1f2328'}">${isPos ? '!' : '?'}</text>
+            </svg>`)}`,
+          scaledSize: new google.maps.Size(32, 42),
+          anchor: new google.maps.Point(16, 41),
         },
-        label: {
-          text: `1 km ${isPos ? '⚠️ Danger Zone' : '🔍 Alert Zone'}`,
-          color: '#fff',
-          fontSize: '0.7rem',
-          fontWeight: 'bold',
-        },
-        clickable: false,
+        title: isPos ? 'Positive rabies' : 'Suspected rabies',
       });
-      circlesRef.current.push(circle, labelMarker);
-    } catch (e) {
-      console.warn('Circle render skipped:', e.message);
-    }
-  });
-
-  filtered.forEach(report => {
-    const lat = parseFloat(report.latitude);
-    const lng = parseFloat(report.longitude);
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    const isPos    = report.status === 'positive_rabies';
-    const color    = isPos ? '#e00000' : '#f0c800';
-    const emoji    = isPos ? '☣️' : '⚠️';
-    const label    = isPos ? 'Positive Rabies' : 'Suspected Rabies';
-    const bgColor  = isPos ? 'rgba(224,0,0,0.9)' : 'rgba(220,180,0,0.95)';
-    const txtColor = isPos ? '#fff' : '#1a1a1a';
-
-        const popupHtml = `
-      <div style="width:210px;font-family:'Segoe UI',sans-serif;overflow:hidden;background:#0d1424;">
-        <div style="background:${isPos ? 'linear-gradient(135deg,#b30000,#e00000)' : 'linear-gradient(135deg,#d4aa00,#f0c800)'};padding:0.75rem 0.9rem;">
-          <div style="font-size:1.2rem;margin-bottom:0.3rem;">${emoji}</div>
-          <div style="color:${txtColor};font-weight:700;font-size:0.8rem;">${label}</div>
-          <div style="color:${isPos ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.55)'};font-size:0.62rem;margin-top:2px;">
-            Reported ${new Date(report.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </div>
-        </div>
-        <div style="padding:0.7rem 0.9rem;background:#0d1424;">
-          <div style="margin-bottom:0.4rem;">
-            <div style="font-size:0.58rem;color:#7d8aa5;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Barangay</div>
-            <div style="font-size:0.78rem;color:#e8ecf5;font-weight:600;margin-top:2px;">${report.barangay_name || 'Not specified'}</div>
-          </div>
-          <div style="margin-top:0.5rem;padding:0.4rem 0.55rem;background:${isPos ? 'rgba(224,0,0,0.15)' : 'rgba(240,200,0,0.12)'};border-radius:8px;border-left:3px solid ${color};font-size:0.65rem;font-weight:700;color:${isPos ? '#ff8a8a' : '#ffe066'};">
-            ${isPos ? '⚠️ Stay alert — danger zone within 1km' : '🔍 Alert zone — monitor pets nearby'}
-          </div>
-        </div>
-      </div>`;
-
-    const marker = new google.maps.Marker({
-      position: { lat, lng },
-      map,
-      icon: {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
-            <rect x="6" y="2" width="20" height="14" rx="3" fill="${color}" stroke="white" stroke-width="1.5"/>
-            <text x="16" y="13" text-anchor="middle" font-size="9">${emoji}</text>
-            <rect x="5" y="2" width="2.5" height="40" rx="1.2" fill="white"/>
-            <ellipse cx="6.25" cy="42" rx="4" ry="1.8" fill="rgba(0,0,0,0.18)"/>
-          </svg>`)}`,
-        scaledSize: new google.maps.Size(36, 48),
-        anchor: new google.maps.Point(6, 48),
-      },
+      marker.addListener('click', () => {
+        infoWindowRef.current.setContent(popupHtml);
+        infoWindowRef.current.open({ map, anchor: marker });
+      });
+      markersRef.current.push(marker);
     });
-    marker.addListener('click', () => {
-      infoWindowRef.current.setContent(popupHtml);
-      infoWindowRef.current.open({ map, anchor: marker });
+  }, [reports, filterStatus, mapReady]);
+
+  // Clinic markers
+  useEffect(() => {
+    if (!mapInstanceRef.current || !mapReady) return;
+    const google = window.google;
+    const map = mapInstanceRef.current;
+
+    Object.values(clinicMarkersRef.current).forEach(({ marker }) => marker.setMap(null));
+    clinicMarkersRef.current = {};
+
+    allClinics.forEach(clinic => {
+      const lat = parseFloat(clinic.latitude), lng = parseFloat(clinic.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const isCityVet = clinic.id === 'cityvet';
+      const color = isCityVet ? CITYVET : CLINIC;
+
+      const popupHtml = `
+        <div style="width:240px;font-family:inherit;">
+          <div style="padding:0.8rem 0.95rem;border-bottom:1px solid #eef0f3;border-left:4px solid ${color};">
+            <div style="font-weight:700;font-size:0.9rem;color:#1f2328;padding-right:22px;line-height:1.25;">${esc(clinic.clinic_name)}</div>
+            <div style="font-size:0.75rem;color:#6b7280;margin-top:2px;">${isCityVet ? 'City government clinic' : 'Private veterinary clinic'}</div>
+          </div>
+          <div style="padding:0.75rem 0.95rem;display:flex;flex-direction:column;gap:0.5rem;">
+            ${clinic.owner_name ? `<div><div style="font-size:0.72rem;color:#6b7280;">Veterinarian</div><div style="font-size:0.85rem;color:#1f2328;font-weight:600;">${esc(isCityVet ? clinic.owner_name : 'Dr. ' + clinic.owner_name)}</div></div>` : ''}
+            ${clinic.phone ? `<div><div style="font-size:0.72rem;color:#6b7280;">Phone</div><a href="tel:${esc(clinic.phone)}" style="font-size:0.85rem;color:${CLINIC};font-weight:600;text-decoration:none;">${esc(clinic.phone)}</a></div>` : ''}
+            ${clinic.specialization ? `<div><div style="font-size:0.72rem;color:#6b7280;">Specialization</div><div style="font-size:0.85rem;color:#1f2328;">${esc(clinic.specialization)}</div></div>` : ''}
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" rel="noopener noreferrer"
+               style="margin-top:0.2rem;text-align:center;font-size:0.8rem;font-weight:600;color:#ffffff;background:${CLINIC};border-radius:8px;padding:0.45rem;text-decoration:none;">Get directions</a>
+          </div>
+        </div>`;
+
+      const size = isCityVet ? 40 : 32;
+      const marker = new google.maps.Marker({
+        position: { lat, lng }, map,
+        zIndex: isCityVet ? 1000 : 500,
+        title: clinic.clinic_name,
+        icon: {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+              <rect x="2" y="2" width="36" height="36" rx="10" fill="${color}" stroke="white" stroke-width="2.5"/>
+              <rect x="17" y="10" width="6" height="20" rx="1.5" fill="${isCityVet ? '#1f2328' : '#ffffff'}"/>
+              <rect x="10" y="17" width="20" height="6" rx="1.5" fill="${isCityVet ? '#1f2328' : '#ffffff'}"/>
+            </svg>`)}`,
+          scaledSize: new google.maps.Size(size, size),
+          anchor: new google.maps.Point(size / 2, size / 2),
+        },
+      });
+      const open = () => {
+        infoWindowRef.current.setContent(popupHtml);
+        infoWindowRef.current.open({ map, anchor: marker });
+      };
+      marker.addListener('click', open);
+      clinicMarkersRef.current[clinic.id] = { marker, open };
     });
-    markersRef.current.push(marker);
-  });
-}, [reports, filterStatus, mapReady]);
+  }, [clinics, mapReady]);
 
-  // Render clinic markers
-useEffect(() => {
-  if (!mapInstanceRef.current || !mapReady) return;
-  const google = window.google;
-  const map = mapInstanceRef.current;
-
-  clinicMarkersRef.current.forEach(m => m.setMap(null));
-  clinicMarkersRef.current = [];
-
-  const cityVet = {
-    id: 'cityvet',
-    clinic_name: 'City Veterinary Office',
-    clinic_code: 'CITYVET-MNL',
-    owner_name: 'City Veterinarian',
-    phone: null,
-    specialization: 'Government Veterinary Office',
-    latitude: 14.395293,
-    longitude: 121.044737,
+  const focusClinic = (clinic) => {
+    const map = mapInstanceRef.current;
+    const entry = clinicMarkersRef.current[clinic.id];
+    if (!map || !entry) return;
+    map.panTo({ lat: parseFloat(clinic.latitude), lng: parseFloat(clinic.longitude) });
+    map.setZoom(16);
+    entry.open();
+    if (window.innerWidth < 992 && mapRef.current) mapRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
-
-  [cityVet, ...clinics].forEach(clinic => {
-    const lat = parseFloat(clinic.latitude);
-    const lng = parseFloat(clinic.longitude);
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    const isCityVet = clinic.id === 'cityvet';
-
-        const popupHtml = `
-      <div style="width:220px;font-family:'Segoe UI',sans-serif;overflow:hidden;background:#0d1424;">
-        <div style="background:${isCityVet ? 'linear-gradient(135deg,#ffc107,#ff8c00)' : 'linear-gradient(135deg,#0d6efd,#0a58ca)'};padding:0.75rem 0.9rem;">
-          <div style="margin-bottom:0.3rem;">
-            <div style="color:${isCityVet ? '#1a1a1a' : '#fff'};font-weight:700;font-size:0.78rem;line-height:1.2;padding-right:22px;">${clinic.clinic_name}</div>
-            <div style="color:${isCityVet ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.7)'};font-size:0.6rem;">${isCityVet ? 'Government Veterinary Office' : (clinic.clinic_code || '')}</div>
-          </div>
-          <span style="display:inline-block;background:rgba(255,255,255,0.22);color:${isCityVet ? '#1a1a1a' : '#fff'};padding:1px 8px;border-radius:20px;font-size:0.6rem;font-weight:700;">
-            🏥 ${isCityVet ? 'City Government Clinic' : 'Private Clinic'}
-          </span>
-        </div>
-        <div style="padding:0.7rem 0.9rem;background:#0d1424;display:flex;flex-direction:column;gap:0.4rem;">
-          ${clinic.owner_name ? `<div><div style="font-size:0.58rem;color:#7d8aa5;text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Veterinarian</div><div style="font-size:0.75rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${isCityVet ? clinic.owner_name : 'Dr. ' + clinic.owner_name}</div></div>` : ''}
-          <div style="display:flex;gap:0.35rem;margin-top:0.2rem;">
-            ${clinic.phone ? `<div style="flex:1;background:rgba(255,255,255,0.06);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(255,255,255,0.12);"><div style="font-size:0.54rem;color:#7d8aa5;font-weight:700;text-transform:uppercase;">Phone</div><div style="font-size:0.65rem;color:#e8ecf5;font-weight:600;margin-top:1px;">${clinic.phone}</div></div>` : ''}
-            ${clinic.specialization ? `<div style="flex:1;background:rgba(13,110,253,0.15);padding:0.3rem 0.45rem;border-radius:6px;border:1px solid rgba(13,110,253,0.4);"><div style="font-size:0.54rem;color:#8fb4ff;font-weight:700;text-transform:uppercase;">Specialty</div><div style="font-size:0.62rem;color:#6ea8ff;font-weight:700;margin-top:1px;">${clinic.specialization}</div></div>` : ''}
-          </div>
-        </div>
-      </div>`;
-
-    const w = isCityVet ? 48 : 32;
-    const h = isCityVet ? 58 : 40;
-
-    const marker = new google.maps.Marker({
-      position: { lat, lng },
-      map,
-      zIndex: isCityVet ? 1000 : 500,
-      icon: isCityVet ? {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="52" height="64" viewBox="0 0 52 64">
-            <!-- shadow -->
-            <ellipse cx="7" cy="62" rx="6" ry="2.2" fill="rgba(0,0,0,0.18)"/>
-            <!-- pole -->
-            <rect x="5" y="2" width="4" height="58" rx="2" fill="#d4d4d4"/>
-            <rect x="5" y="2" width="2" height="58" rx="2" fill="#f0f0f0"/>
-            <!-- flag body -->
-            <rect x="9" y="2" width="40" height="28" rx="5" fill="#ffc107"/>
-            <!-- top accent stripe -->
-            <rect x="9" y="2" width="40" height="8" rx="5" fill="#ffd54f"/>
-            <rect x="9" y="7" width="40" height="3" fill="#ffd54f"/>
-            <!-- dark overlay for depth -->
-            <rect x="9" y="2" width="40" height="28" rx="5" fill="url(#cvg)" opacity="0.3"/>
-            <defs>
-              <linearGradient id="cvg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="white"/>
-                <stop offset="100%" stop-color="black"/>
-              </linearGradient>
-            </defs>
-            <!-- medical cross vertical -->
-            <rect x="25" y="8" width="7" height="16" rx="2" fill="white"/>
-            <!-- medical cross horizontal -->
-            <rect x="19" y="13" width="19" height="6" rx="2" fill="white"/>
-            <!-- center circle -->
-            <circle cx="28.5" cy="16" r="3" fill="#ffc107"/>
-            <!-- star badge -->
-            <circle cx="44" cy="7" r="6" fill="#1a1a1a"/>
-            <circle cx="44" cy="7" r="5" fill="none" stroke="#ffc107" stroke-width="1"/>
-            <text x="44" y="10.5" text-anchor="middle" font-size="7" fill="#ffc107" font-family="Arial" font-weight="bold">★</text>
-            <!-- flag right edge wave -->
-            <path d="M49 2 Q52 8 49 15 Q52 22 49 30" stroke="rgba(0,0,0,0.1)" stroke-width="1" fill="none"/>
-          </svg>`
-        )}`,
-        scaledSize: new google.maps.Size(52, 64),
-        anchor: new google.maps.Point(7, 64),
-      } : {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-          `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="54" viewBox="0 0 44 54">
-            <!-- shadow -->
-            <ellipse cx="6" cy="52" rx="5" ry="1.8" fill="rgba(0,0,0,0.18)"/>
-            <!-- pole -->
-            <rect x="4" y="2" width="3.5" height="49" rx="1.8" fill="#d4d4d4"/>
-            <rect x="4" y="2" width="1.8" height="49" rx="1.8" fill="#f0f0f0"/>
-            <!-- flag body -->
-            <rect x="8" y="2" width="34" height="24" rx="4" fill="#0d6efd"/>
-            <!-- top accent stripe -->
-            <rect x="8" y="2" width="34" height="7" rx="4" fill="#4d94ff"/>
-            <rect x="8" y="7" width="34" height="2" fill="#4d94ff"/>
-            <!-- depth overlay -->
-            <rect x="8" y="2" width="34" height="24" rx="4" fill="url(#pvg)" opacity="0.2"/>
-            <defs>
-              <linearGradient id="pvg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="white"/>
-                <stop offset="100%" stop-color="black"/>
-              </linearGradient>
-            </defs>
-            <!-- medical cross vertical -->
-            <rect x="22" y="7" width="5.5" height="13" rx="1.5" fill="white"/>
-            <!-- medical cross horizontal -->
-            <rect x="16.5" y="11" width="16" height="5" rx="1.5" fill="white"/>
-            <!-- center circle -->
-            <circle cx="24.5" cy="13.5" r="2.5" fill="#0d6efd"/>
-            <!-- pulse ring -->
-            <circle cx="24.5" cy="13.5" r="4.5" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.2"/>
-            <!-- Rx badge -->
-            <circle cx="37" cy="6.5" r="5" fill="#0a3d91"/>
-            <circle cx="37" cy="6.5" r="4" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.8"/>
-            <text x="37" y="9.5" text-anchor="middle" font-size="6" fill="white" font-family="Arial" font-weight="bold">Rx</text>
-            <!-- flag right edge wave -->
-            <path d="M42 2 Q45 7 42 13 Q45 19 42 26" stroke="rgba(0,0,0,0.1)" stroke-width="1" fill="none"/>
-          </svg>`
-        )}`,
-        scaledSize: new google.maps.Size(44, 54),
-        anchor: new google.maps.Point(5.5, 54),
-      },
-    });
-    marker.addListener('click', () => {
-      infoWindowRef.current.setContent(popupHtml);
-      infoWindowRef.current.open({ map, anchor: marker });
-    });
-    clinicMarkersRef.current.push(marker);
-  });
-}, [clinics, mapReady]);
 
   const zoomBy = (d) => {
     const m = mapInstanceRef.current;
@@ -485,240 +428,217 @@ useEffect(() => {
     m.panTo({ lat: MUNTINLUPA_CENTER[0], lng: MUNTINLUPA_CENTER[1] });
     m.setZoom(13);
   };
-  const glassBtn = {
-    width: '40px', height: '40px', border: 'none',
-    background: 'rgba(255,255,255,0.12)', color: '#fff',
-    backdropFilter: 'blur(6px)', cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: '0.9rem',
+  const toggleFullscreen = () => {
+    setIsFullscreen(f => !f);
+    setTimeout(() => {
+      if (mapInstanceRef.current && window.google) window.google.maps.event.trigger(mapInstanceRef.current, 'resize');
+    }, 300);
   };
 
-  const filteredCount = reports.filter(r => {
-    if (filterStatus !== 'all' && r.status !== filterStatus) return false;
-    return r.latitude && r.longitude;
-  }).length;
+  const filteredCount = reports.filter(r => (filterStatus === 'all' || r.status === filterStatus) && r.latitude && r.longitude).length;
 
-  const btnStyle = (active, color) => ({
-    padding: '0.4rem 1rem',
-    borderRadius: '20px',
-    border: `2px solid ${active ? color : 'rgba(255,255,255,0.3)'}`,
-    background: active ? color : 'rgba(255,255,255,0.12)',
-    backdropFilter: 'blur(6px)',
-    color: active ? (color === '#ffc107' ? '#1a1a1a' : '#fff') : '#ffffff',
-    fontWeight: '600',
-    fontSize: '0.78rem',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    whiteSpace: 'nowrap',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.4rem',
-  });
+  const FILTERS = [
+    { v: 'all',              label: 'All cases', color: '#ffffff' },
+    { v: 'positive_rabies',  label: 'Positive',  color: POSITIVE },
+    { v: 'suspected_rabies', label: 'Suspected', color: SUSPECTED },
+  ];
+
+  const glassBtn = {
+    width: '38px', height: '38px', border: 'none', background: 'rgba(13,20,36,0.75)', color: '#fff',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem',
+  };
 
   return (
     <>
-      <style>{LEAFLET_CSS}</style>
+      <style>{INFO_WINDOW_CSS}</style>
       <style>{`
-        @keyframes dropDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes float    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-        .map-overlay-header { pointer-events: none; }
-        .map-overlay-header button, .map-overlay-header span { pointer-events: auto; }
-        .map-fullscreen { position:fixed !important;top:0 !important;left:0 !important;width:100vw !important;height:100vh !important;z-index:10002 !important;border-radius:0 !important;margin:0 !important;zoom:1.333 !important; }
-        .dashboard-page {
-          zoom: 0.75;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
+        @keyframes dropDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes panelIn  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shimmer  { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+        .skeleton {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite; border-radius: 6px;
         }
-        @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
-        @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+        .dash-section .dash-panel { animation: panelIn 0.5s ease-out backwards; animation-delay: var(--d, 0.2s); }
+        .dash-section > :nth-child(2) .dash-panel { animation-delay: calc(var(--d, 0.2s) + 0.08s); }
+        .dash-section > :nth-child(3) .dash-panel { animation-delay: calc(var(--d, 0.2s) + 0.16s); }
+        .side-stack .dash-panel:nth-child(2) { animation-delay: 0.5s; }
+        .side-stack .dash-panel:nth-child(3) { animation-delay: 0.6s; }
 
-        @media (max-width: 768px) {
-          .mobile-map-title { font-size: 1.5rem !important; }
-        }
+        .map-filter { border: none; background: transparent; color: #cfd6e4; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: background 0.15s ease; }
+        .map-filter:hover { background: rgba(255,255,255,0.08); }
+        .map-filter.active { background: #ffffff; color: #1f2328; }
+        .map-btn:hover { background: rgba(13,20,36,0.95) !important; }
+        .clinic-row { transition: background 0.15s ease; }
+        .clinic-row:hover { background: ${t.subtle}; }
+        .map-filter:focus-visible, .map-btn:focus-visible, .clinic-row:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
+
+        .map-card { position: relative; height: 680px; border-radius: 14px; overflow: hidden; border: 1px solid ${t.border}; }
+        .map-fullscreen { position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh !important; z-index: 10002; border-radius: 0 !important; border: none !important; zoom: 1.3333; }
+
+        .dashboard-page { zoom: 0.75; min-height: 100vh; display: flex; flex-direction: column; }
+        @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } .map-fullscreen { zoom: 1.1111; } }
+        @media (min-width: 1920px) { .dashboard-page { zoom: 1; } .map-fullscreen { zoom: 1; } }
+        @media (max-width: 991px) { .map-card { height: 520px; } }
+        @media (max-width: 768px) { .mobile-map-title { font-size: 1.5rem !important; } .map-card { height: 460px; } }
+        @media (prefers-reduced-motion: reduce) { .dash-panel, .skeleton { animation: none !important; } }
       `}</style>
-      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+
+      <Container fluid className="py-4 dashboard-page" style={{ background: '#ffffff' }}>
 
         {/* Header */}
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
+        <Row className="mb-4 align-items-end" style={{ animation: 'dropDown 0.4s ease-out' }}>
           <Col>
-            <div className="d-flex align-items-center gap-3">
-              <i className="fas fa-map-marked-alt" style={{ fontSize: '1.5rem', color: '#1a1a1a', animation: 'float 3s ease-in-out infinite' }}></i>
-              <div>
-                <h2 className="mobile-map-title" style={{ fontWeight: '700', color: '#333', fontSize: '1.9rem', marginBottom: 0 }}>Map Status</h2>
-                <small style={{ color: '#888', fontWeight: '500' }}>Muntinlupa City — Active Rabies Cases & Vet Clinics</small>
-              </div>
-            </div>
+            <h2 className="mobile-map-title" style={{ fontWeight: 700, color: t.text, fontSize: '2rem', marginBottom: '0.25rem' }}>
+              <i className="fas fa-map-marked-alt me-2" style={{ fontSize: '1.5rem' }} />Map Status
+            </h2>
+            <div style={{ fontSize: '0.95rem', color: t.muted }}>Active rabies cases and veterinary clinics in Muntinlupa City</div>
           </Col>
-          
+          <Col xs="auto" className="d-flex align-items-center gap-3">
+            {updatedAt && (
+              <span className="d-none d-md-inline" style={{ fontSize: '0.8rem', color: t.muted }}>
+                Updated {updatedAt.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}
+              </span>
+            )}
+            <Button variant="outline-secondary" size="sm" onClick={loadData} disabled={loading} style={{ borderRadius: '8px', fontWeight: 600 }}>
+              <i className={`fas fa-sync-alt me-1 ${loading ? 'fa-spin' : ''}`} /> Refresh
+            </Button>
+          </Col>
         </Row>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')}
-            style={{ borderRadius: '12px', border: '2px solid #dc3545', marginBottom: '1.5rem' }}>
-            <i className="fas fa-exclamation-triangle me-2"></i>{error}
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2" />{error}
           </Alert>
         )}
 
-        
-
-        {/* Map + Legend */}
-        <Row className="g-3" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards', flex: '1 1 auto' }}>
-
-          {/* Legend */}
-          <Col lg={3} order={2} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', order: undefined, minHeight: '640px' }} className="order-2 order-lg-1">
-
-            {/* Safety Info */}
-            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', overflow: 'hidden', background: '#fff', flex: '1 1 auto' }}>
-              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fas fa-shield-alt" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Safety Information</span>
-                </div>
-              </div>
-              <div style={{ padding: '1.1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {[
-                  { color: '#e00000', border: 'solid', label: '1km Danger Zone', desc: 'Positive rabies confirmed nearby. Keep pets indoors.' },
-                  { color: '#f0c800', border: 'dashed', label: '1km Alert Zone', desc: 'Suspected rabies case nearby. Monitor pets closely.' },
-                ].map(z => (
-                  <div key={z.label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                    <div style={{ width: '32px', height: '12px', borderRadius: '4px', border: `2px ${z.border} ${z.color}`, background: z.color + '18', flexShrink: 0, marginTop: '3px' }} />
-                    <div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#333' }}>{z.label}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '2px', lineHeight: '1.5' }}>{z.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Legend */}
-            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden' }}>
-              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fas fa-map-pin" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.88rem' }}>Map Legend</span>
-                </div>
-              </div>
-              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                {[
-                  { color: '#e00000', emoji: '☣️', label: 'Positive Rabies' },
-                  { color: '#f0c800', emoji: '⚠️', label: 'Suspected Rabies' },
-                  { color: '#ffc107', icon: 'fa-hospital', label: 'City Vet Office' },
-                  { color: '#0d6efd', icon: 'fa-hospital', label: 'Private Clinic' },
-                ].map(l => (
-                  <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: l.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 2px 8px ${l.color}55`, fontSize: l.emoji ? '1rem' : undefined }}>
-                      {l.emoji ? l.emoji : <i className={`fas ${l.icon}`} style={{ fontSize: '13px', color: '#fff' }}></i>}
-                    </div>
-                    <span style={{ fontSize: '0.88rem', fontWeight: '600', color: '#444' }}>{l.label}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Tips */}
-            <Card className="border-0" style={{ borderRadius: '18px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', background: '#fff', overflow: 'hidden', flex: '1 1 auto' }}>
-              <div style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', padding: '1rem 1.25rem', borderBottom: '2px solid #ffc107' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fas fa-lightbulb" style={{ color: '#ffc107', fontSize: '0.9rem' }}></i>
-                  <span style={{ color: '#333333', fontWeight: '700', fontSize: '0.95rem' }}>Pet Safety Tips</span>
-                </div>
-              </div>
-              <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                {[
-                  { icon: 'fa-syringe',       tip: 'Keep your pet\'s rabies vaccination up to date.' },
-                  { icon: 'fa-home',           tip: 'Keep pets indoors if a danger zone is nearby.' },
-                  { icon: 'fa-hospital',       tip: 'Visit the nearest vet clinic if your pet is bitten.' },
-                  { icon: 'fa-phone',          tip: 'Report animal bites to the City Vet immediately.' },
-                ].map((t, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(255,193,7,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
-                      <i className={`fas ${t.icon}`} style={{ fontSize: '0.7rem', color: '#ffc107' }}></i>
-                    </div>
-                    <span style={{ fontSize: '0.85rem', color: '#555', lineHeight: '1.6', fontWeight: '500' }}>{t.tip}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
+        {/* Summary */}
+        <Row className="g-3 mb-4 dash-section" style={{ '--d': '0.1s' }}>
+          <Col xs={12} md={4}>
+            <SummaryTile icon="fa-exclamation-circle" color={POSITIVE} value={positiveCount} loading={loading}
+              label="Positive rabies" note={positiveCount === 1 ? 'Active danger zone' : 'Active danger zones'} />
           </Col>
-
-          {/* Map */}
-          <Col lg={9} className="order-1 order-lg-2" style={{ display: 'flex', flexDirection: 'column' }}>
-            <Card className={`border-0 ${isFullscreen ? 'map-fullscreen' : ''}`}
-              style={{ position: 'relative', minHeight: isFullscreen ? undefined : '640px', borderRadius: isFullscreen ? '0' : '18px', boxShadow: '0 4px 24px rgba(0,0,0,0.1)', overflow: 'hidden', flex: '1 1 auto', display: 'flex', flexDirection: 'column', ...(isFullscreen && { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 10002, zoom: '1.333' }) }}>
-
-              {/* Map header */}
-              <div className="map-overlay-header" style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10009, background: 'transparent', padding: isFullscreen ? '0.5rem 1rem' : '0.9rem 1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <i className="fas fa-map" style={{ color: '#ffc107', fontSize: '1rem' }}></i>
-                    <span style={{ color: '#ffffff', fontWeight: '700', fontSize: '0.95rem', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>Rabies Activity Map</span>
-                    <span style={{ background: 'rgba(255,193,7,0.2)', color: '#ffd54f', padding: '2px 10px', borderRadius: '20px', fontSize: '0.73rem', fontWeight: '700' }}>
-                      {loading ? '...' : `${filteredCount} active cases`}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => {
-  setIsFullscreen(f => !f);
-  setTimeout(() => {
-    if (mapInstanceRef.current && window.google) {
-      window.google.maps.event.trigger(mapInstanceRef.current, 'resize');
-    }
-  }, 300);
-}}
-                    style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(6px)', borderRadius: '8px', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', position: 'relative', zIndex: 10010 }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.25)'}
-                    onMouseOut={e  => e.currentTarget.style.background = 'rgba(255,255,255,0.12)'}
-                    title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                  >
-                    <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.82rem', color: '#ffffff' }}></i>
-                  </button>
-                </div>
-
-                {/* Filters */}
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {[
-                    { v: 'all',              label: 'All Cases',       color: '#ffc107', emoji: '🗺️' },
-                    { v: 'positive_rabies',  label: 'Positive Rabies', color: '#e00000', emoji: '☣️' },
-                    { v: 'suspected_rabies', label: 'Suspected Rabies',color: '#f0c800', emoji: '⚠️' },
-                  ].map(f => (
-                    <button key={f.v} onClick={() => setFilterStatus(f.v)} style={btnStyle(filterStatus === f.v, f.color)}>
-                      <span>{f.emoji}</span>
-                      <span>{f.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Map container */}
-              <div style={{ position: 'absolute', inset: 0 }}>
-                {loading && (
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.85)', zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
-                    <Spinner animation="border" style={{ color: '#ffc107', width: '2.5rem', height: '2.5rem', borderWidth: '3px' }} />
-                    <span style={{ fontWeight: '600', color: '#555' }}>Loading map data...</span>
-                  </div>
-                )}
-                <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
-
-                {/* Custom glass controls */}
-                <div style={{ position: 'absolute', right: 14, bottom: isFullscreen ? 60 : 34, zIndex: 10010, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
-                    <button onClick={recenter} title="Recenter map" style={glassBtn}><i className="fas fa-crosshairs"></i></button>
-                  </div>
-                  <div style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.3)' }}>
-                    <button onClick={() => zoomBy(1)} title="Zoom in" style={glassBtn}><i className="fas fa-plus"></i></button>
-                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.3)' }} />
-                    <button onClick={() => zoomBy(-1)} title="Zoom out" style={glassBtn}><i className="fas fa-minus"></i></button>
-                  </div>
-                </div>
-              </div>
-
-            </Card>
+          <Col xs={12} md={4}>
+            <SummaryTile icon="fa-question-circle" color={SUSPECTED} value={suspectedCount} loading={loading}
+              label="Suspected rabies" note={suspectedCount === 1 ? 'Active alert zone' : 'Active alert zones'} />
+          </Col>
+          <Col xs={12} md={4}>
+            <SummaryTile icon="fa-clinic-medical" color={CLINIC} value={allClinics.length} loading={loading}
+              label="Vet clinics" note="Including the City Veterinary Office" />
           </Col>
         </Row>
 
+        <Row className="g-4 dash-section" style={{ '--d': '0.3s', flex: '1 1 auto' }}>
+
+          {/* Map */}
+          <Col lg={8}>
+            <div className={`dash-panel map-card ${isFullscreen ? 'map-fullscreen' : ''}`}>
+              {/* Top bar */}
+              <div style={{ position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', pointerEvents: 'none' }}>
+                <div style={{ display: 'flex', gap: '2px', padding: '4px', borderRadius: '10px', background: 'rgba(13,20,36,0.8)', backdropFilter: 'blur(6px)', pointerEvents: 'auto' }} role="group" aria-label="Filter cases">
+                  {FILTERS.map(f => (
+                    <button key={f.v} type="button" className={`map-filter ${filterStatus === f.v ? 'active' : ''}`} onClick={() => setFilterStatus(f.v)} aria-pressed={filterStatus === f.v}>
+                      {f.v !== 'all' && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: f.color }} />}
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'auto' }}>
+                  <span className="d-none d-sm-inline" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', background: 'rgba(13,20,36,0.8)', padding: '0.45rem 0.75rem', borderRadius: '10px' }}>
+                    {loading ? 'Loading…' : `${filteredCount} active ${filteredCount === 1 ? 'case' : 'cases'}`}
+                  </span>
+                  <button type="button" className="map-btn" onClick={toggleFullscreen} style={{ ...glassBtn, borderRadius: '10px' }}
+                    title={isFullscreen ? 'Exit full screen' : 'Full screen'} aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}>
+                    <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} />
+                  </button>
+                </div>
+              </div>
+
+              {loading && (
+                <div style={{ position: 'absolute', inset: 0, zIndex: 5, background: '#0d1424', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: '#a9b4cc' }}>
+                  <i className="fas fa-map-marked-alt" style={{ fontSize: '1.8rem', opacity: 0.6 }} />
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Loading map data…</span>
+                </div>
+              )}
+
+              <div ref={mapRef} style={{ position: 'absolute', inset: 0 }} />
+
+              {/* Map controls */}
+              <div style={{ position: 'absolute', right: 12, bottom: 24, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <button type="button" className="map-btn" onClick={recenter} title="Recenter map" aria-label="Recenter map" style={{ ...glassBtn, borderRadius: '10px' }}>
+                  <i className="fas fa-crosshairs" />
+                </button>
+                <div style={{ borderRadius: '10px', overflow: 'hidden' }}>
+                  <button type="button" className="map-btn" onClick={() => zoomBy(1)} title="Zoom in" aria-label="Zoom in" style={glassBtn}><i className="fas fa-plus" /></button>
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.15)' }} />
+                  <button type="button" className="map-btn" onClick={() => zoomBy(-1)} title="Zoom out" aria-label="Zoom out" style={glassBtn}><i className="fas fa-minus" /></button>
+                </div>
+              </div>
+            </div>
+          </Col>
+
+          {/* Side panels */}
+          <Col lg={4} className="side-stack" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+            <Panel icon="fa-info-circle" iconColor="#ffc107" title="Reading the map">
+              {[
+                { swatch: <div style={{ width: '28px', height: '14px', borderRadius: '4px', border: `2px solid ${POSITIVE}`, background: `${POSITIVE}1f` }} />, label: '1 km danger zone', desc: 'A positive rabies case was confirmed here. Keep pets indoors.' },
+                { swatch: <div style={{ width: '28px', height: '14px', borderRadius: '4px', border: `2px solid ${SUSPECTED}`, background: `${SUSPECTED}1f` }} />, label: '1 km alert zone', desc: 'A suspected case is being checked. Watch your pets closely.' },
+                { swatch: <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: CITYVET, margin: '0 4px' }} />, label: 'City Veterinary Office', desc: 'Free government vaccination and checkups.' },
+                { swatch: <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: CLINIC, margin: '0 4px' }} />, label: 'Private clinic', desc: 'Registered veterinary clinics in the city.' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.55rem 0', borderBottom: `1px solid ${t.border}` }}>
+                  <div style={{ width: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>{item.swatch}</div>
+                  <div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 600, color: t.text }}>{item.label}</div>
+                    <div style={{ fontSize: '0.78rem', color: t.muted, lineHeight: 1.45 }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </Panel>
+
+            <Panel icon="fa-clinic-medical" iconColor={CLINIC} title="Vet clinics" subtitle="Select a clinic to see it on the map" bodyStyle={{ padding: '0.2rem 0.75rem 0.75rem' }}>
+              <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                {loading ? (
+                  [0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: '42px', margin: '0 0.5rem 0.5rem' }} />)
+                ) : allClinics.map(clinic => {
+                  const isCityVet = clinic.id === 'cityvet';
+                  return (
+                    <button key={clinic.id} type="button" className="clinic-row" onClick={() => focusClinic(clinic)}
+                      style={{ width: '100%', textAlign: 'left', border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.7rem', padding: '0.6rem 0.5rem', borderRadius: '10px', cursor: 'pointer' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '9px', background: `${isCityVet ? CITYVET : CLINIC}1f`, color: isCityVet ? '#b38600' : CLINIC, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className="fas fa-clinic-medical" style={{ fontSize: '0.8rem' }} />
+                      </div>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: t.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clinic.clinic_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: t.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {isCityVet ? 'City government clinic' : (clinic.specialization || 'Private clinic')}
+                        </div>
+                      </div>
+                      <i className="fas fa-chevron-right" style={{ fontSize: '0.7rem', color: t.faint }} />
+                    </button>
+                  );
+                })}
+              </div>
+            </Panel>
+
+            <Panel icon="fa-shield-alt" iconColor="#198754" title="Keep your pets safe">
+              {[
+                { icon: 'fa-syringe',  tip: "Keep your pet's anti-rabies vaccination up to date." },
+                { icon: 'fa-home',     tip: 'Keep pets indoors when a danger zone is nearby.' },
+                { icon: 'fa-hospital', tip: 'Bring your pet to the nearest clinic right away if it is bitten.' },
+                { icon: 'fa-flag',     tip: 'Report animal bites and stray animals through the Reports page.' },
+              ].map(item => (
+                <div key={item.tip} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', marginBottom: '0.7rem' }}>
+                  <div style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(25,135,84,0.12)', color: '#198754', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <i className={`fas ${item.icon}`} style={{ fontSize: '0.7rem' }} />
+                  </div>
+                  <span style={{ fontSize: '0.84rem', color: t.text, lineHeight: 1.5 }}>{item.tip}</span>
+                </div>
+              ))}
+            </Panel>
+          </Col>
+        </Row>
       </Container>
     </>
   );
