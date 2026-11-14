@@ -71,13 +71,10 @@ const OfficialManagement = () => {
   const [filterStatus, setFilterStatus] = useState('active');
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const dropdownButtonRef = useRef(null);
-  const ZOOM = 0.75;
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
-const itemsPerPage = 5;
+const itemsPerPage = 10;
 
 
   useEffect(() => {
@@ -425,11 +422,10 @@ const itemsPerPage = 5;
   });
 
   // Pagination calculations
-const totalPages = Math.ceil(filteredOfficials.length / itemsPerPage);
+const totalPages = Math.max(1, Math.ceil(filteredOfficials.length / itemsPerPage));
 const startIdx = (currentPage - 1) * itemsPerPage;
 const endIdx = startIdx + itemsPerPage;
 const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
-const emptyRows = itemsPerPage - paginatedOfficials.length;
 
 // Statistics
   const activeOfficials = officials.filter(o => o.is_active === 1);
@@ -438,114 +434,176 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
   const averagePerBarangay = uniqueBarangays.length > 0 ? (activeOfficials.length / uniqueBarangays.length).toFixed(1) : 0;
 
   const styles = `
-    @keyframes dropDown {
-      0% {
-        opacity: 0;
-        transform: translateY(-30px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    @keyframes dropDown { 0% { opacity: 0; transform: translateY(-30px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+    .ad-wrap { zoom: 0.75; }
+    @media (min-width: 1600px) { .ad-wrap { zoom: 0.9; } }
+    @media (min-width: 1920px) { .ad-wrap { zoom: 1; } }
+    @media (max-width: 768px) { .ad-wrap { zoom: 1; } }
+    /* ---------------- Admin Management ---------------- */
+    @keyframes adIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes adRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes adMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes adToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes adGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .ad-anim { animation: adIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .ad-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .ad-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .ad-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .ad-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .ad-btn.primary { background: #ffc107; color: #1f2328; }
+    .ad-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .ad-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: adToast 0.35s ease-out; }
+    .ad-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ad-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .ad-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .ad-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .ad-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .ad-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .ad-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .ad-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .ad-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .ad-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .ad-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .ad-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .ad-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .ad-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .ad-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .ad-seg button:hover { color: #1f2328; }
+    .ad-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .ad-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .ad-search, .ad-select { position: relative; }
+    .ad-search { flex: 1 1 260px; }
+    .ad-search > i, .ad-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .ad-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .ad-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.ad-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .ad-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .ad-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .ad-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .ad-link:hover { text-decoration: underline; }
+
+    .ad-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .ad-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .ad-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .ad-table tbody tr { animation: adRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .ad-table tbody tr:hover { background: #fafbfc; }
+    .ad-table tbody tr:last-child td { border-bottom: none; }
+    .ad-table tbody tr.raised { position: relative; z-index: 5; }
+    .ad-strong { font-weight: 600; color: #1f2328; }
+    .ad-muted { font-size: 0.78rem; color: #6b7280; }
+    .ad-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ad-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .ad-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .ad-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .ad-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .ad-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .ad-bar > div { height: 100%; border-radius: 3px; transform-origin: left; animation: adGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .ad-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .ad-pill i { font-size: 0.4rem; }
+
+    .ad-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .ad-icon-btn:hover, .ad-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .ad-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: adMenu 0.16s ease-out; transform-origin: top right; text-align: left; }
+    .ad-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .ad-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .ad-menu-item:hover { background: #f6f7f9; }
+    .ad-menu-item.danger, .ad-menu-item.danger i { color: #dc3545; }
+    .ad-menu-item.danger:hover { background: #fff5f5; }
+    .ad-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .ad-empty { text-align: center; padding: 3rem 1rem; }
+    .ad-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .ad-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .ad-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .ad-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .ad-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .ad-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .ad-page:hover:not(:disabled) { background: #f3f4f6; }
+    .ad-page.on { background: #ffc107; color: #1f2328; }
+    .ad-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .ad-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .ad-btn:focus-visible, .ad-seg button:focus-visible, .ad-icon-btn:focus-visible, .ad-menu-item:focus-visible, .ad-page:focus-visible, .ad-link:focus-visible, .ad-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .ad-title { font-size: 1.45rem; }
+      .ad-sub { font-size: 0.85rem; }
+      .ad-filters select.ad-input { min-width: 0; width: 100%; }
+      .ad-select { flex: 1 1 140px; }
+      .ad-ellipsis { max-width: 160px; }
+      .ad-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
     }
-    @keyframes float {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-10px); }
+    @media (prefers-reduced-motion: reduce) {
+      .ad-anim, .ad-table tbody tr, .ad-menu, .ad-toast, .ad-bar > div, .ad-skel { animation: none !important; }
     }
-    @keyframes shimmer {
-      0%   { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
+    .ad-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
+    .ad-filters { padding-top: 1rem; }
+    .ad-table { table-layout: fixed; }
+    .ad-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #ffe08a, #ffc107); color: #1f2328; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
+    .ad-ic { width: 14px; margin-right: 0.4rem; color: #9ca3af; font-size: 0.72rem; }
+    .ad-pets { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #9ca3af; }
+    .ad-pets i { font-size: 0.72rem; }
+    .ad-pets.has { color: #1f2328; }
+    .ad-pets.has i { color: #e0a800; }
+    .ad-pill i { font-size: 0.68rem; }
+    .ad-active { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 600; }
+    .ad-active i { font-size: 0.42rem; }
+    .ad-active.on { color: #198754; }
+    .ad-active.off { color: #6b7280; }
+    .ad-menu { min-width: 230px; }
+    .ad-menu-item.info, .ad-menu-item.info i { color: #0d6efd; }
+    .ad-menu-item.info:hover { background: #f0f4ff; }
+    .ad-menu-item.warn, .ad-menu-item.warn i { color: #b88a00; }
+    .ad-menu-item.warn:hover { background: #fff8e1; }
+    .ad-menu-note { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.55rem 0.7rem; margin-top: 0.2rem; border-radius: 8px; background: #fafbfc; color: #6b7280; font-size: 0.78rem; line-height: 1.45; white-space: normal; }
+    .ad-menu-note i { margin-top: 2px; color: #9ca3af; }
+    @media (max-width: 768px) {
+      .ad-table { table-layout: auto; }
+      .ad-table th { width: auto !important; }
     }
+    .ad-menu-item.success, .ad-menu-item.success i { color: #198754; }
+    .ad-menu-item.success:hover { background: #f0fff4; }
+    .ad-role { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: rgba(255,193,7,0.14); color: #8a6500; border-radius: 999px; padding: 0.22rem 0.7rem; font-size: 0.74rem; font-weight: 700; }
+    @media (max-width: 768px) {
+      .ad-table .m-hide { display: none !important; }
+    }
+
   `;
 
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
-        <Row style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div className="mb-4">
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-                <i 
-                  className="fas fa-user-shield" 
-                  style={{ 
-                    fontSize: '1.5rem', 
-                    color: '#000000',
-                    animation: 'float 3s ease-in-out infinite'
-                  }}
-                ></i>
-                <h2 style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>Admin Management</h2>
-              </div>
-              
-            </div>
-        </Col>
-      </Row>
-
-      {error && (
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <Alert 
-              variant="danger" 
-              dismissible 
-              onClose={() => setError('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #dc3545',
-                background: 'rgba(220, 53, 69, 0.1)',
-                color: '#dc3545'
-              }}
-            >
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
-          </Col>
-        </Row>
-      )}
-
       {success && (
-        <div style={{
-          position: 'fixed',
-          top: '24px',
-          left: 0,
-          right: 0,
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 99999,
-          pointerEvents: 'none'
-        }}>
-          <div style={{
-            minWidth: '320px',
-            maxWidth: '480px',
-            animation: 'dropDown 0.4s ease-out',
-            pointerEvents: 'auto'
-          }}>
-            <Alert
-              variant="success"
-              dismissible
-              onClose={() => setSuccess('')}
-              style={{
-                borderRadius: '14px',
-                border: '2px solid #198754',
-                background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-                color: '#fff',
-                fontWeight: '600',
-                boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '1rem 1.25rem',
-                marginBottom: 0
-              }}
-            >
-              <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-              <div>
-                <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
-                <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
-              </div>
-            </Alert>
+        <div className="ad-toast" role="status" aria-live="polite">
+          <div className="ic"><i className="fas fa-check" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="t">Success</div>
+            <div className="d">{success}</div>
           </div>
+          <button type="button" className="ad-toast-close" onClick={() => setSuccess('')} aria-label="Dismiss">
+            <i className="fas fa-times" />
+          </button>
         </div>
       )}
+      <Container fluid className="py-4 ad-wrap" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
+
+        {/* Header */}
+        <div className="mb-4 ad-anim">
+          <h2 className="ad-title">Admin Management</h2>
+          <p className="ad-sub">Manage city veterinary office admin accounts, roles and access.</p>
+        </div>
+
+        {error && (
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2" />{error}
+          </Alert>
+        )}
 
       {/* Statistics */}
       <Row className="mb-4" style={{ flexWrap: 'nowrap', margin: '0 -6px' }}>
@@ -584,393 +642,184 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
         ))}
       </Row>
 
-      {/* Search and Filters */}
-      <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-        <Col md={6} className="mb-3">
-          <InputGroup>
-            <InputGroup.Text style={{ background: '#ffffff', borderRadius: '10px 0 0 10px' }}>
-              <i className="fas fa-search"></i>
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
-              placeholder="Search by name, email, phone, or username..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ borderRadius: '0 10px 10px 0' }}
-            />
-            {searchTerm && (
-              <Button 
-                variant="outline-secondary" 
-                onClick={() => setSearchTerm('')}
-                style={{ borderRadius: '0 10px 10px 0', marginLeft: '-1px' }}
-              >
-                <i className="fas fa-times"></i>
-              </Button>
-            )}
-          </InputGroup>
-        </Col>
-        <Col md={3} className="mb-3">
-          <Form.Select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ borderRadius: '10px', padding: '0.6rem' }}
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="all">All Status</option>
-          </Form.Select>
-        </Col>
-      </Row>
-
-      {/* Officials Table */}
-      <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-        <Col>
-          <Card
-  className="border-0"
-  style={{
-    borderRadius: '20px',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-    overflow: 'visible'
-  }}
->
-            <Card.Header
-              style={{
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                borderBottom: '2px solid #ffc107',
-                padding: '1.5rem',
-                borderRadius: '20px 20px 0 0'
-              }}
-            >
-              <div className="d-flex justify-content-between align-items-center">
-                <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                  <i className="fas fa-users me-2" style={{ color: '#ffc107' }}></i>
-                  Admins ({filteredOfficials.length})
-                </h5>
-                <Button 
-                  onClick={handleAddOfficial}
-                  className="border-0"
-                  style={{
-                    background: '#ffc107',
-                    color: '#000000',
-                    padding: '0.5rem 1.5rem',
-                    borderRadius: '8px',
-                    fontWeight: '700',
-                    boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-                    e.target.style.background = '#ffb300';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-                    e.target.style.background = '#ffc107';
-                  }}
-                >
-                  <i className="fas fa-plus me-2"></i>
-                  Add Admin
-                </Button>
-              </div>
-            </Card.Header>
-            <Card.Body style={{ padding: '2rem', overflow: 'visible' }}>
-              {loading ? (
-                <div className="text-center py-5">
-                  <Spinner animation="border" variant="warning" />
-                  <p className="mt-3 text-muted">Loading officials...</p>
-                </div>
-              ) : filteredOfficials.length === 0 ? (
-                <div className="text-center py-5">
-                  <i className="fas fa-user-tie text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                  <h5 style={{ color: '#666666', fontWeight: '600' }}>
-                    {searchTerm || filterBarangay || filterStatus !== 'active' 
-                      ? 'No Officials Found' 
-                      : 'No Officials Added Yet'
-                    }
-                  </h5>
-                  <p className="text-muted">
-                    {searchTerm || filterBarangay || filterStatus !== 'active'
-                      ? 'Try adjusting your search or filters.'
-                      : 'Start by adding barangay officials to manage pet vaccination services.'
-                    }
-                  </p>
-                  {!searchTerm && !filterBarangay && filterStatus === 'active' && (
-                    <Button 
-                      onClick={handleAddOfficial}
-                      className="border-0"
-                      style={{
-                        background: '#ffc107',
-                        color: '#000000',
-                        padding: '0.6rem 1.5rem',
-                        borderRadius: '12px',
-                        fontWeight: '600',
-                        boxShadow: '0 4px 15px rgba(255, 193, 7, 0.3)'
-                      }}
-                    >
-                      <i className="fas fa-plus me-2"></i>
-                      Add First Admin
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="table-responsive" style={{ overflow: 'visible' }}>
-  <Table hover className="align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
-                                        <thead>
-                      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Name</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Email</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Birthdate</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Office Role</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-  {paginatedOfficials.map(official => (
-                        <tr 
-                          key={official.id}
-                          style={{
-                            transition: 'all 0.2s ease',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #f0f0f0'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                          }}
-                        >
-                                                    <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-                            <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>
-                              {official.first_name} {official.middle_name ? official.middle_name + ' ' : ''}{official.last_name}
-                            </strong>
-                            <small style={{ color: '#aaa', fontWeight: '500' }}>
-                              <i className="fas fa-venus-mars me-1"></i>{official.gender || '—'}
-                            </small>
-                          </td>
-                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-                            <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
-                              <i className="fas fa-envelope me-1" style={{ color: '#ffc107' }}></i>
-                              {official.email}
-                            </small>
-                          </td>
-                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <span style={{ fontWeight: '500', color: '#555', fontSize: '0.9rem' }}>
-                              {official.birthdate ? new Date(official.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : <span className="text-muted">—</span>}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            {official.office_role ? (
-                              <span style={{ background: 'rgba(255,193,7,0.12)', color: '#856404', borderRadius: '20px', padding: '0.3rem 0.85rem', fontSize: '0.78rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                                {official.office_role}
-                              </span>
-                            ) : <span className="text-muted">—</span>}
-                          </td>
-                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            {official.phone ? (
-                              <span style={{ fontWeight: '500', color: '#555', fontSize: '0.9rem' }}>
-                                <i className="fas fa-phone me-1" style={{ color: '#ffc107' }}></i>{official.phone}
-                              </span>
-                            ) : <span className="text-muted">—</span>}
-                          </td>
-                          <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: official.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${official.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.75rem', fontWeight: '700', color: official.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
-                              <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
-                              {official.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div style={{ position: 'relative' }}>
-    <button
-      ref={showDropdown === official.id ? dropdownButtonRef : null}
-      onClick={(e) => {
-        if (showDropdown === official.id) { setShowDropdown(null); return; }
-        const rect = e.currentTarget.getBoundingClientRect();
-        dropdownButtonRef.current = e.currentTarget;
-        const isActive = official.is_active === 1;
-        const menuItems = isActive ? 4 : 2;
-        const dropdownHeight = menuItems * 50;
-        const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
-        setDropdownPos({
-          top: nearBottom
-            ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
-            : rect.top / ZOOM + (rect.height / ZOOM) / 2,
-          left: (rect.left / ZOOM) - 185
-        });
-        setShowDropdown(official.id);
-      }}
-      style={{
-        background: 'transparent',
-        border: 'none',
-        borderRadius: '50%',
-        padding: '0.5rem',
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        margin: '0 auto'
-      }}
-      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-    >
-      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-    </button>
-  </div>
-</td>
-                        </tr>
-                      ))}
-                      
-                    </tbody>
-                  </Table>
-                </div>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Pagination */}
-      {filteredOfficials.length > itemsPerPage && (
-        <Row className="mt-4" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
-          <Col className="d-flex justify-content-center">
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                style={{
-                  background: currentPage === 1 ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === 1 ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-left"></i>
+      {/* Admins table */}
+      <div className="ad-panel ad-anim" style={{ '--d': '0.15s', overflow: 'visible' }}>
+        <div className="ad-toolbar">
+          <div className="ad-seg" role="tablist">
+            {[
+              { key: 'active', label: 'Active', count: activeOfficials.length },
+              { key: 'inactive', label: 'Inactive', count: inactiveOfficials.length },
+              { key: 'all', label: 'All', count: officials.length },
+            ].map(t => (
+              <button key={t.key} type="button" role="tab" aria-selected={filterStatus === t.key}
+                className={filterStatus === t.key ? 'on' : ''}
+                onClick={() => { setFilterStatus(t.key); setShowDropdown(null); }}>
+                {t.label} <span style={{ opacity: 0.6, marginLeft: 2 }}>{t.count}</span>
               </button>
+            ))}
+          </div>
+          <button type="button" className="ad-btn primary" onClick={handleAddOfficial}>
+            <i className="fas fa-plus" />Add admin
+          </button>
+        </div>
 
-              {(() => {
-                const pages = [];
-                
-                if (totalPages <= 3) {
-                  for (let i = 1; i <= totalPages; i++) {
-                    pages.push(i);
-                  }
-                } else {
-                  pages.push(1);
-                  
-                  if (currentPage > 2 && currentPage < totalPages) {
-                    pages.push(currentPage);
-                  } else if (currentPage === 1) {
-                    pages.push(2);
-                  }
-                  
-                  pages.push('...');
-                  pages.push(totalPages);
-                }
+        <div className="ad-filters">
+          <div className="ad-search">
+            <i className="fas fa-search" />
+            <input className="ad-input" placeholder="Search by name, email, phone or username..." value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)} aria-label="Search admins" />
+            {searchTerm && (
+              <button type="button" className="ad-clear" onClick={() => setSearchTerm('')} aria-label="Clear search">
+                <i className="fas fa-times" />
+              </button>
+            )}
+          </div>
+        </div>
 
-                return pages.map((page, idx) => {
-                  if (page === '...') {
+        <div style={{ padding: '0 1.25rem 0.5rem' }}>
+          {loading ? (
+            <div style={{ padding: '0.5rem 0 1rem' }}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                  <div className="ad-skel" style={{ width: 38, height: 38, borderRadius: '50%' }} />
+                  <div className="flex-grow-1">
+                    <div className="ad-skel" style={{ width: '28%', height: 13, marginBottom: 8 }} />
+                    <div className="ad-skel" style={{ width: '14%', height: 10 }} />
+                  </div>
+                  <div className="ad-skel" style={{ width: 160, height: 12 }} />
+                  <div className="ad-skel" style={{ width: 80, height: 22, borderRadius: 999 }} />
+                </div>
+              ))}
+            </div>
+          ) : filteredOfficials.length === 0 ? (
+            <div className="ad-empty">
+              <div className="ic"><i className="fas fa-user-shield" /></div>
+              <h6>{searchTerm || filterBarangay || filterStatus !== 'active' ? 'No admins found' : 'No admins added yet'}</h6>
+              <p>{searchTerm || filterBarangay || filterStatus !== 'active' ? 'Try changing or clearing the search and filters.' : 'Add an admin account to start managing the system.'}</p>
+              {!searchTerm && !filterBarangay && filterStatus === 'active' && (
+                <button type="button" className="ad-btn primary" onClick={handleAddOfficial}><i className="fas fa-plus" />Add first admin</button>
+              )}
+            </div>
+          ) : (
+            <div className="table-responsive" style={{ overflow: 'visible' }}>
+              <table className="ad-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '27%' }}>Admin</th>
+                    <th className="m-hide" style={{ width: '28%' }}>Contact</th>
+                    <th style={{ width: '20%' }}>Office role</th>
+                    <th className="m-hide" style={{ width: '12%' }}>Birthdate</th>
+                    <th style={{ width: '9%' }}>Status</th>
+                    <th style={{ width: '4%' }} aria-label="Actions" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedOfficials.map((official, i) => {
+                    const fullName = `${official.first_name || ''} ${official.middle_name ? official.middle_name + ' ' : ''}${official.last_name || ''}`.trim();
+                    const initials = `${(official.first_name || '?')[0]}${(official.last_name || '')[0] || ''}`.toUpperCase();
+                    const menuOpen = showDropdown === official.id;
+                    const isActive = official.is_active === 1;
                     return (
-                      <span
-                        key={`ellipsis-${idx}`}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          color: '#6c757d',
-                          fontWeight: '600'
-                        }}
-                      >
-                        ...
-                      </span>
+                      <tr key={official.id} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
+                        <td>
+                          <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                            <div className="ad-avatar" style={isActive ? undefined : { background: '#e5e7eb', color: '#6b7280' }}>{initials}</div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="ad-strong ad-ellipsis" title={fullName}>{fullName}</div>
+                              <div className="ad-muted" style={{ textTransform: 'capitalize' }}>{official.gender || '—'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="m-hide">
+                          <div className="ad-ellipsis" title={official.email}><i className="fas fa-envelope ad-ic" />{official.email || '—'}</div>
+                          <div className="ad-muted"><i className="fas fa-phone ad-ic" />{official.phone || '—'}</div>
+                        </td>
+                        <td>
+                          {official.office_role ? <span className="ad-role" title={official.office_role}>{official.office_role}</span> : <span className="ad-muted">—</span>}
+                        </td>
+                        <td className="m-hide">
+                          {official.birthdate
+                            ? <span style={{ fontSize: '0.85rem' }}>{new Date(official.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                            : <span className="ad-muted">—</span>}
+                        </td>
+                        <td>
+                          <span className={`ad-active ${isActive ? 'on' : 'off'}`}>
+                            <i className="fas fa-circle" />{isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <button type="button" className={`ad-icon-btn${menuOpen ? ' on' : ''}`}
+                              onClick={() => setShowDropdown(menuOpen ? null : official.id)}
+                              aria-label={`Options for ${fullName}`} aria-expanded={menuOpen}>
+                              <i className="fas fa-ellipsis-v" />
+                            </button>
+                            {menuOpen && (
+                              <>
+                                <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                                <div className="ad-menu" role="menu" style={{ minWidth: 200 }}>
+                                  <button type="button" role="menuitem" className="ad-menu-item" onClick={() => { setShowDropdown(null); handleViewOfficial(official); }}>
+                                    <i className="fas fa-eye" />View details
+                                  </button>
+                                  {isActive ? (
+                                    <>
+                                      <button type="button" role="menuitem" className="ad-menu-item" onClick={() => { setShowDropdown(null); handleEditOfficial(official); }}>
+                                        <i className="fas fa-pen" />Edit admin
+                                      </button>
+                                      <button type="button" role="menuitem" className="ad-menu-item info" onClick={() => { setShowDropdown(null); handleResetPassword(official); }}>
+                                        <i className="fas fa-key" />Reset password
+                                      </button>
+                                      <div className="ad-menu-sep" />
+                                      <button type="button" role="menuitem" className="ad-menu-item danger" onClick={() => { setShowDropdown(null); handleDeleteOfficial(official); }}>
+                                        <i className="fas fa-user-slash" />Deactivate
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button type="button" role="menuitem" className="ad-menu-item success" onClick={() => { setShowDropdown(null); handleRestoreOfficial(official); }}>
+                                      <i className="fas fa-undo" />Restore admin
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     );
-                  }
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      style={{
-                        background: currentPage === page ? '#ffc107' : '#ffffff',
-                        border: '2px solid',
-                        borderColor: currentPage === page ? '#ffc107' : '#dee2e6',
-                        borderRadius: '8px',
-                        padding: '0.5rem 0.75rem',
-                        minWidth: '40px',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        color: currentPage === page ? '#000000' : '#333333',
-                        transition: 'all 0.2s',
-                        boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none'
-                      }}
-                      onMouseOver={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#f8f9fa';
-                          e.target.style.borderColor = '#ffc107';
-                        }
-                      }}
-                      onMouseOut={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#ffffff';
-                          e.target.style.borderColor = '#dee2e6';
-                        }
-                      }}
-                    >
-                      {page}
-                    </button>
-                  );
-                });
+        {filteredOfficials.length > itemsPerPage && (
+          <div className="ad-foot">
+            <span className="ad-muted" style={{ fontSize: '0.84rem' }}>
+              Showing <strong style={{ color: '#1f2328' }}>{startIdx + 1}–{Math.min(endIdx, filteredOfficials.length)}</strong> of {filteredOfficials.length}
+            </span>
+            <div className="d-flex align-items-center gap-1">
+              <button type="button" className="ad-page nav" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
+                <i className="fas fa-chevron-left" />
+              </button>
+              {(() => {
+                let start = Math.max(1, currentPage - 1);
+                const end = Math.min(totalPages, start + 2);
+                if (end - start < 2) start = Math.max(1, end - 2);
+                const pages = [];
+                for (let n = start; n <= end; n++) pages.push(n);
+                return pages.map(n => (
+                  <button key={n} type="button" className={`ad-page${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+                ));
               })()}
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                style={{
-                  background: currentPage === totalPages ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === totalPages ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-right"></i>
+              <button type="button" className="ad-page nav" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
+                <i className="fas fa-chevron-right" />
               </button>
             </div>
-          </Col>
-        </Row>
-      )}
+          </div>
+        )}
+      </div>
+
 
       {/* Add Official Modal */}
 <Modal 
@@ -2021,74 +1870,6 @@ const emptyRows = itemsPerPage - paginatedOfficials.length;
       </Modal>
 
       </Container>
-      {showDropdown !== null && (
-        <>
-          <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
-          <div style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            transform: 'translateY(-50%)',
-            background: '#ffffff',
-            border: '1px solid #e0e0e0',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            minWidth: '170px',
-            zIndex: 1050,
-            overflow: 'hidden',
-            zoom: '0.75',
-          }}>
-            {(() => {
-              const official = officials.find(o => o.id === showDropdown);
-              if (!official) return null;
-              return (
-                <>
-                  <button onClick={() => { setShowDropdown(null); handleViewOfficial(official); }}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }}
-                    onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                    onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                    <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span>View Details</span>
-                  </button>
-                  {official.is_active === 1 ? (
-                    <>
-                      <button onClick={() => { setShowDropdown(null); handleResetPassword(official); }}
-                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#0d6efd', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
-                        onMouseOver={e => e.currentTarget.style.background = '#f0f4ff'}
-                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                        <i className="fas fa-key" style={{ width: '18px', textAlign: 'center', color: '#0d6efd' }} />
-                        <span>Reset Password</span>
-                      </button>
-                      <button onClick={() => { setShowDropdown(null); handleEditOfficial(official); }}
-                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
-                        onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                        <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                        <span>Edit Admin</span>
-                      </button>
-                      <button onClick={() => { setShowDropdown(null); handleDeleteOfficial(official); }}
-                        style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
-                        onMouseOver={e => e.currentTarget.style.background = '#fff5f5'}
-                        onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                        <img src="/remove.png" alt="Deactivate" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                        <span>Deactivate</span>
-                      </button>
-                    </>
-                  ) : (
-                    <button onClick={() => { setShowDropdown(null); handleRestoreOfficial(official); }}
-                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }}
-                      onMouseOver={e => e.currentTarget.style.background = '#f0fff4'}
-                      onMouseOut={e => e.currentTarget.style.background = '#ffffff'}>
-                      <img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                      <span>Restore Admin</span>
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </>
-      )}
     </>
   );
 };

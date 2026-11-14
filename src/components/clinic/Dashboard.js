@@ -196,6 +196,69 @@ const ClinicDashboard = () => {
         font-size: 0.68rem !important;
       }
     }
+    @keyframes cdIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes cdRow { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes odGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .cd-anim { animation: cdIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .cd-row-anim { animation: cdRow 0.4s ease-out backwards; animation-delay: var(--d, 0s); }
+
+    .cd-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .cd-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+    .cd-date { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; border: 1px solid #e9ecef; border-radius: 10px; background: #fff; color: #4b5563; font-size: 0.85rem; font-weight: 600; }
+    .cd-date i { color: #e0a800; }
+
+
+
+    .cd-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+    .cd-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.2rem; border-bottom: 1px solid #eef0f3; }
+    .cd-panel-title { display: flex; align-items: center; gap: 0.75rem; }
+    .cd-panel-title .ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+    .cd-panel-title h5 { font-size: 1rem; font-weight: 700; color: #1f2328; margin: 0; }
+    .cd-panel-title small { display: block; font-size: 0.78rem; color: #6b7280; }
+    .cd-panel-body { padding: 0.75rem 1.2rem 1.1rem; flex: 1 1 auto; }
+    .cd-link { display: inline-flex; align-items: center; gap: 0.35rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+    .cd-link:hover { text-decoration: underline; }
+
+    .cd-event { display: flex; align-items: center; gap: 0.9rem; padding: 0.8rem 0; border-bottom: 1px solid #f1f3f5; }
+    .cd-event:last-child { border-bottom: none; }
+    .cd-date-block { width: 52px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.4rem 0; line-height: 1.1; }
+    .cd-date-block .m { font-size: 0.65rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .cd-date-block .d { font-size: 1.3rem; font-weight: 800; color: #1f2328; }
+    .cd-ev-main { flex: 1; min-width: 0; }
+    .cd-ev-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cd-ev-meta { display: flex; flex-wrap: wrap; gap: 0.15rem 0.85rem; font-size: 0.78rem; color: #6b7280; margin-top: 0.15rem; }
+    .cd-ev-meta i { margin-right: 0.3rem; color: #9ca3af; }
+    .cd-tag { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.7rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px; color: var(--c); background: color-mix(in srgb, var(--c) 12%, #fff); }
+
+    .cd-rem { display: flex; align-items: center; gap: 0.85rem; padding: 0.75rem 0; border-bottom: 1px solid #f1f3f5; }
+    .cd-rem:last-child { border-bottom: none; }
+    .cd-pet { width: 42px; height: 42px; border-radius: 12px; background: #f6f7f9; border: 1px solid #eef0f3; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cd-pet img { width: 28px; height: 28px; object-fit: contain; }
+    .cd-pet i { color: #e0a800; }
+    .cd-rem-name { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .cd-rem-vac { font-size: 0.8rem; color: #6b7280; }
+    .cd-pill { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .cd-rem-due { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; text-align: right; }
+
+    .cd-more { margin-top: 0.5rem; text-align: center; font-size: 0.8rem; color: #6b7280; }
+    .cd-empty { text-align: center; padding: 2.5rem 1rem; }
+    .cd-empty .ic { width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 0.85rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f3f4f6; color: #9ca3af; }
+    .cd-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .cd-empty p { font-size: 0.85rem; color: #6b7280; margin: 0; }
+
+    .cd-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: cdShimmer 1.3s ease infinite; }
+    @keyframes cdShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    .cd-type-ic { width: 42px; height: 42px; border-radius: 12px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.95rem; }
+    .cd-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .cd-body-scroll { max-height: 440px; overflow-y: auto; }
+    @media (max-width: 768px) {
+      .cd-title { font-size: 1.45rem; }
+      .cd-sub { font-size: 0.85rem; }
+      .cd-date { display: none !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cd-anim, .cd-row-anim, .cd-skel { animation: none !important; }
+    }
   `;
 
   const loadDashboardData = async () => {
@@ -387,32 +450,47 @@ const ClinicDashboard = () => {
   ]);
   const totalPetsServed = uniquePetIds.size;
 
+  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const REC_TYPES = {
+    vaccination:   { label: 'Vaccination',   color: '#e0a800', icon: 'fa-syringe' },
+    deworming:     { label: 'Deworming',     color: '#0d6efd', icon: 'fa-pills' },
+    sterilization: { label: 'Sterilization', color: '#198754', icon: 'fa-cut' },
+  };
+  const fmtDay = (v) => {
+    const d = new Date(v);
+    return isNaN(d) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Next shots due today or tomorrow
+  const apptToday = new Date(); apptToday.setHours(0, 0, 0, 0);
+  const apptTomorrow = new Date(apptToday); apptTomorrow.setDate(apptTomorrow.getDate() + 1);
+  const upcomingAppointments = [
+    ...dashboardData.vaccinations.filter(v => v.next_due_date).map(v => ({ ...v, type: 'vaccination', dueDate: new Date(v.next_due_date) })),
+    ...dashboardData.dewormings.filter(d => d.next_due_date).map(d => ({ ...d, type: 'deworming', dueDate: new Date(d.next_due_date) })),
+  ]
+    .filter(r => {
+      const d = new Date(r.dueDate); d.setHours(0, 0, 0, 0);
+      return d.getTime() === apptToday.getTime() || d.getTime() === apptTomorrow.getTime();
+    })
+    .sort((a, b) => a.dueDate - b.dueDate);
+
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4 clinic-dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
+      <Container fluid className="py-4 clinic-dashboard-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
 
-        {/* Page Header */}
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-              <i
-                className="fas fa-home"
-                style={{
-                  fontSize: '1.5rem',
-                  color: '#000000',
-                  animation: 'float 3s ease-in-out infinite'
-                }}
-              />
-              <h2
-                className="mobile-title"
-                style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}
-              >
-                Clinic Dashboard
-              </h2>
-            </div>
-          </Col>
-        </Row>
+        {/* Header */}
+        <div className="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4 cd-anim">
+          <div>
+            <h2 className="cd-title mobile-title">Clinic Dashboard</h2>
+            <p className="cd-sub">
+              {dashboardData.clinicName && dashboardData.clinicName !== 'City Vet Muntinlupa'
+                ? `${dashboardData.clinicName} · records and upcoming appointments`
+                : 'Your clinic records and upcoming appointments.'}
+            </p>
+          </div>
+          <div className="cd-date"><i className="fas fa-calendar-day" />{todayLabel}</div>
+        </div>
 
         {error && (
           <Row className="mb-4">
@@ -494,358 +572,139 @@ const ClinicDashboard = () => {
           })}
         </Row>
 
-        {loading ? (
-          <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-            {[
-              { accent: '#ffc107', label: 'Upcoming Appointments' },
-              { accent: '#ffc107', label: 'Recent Records' },
-            ].map(({ accent, label }, i) => (
-              <Col key={i} xs={12} lg={6} className="mb-4">
-                <Card className="border-0 h-100" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden', background: '#ffffff' }}>
-                  <div style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: `2px solid ${accent}`, borderRadius: '20px 20px 0 0' }}>
-                    <div className="skeleton" style={{ width: '180px', height: '18px' }} />
+        <Row className="g-3">
+          {/* Upcoming appointments */}
+          <Col xs={12} lg={6}>
+            <div className="cd-panel cd-anim" style={{ '--d': '0.35s' }}>
+              <div className="cd-panel-head">
+                <div className="cd-panel-title" style={{ '--c': '#e0a800' }}>
+                  <div className="ic"><i className="fas fa-calendar-alt" /></div>
+                  <div>
+                    <h5>Upcoming appointments</h5>
+                    <small>Next shots due today or tomorrow</small>
                   </div>
-                  <Card.Body style={{ padding: '1rem', minHeight: '320px', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <div key={j} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.7rem 0.85rem', borderRadius: '12px', background: '#f9f9f9', border: '1px solid #f0f0f0', animation: `fadeInUp 0.35s ease-out ${j * 0.06}s backwards` }}>
-                        <div className="skeleton" style={{ width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0 }} />
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <div className="skeleton" style={{ width: '55%', height: '12px' }} />
-                          <div className="skeleton" style={{ width: '40%', height: '10px' }} />
-                          <div className="skeleton" style={{ width: '30%', height: '9px' }} />
-                        </div>
-                        <div className="skeleton" style={{ width: '52px', height: '20px', borderRadius: '20px', flexShrink: 0 }} />
+                </div>
+                {!loading && upcomingAppointments.length > 0 && (
+                  <span className="cd-pill" style={{ color: '#b88a00', background: 'rgba(255,193,7,0.16)' }}>
+                    {upcomingAppointments.length} due
+                  </span>
+                )}
+              </div>
+              <div className="cd-panel-body cd-body-scroll mobile-card-body">
+                {loading ? (
+                  Array.from({ length: 4 }, (_, j) => (
+                    <div key={j} className="cd-rem" style={{ opacity: 1 - j * 0.15 }}>
+                      <div className="cd-skel" style={{ width: 42, height: 42, borderRadius: 12 }} />
+                      <div className="flex-grow-1">
+                        <div className="cd-skel mb-2" style={{ width: '45%', height: 12 }} />
+                        <div className="cd-skel" style={{ width: '30%', height: 10 }} />
                       </div>
-                    ))}
-                  </Card.Body>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-        ) : (
-          <>
-            {/* ── Bottom Row: Upcoming Appointments + Recent Records ── */}
-            <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-
-              
-
-              {/* Upcoming Appointments */}
-              <Col xs={12} lg={6} className="mb-4">
-                <Card
-                  className="border-0 h-100"
-                  style={{
-                    borderRadius: '20px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <Card.Header
-                    className="mobile-card-header"
-                    style={{
-                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                      borderBottom: '2px solid #ffc107',
-                      padding: '1.5rem',
-                      borderRadius: '20px 20px 0 0'
-                    }}
-                  >
-                    <div className="d-flex align-items-center">
-                      <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-calendar-alt me-2" style={{ color: '#ffc107' }} />
-                        Upcoming Appointments
-                        {(() => {
-                          const today = new Date(); today.setHours(0,0,0,0);
-                          const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-                          const count = [
-                            ...dashboardData.vaccinations.filter(v => v.next_due_date).map(v => ({ ...v, type: 'vaccination' })),
-                            ...dashboardData.dewormings.filter(d => d.next_due_date).map(d => ({ ...d, type: 'deworming' })),
-                          ].filter(r => {
-                            const d = new Date(r.next_due_date); d.setHours(0,0,0,0);
-                            return d.getTime() === today.getTime() || d.getTime() === tomorrow.getTime();
-                          }).length;
-                          return count > 0 ? <span style={{ fontWeight: '700', color: '#ffc107', marginLeft: '6px' }}>({count})</span> : null;
-                        })()}
-                      </h5>
+                      <div className="cd-skel" style={{ width: 70, height: 20, borderRadius: 999 }} />
                     </div>
-                  </Card.Header>
-                  <Card.Body className="mobile-card-body" style={{ padding: '1.5rem', minHeight: '280px', maxHeight: '420px', overflowY: 'auto' }}>
-                    {(() => {
-                      const today = new Date(); today.setHours(0,0,0,0);
-                      const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-                      const upcoming = [
-                        ...dashboardData.vaccinations
-                          .filter(v => v.next_due_date)
-                          .map(v => ({ ...v, type: 'vaccination', dueDate: new Date(v.next_due_date) })),
-                        ...dashboardData.dewormings
-                          .filter(d => d.next_due_date)
-                          .map(d => ({ ...d, type: 'deworming', dueDate: new Date(d.next_due_date) })),
-                      ]
-                        .filter(r => {
-                          const d = new Date(r.dueDate); d.setHours(0,0,0,0);
-                          return d.getTime() === today.getTime() || d.getTime() === tomorrow.getTime();
-                        })
-                        .sort((a, b) => a.dueDate - b.dueDate);
-
-                      if (upcoming.length === 0) {
-                        return (
-                          <div className="text-center py-5">
-                            <i className="fas fa-calendar-check mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }} />
-                            <h6 style={{ color: '#666666', fontWeight: '600' }}>No Appointments Today or Tomorrow</h6>
-                            <p className="text-muted small mb-0">
-                              Appointments due today or tomorrow will appear here.
-                            </p>
+                  ))
+                ) : upcomingAppointments.length === 0 ? (
+                  <div className="cd-empty">
+                    <div className="ic" style={{ background: 'rgba(25,135,84,0.1)', color: '#198754' }}><i className="fas fa-calendar-check" /></div>
+                    <h6>No appointments today or tomorrow</h6>
+                    <p>Pets due for their next shot today or tomorrow will show here.</p>
+                  </div>
+                ) : (
+                  upcomingAppointments.map((record, index) => {
+                    const meta = REC_TYPES[record.type];
+                    const isToday = (() => { const d = new Date(record.dueDate); d.setHours(0, 0, 0, 0); return d.getTime() === apptToday.getTime(); })();
+                    const due = isToday ? { label: 'Today', color: '#fd7e14' } : { label: 'Tomorrow', color: '#0d6efd' };
+                    return (
+                      <div key={`${record.type}-${record.id}`} className="cd-rem cd-row-anim appt-item" style={{ '--d': `${0.45 + index * 0.06}s` }}>
+                        <div className="cd-pet appt-pet-icon">
+                          <img src={getPetImage(record.species)} alt="" onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                          <i className="fas fa-paw" style={{ display: 'none' }} />
+                        </div>
+                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                          <div className="cd-rem-name appt-pet-name">{record.pet_name}</div>
+                          <div className="cd-rem-vac appt-pet-sub" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <i className={`fas ${meta.icon} me-1`} style={{ color: meta.color }} />
+                            {record.type === 'vaccination' ? (record.vaccine_name || 'Vaccination') : (record.deworming_name || 'Deworming')}
+                            {record.registration_number && <span className="cd-mono"> · {record.registration_number}</span>}
                           </div>
-                        );
-                      }
+                        </div>
+                        <div className="text-end">
+                          <span className="cd-pill appt-badge" style={{ color: due.color, background: `color-mix(in srgb, ${due.color} 12%, #fff)` }}>
+                            <i className="fas fa-clock" />{due.label}
+                          </span>
+                          <div className="cd-rem-due">{fmtDay(record.next_due_date)}</div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </Col>
 
-                      return upcoming.map((record, index) => {
-                        const isVaccination = record.type === 'vaccination';
-                        const daysUntil = Math.ceil((record.dueDate - today) / (1000 * 60 * 60 * 24));
-                        const isOverdue  = daysUntil < 0;
-                        const isToday    = daysUntil === 0;
-                        const isUrgent   = daysUntil <= 7 && daysUntil >= 0;
-
-                        const accentColor = isOverdue ? '#dc3545' : isToday ? '#fd7e14' : isUrgent ? '#ffc107' : '#198754';
-                        const bgColor     = isOverdue ? 'rgba(220,53,69,0.05)' : isToday ? 'rgba(253,126,20,0.05)' : isUrgent ? 'rgba(255,193,7,0.05)' : 'rgba(25,135,84,0.04)';
-
-                        const urgencyLabel = isOverdue
-                          ? `${Math.abs(daysUntil)}d overdue`
-                          : isToday ? 'Today'
-                          : daysUntil === 1 ? 'Tomorrow'
-                          : `${daysUntil}d left`;
-
-                        return (
-                          <div
-                            key={`${record.type}-${record.id}`}
-                            className="mobile-record-item appt-item"
-                            style={{
-                              padding: '1rem',
-                              borderRadius: '12px',
-                              background: bgColor,
-                              border: `1.5px solid ${accentColor}25`,
-                              marginBottom: '0.75rem',
-                              borderLeft: `4px solid ${accentColor}`,
-                              transition: 'all 0.2s ease',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateX(4px)'; e.currentTarget.style.boxShadow = `0 4px 12px ${accentColor}20`; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateX(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-                          >
-                            <div className="d-flex align-items-center justify-content-between">
-                              <div className="d-flex align-items-center" style={{ gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                                {/* Icon */}
-                                <div className="appt-pet-icon" style={{
-                                  width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0,
-                                  background: isVaccination ? 'rgba(255,193,7,0.15)' : 'rgba(23,162,184,0.15)',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  border: `2px solid ${isVaccination ? 'rgba(255,193,7,0.3)' : 'rgba(23,162,184,0.3)'}`,
-                                }}>
-                                  <img
-                                    src={getPetImage(record.species)}
-                                    alt={record.pet_name}
-                                    style={{ width: '26px', height: '26px', objectFit: 'contain' }}
-                                    onError={e => { e.target.style.display = 'none'; }}
-                                  />
-                                </div>
-
-                                {/* Info */}
-                                <div style={{ minWidth: 0 }}>
-                                  <div className="appt-pet-name" style={{ fontWeight: '700', color: '#333', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {record.pet_name}
-                                  </div>
-                                  <div className="appt-pet-sub" style={{ fontSize: '0.78rem', color: '#666', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    <i className={`fas ${isVaccination ? 'fa-syringe' : 'fa-pills'} me-1`} style={{ color: isVaccination ? '#ffc107' : '#17a2b8' }} />
-                                    {isVaccination ? (record.vaccine_name || 'Vaccination') : (record.deworming_name || 'Deworming')}
-                                  </div>
-                                  <div className="appt-pet-date" style={{ fontSize: '0.74rem', color: '#999', marginTop: '2px' }}>
-                                    <i className="fas fa-calendar me-1" style={{ color: accentColor }} />
-                                    {new Date(record.next_due_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Urgency badge */}
-                              <Badge className="appt-badge" style={{
-                                background: accentColor, color: isOverdue || (!isToday && !isUrgent) ? '#fff' : '#000',
-                                fontWeight: '700', fontSize: '0.72rem',
-                                padding: '0.35rem 0.65rem', borderRadius: '20px',
-                                flexShrink: 0, marginLeft: '0.5rem',
-                              }}>
-                                {urgencyLabel}
-                              </Badge>
-                            </div>
+          {/* Recent records */}
+          <Col xs={12} lg={6}>
+            <div className="cd-panel cd-anim" style={{ '--d': '0.42s' }}>
+              <div className="cd-panel-head">
+                <div className="cd-panel-title" style={{ '--c': '#0d6efd' }}>
+                  <div className="ic"><i className="fas fa-clipboard-list" /></div>
+                  <div>
+                    <h5>Recent records</h5>
+                    <small>Latest records added by your clinic</small>
+                  </div>
+                </div>
+                {!loading && dashboardData.recentRecords.length > 0 && (
+                  <a href="/clinic/records" className="cd-link">View all <i className="fas fa-arrow-right" style={{ fontSize: '0.7rem' }} /></a>
+                )}
+              </div>
+              <div className="cd-panel-body cd-body-scroll mobile-card-body">
+                {loading ? (
+                  Array.from({ length: 4 }, (_, j) => (
+                    <div key={j} className="cd-rem" style={{ opacity: 1 - j * 0.15 }}>
+                      <div className="cd-skel" style={{ width: 42, height: 42, borderRadius: 12 }} />
+                      <div className="flex-grow-1">
+                        <div className="cd-skel mb-2" style={{ width: '45%', height: 12 }} />
+                        <div className="cd-skel" style={{ width: '30%', height: 10 }} />
+                      </div>
+                      <div className="cd-skel" style={{ width: 90, height: 20, borderRadius: 999 }} />
+                    </div>
+                  ))
+                ) : dashboardData.recentRecords.length === 0 ? (
+                  <div className="cd-empty">
+                    <div className="ic"><i className="fas fa-clipboard-list" /></div>
+                    <h6>No records yet</h6>
+                    <p>Records you add for pets will show here.</p>
+                  </div>
+                ) : (
+                  dashboardData.recentRecords.map((record, index) => {
+                    const meta = REC_TYPES[record.recordType] || { label: record.recordType, color: '#6b7280', icon: 'fa-file-medical' };
+                    const detail = record.recordType === 'vaccination' ? record.vaccine_name
+                      : record.recordType === 'deworming' ? record.deworming_name
+                      : record.procedure_type;
+                    return (
+                      <div key={`${record.recordType}-${record.id}`} className="cd-rem cd-row-anim recent-record-item" style={{ '--d': `${0.5 + index * 0.06}s` }}>
+                        <div className="cd-type-ic" style={{ '--c': meta.color }}><i className={`fas ${meta.icon}`} /></div>
+                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                          <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                            <span className="cd-rem-name recent-pet-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{record.pet_name}</span>
+                            <span className="cd-tag" style={{ '--c': meta.color }}>{meta.label}</span>
                           </div>
-                        );
-                      });
-                    })()}
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              {/* Recent Records */}
-              <Col xs={12} lg={6} className="mb-4">
-                <Card
-                  className="h-100 border-0"
-                  style={{
-                    borderRadius: '20px',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <Card.Header
-                    className="mobile-card-header"
-                    style={{
-                      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                      borderBottom: '2px solid #ffc107',
-                      padding: '1.5rem',
-                      borderRadius: '20px 20px 0 0'
-                    }}
-                  >
-                    <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                      <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }} />
-                      Recent Records
-                    </h5>
-                  </Card.Header>
-                  <Card.Body
-                    className="mobile-card-body"
-                    style={{ padding: '2rem', minHeight: '280px', maxHeight: '420px', overflowY: 'auto' }}
-                  >
-                    {dashboardData.recentRecords.length === 0 ? (
-                      <div className="text-center py-5">
-                        <i className="fas fa-clipboard-list text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }} />
-                        <h6 style={{ color: '#666666', fontWeight: '600' }}>No records yet</h6>
-                        <p className="text-muted small mb-0">
-                          Recent medical records will appear here.
-                        </p>
+                          <div className="cd-rem-vac recent-record-meta" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {detail || meta.label}
+                            {record.veterinarian_name && <> · <i className="fas fa-user-md me-1" style={{ color: '#9ca3af' }} />{record.veterinarian_name}</>}
+                          </div>
+                        </div>
+                        <div className="text-end" style={{ flexShrink: 0 }}>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1f2328' }}>{fmtDay(record.displayDate)}</div>
+                          <div className="cd-rem-due cd-mono">{record.registration_number || 'N/A'}</div>
+                        </div>
                       </div>
-                    ) : (
-                      <div>
-                        {dashboardData.recentRecords.map((record, index) => {
-                          const meta = getRecordTypeMeta(record.recordType);
-                          return (
-                            <div
-                              key={`${record.recordType}-${record.id}`}
-                              className="mobile-record-item recent-record-item"
-                              style={{
-                                padding: '1.25rem',
-                                borderRadius: '12px',
-                                background: index % 2 === 0 ? 'rgba(255, 107, 107, 0.05)' : '#ffffff',
-                                border: '1px solid #e9ecef',
-                                marginBottom: '1rem',
-                                transition: 'all 0.3s ease'
-                              }}
-                              onMouseEnter={e => {
-                                e.currentTarget.style.background = 'rgba(255, 107, 107, 0.1)';
-                                e.currentTarget.style.transform = 'translateX(5px)';
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-                              }}
-                              onMouseLeave={e => {
-                                e.currentTarget.style.background =
-                                  index % 2 === 0 ? 'rgba(255, 107, 107, 0.05)' : '#ffffff';
-                                e.currentTarget.style.transform = 'translateX(0)';
-                                e.currentTarget.style.boxShadow = 'none';
-                              }}
-                            >
-                              <div className="d-flex align-items-start">
-                                {/* Pet icon */}
-                                <div
-                                  className="recent-pet-icon"
-                                  style={{
-                                    width: '50px',
-                                    height: '50px',
-                                    borderRadius: '12px',
-                                    background: '#f8f9fa',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    marginRight: '15px',
-                                    border: '2px solid #e9ecef',
-                                    flexShrink: 0
-                                  }}
-                                >
-                                  <img
-                                    src={getPetImage(record.species || record.pet_species)}
-                                    alt={record.pet_name}
-                                    style={{ width: '35px', height: '35px', objectFit: 'contain' }}
-                                    onError={e => {
-                                      e.target.style.display = 'none';
-                                      e.target.nextSibling.style.display = 'flex';
-                                    }}
-                                  />
-                                  <i className="fas fa-paw" style={{ fontSize: '1.5rem', color: '#FF6B6B', display: 'none' }} />
-                                </div>
-
-                                {/* Info */}
-                                <div className="flex-grow-1">
-                                  <div className="d-flex justify-content-between align-items-start">
-                                    <h6
-                                      className="mb-1 mobile-record-name recent-pet-name"
-                                      style={{ fontWeight: '700', color: '#333333', fontSize: '1.05rem' }}
-                                    >
-                                      {record.pet_name}
-                                    </h6>
-                                    <Badge
-                                      className="recent-record-badge"
-                                      style={{
-                                        background: meta.color,
-                                        fontSize: '0.72rem',
-                                        padding: '0.3rem 0.6rem',
-                                        borderRadius: '6px',
-                                        color: '#fff',
-                                        flexShrink: 0,
-                                        marginLeft: '8px'
-                                      }}
-                                    >
-                                      <i className={`${meta.icon} me-1`} />
-                                      {meta.label}
-                                    </Badge>
-                                  </div>
-
-                                  <div
-                                    className="d-flex flex-wrap align-items-center mobile-record-info recent-record-meta"
-                                    style={{ gap: '10px', marginTop: '4px' }}
-                                  >
-                                    <small className="text-muted" style={{ fontWeight: '500' }}>
-                                      <i className="fas fa-barcode me-1" style={{ color: '#4ECDC4' }} />
-                                      {record.registration_number || 'N/A'}
-                                    </small>
-                                    <small className="text-muted" style={{ fontWeight: '500' }}>
-                                      <i className="fas fa-calendar me-1" style={{ color: '#ffc107' }} />
-                                      {new Date(record.displayDate).toLocaleDateString()}
-                                    </small>
-                                    {record.veterinarian_name && (
-                                      <small className="text-muted" style={{ fontWeight: '500' }}>
-                                        <i className="fas fa-user-md me-1" style={{ color: '#0dcaf0' }} />
-                                        {record.veterinarian_name}
-                                      </small>
-                                    )}
-                                  </div>
-
-                                  {/* Record-specific detail */}
-                                  <div className="recent-record-detail" style={{ marginTop: '6px' }}>
-                                    <small style={{ color: '#555', fontWeight: '600' }}>
-                                      {record.recordType === 'vaccination' && record.vaccine_name && (
-                                        <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }} />{record.vaccine_name}</>
-                                      )}
-                                      {record.recordType === 'deworming' && record.deworming_name && (
-                                        <><i className="fas fa-pills me-1" style={{ color: '#17a2b8' }} />{record.deworming_name}</>
-                                      )}
-                                      {record.recordType === 'sterilization' && record.procedure_type && (
-                                        <><i className="fas fa-cut me-1" style={{ color: '#28a745' }} />{record.procedure_type}</>
-                                      )}
-                                    </small>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-          </>
-        )}
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </Col>
+        </Row>
       </Container>
     </>
   );

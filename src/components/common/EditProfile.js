@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Card, Form, Button, Alert, Spinner, Row, Col } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Container, Form, Row, Col } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { getUser, setAuth, getToken } from '../../utils/auth';
@@ -20,46 +20,55 @@ const EditProfile = ({ darkMode }) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [passwordErrors, setPasswordErrors] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
-  const [focusedField, setFocusedField] = useState(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleMouseMove = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   const isClinic = user?.role === 'private_clinic';
   const isAdmin = user?.role === 'barangay_official';
-const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isOwner = user?.role === 'pet_owner';
 
   const verificationStatus = user?.verification_status;
   const isVerificationLocked =
-    user?.role === 'pet_owner' &&
-    ['pending', 'semi_verified', 'fully_verified'].includes(verificationStatus);
+    isOwner && ['pending', 'semi_verified', 'fully_verified'].includes(verificationStatus);
 
   const profileFieldsDisabled = isAdmin || isClinic || isSuperAdmin || isVerificationLocked;
+  const canEditProfile = !isClinic && !isAdmin && !isSuperAdmin && !isVerificationLocked;
 
   const lockedHint =
     isAdmin || isClinic || isSuperAdmin
-      ? 'Profile info cannot be changed for this account type.'
+      ? 'Profile details for this account are managed by the City Veterinary Office.'
       : isVerificationLocked
-      ? `Your account is ${verificationStatus.replace(/_/g, ' ')} — only your password can be changed.`
+      ? `Your account is ${verificationStatus.replace(/_/g, ' ')}, so only your password can be changed.`
       : null;
 
   const from = location.state?.from || (
-    user?.role === 'super_admin' ? '/super-admin/dashboard' :
-    user?.role === 'barangay_official' ? '/admin/dashboard' :
-    user?.role === 'pet_owner' ? '/owner/dashboard' :
+    isSuperAdmin ? '/super-admin/dashboard' :
+    isAdmin ? '/admin/dashboard' :
+    isOwner ? '/owner/dashboard' :
     '/clinic/dashboard'
   );
+
+  const roleLabel = isClinic ? 'Private Clinic' : isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'Community';
+  const displayName = isClinic
+    ? (user?.clinic_name || user?.first_name || 'Clinic')
+    : `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'User';
+  const initials = isClinic
+    ? (displayName.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('') || 'C').toUpperCase()
+    : `${(user?.first_name || '?')[0]}${(user?.last_name || '')[0] || ''}`.toUpperCase();
+
+  const VERIF = {
+    not_verified:   { label: 'Not verified',   color: '#dc3545', icon: 'fa-times-circle' },
+    pending:        { label: 'Pending review', color: '#fd7e14', icon: 'fa-hourglass-half' },
+    semi_verified:  { label: 'Semi verified',  color: '#0d6efd', icon: 'fa-shield-alt' },
+    fully_verified: { label: 'Fully verified', color: '#198754', icon: 'fa-check-circle' },
+  };
+  const verif = isOwner ? (VERIF[verificationStatus] || VERIF.not_verified) : null;
 
   const validatePassword = (pwd) => {
     const errors = [];
@@ -75,7 +84,6 @@ const isSuperAdmin = user?.role === 'super_admin';
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
-    setSuccess('');
     if (fieldErrors[name]) setFieldErrors(prev => ({ ...prev, [name]: '' }));
 
     if (name === 'new_password') {
@@ -108,583 +116,523 @@ const isSuperAdmin = user?.role === 'super_admin';
     }
   };
 
+  const handleNameBlur = (name) => (e) => {
+    const v = e.target.value;
+    if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, [name]: 'Cannot end with a hyphen' }));
+    else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, [name]: 'Cannot end with a space' }));
+  };
+
+  const blockDigits = (e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); };
+
   const toggleShow = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
 
+  const showToast = (msg) => {
+    setSuccess(msg);
+    clearTimeout(showToast.t);
+    showToast.t = setTimeout(() => setSuccess(''), 4000);
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (loading) return;
+    e.preventDefault();
+    if (loading) return;
 
-  // Validate profile fields (pet owner only, not locked)
-  if (!isClinic && !isAdmin && !isVerificationLocked) {
-    if (!formData.first_name.trim()) { setFieldErrors(p => ({ ...p, first_name: 'First name is required' })); return; }
-    if (!formData.last_name.trim()) { setFieldErrors(p => ({ ...p, last_name: 'Last name is required' })); return; }
-    if (formData.phone && !/^09\d{9}$/.test(formData.phone)) { setFieldErrors(p => ({ ...p, phone: 'Phone must be 11 digits starting with 09' })); return; }
-  }
-
-  const changingPassword = !!(formData.new_password || formData.current_password);
-  if (changingPassword) {
-    if (!formData.current_password) { setFieldErrors(p => ({ ...p, current_password: 'Current password is required' })); return; }
-    if (!formData.new_password) { setFieldErrors(p => ({ ...p, new_password: 'New password is required' })); return; }
-    const errs = validatePassword(formData.new_password);
-    if (errs.length > 0) { setError('New password does not meet requirements.'); return; }
-    if (formData.new_password !== formData.confirm_password) { setFieldErrors(p => ({ ...p, confirm_password: 'Passwords do not match' })); return; }
-  }
-
-  // For admin/clinic/super_admin with no password change, nothing to submit
-  if ((isAdmin || isClinic || isSuperAdmin) && !changingPassword) {
-    setError('Please fill in the password fields to save changes.');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-  setSuccess('');
-
-  try {
-    const payload = {};
-
-    // Profile fields — pet owner only (not locked, not admin, not clinic)
-    if (!isClinic && !isAdmin && !isVerificationLocked) {
-      payload.first_name  = formData.first_name;
-      payload.middle_name = formData.middle_name;
-      payload.last_name   = formData.last_name;
-      payload.phone       = formData.phone;
+    if (canEditProfile) {
+      if (!formData.first_name.trim()) { setFieldErrors(p => ({ ...p, first_name: 'First name is required' })); return; }
+      if (!formData.last_name.trim()) { setFieldErrors(p => ({ ...p, last_name: 'Last name is required' })); return; }
+      if (formData.phone && !/^09\d{9}$/.test(formData.phone)) { setFieldErrors(p => ({ ...p, phone: 'Phone must be 11 digits starting with 09' })); return; }
+      if (['first_name', 'middle_name', 'last_name', 'phone'].some(k => fieldErrors[k])) { setError('Please fix the highlighted fields.'); return; }
     }
 
-    // Password fields — all roles
+    const changingPassword = !!(formData.new_password || formData.current_password);
     if (changingPassword) {
-      payload.current_password = formData.current_password;
-      payload.password         = formData.new_password;
+      if (!formData.current_password) { setFieldErrors(p => ({ ...p, current_password: 'Current password is required' })); return; }
+      if (!formData.new_password) { setFieldErrors(p => ({ ...p, new_password: 'New password is required' })); return; }
+      const errs = validatePassword(formData.new_password);
+      if (errs.length > 0) { setError('New password does not meet the requirements.'); return; }
+      if (formData.new_password !== formData.confirm_password) { setFieldErrors(p => ({ ...p, confirm_password: 'Passwords do not match' })); return; }
     }
 
-    // Endpoint per role
-    let endpoint;
-    if (isClinic) {
-      endpoint = `/clinics/change-password`;
-    } else if (isAdmin || isSuperAdmin) {
-      endpoint = `/officials/change-password`;
-    } else {
-      endpoint = `/owners/${user.id}`;
+    if (!canEditProfile && !changingPassword) {
+      setError('Fill in the password fields to save changes.');
+      return;
     }
 
-    await api.put(endpoint, payload);
+    setLoading(true);
+    setError('');
 
-    setSuccess('Changes saved successfully!');
-    setFormData(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
-    setPasswordErrors([]);
-  } catch (err) {
-    setError(err.response?.data?.error || 'Update failed. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const payload = {};
+      if (canEditProfile) {
+        payload.first_name  = formData.first_name;
+        payload.middle_name = formData.middle_name;
+        payload.last_name   = formData.last_name;
+        payload.phone       = formData.phone;
+      }
+      if (changingPassword) {
+        payload.current_password = formData.current_password;
+        payload.password         = formData.new_password;
+      }
 
-  const bg = darkMode ? '#0d0d0d' : '#f5f5f5';
-  const cardBg = darkMode ? '#111111' : '#ffffff';
-  const textColor = darkMode ? '#e0e0e0' : '#1a1a1a';
-  const subText = darkMode ? '#888' : '#9ca3af';
-  const border = darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.1)';
-  const inputBg = darkMode ? '#1a1a1a' : '#f8f9fa';
+      let endpoint;
+      if (isClinic) endpoint = '/clinics/change-password';
+      else if (isAdmin || isSuperAdmin) endpoint = '/officials/change-password';
+      else endpoint = `/owners/${user.id}`;
 
-  const inputStyle = (fieldName, disabled = false) => ({
-    height: '50px',
-    borderRadius: '12px',
-    border: fieldErrors[fieldName]
-      ? '2px solid #ef4444'
-      : focusedField === fieldName
-      ? '2px solid #ffc107'
-      : `1.5px solid ${border}`,
-    fontSize: '0.9rem',
-    background: disabled ? (darkMode ? '#161616' : '#e9ecef') : inputBg,
-    color: disabled ? subText : textColor,
-    fontWeight: '500',
-    transition: 'all 0.2s',
-    paddingLeft: '14px',
-    paddingRight: '14px',
-    cursor: disabled ? 'not-allowed' : 'auto',
-    opacity: disabled ? 0.7 : 1,
-  });
+      await api.put(endpoint, payload);
 
-  const labelStyle = {
-    fontWeight: '600',
-    color: textColor,
-    fontSize: '0.82rem',
-    marginBottom: '0.4rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
+      // Keep the saved login data in sync so the header and navbar show the new name right away
+      if (canEditProfile) {
+        const token = getToken();
+        if (token) {
+          setAuth(token, {
+            ...user,
+            first_name: formData.first_name.trim(),
+            middle_name: formData.middle_name.trim(),
+            last_name: formData.last_name.trim(),
+            phone: formData.phone,
+          });
+        }
+      }
+
+      showToast(changingPassword ? 'Your changes and new password were saved.' : 'Your profile changes were saved.');
+      setFormData(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
+      setPasswordErrors([]);
+      setShowPasswords({ current: false, new: false, confirm: false });
+    } catch (err) {
+      setError(err.response?.data?.error || 'Update failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const pwStrengthColor = () => {
-    if (!formData.new_password) return subText;
-    if (passwordErrors.length > 2) return '#ef4444';
-    if (passwordErrors.length > 0) return '#f59e0b';
-    return '#10b981';
+  const handleResetDefault = async () => {
+    setResetting(true);
+    setError('');
+    try {
+      await api.put('/officials/reset-password', { password: 'password' });
+      showToast('Password reset to "password". Log in again with the new password.');
+      setFormData(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
+      setConfirmReset(false);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Reset failed. Please try again.');
+    } finally {
+      setResetting(false);
+    }
   };
-  const pwStrengthWidth = () => {
-    if (!formData.new_password) return '0%';
-    return `${Math.max(25, 100 - passwordErrors.length * 25)}%`;
-  };
-  const pwStrengthLabel = () => {
-    if (!formData.new_password) return '';
-    if (passwordErrors.length > 2) return 'Weak';
-    if (passwordErrors.length > 0) return 'Medium';
-    return 'Strong';
-  };
-
-  const SectionLabel = ({ icon, label }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', marginTop: '1.5rem' }}>
-      <i className={`fas ${icon}`} style={{ color: '#ffc107', fontSize: '0.85rem' }} />
-      <span style={{ fontWeight: '700', fontSize: '0.8rem', color: subText, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</span>
-      <div style={{ flex: 1, height: '1px', background: border }} />
-    </div>
-  );
-
-  const FieldError = ({ msg }) => msg
-    ? <small style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>
-        <i className="fas fa-times-circle me-1" />{msg}
-      </small>
-    : null;
-
-  const EyeBtn = ({ field }) => (
-    <button type="button" onClick={() => toggleShow(field)} tabIndex={-1}
-      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: subText, padding: 0 }}>
-      <i className={`fas fa-eye${showPasswords[field] ? '-slash' : ''}`} style={{ fontSize: '0.9rem' }} />
-    </button>
-  );
 
   const handleBack = () => {
     const el = document.getElementById('edit-profile-page');
     if (el) {
-      el.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      el.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
       el.style.opacity = '0';
-      el.style.transform = 'translateX(40px)';
-      setTimeout(() => navigate(from), 300);
+      el.style.transform = 'translateX(24px)';
+      setTimeout(() => navigate(from), 250);
     } else {
       navigate(from);
     }
   };
 
+  // Password strength
+  const pw = formData.new_password;
+  const reqs = [
+    { key: 'length', label: 'At least 8 characters', pass: pw.length >= 8 },
+    { key: 'uppercase', label: 'One uppercase letter', pass: /[A-Z]/.test(pw) },
+    { key: 'lowercase', label: 'One lowercase letter', pass: /[a-z]/.test(pw) },
+    { key: 'number', label: 'One number', pass: /\d/.test(pw) },
+  ];
+  const passed = reqs.filter(r => r.pass).length;
+  const strength = !pw ? null
+    : passed <= 1 ? { label: 'Weak', color: '#dc3545' }
+    : passed < 4 ? { label: 'Medium', color: '#e0a800' }
+    : { label: 'Strong', color: '#198754' };
+
+  const phoneValid = formData.phone && /^09\d{9}$/.test(formData.phone);
+  const confirmMatches = formData.confirm_password && formData.confirm_password === formData.new_password;
+
+  const fieldClass = (name, extra = '') => `ep-input${fieldErrors[name] ? ' err' : ''}${extra}`;
+
+  const FieldError = ({ msg }) => msg
+    ? <div className="ep-field-msg err"><i className="fas fa-exclamation-circle" />{msg}</div>
+    : null;
+
+  const PasswordInput = (field, name, placeholder, extraClass = '') => (
+    <div className="ep-pw">
+      <input
+        className={fieldClass(name, extraClass)}
+        type={showPasswords[field] ? 'text' : 'password'}
+        name={name}
+        value={formData[name]}
+        onChange={handleChange}
+        placeholder={placeholder}
+        disabled={loading}
+        maxLength={64}
+        autoComplete={name === 'current_password' ? 'current-password' : 'new-password'}
+      />
+      <button type="button" className="ep-eye" onClick={() => toggleShow(field)} tabIndex={-1} aria-label={showPasswords[field] ? 'Hide password' : 'Show password'}>
+        <i className={`fas fa-eye${showPasswords[field] ? '-slash' : ''}`} />
+      </button>
+    </div>
+  );
+
+  const styles = `
+    .ep-page {
+      ${darkMode ? `
+      --ep-bg: #0d0d0d; --ep-panel: #141414; --ep-line: #262626; --ep-text: #f0f0f0; --ep-muted: #9a9a9a; --ep-faint: #6b6b6b;
+      --ep-input: #1a1a1a; --ep-disabled: #171717; --ep-soft: #1e1e1e;` : `
+      --ep-bg: #ffffff; --ep-panel: #ffffff; --ep-line: #e9ecef; --ep-text: #1f2328; --ep-muted: #6b7280; --ep-faint: #9ca3af;
+      --ep-input: #ffffff; --ep-disabled: #f6f7f9; --ep-soft: #f3f4f6;`}
+      min-height: 100vh; background: var(--ep-bg); padding-top: 64px;
+      animation: epSlide 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+    @keyframes epSlide { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes epIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes epToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes epDots { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+    .ep-wrap { max-width: 760px; padding-top: 1.5rem; padding-bottom: 3rem; }
+    .ep-anim { animation: epIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+
+    .ep-back { display: inline-flex; align-items: center; gap: 0.45rem; border: none; background: none; padding: 0.3rem 0.5rem 0.3rem 0; color: var(--ep-muted); font-size: 0.86rem; font-weight: 600; margin-bottom: 0.75rem; transition: color 0.15s ease; }
+    .ep-back:hover { color: var(--ep-text); }
+    .ep-back i { font-size: 0.78rem; transition: transform 0.15s ease; }
+    .ep-back:hover i { transform: translateX(-3px); }
+    .ep-title { font-weight: 700; color: var(--ep-text); font-size: 1.75rem; margin: 0; }
+    .ep-sub { color: var(--ep-muted); font-size: 0.93rem; margin: 0.15rem 0 1.5rem; }
+
+    .ep-panel { background: var(--ep-panel); border: 1px solid var(--ep-line); border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); margin-bottom: 1rem; }
+    .ep-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--ep-line); }
+    .ep-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.88rem; flex-shrink: 0; }
+    .ep-panel-title { font-weight: 700; color: var(--ep-text); font-size: 0.98rem; }
+    .ep-panel-sub { font-size: 0.8rem; color: var(--ep-muted); }
+    .ep-panel-body { padding: 1.15rem 1.25rem 1.25rem; }
+
+    .ep-profile { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; }
+    .ep-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #ffe08a, #ffc107); color: #1f2328; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.15rem; flex-shrink: 0; }
+    .ep-name { font-weight: 700; font-size: 1.15rem; color: var(--ep-text); line-height: 1.25; }
+    .ep-email { font-size: 0.85rem; color: var(--ep-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ep-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
+    .ep-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; white-space: nowrap; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+    .ep-chip i { font-size: 0.66rem; }
+
+    .ep-note { display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.7rem 0.85rem; border-radius: 10px; font-size: 0.84rem; line-height: 1.45; margin-bottom: 1rem; }
+    .ep-note i { margin-top: 3px; }
+    .ep-note.info { background: var(--ep-soft); color: var(--ep-muted); }
+    .ep-note.info i { color: var(--ep-faint); }
+    .ep-note.lock { background: rgba(255,193,7,0.12); color: ${darkMode ? '#ffd24d' : '#8a6500'}; }
+    .ep-note.error { background: rgba(220,53,69,0.08); color: #dc3545; border: 1px solid rgba(220,53,69,0.2); }
+
+    .ep-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--ep-text); margin-bottom: 0.35rem; }
+    .ep-label .req { color: #dc3545; margin-left: 2px; }
+    .ep-label .opt { color: var(--ep-faint); font-weight: 500; margin-left: 4px; }
+    .ep-input { width: 100%; height: 42px; border: 1px solid ${darkMode ? '#2f2f2f' : '#dfe2e6'}; border-radius: 10px; background: var(--ep-input); padding: 0 0.85rem; font-size: 0.9rem; color: var(--ep-text); outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .ep-input::placeholder { color: var(--ep-faint); }
+    .ep-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    .ep-input.err, .ep-input.err:focus { border-color: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,0.12); }
+    .ep-input.ok { border-color: #198754; }
+    .ep-input:disabled, .ep-input[readonly] { background: var(--ep-disabled); color: var(--ep-muted); cursor: not-allowed; }
+    .ep-input[readonly]:focus { border-color: ${darkMode ? '#2f2f2f' : '#dfe2e6'}; box-shadow: none; }
+    .ep-field { margin-bottom: 1rem; }
+    .ep-field-msg { display: flex; align-items: center; gap: 0.35rem; font-size: 0.77rem; margin-top: 0.3rem; color: var(--ep-faint); }
+    .ep-field-msg.err { color: #dc3545; }
+    .ep-field-msg.ok { color: #198754; }
+    .ep-pw { position: relative; }
+    .ep-pw .ep-input { padding-right: 2.6rem; }
+    .ep-eye { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: none; border-radius: 8px; background: transparent; color: var(--ep-faint); }
+    .ep-eye:hover { background: var(--ep-soft); color: var(--ep-text); }
+
+    .ep-reqs { border: 1px solid var(--ep-line); border-radius: 10px; padding: 0.8rem 0.9rem; margin-bottom: 0.25rem; }
+    .ep-reqs-head { display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; font-weight: 700; color: var(--ep-muted); margin-bottom: 0.5rem; }
+    .ep-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 0.65rem; }
+    .ep-bar span { height: 4px; border-radius: 2px; background: var(--ep-soft); transition: background 0.25s ease; }
+    .ep-req-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem 1rem; }
+    .ep-req { display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: var(--ep-faint); transition: color 0.2s ease; }
+    .ep-req.pass { color: #198754; }
+    .ep-req i { font-size: 0.75rem; width: 14px; text-align: center; }
+
+    .ep-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.25rem; margin-bottom: 1.5rem; }
+    .ep-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; height: 42px; padding: 0 1.15rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.9rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .ep-btn.primary { background: #ffc107; color: #1f2328; min-width: 150px; }
+    .ep-btn.primary:hover:not(:disabled) { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .ep-btn.ghost { background: var(--ep-panel); border-color: var(--ep-line); color: var(--ep-text); }
+    .ep-btn.ghost:hover:not(:disabled) { background: var(--ep-soft); }
+    .ep-btn.danger { background: transparent; border-color: rgba(220,53,69,0.35); color: #dc3545; }
+    .ep-btn.danger:hover:not(:disabled) { background: rgba(220,53,69,0.08); }
+    .ep-btn.danger-solid { background: #dc3545; color: #fff; }
+    .ep-btn.danger-solid:hover:not(:disabled) { background: #bb2d3b; }
+    .ep-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .ep-dots { display: inline-flex; gap: 5px; }
+    .ep-dots span { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: epDots 1.2s ease-in-out infinite; }
+    .ep-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .ep-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+    .ep-danger { border-color: rgba(220,53,69,0.3); }
+    .ep-danger-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .ep-danger-text { font-size: 0.85rem; color: var(--ep-muted); max-width: 440px; }
+    .ep-danger-text strong { color: var(--ep-text); }
+    .ep-confirm { margin-top: 0.9rem; padding: 0.85rem 0.95rem; border-radius: 10px; background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.2); display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; font-size: 0.85rem; color: #dc3545; font-weight: 600; }
+
+    .ep-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: epToast 0.35s ease-out; }
+    .ep-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ep-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .ep-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .ep-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .ep-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .ep-back:focus-visible, .ep-btn:focus-visible, .ep-eye:focus-visible, .ep-toast-close:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .ep-wrap { padding: 1rem 1rem 6rem; }
+      .ep-title { font-size: 1.4rem; }
+      .ep-sub { font-size: 0.85rem; margin-bottom: 1rem; }
+      .ep-panel-head, .ep-panel-body, .ep-profile { padding-left: 1rem; padding-right: 1rem; }
+      .ep-avatar { width: 50px; height: 50px; font-size: 1rem; }
+      .ep-req-grid { grid-template-columns: 1fr; }
+      .ep-actions { flex-direction: column-reverse; }
+      .ep-actions .ep-btn { width: 100%; }
+      .ep-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ep-page, .ep-anim, .ep-toast, .ep-dots span { animation: none !important; }
+    }
+  `;
+
   return (
-    <div id="edit-profile-page" className="edit-profile-page" style={{ minHeight: '100vh', background: bg, paddingTop: '64px', transition: 'background 0.3s', position: 'relative', overflow: 'hidden' }}>
-      <style>{`
-        @keyframes dropDown {
-          0% { opacity: 0; transform: translateY(-40px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeInUp {
-          0% { opacity: 0; transform: translateY(24px); }
-          100% { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideInFromRight {
-          0% { opacity: 0; transform: translateX(40px); }
-          100% { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 0.5; }
-          50% { opacity: 1; }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes waveDots {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
-          30% { transform: translateY(-6px); opacity: 1; }
-        }
-        .edit-profile-page {
-          animation: slideInFromRight 0.45s cubic-bezier(0.4,0,0.2,1);
-        }
-        .edit-profile-card {
-          animation: dropDown 0.6s cubic-bezier(0.4,0,0.2,1) 0.1s both;
-        }
-        .edit-profile-back {
-          animation: fadeInUp 0.5s cubic-bezier(0.4,0,0.2,1) 0.05s both;
-        }
-        @media (max-width: 768px) {
-          .edit-profile-container {
-            padding-top: 1rem !important;
-            padding-bottom: 2rem !important;
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-          }
-          .edit-profile-card-inner {
-            padding: 1.25rem !important;
-            border-radius: 16px !important;
-          }
-          .edit-profile-header-name {
-            font-size: 0.95rem !important;
-          }
-          .edit-profile-section-label span {
-            font-size: 0.7rem !important;
-          }
-          .edit-profile-submit {
-            height: 46px !important;
-            font-size: 0.88rem !important;
-          }
-        }
-      `}</style>
+    <div id="edit-profile-page" className="ep-page">
+      <style>{styles}</style>
 
-      
+      {success && (
+        <div className="ep-toast" role="status" aria-live="polite">
+          <div className="ic"><i className="fas fa-check" /></div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="t">Success</div>
+            <div className="d">{success}</div>
+          </div>
+          <button type="button" className="ep-toast-close" onClick={() => setSuccess('')} aria-label="Dismiss">
+            <i className="fas fa-times" />
+          </button>
+        </div>
+      )}
 
-      <Container className="edit-profile-container" style={{ maxWidth: '640px', paddingTop: '2rem', paddingBottom: '3rem', position: 'relative', zIndex: 1 }}>
-
-        {/* Back button */}
-        <button
-          className="edit-profile-back"
-          onClick={handleBack}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: subText, fontSize: '0.88rem', fontWeight: '600',
-            display: 'inline-flex', alignItems: 'center', gap: '6px',
-            marginBottom: '1.25rem', padding: 0, transition: 'color 0.2s',
-          }}
-          onMouseOver={e => e.currentTarget.style.color = '#ffc107'}
-          onMouseOut={e => e.currentTarget.style.color = subText}
-        >
-          <i className="fas fa-arrow-left" style={{ fontSize: '0.8rem' }} />
-          Back
+      <Container className="ep-wrap">
+        <button type="button" className="ep-back ep-anim" onClick={handleBack}>
+          <i className="fas fa-arrow-left" />Back
         </button>
 
-        <div className="edit-profile-card edit-profile-card-inner" style={{ background: cardBg, borderRadius: '20px', border: `1px solid ${border}`, padding: '2rem', boxShadow: darkMode ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.06)' }}>
+        <div className="ep-anim" style={{ '--d': '0.04s' }}>
+          <h2 className="ep-title">Account settings</h2>
+          <p className="ep-sub">
+            {canEditProfile ? 'Update your personal details and password.' : 'View your account details and change your password.'}
+          </p>
+        </div>
 
-          {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1.75rem', paddingBottom: '1.25rem', borderBottom: `1px solid ${border}` }}>
-            <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: darkMode ? '#222' : '#f0f0f0', border: `2px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, animation: 'float 3s ease-in-out infinite' }}>
-              <i className={`fas ${isClinic ? 'fa-hospital' : 'fa-user'}`} style={{ fontSize: '1.2rem', color: darkMode ? '#bbb' : '#555' }} />
-            </div>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '1.1rem', color: textColor }}>
-                {isClinic ? (user?.clinic_name || user?.first_name) : `${user?.first_name} ${user?.last_name}`}
-              </div>
-              <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#ffc107', textTransform: 'uppercase', letterSpacing: '0.4px', marginTop: '2px' }}>
-                {isClinic ? 'Private Clinic' : user?.role === 'barangay_official' ? 'Admin' : 'Community'}
+        {/* Profile summary */}
+        <div className="ep-panel ep-anim" style={{ '--d': '0.08s' }}>
+          <div className="ep-profile">
+            <div className="ep-avatar">{initials}</div>
+            <div style={{ minWidth: 0 }}>
+              <div className="ep-name">{displayName}</div>
+              <div className="ep-email">{user?.email || '—'}</div>
+              <div className="ep-chips">
+                <span className="ep-chip" style={{ '--c': darkMode ? '#ffd24d' : '#b88a00' }}>
+                  <i className={`fas ${isClinic ? 'fa-hospital' : isSuperAdmin ? 'fa-crown' : isAdmin ? 'fa-user-shield' : 'fa-user'}`} />{roleLabel}
+                </span>
+                {verif && (
+                  <span className="ep-chip" style={{ '--c': verif.color }}>
+                    <i className={`fas ${verif.icon}`} />{verif.label}
+                  </span>
+                )}
               </div>
             </div>
           </div>
+        </div>
 
-          {error && (
-            <div style={{ background: 'rgba(239,68,68,0.08)', border: '1.5px solid rgba(239,68,68,0.25)', borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <i className="fas fa-exclamation-circle" />{error}
-            </div>
-          )}
-          {success && (
-            <div style={{ background: 'rgba(16,185,129,0.08)', border: '1.5px solid rgba(16,185,129,0.25)', borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <i className="fas fa-check-circle" />{success}
-            </div>
-          )}
+        {error && (
+          <div className="ep-note error ep-anim" role="alert">
+            <i className="fas fa-exclamation-circle" />
+            <span style={{ flex: 1 }}>{error}</span>
+            <button type="button" className="ep-eye" style={{ position: 'static', transform: 'none', width: 24, height: 24, color: '#dc3545' }} onClick={() => setError('')} aria-label="Dismiss error">
+              <i className="fas fa-times" />
+            </button>
+          </div>
+        )}
 
-          <Form onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit} noValidate>
 
-            {/* Profile info — hidden for clinic and super admin */}
-            {!isClinic && !isSuperAdmin && (
-  <>
-    <SectionLabel icon="fa-address-card" label="Profile Information" />
-    {lockedHint && (
-      <div style={{ background: 'rgba(255,193,7,0.08)', border: '1.5px solid rgba(255,193,7,0.25)', borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1.25rem', fontSize: '0.85rem', color: '#ffc107', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <i className="fas fa-lock" />{lockedHint}
-      </div>
-    )}
+          {/* Profile information — community, admin (read only) */}
+          {!isClinic && !isSuperAdmin && (
+            <div className="ep-panel ep-anim" style={{ '--d': '0.12s' }}>
+              <div className="ep-panel-head">
+                <div className="ep-head-ic" style={{ '--c': '#e0a800' }}><i className="fas fa-address-card" /></div>
+                <div>
+                  <div className="ep-panel-title">Profile information</div>
+                  <div className="ep-panel-sub">Your name and contact number.</div>
+                </div>
+              </div>
+              <div className="ep-panel-body">
+                {lockedHint && (
+                  <div className="ep-note lock"><i className="fas fa-lock" /><span>{lockedHint}</span></div>
+                )}
 
-                {/* Read-only email */}
-                <Form.Group className="mb-3">
-                  <Form.Label style={labelStyle}>
-                    <i className="fas fa-envelope" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                    Email
-                  </Form.Label>
-                  <Form.Control
-                    type="email" value={user?.email || ''} readOnly
-                    style={inputStyle('email', true)}
-                  />
-                  <small style={{ color: subText, fontSize: '0.75rem', marginTop: '3px', display: 'block' }}>
-                    <i className="fas fa-lock me-1" />Email cannot be changed
-                  </small>
-                </Form.Group>
+                <div className="ep-field">
+                  <label className="ep-label" htmlFor="ep-email">Email</label>
+                  <input id="ep-email" className="ep-input" type="email" value={user?.email || ''} readOnly />
+                  <div className="ep-field-msg"><i className="fas fa-lock" />Email can't be changed</div>
+                </div>
 
-                <Row>
+                <Row className="g-3 mb-3">
                   <Col xs={12} md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}>
-                        <i className="fas fa-user" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                        First Name <span style={{ color: '#ef4444' }}>*</span>
-                      </Form.Label>
-                      <Form.Control
-                        type="text" name="first_name" value={formData.first_name}
-                        onChange={handleChange} onFocus={() => setFocusedField('first_name')}
-                        onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-                        onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); }}
-placeholder="First name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('first_name', profileFieldsDisabled)}
-                      />
-                      <FieldError msg={fieldErrors.first_name} />
-                    </Form.Group>
+                    <label className="ep-label" htmlFor="ep-first">First name{canEditProfile && <span className="req">*</span>}</label>
+                    <input id="ep-first" className={fieldClass('first_name')} type="text" name="first_name" value={formData.first_name}
+                      onChange={handleChange} onKeyDown={blockDigits} onBlur={handleNameBlur('first_name')}
+                      placeholder="First name" disabled={loading || profileFieldsDisabled} maxLength={30} />
+                    <FieldError msg={fieldErrors.first_name} />
                   </Col>
                   <Col xs={12} md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}>
-                        <i className="fas fa-user" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                        Middle Name
-                      </Form.Label>
-                      <Form.Control
-                        type="text" name="middle_name" value={formData.middle_name}
-                        onChange={handleChange} onFocus={() => setFocusedField('middle_name')}
-                        onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-                        onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); }}
-placeholder={profileFieldsDisabled ? '' : 'Optional'} disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('middle_name', profileFieldsDisabled)}
-                      />
+                    <label className="ep-label" htmlFor="ep-middle">Middle name{canEditProfile && <span className="opt">(optional)</span>}</label>
+                    <input id="ep-middle" className={fieldClass('middle_name')} type="text" name="middle_name" value={formData.middle_name}
+                      onChange={handleChange} onKeyDown={blockDigits} onBlur={handleNameBlur('middle_name')}
+                      placeholder={profileFieldsDisabled ? '—' : 'Middle name'} disabled={loading || profileFieldsDisabled} maxLength={30} />
                     <FieldError msg={fieldErrors.middle_name} />
-                    </Form.Group>
                   </Col>
                   <Col xs={12} md={4}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={labelStyle}>
-                        <i className="fas fa-user" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                        Last Name <span style={{ color: '#ef4444' }}>*</span>
-                      </Form.Label>
-                      <Form.Control
-                        type="text" name="last_name" value={formData.last_name}
-                        onChange={handleChange} onFocus={() => setFocusedField('last_name')}
-                        onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-                        onBlur={(e) => { setFocusedField(null); const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); }}
-placeholder="Last name" disabled={loading || profileFieldsDisabled} maxLength={30} style={inputStyle('last_name', profileFieldsDisabled)}
-                      />
-                      <FieldError msg={fieldErrors.last_name} />
-                    </Form.Group>
+                    <label className="ep-label" htmlFor="ep-last">Last name{canEditProfile && <span className="req">*</span>}</label>
+                    <input id="ep-last" className={fieldClass('last_name')} type="text" name="last_name" value={formData.last_name}
+                      onChange={handleChange} onKeyDown={blockDigits} onBlur={handleNameBlur('last_name')}
+                      placeholder="Last name" disabled={loading || profileFieldsDisabled} maxLength={30} />
+                    <FieldError msg={fieldErrors.last_name} />
                   </Col>
                 </Row>
 
-                <Form.Group className="mb-1">
-                  <Form.Label style={labelStyle}>
-                    <i className="fas fa-phone" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                    Phone Number
-                  </Form.Label>
-                  <Form.Control
-                    type="tel" name="phone" value={formData.phone}
-                    onChange={handleChange} onFocus={() => setFocusedField('phone')} onBlur={() => setFocusedField(null)}
-placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength={11}
-                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-                    style={{
-                      ...inputStyle('phone', profileFieldsDisabled),
-                      border: profileFieldsDisabled ? `1.5px solid ${border}` : fieldErrors.phone
-                        ? '2px solid #ef4444'
-                        : (formData.phone && !fieldErrors.phone && /^09\d{9}$/.test(formData.phone))
-                        ? '2px solid #10b981'
-                        : focusedField === 'phone' ? '2px solid #ffc107' : `1.5px solid ${border}`,
-                    }}
-                  />
-                  <FieldError msg={fieldErrors.phone} />
-                </Form.Group>
-              </>
-            )}
-
-            {/* Read-only email for clinic */}
-            {isClinic && !isSuperAdmin && (
-              <>
-                <SectionLabel icon="fa-user-circle" label="Account" />
-                <Form.Group className="mb-3">
-                  <Form.Label style={labelStyle}>
-                    <i className="fas fa-envelope" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                    Email
-                  </Form.Label>
-                  <Form.Control
-                    type="email" value={user?.email || ''} readOnly
-                    style={inputStyle('email', true)}
-                  />
-                  <small style={{ color: subText, fontSize: '0.75rem', marginTop: '3px', display: 'block' }}>
-                    <i className="fas fa-lock me-1" />Email cannot be changed
-                  </small>
-                </Form.Group>
-              </>
-            )}
-
-            {/* Password section */}
-            <SectionLabel icon="fa-lock" label="Change Password" />
-            <div style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', border: `1px dashed ${border}`, borderRadius: '12px', padding: '1rem 1.1rem', marginBottom: '1rem', fontSize: '0.82rem', color: subText }}>
-              <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }} />
-              Leave the password fields empty if you don't want to change it.
-            </div>
-
-            <Form.Group className="mb-3">
-              <Form.Label style={labelStyle}>
-                <i className="fas fa-key" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                Current Password
-              </Form.Label>
-              <div style={{ position: 'relative' }}>
-                <Form.Control
-                  type={showPasswords.current ? 'text' : 'password'}
-                  name="current_password" value={formData.current_password}
-                  onChange={handleChange} onFocus={() => setFocusedField('current_password')} onBlur={() => setFocusedField(null)}
-                  placeholder="Enter current password" disabled={loading} maxLength={64}
-                  style={{ ...inputStyle('current_password'), paddingRight: '44px' }}
-                />
-                <EyeBtn field="current" />
+                <div style={{ maxWidth: 340 }}>
+                  <label className="ep-label" htmlFor="ep-phone">Phone number</label>
+                  <input id="ep-phone" className={fieldClass('phone', phoneValid && !profileFieldsDisabled ? ' ok' : '')} type="tel" name="phone" value={formData.phone}
+                    onChange={handleChange} placeholder="09123456789" disabled={loading || profileFieldsDisabled} maxLength={11} inputMode="numeric"
+                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }} />
+                  {fieldErrors.phone
+                    ? <FieldError msg={fieldErrors.phone} />
+                    : canEditProfile && <div className="ep-field-msg">11 digits, starting with 09</div>}
+                </div>
               </div>
-              <FieldError msg={fieldErrors.current_password} />
-            </Form.Group>
+            </div>
+          )}
 
-            <Row>
-              <Col xs={12} md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label style={labelStyle}>
-                    <i className="fas fa-lock" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                    New Password
-                  </Form.Label>
-                  <div style={{ position: 'relative' }}>
-                    <Form.Control
-                      type={showPasswords.new ? 'text' : 'password'}
-                      name="new_password" value={formData.new_password}
-                      onChange={handleChange} onFocus={() => setFocusedField('new_password')} onBlur={() => setFocusedField(null)}
-                      placeholder="New password" disabled={loading} maxLength={64}
-                      style={{ ...inputStyle('new_password'), paddingRight: '44px' }}
-                    />
-                    <EyeBtn field="new" />
-                  </div>
+          {/* Account — clinic */}
+          {isClinic && (
+            <div className="ep-panel ep-anim" style={{ '--d': '0.12s' }}>
+              <div className="ep-panel-head">
+                <div className="ep-head-ic" style={{ '--c': '#0d6efd' }}><i className="fas fa-hospital" /></div>
+                <div>
+                  <div className="ep-panel-title">Clinic account</div>
+                  <div className="ep-panel-sub">The email you use to sign in.</div>
+                </div>
+              </div>
+              <div className="ep-panel-body">
+                <label className="ep-label" htmlFor="ep-email">Email</label>
+                <input id="ep-email" className="ep-input" type="email" value={user?.email || ''} readOnly />
+                <div className="ep-field-msg"><i className="fas fa-lock" />Email can't be changed</div>
+              </div>
+            </div>
+          )}
+
+          {/* Password */}
+          <div className="ep-panel ep-anim" style={{ '--d': '0.16s' }}>
+            <div className="ep-panel-head">
+              <div className="ep-head-ic" style={{ '--c': '#198754' }}><i className="fas fa-key" /></div>
+              <div>
+                <div className="ep-panel-title">Change password</div>
+                <div className="ep-panel-sub">
+                  {canEditProfile ? "Leave these empty if you don't want to change your password." : 'Enter your current password, then choose a new one.'}
+                </div>
+              </div>
+            </div>
+            <div className="ep-panel-body">
+              <div className="ep-field" style={{ maxWidth: 340 }}>
+                <label className="ep-label">Current password</label>
+                {PasswordInput('current', 'current_password', 'Enter current password')}
+                <FieldError msg={fieldErrors.current_password} />
+              </div>
+
+              <Row className="g-3 mb-3">
+                <Col xs={12} md={6}>
+                  <label className="ep-label">New password</label>
+                  {PasswordInput('new', 'new_password', 'New password')}
                   <FieldError msg={fieldErrors.new_password} />
-                </Form.Group>
-              </Col>
-              <Col xs={12} md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label style={labelStyle}>
-                    <i className="fas fa-lock" style={{ color: '#ffc107', fontSize: '0.75rem' }} />
-                    Confirm New Password
-                  </Form.Label>
-                  <div style={{ position: 'relative' }}>
-                    <Form.Control
-                      type={showPasswords.confirm ? 'text' : 'password'}
-                      name="confirm_password" value={formData.confirm_password}
-                      onChange={handleChange} onFocus={() => setFocusedField('confirm_password')} onBlur={() => setFocusedField(null)}
-                      placeholder="Repeat new password" disabled={loading} maxLength={64}
-                      style={{
-                        ...inputStyle('confirm_password'),
-                        paddingRight: '44px',
-                        border: fieldErrors.confirm_password
-                          ? '2px solid #ef4444'
-                          : (formData.confirm_password && formData.confirm_password === formData.new_password)
-                          ? '2px solid #10b981'
-                          : focusedField === 'confirm_password' ? '2px solid #ffc107' : `1.5px solid ${border}`,
-                      }}
-                    />
-                    <EyeBtn field="confirm" />
-                  </div>
-                  <FieldError msg={fieldErrors.confirm_password} />
-                  {formData.confirm_password && formData.confirm_password === formData.new_password && (
-                    <small style={{ color: '#10b981', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>
-                      <i className="fas fa-check-circle me-1" />Passwords match
-                    </small>
-                  )}
-                </Form.Group>
-              </Col>
-            </Row>
+                </Col>
+                <Col xs={12} md={6}>
+                  <label className="ep-label">Confirm new password</label>
+                  {PasswordInput('confirm', 'confirm_password', 'Repeat new password', confirmMatches ? ' ok' : '')}
+                  {fieldErrors.confirm_password
+                    ? <FieldError msg={fieldErrors.confirm_password} />
+                    : confirmMatches && <div className="ep-field-msg ok"><i className="fas fa-check-circle" />Passwords match</div>}
+                </Col>
+              </Row>
 
-            {/* Password requirements */}
-            {formData.new_password && (
-              <div style={{ background: darkMode ? 'rgba(255,255,255,0.04)' : '#f8f9fa', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', border: `1px solid ${border}` }}>
-                <div style={{ fontWeight: '700', fontSize: '0.78rem', color: '#ffc107', marginBottom: '8px' }}>
-                  <i className="fas fa-shield-alt me-1" /> Password Requirements
-                </div>
-                {[
-                  { key: 'length', label: 'At least 8 characters', pass: formData.new_password.length >= 8 },
-                  { key: 'uppercase', label: 'One uppercase letter (A–Z)', pass: /[A-Z]/.test(formData.new_password) },
-                  { key: 'lowercase', label: 'One lowercase letter (a–z)', pass: /[a-z]/.test(formData.new_password) },
-                  { key: 'number', label: 'One number (0–9)', pass: /\d/.test(formData.new_password) },
-                ].map(r => (
-                  <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.82rem', color: r.pass ? '#10b981' : subText, marginBottom: '4px', transition: 'color 0.25s' }}>
-                    <i className={`fas fa-${r.pass ? 'check-circle' : 'circle'}`} style={{ fontSize: '0.8rem' }} />
-                    {r.label}
+              {pw && (
+                <div className="ep-reqs">
+                  <div className="ep-reqs-head">
+                    <span>Password strength</span>
+                    <span style={{ color: strength.color }}>{strength.label}</span>
                   </div>
-                ))}
-                <div style={{ marginTop: '10px', height: '5px', borderRadius: '10px', background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-                  <div style={{ width: pwStrengthWidth(), height: '100%', background: pwStrengthColor(), borderRadius: '10px', transition: 'all 0.4s ease' }} />
-                </div>
-                {pwStrengthLabel() && (
-                  <div style={{ textAlign: 'center', fontSize: '0.75rem', fontWeight: '700', color: pwStrengthColor(), marginTop: '5px' }}>
-                    {pwStrengthLabel()} Password
+                  <div className="ep-bar">
+                    {[0, 1, 2, 3].map(i => <span key={i} style={i < passed ? { background: strength.color } : undefined} />)}
                   </div>
+                  <div className="ep-req-grid">
+                    {reqs.map(r => (
+                      <div key={r.key} className={`ep-req${r.pass ? ' pass' : ''}`}>
+                        <i className={`fas ${r.pass ? 'fa-check-circle' : 'fa-circle'}`} style={r.pass ? undefined : { fontSize: '0.45rem' }} />{r.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="ep-actions ep-anim" style={{ '--d': '0.2s' }}>
+            <button type="button" className="ep-btn ghost" onClick={handleBack} disabled={loading}>Cancel</button>
+            <button type="submit" className="ep-btn primary" disabled={loading || resetting}>
+              {loading
+                ? <span className="ep-dots" aria-label="Saving"><span /><span /><span /></span>
+                : <><i className="fas fa-check" />Save changes</>}
+            </button>
+          </div>
+        </Form>
+
+        {/* Super admin — reset to default */}
+        {isSuperAdmin && (
+          <div className="ep-panel ep-danger ep-anim" style={{ '--d': '0.24s' }}>
+            <div className="ep-panel-head" style={{ borderColor: 'rgba(220,53,69,0.18)' }}>
+              <div className="ep-head-ic" style={{ '--c': '#dc3545' }}><i className="fas fa-exclamation-triangle" /></div>
+              <div>
+                <div className="ep-panel-title">Reset to default password</div>
+                <div className="ep-panel-sub">Only use this if you're locked out.</div>
+              </div>
+            </div>
+            <div className="ep-panel-body">
+              <div className="ep-danger-row">
+                <div className="ep-danger-text">
+                  Your password will be reset to <strong>"password"</strong>. Change it again right after you log back in.
+                </div>
+                {!confirmReset && (
+                  <button type="button" className="ep-btn danger" onClick={() => setConfirmReset(true)} disabled={loading || resetting}>
+                    <i className="fas fa-undo" />Reset password
+                  </button>
                 )}
               </div>
-            )}
-
-            {/* Reset to default password — super admin only */}
-            {isSuperAdmin && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{
-                  background: 'rgba(239,68,68,0.06)',
-                  border: '1.5px dashed rgba(239,68,68,0.3)',
-                  borderRadius: '12px',
-                  padding: '0.9rem 1rem',
-                  marginBottom: '0.75rem',
-                  fontSize: '0.82rem',
-                  color: '#ef4444',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                }}>
-                  <i className="fas fa-exclamation-triangle" />
-                  This will reset your password to <strong style={{ marginLeft: '4px' }}>"password"</strong>. Use only if locked out.
+              {confirmReset && (
+                <div className="ep-confirm">
+                  <span><i className="fas fa-exclamation-circle me-2" />Reset your password to "password"?</span>
+                  <div className="d-flex gap-2">
+                    <button type="button" className="ep-btn ghost" style={{ height: 36 }} onClick={() => setConfirmReset(false)} disabled={resetting}>Cancel</button>
+                    <button type="button" className="ep-btn danger-solid" style={{ height: 36 }} onClick={handleResetDefault} disabled={resetting}>
+                      {resetting ? <span className="ep-dots"><span /><span /><span /></span> : 'Yes, reset'}
+                    </button>
+                  </div>
                 </div>
-                <Button
-                  type="button"
-                  disabled={loading}
-                  onClick={async () => {
-                    if (!window.confirm('Reset your password to "password"? You will need to change it after logging back in.')) return;
-                    setLoading(true);
-                    setError('');
-                    setSuccess('');
-                    try {
-                      await api.put('/officials/reset-password', {
-                        password: 'password',
-                      });
-                      setSuccess('Password has been reset to "password". Please log in again with the new password.');
-                      setFormData(prev => ({ ...prev, current_password: '', new_password: '', confirm_password: '' }));
-                    } catch (err) {
-                      setError(err.response?.data?.error || 'Reset failed. Make sure your current password is correct.');
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="w-100 border-0"
-                  style={{
-                    height: '46px',
-                    borderRadius: '12px',
-                    background: 'rgba(239,68,68,0.1)',
-                    color: '#ef4444',
-                    fontWeight: '700',
-                    fontSize: '0.88rem',
-                    border: '1.5px solid rgba(239,68,68,0.3)',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseOver={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; }}
-                  onMouseOut={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
-                >
-                  <i className="fas fa-undo me-2" />Reset Password to Default
-                </Button>
-              </div>
-            )}
-
-            {/* Submit */}
-            <Button type="submit" disabled={loading} className="w-100 border-0 edit-profile-submit"
-              style={{
-                height: '50px', borderRadius: '14px',
-                background: loading ? '#6b7280' : 'linear-gradient(135deg, #ffc107, #ffb300)',
-                color: '#000', fontWeight: '700', fontSize: '0.95rem',
-                boxShadow: loading ? 'none' : '0 6px 20px rgba(255,193,7,0.35)',
-                transition: 'all 0.3s',
-              }}
-              onMouseOver={e => { if (!loading) { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(255,193,7,0.5)'; } }}
-              onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,193,7,0.35)'; }}
-            >
-              {loading ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '1rem' }}>
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0s' }} />
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.15s' }} />
-                  <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000', display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
-                </span>
-              ) : (
-                <><i className="fas fa-save me-2" />Save Changes</>
               )}
-            </Button>
-
-          </Form>
-        </div>
+            </div>
+          </div>
+        )}
       </Container>
     </div>
   );

@@ -83,7 +83,7 @@ const [showDropdown, setShowDropdown] = useState(null);
   const [showConfirmRecordModal, setShowConfirmRecordModal] = useState(false);
 const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
 
   const styles = `
     @keyframes dropDown {
@@ -120,6 +120,136 @@ const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
       .rec-type-card img { width: 36px !important; height: 36px !important; }
       .rec-type-card div { font-size: 0.9rem !important; }
     }
+
+    /* ---------------- Record Management ---------------- */
+    @keyframes rmIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rmRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes rmMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes rmToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes rmGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .rm-anim { animation: rmIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .rm-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .rm-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .rm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .rm-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .rm-btn.primary { background: #ffc107; color: #1f2328; }
+    .rm-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .rm-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: rmToast 0.35s ease-out; }
+    .rm-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rm-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .rm-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .rm-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .rm-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .rm-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .rm-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .rm-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .rm-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .rm-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .rm-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .rm-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .rm-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .rm-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .rm-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .rm-seg button:hover { color: #1f2328; }
+    .rm-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .rm-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .rm-search, .rm-select { position: relative; }
+    .rm-search { flex: 1 1 260px; }
+    .rm-search > i, .rm-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .rm-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .rm-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.rm-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .rm-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .rm-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .rm-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .rm-link:hover { text-decoration: underline; }
+
+    .rm-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .rm-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .rm-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .rm-table tbody tr { animation: rmRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .rm-table tbody tr:hover { background: #fafbfc; }
+    .rm-table tbody tr:last-child td { border-bottom: none; }
+    .rm-table tbody tr.raised { position: relative; z-index: 5; }
+    .rm-strong { font-weight: 600; color: #1f2328; }
+    .rm-muted { font-size: 0.78rem; color: #6b7280; }
+    .rm-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rm-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .rm-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .rm-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .rm-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .rm-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .rm-bar > div { height: 100%; border-radius: 3px; transform-origin: left; animation: rmGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .rm-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .rm-pill i { font-size: 0.4rem; }
+
+    .rm-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .rm-icon-btn:hover, .rm-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .rm-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: rmMenu 0.16s ease-out; transform-origin: top right; text-align: left; }
+    .rm-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .rm-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .rm-menu-item:hover { background: #f6f7f9; }
+    .rm-menu-item.danger, .rm-menu-item.danger i { color: #dc3545; }
+    .rm-menu-item.danger:hover { background: #fff5f5; }
+    .rm-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .rm-empty { text-align: center; padding: 3rem 1rem; }
+    .rm-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .rm-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .rm-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .rm-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .rm-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .rm-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .rm-page:hover:not(:disabled) { background: #f3f4f6; }
+    .rm-page.on { background: #ffc107; color: #1f2328; }
+    .rm-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .rm-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .rm-btn:focus-visible, .rm-seg button:focus-visible, .rm-icon-btn:focus-visible, .rm-menu-item:focus-visible, .rm-page:focus-visible, .rm-link:focus-visible, .rm-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .rm-title { font-size: 1.45rem; }
+      .rm-sub { font-size: 0.85rem; }
+      .rm-filters select.rm-input { min-width: 0; width: 100%; }
+      .rm-select { flex: 1 1 140px; }
+      .rm-ellipsis { max-width: 160px; }
+      .rm-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .rm-anim, .rm-table tbody tr, .rm-menu, .rm-toast, .rm-bar > div, .rm-skel { animation: none !important; }
+    }
+    .rm-table { table-layout: fixed; }
+    .rm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.01em; }
+    .rm-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
+    .rm-filters { border-bottom: 1px solid #eef0f3; padding-top: 1rem; }
+    .rm-tabs { display: inline-flex; gap: 0.25rem; padding: 4px; border-radius: 12px; background: #f3f4f6; max-width: 100%; overflow-x: auto; }
+    .rm-tab { display: inline-flex; align-items: center; gap: 0.45rem; border: none; background: transparent; padding: 0.45rem 0.85rem; border-radius: 9px; font-size: 0.85rem; font-weight: 600; color: #5b6270; white-space: nowrap; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .rm-tab i { font-size: 0.78rem; }
+    .rm-tab .count { font-size: 0.72rem; padding: 0.02rem 0.45rem; border-radius: 999px; background: rgba(0,0,0,0.06); color: #6b7280; }
+    .rm-tab:hover { color: #1f2328; }
+    .rm-tab.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .rm-tab.on .count { background: #1f2328; color: #fff; }
+    .rm-tab:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+    .rm-seg button.inactive.on { color: #dc3545; }
+    .rm-chip { display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .rm-chip i { font-size: 0.68rem; }
+    .rm-chip.city { background: rgba(255,193,7,0.14); color: #8a6700; }
+    .rm-chip.clinic { background: rgba(25,135,84,0.1); color: #198754; }
+    .rm-chip.missed { background: rgba(220,53,69,0.1); color: #dc3545; }
+    .rm-chip.archived { background: #f3f4f6; color: #6b7280; }
+    .rm-menu-item.success, .rm-menu-item.success i { color: #198754; }
+    .rm-menu-item.success:hover { background: #f0fdf4; }
+    @media (max-width: 768px) {
+      .rm-table { table-layout: auto; }
+      .rm-table th { width: auto !important; }
+      .rm-toolbar .rm-btn span { display: none; }
+    }
+    .rm-chip.other { background: #f3f4f6; color: #6b7280; }
   `;
 
   const [formData, setFormData] = useState({
@@ -926,76 +1056,167 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
     );
   };
 
-  return (
-    <>
-      <style>{styles}</style>
-      <Container fluid className="py-4 clinic-records-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh' }}>
+    const REC_META = {
+      vaccination:   { label: 'Vaccination',   color: '#e0a800', icon: 'fa-syringe',   dateKey: 'vaccination_date' },
+      deworming:     { label: 'Deworming',     color: '#0d6efd', icon: 'fa-pills',     dateKey: 'deworming_date' },
+      sterilization: { label: 'Sterilization', color: '#198754', icon: 'fa-cut',       dateKey: 'sterilization_date' },
+      microchip:     { label: 'Microchip',     color: '#d63384', icon: 'fa-microchip', dateKey: 'implant_date' },
+    };
+    const recDate = (value) => {
+      if (!value) return null;
+      const d = new Date(String(value).length <= 10 ? `${value}T00:00:00` : String(value).replace(' ', 'T'));
+      return isNaN(d) ? null : d;
+    };
+    const fmtRecDate = (value) => {
+      const d = recDate(value);
+      return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    };
+    const recordTabs = [
+      { key: 'all',           label: 'All',           count: allRecords.length },
+      { key: 'vaccination',   label: 'Vaccination',   count: filteredVaccinations.length },
+      { key: 'deworming',     label: 'Deworming',     count: filteredDewormings.length },
+      { key: 'sterilization', label: 'Sterilization', count: filteredSterilizations.length },
+      { key: 'microchip',     label: 'Microchip',     count: filteredMicrochips.length },
+    ];
+    const activeTabInfo = recordTabs.find(t => t.key === activeTab) || recordTabs[0];
+    const hasRecordFilters = searchTerm || filterSpecies !== 'all';
+    const recPagerNumbers = (() => {
+      const pages = [];
+      let start = Math.max(1, currentPage - 1);
+      const end = Math.min(totalPages, start + 2);
+      if (end - start < 2) start = Math.max(1, end - 2);
+      for (let i = start; i <= end; i++) pages.push(i);
+      return pages;
+    })();
 
-        {/* Header */}
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-              <i className="fas fa-clipboard-list" style={{ fontSize: '1.5rem', color: '#000000', animation: 'float 3s ease-in-out infinite' }}></i>
-              <h2 style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>My Clinic Records</h2>
-            </div>
-          </Col>
-        </Row>
+    const renderRecordRow = (record, i) => {
+      const type = record.recordType || activeTab;
+      const meta = REC_META[type] || REC_META.vaccination;
+      const date = recDate(record[meta.dateKey]);
+      const menuKey = `${type}-${record.id}`;
+      const menuOpen = showDropdown === menuKey;
+      const ownRecord = record.is_mine == 1;
+      const nextDue = recDate(record.next_due_date);
+      const overdue = nextDue && nextDue < new Date();
+      const inactiveLabel = filterStatus === 'inactive' ? getInactiveLabel(record) : null;
 
-        {error && (
-          <Row className="mb-4">
-            <Col>
-              <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px', border: '2px solid #dc3545', background: 'rgba(220, 53, 69, 0.1)', color: '#dc3545' }}>
-                <i className="fas fa-exclamation-triangle me-2"></i>{error}
-              </Alert>
-            </Col>
-          </Row>
-        )}
+      let detail = null;
+      if (type === 'vaccination') detail = record.vaccine_name;
+      else if (type === 'deworming') detail = `${record.deworming_name || ''}${record.dosage ? ` · ${record.dosage}` : ''}`;
+      else if (type === 'sterilization') detail = record.procedure_type;
+      else if (type === 'microchip') detail = <span className="rm-mono">{record.microchip_number}</span>;
 
-        {success && (
-          <div style={{
-            position: 'fixed',
-            top: '24px',
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            zIndex: 99999,
-            pointerEvents: 'none'
-          }}>
-            <div style={{
-              minWidth: '320px',
-              maxWidth: '480px',
-              animation: 'dropDown 0.4s ease-out',
-              pointerEvents: 'auto'
-            }}>
-              <Alert
-                variant="success"
-                dismissible
-                onClose={() => setSuccess('')}
-                style={{
-                  borderRadius: '14px',
-                  border: '2px solid #198754',
-                  background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-                  color: '#fff',
-                  fontWeight: '600',
-                  boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '1rem 1.25rem',
-                  marginBottom: 0
-                }}
-              >
-                <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-                <div>
-                  <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
-                  <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
+      return (
+        <tr key={menuKey} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
+          <td className="mobile-hide">
+            <div className="rm-strong">{fmtRecDate(record[meta.dateKey])}</div>
+            <div className="rm-muted">{date ? date.toLocaleDateString('en-US', { weekday: 'long' }) : ''}</div>
+          </td>
+          <td>
+            <div className="rm-strong rm-ellipsis" title={record.pet_name}>{record.pet_name}</div>
+            <div className="rm-muted rm-mono rm-ellipsis">{record.registration_number}</div>
+          </td>
+          <td>
+            <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+              <div className="rm-type-ic" style={{ '--c': meta.color }}><i className={`fas ${meta.icon}`} /></div>
+              <div style={{ minWidth: 0 }}>
+                <div className="rm-strong rm-ellipsis">{detail || meta.label}</div>
+                <div className="rm-muted rm-ellipsis">
+                  <span style={{ color: meta.color, fontWeight: 700 }}>{meta.label}</span>
+                  {nextDue && (type === 'vaccination' || type === 'deworming') && (
+                    <> · Next due <span style={{ color: overdue ? '#dc3545' : '#198754', fontWeight: 600 }}>{fmtRecDate(record.next_due_date)}</span></>
+                  )}
                 </div>
-              </Alert>
+              </div>
             </div>
+          </td>
+          <td className="mobile-hide">
+            <span className={`rm-chip ${ownRecord ? 'clinic' : 'other'}`} title={record.recorded_by || 'City Vet Muntinlupa'}>
+              <i className={`fas ${ownRecord ? 'fa-hospital' : 'fa-landmark'}`} />
+              <span className="rm-ellipsis" style={{ maxWidth: 150 }}>{record.recorded_by || 'City Vet Muntinlupa'}</span>
+            </span>
+          </td>
+          {filterStatus === 'inactive' && (
+            <td className="mobile-hide">
+              {inactiveLabel && (
+                <span className={`rm-chip ${record.record_status === 'missed' ? 'missed' : 'archived'}`}>
+                  <i className={`fas ${record.record_status === 'missed' ? 'fa-clock' : 'fa-archive'}`} />{inactiveLabel}
+                </span>
+              )}
+            </td>
+          )}
+          <td style={{ textAlign: 'right' }}>
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                type="button"
+                className={`rm-icon-btn${menuOpen ? ' on' : ''}`}
+                onClick={() => setShowDropdown(menuOpen ? null : menuKey)}
+                aria-label={`Options for ${record.pet_name}`}
+                aria-expanded={menuOpen}
+              >
+                <i className="fas fa-ellipsis-v" />
+              </button>
+              {menuOpen && (
+                <>
+                  <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                  <div className="rm-menu" role="menu">
+                    <button type="button" role="menuitem" className="rm-menu-item" onClick={() => { setShowDropdown(null); handleViewRecord(record, type); }}>
+                      <i className="fas fa-eye" />View details
+                    </button>
+                    {ownRecord && filterStatus !== 'inactive' && (
+                      <>
+                        <button type="button" role="menuitem" className="rm-menu-item" onClick={() => { setShowDropdown(null); handleOpenEditModal(record, type); }}>
+                          <i className="fas fa-pen" />Edit record
+                        </button>
+                        <div className="rm-menu-sep" />
+                        <button type="button" role="menuitem" className="rm-menu-item danger" onClick={() => { setShowDropdown(null); handleDeleteClick(record, type); }}>
+                          <i className="fas fa-archive" />Archive record
+                        </button>
+                      </>
+                    )}
+                    {ownRecord && filterStatus === 'inactive' && (
+                      <button type="button" role="menuitem" className="rm-menu-item success" onClick={() => { setShowDropdown(null); handleRestoreClick(record, type); }}>
+                        <i className="fas fa-undo" />Restore record
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </td>
+        </tr>
+      );
+    };
+
+    return (
+      <>
+        <style>{styles}</style>
+        {success && (
+          <div className="rm-toast" role="status">
+            <div className="ic"><i className="fas fa-check" /></div>
+            <div className="flex-grow-1">
+              <div className="t">Success</div>
+              <div className="d">{success}</div>
+            </div>
+            <button type="button" className="rm-toast-close" onClick={() => setSuccess('')} aria-label="Close">
+              <i className="fas fa-times" />
+            </button>
           </div>
         )}
+        <Container fluid className="py-4 clinic-records-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
 
+          {/* Header */}
+          <div className="mb-4 rm-anim">
+            <h2 className="rm-title">My Clinic Records</h2>
+            <p className="rm-sub">Vaccination, deworming, sterilization and microchip records added by your clinic.</p>
+          </div>
+
+          {error && (
+            <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+              <i className="fas fa-exclamation-triangle me-2"></i>
+              {error}
+            </Alert>
+          )}
         {/* Stats Cards */}
         <Row className="mb-4">
           {[
@@ -1055,364 +1276,134 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
           })}
         </Row>
 
-        {/* Filters */}
-        <Row className="mb-4 g-2" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-          <Col xs={12} md={5}>
-            <InputGroup style={{ borderRadius: '12px', overflow: 'hidden', height: '46px' }}>
-              <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
-                <i className="fas fa-search"></i>
-              </InputGroup.Text>
-              <Form.Control type="text" placeholder="Search by pet name, registration number, or veterinarian..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ border: '2px solid #e9ecef', borderLeft: 'none', borderRight: searchTerm ? 'none' : '2px solid #e9ecef', height: '46px' }} />
-              {searchTerm && (
-                <Button variant="outline-secondary" onClick={() => setSearchTerm('')} style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}>
-                  <i className="fas fa-times"></i>
-                </Button>
-              )}
-            </InputGroup>
-          </Col>
-          <Col xs={6} sm={4} md={2}>
-            <Form.Select value={filterSpecies} onChange={(e) => setFilterSpecies(e.target.value)} style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
-              <option value="all">All</option>
-              <option value="dog">Dogs</option>
-              <option value="cat">Cats</option>
-            </Form.Select>
-          </Col>
-          <Col xs={6} sm={4} md={2}>
-            <Form.Select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500', height: '46px' }}>
-              <option value="all">All ({filteredVaccinations.filter(r => r.is_mine == 1).length + filteredDewormings.filter(r => r.is_mine == 1).length + filteredSterilizations.filter(r => r.is_mine == 1).length + filteredMicrochips.filter(r => r.is_mine == 1).length})</option>
-              <option value="vaccination">Vaccination ({filteredVaccinations.filter(r => r.is_mine == 1).length})</option>
-              <option value="deworming">Deworming ({filteredDewormings.filter(r => r.is_mine == 1).length})</option>
-              <option value="sterilization">Sterilization ({filteredSterilizations.filter(r => r.is_mine == 1).length})</option>
-              <option value="microchip">Microchip ({filteredMicrochips.filter(r => r.is_mine == 1).length})</option>
-            </Form.Select>
-          </Col>
-          <Col xs={12} sm={4} md={2}>
-            <div style={{ position: 'relative' }}>
-              <Form.Select
-                value={filterStatus}
-                onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-                style={{
-                  borderRadius: '12px',
-                  border: `2px solid ${filterStatus === 'inactive' ? '#dc3545' : '#e9ecef'}`,
-                  fontWeight: '500',
-                  height: '46px',
-                  color: filterStatus === 'inactive' ? '#dc3545' : 'inherit',
-                  background: filterStatus === 'inactive' ? 'rgba(220,53,69,0.04)' : '#ffffff',
-                  appearance: 'none',
-                  paddingRight: '2.5rem'
-                }}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </Form.Select>
-              <i className="fas fa-chevron-down" style={{ position: 'absolute', right: '0.85rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '0.75rem', color: filterStatus === 'inactive' ? '#dc3545' : '#6c757d' }} />
-            </div>
-          </Col>
-        </Row>
-
-                {/* Records Table */}
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-          <Col>
-            <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'visible' }}>
-              <Card.Header className="rec-card-header" style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', padding: '1.5rem', borderRadius: '20px 20px 0 0' }}>
-                <div className="d-flex justify-content-between align-items-center">
-                  <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                    {activeTab === 'all' && <><i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }}></i>All Records ({allRecords.length})</>}
-                    {activeTab === 'vaccination' && <><i className="fas fa-syringe me-2" style={{ color: '#ffc107' }}></i>Vaccination Records ({filteredVaccinations.length})</>}
-                    {activeTab === 'deworming' && <><i className="fas fa-pills me-2" style={{ color: '#17a2b8' }}></i>Deworming Records ({filteredDewormings.length})</>}
-                    {activeTab === 'sterilization' && <><i className="fas fa-cut me-2" style={{ color: '#ffc107' }}></i>Sterilization Records ({filteredSterilizations.length})</>}
-                    {activeTab === 'microchip' && <><i className="fas fa-microchip me-2" style={{ color: '#4361ee' }}></i>Microchip Records ({filteredMicrochips.length})</>}
-                  </h5>
-                  <Button
-                    onClick={handleOpenModal}
-                    className="border-0 rec-add-btn"
-                    style={{ background: '#ffc107', color: '#000000', padding: '0.5rem 1.5rem', borderRadius: '8px', fontWeight: '700', boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)', transition: 'all 0.3s' }}
-                    onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)'; e.currentTarget.style.background = '#ffb300'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)'; e.currentTarget.style.background = '#ffc107'; }}
+          {/* Records */}
+          <div className="rm-panel rm-anim" style={{ '--d': '0.18s', overflow: 'visible' }}>
+            {/* Header */}
+            <div className="rm-toolbar">
+              <div className="rm-tabs" role="tablist">
+                {recordTabs.map(t => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === t.key}
+                    className={`rm-tab${activeTab === t.key ? ' on' : ''}`}
+                    onClick={() => { setActiveTab(t.key); setShowDropdown(null); }}
                   >
-                    <i className="fas fa-plus me-2"></i><span>Add Record</span>
-                  </Button>
-                </div>
-              </Card.Header>
-
-              <Card.Body className="rec-card-body" style={{ padding: '2rem', overflow: 'visible' }}>
-                {(() => {
-                  // ── Shared styles (same as admin) ──
-                  const th = { fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' };
-                  const thLeft = { ...th, textAlign: 'left' };
-                  const thPet = { ...th, textAlign: 'left', padding: '1rem 1.25rem 1rem 2.5rem' };
-                  const td = { padding: '1rem', verticalAlign: 'middle', textAlign: 'center' };
-                  const skel = { background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)', backgroundSize: '800px 100%', animation: 'shimmer 1.4s ease-in-out infinite', borderRadius: '8px' };
-
-                  const showType = activeTab === 'all';
-                  const inactiveView = filterStatus === 'inactive';
-                  const fmt = (d) => d ? new Date(d).toLocaleDateString() : '—';
-                  const isPast = (d) => d && new Date(d) < new Date();
-                  const nextDue = (d) => (
-                    <span style={{ color: isPast(d) ? '#dc3545' : '#28a745', fontWeight: '500' }}>{fmt(d)}</span>
-                  );
-                  const dateOf = (r, t) => t === 'vaccination' ? r.vaccination_date
-                    : t === 'deworming' ? r.deworming_date
-                    : t === 'microchip' ? r.implant_date
-                    : r.sterilization_date;
-
-                  // Column headers per tab (like admin)
-                  const detailHeaders = {
-                    all:           ['Record Details'],
-                    vaccination:   ['Vaccine Type', 'Next Due'],
-                    deworming:     ['Deworming Type', 'Next Due'],
-                    sterilization: ['Procedure Type'],
-                    microchip:     ['Microchip Number'],
-                  }[activeTab] || ['Record Details'];
-
-                  // "Record Details" cell for the All tab
-                  const renderDetails = (r, t) => {
-                    if (t === 'vaccination') return (
-                      <>
-                        <strong style={{ color: '#333' }}>{r.vaccine_name}</strong>
-                        {r.next_due_date && <><br /><small>Next: {nextDue(r.next_due_date)}</small></>}
-                      </>
-                    );
-                    if (t === 'deworming') return (
-                      <>
-                        <strong style={{ color: '#333' }}>{r.deworming_name}</strong>
-                        {r.dosage && <><br /><small className="text-muted">Dosage: {r.dosage}</small></>}
-                        {r.next_due_date && <><br /><small>Next: {nextDue(r.next_due_date)}</small></>}
-                      </>
-                    );
-                    if (t === 'sterilization') return (
-                      <Badge bg="success" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>{r.procedure_type}</Badge>
-                    );
-                    return <strong style={{ color: '#333', fontFamily: 'monospace' }}>{r.microchip_number}</strong>;
-                  };
-
-                  // ── Loading skeleton ──
-                  if (loading) {
-                    return (
-                      <div className="table-responsive">
-                        <Table className="rec-table" style={{ marginBottom: 0, width: '100%' }}>
-                          <thead style={{ background: '#f8f9fa' }}>
-                            <tr>
-                              <th style={thLeft}>Type</th>
-                              <th className="col-hide" style={th}>Date</th>
-                              <th style={thPet}>Pet Information</th>
-                              <th className="col-hide" style={th}>Record Details</th>
-                              <th className="col-hide" style={th}>Recorded By</th>
-                              <th style={th}>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {Array.from({ length: itemsPerPage }).map((_, i) => (
-                              <tr key={`skel-${i}`}>
-                                <td style={{ ...td, textAlign: 'left' }}><div style={{ ...skel, width: '90px', height: '13px' }} /></td>
-                                <td className="col-hide" style={td}><div style={{ display: 'flex', justifyContent: 'center' }}><div style={{ ...skel, width: '80px', height: '13px' }} /></div></td>
-                                <td style={{ ...td, textAlign: 'left', paddingLeft: '2.5rem' }}>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                    <div style={{ ...skel, width: '90px', height: '13px' }} />
-                                    <div style={{ ...skel, width: '110px', height: '10px' }} />
-                                  </div>
-                                </td>
-                                <td className="col-hide" style={td}>
-                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-                                    <div style={{ ...skel, width: '100px', height: '13px' }} />
-                                    <div style={{ ...skel, width: '70px', height: '10px' }} />
-                                  </div>
-                                </td>
-                                <td className="col-hide" style={td}><div style={{ display: 'flex', justifyContent: 'center' }}><div style={{ ...skel, width: '110px', height: '26px', borderRadius: '6px' }} /></div></td>
-                                <td style={td}><div style={{ display: 'flex', justifyContent: 'center' }}><div style={{ ...skel, width: '24px', height: '24px', borderRadius: '50%' }} /></div></td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </Table>
-                      </div>
-                    );
-                  }
-
-                  // ── Empty state ──
-                  if (currentRecords.length === 0) {
-                    const [icon, title, desc] = {
-                      all:           ['fa-clipboard-list', 'No Records Found',          'Start by adding records for pets'],
-                      vaccination:   ['fa-syringe',        'No Vaccination Records',    'Start by adding vaccination records for pets'],
-                      deworming:     ['fa-pills',          'No Deworming Records',      'Start by adding deworming records for pets'],
-                      sterilization: ['fa-cut',            'No Sterilization Records',  'Sterilization records will appear here'],
-                      microchip:     ['fa-microchip',      'No Microchip Records',      'Microchip records will appear here'],
-                    }[activeTab];
-                    return (
-                      <div className="text-center py-5">
-                        <i className={`fas ${icon} text-muted mb-3`} style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                        <h5 style={{ color: '#666666', fontWeight: '600' }}>{title}</h5>
-                        <p className="text-muted">
-                          {searchTerm || filterSpecies !== 'all'
-                            ? 'Try adjusting your filters'
-                            : inactiveView ? 'No inactive records found' : desc}
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  // ── Table ──
-                  return (
-                    <div className="table-responsive" style={{ overflow: 'visible' }}>
-                      <Table hover className="rec-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
-                        <thead style={{ background: '#f8f9fa' }}>
-                          <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-                            {showType && <th style={thLeft}>Type</th>}
-                            <th className="col-hide" style={th}>Date</th>
-                            <th style={thPet}>Pet Information</th>
-                            {detailHeaders.map(h => (
-                              <th key={h} className={showType ? 'col-hide' : ''} style={th}>{h}</th>
-                            ))}
-                            <th className="col-hide" style={th}>Recorded By</th>
-                            {inactiveView && <th className="col-hide" style={{ ...th, color: '#dc3545' }}>Status</th>}
-                            <th style={th}>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedRecords.map((record) => {
-                            const type = record.recordType || activeTab;
-                            const dropdownKey = `${type}-${record.id}`;
-                            const [icon, color, label] = RECORD_TYPE_META[type] || RECORD_TYPE_META.vaccination;
-                            const hoverBg = type === 'microchip' ? 'rgba(67, 97, 238, 0.05)' : 'rgba(255, 193, 7, 0.05)';
-                            return (
-                              <tr
-                                key={dropdownKey}
-                                style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = hoverBg}
-                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                              >
-                                {/* Type */}
-                                {showType && (
-                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-                                    <span style={{ fontWeight: '500', color: '#555', whiteSpace: 'nowrap' }}>
-                                      <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
-                                    </span>
-                                  </td>
-                                )}
-
-                                {/* Date */}
-                                <td className="col-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                  <strong style={{ color: '#333' }}>{fmt(dateOf(record, type))}</strong>
-                                </td>
-
-                                {/* Pet Information */}
-                                <td style={{ padding: '1rem 1.25rem 1rem 2.5rem', verticalAlign: 'middle' }}>
-                                  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{record.pet_name}</strong>
-                                  <small style={{ color: '#aaa', fontWeight: '500' }}>
-                                    <i className="fas fa-barcode me-1"></i>{record.registration_number}
-                                  </small>
-                                </td>
-
-                                {/* Details — All tab: one combined column */}
-                                {showType && (
-                                  <td className="col-hide" style={td}>{renderDetails(record, type)}</td>
-                                )}
-
-                                {/* Details — Vaccination / Deworming tabs: name + Next Due */}
-                                {!showType && (type === 'vaccination' || type === 'deworming') && (
-                                  <>
-                                    <td style={td}>
-                                      <strong style={{ color: '#333' }}>{type === 'vaccination' ? record.vaccine_name : record.deworming_name}</strong>
-                                      {type === 'deworming' && record.dosage && <><br /><small className="text-muted">Dosage: {record.dosage}</small></>}
-                                    </td>
-                                    <td style={td}>
-                                      {record.next_due_date ? nextDue(record.next_due_date) : <span className="text-muted">N/A</span>}
-                                    </td>
-                                  </>
-                                )}
-
-                                {/* Details — Sterilization / Microchip tabs */}
-                                {!showType && (type === 'sterilization' || type === 'microchip') && (
-                                  <td style={td}>{renderDetails(record, type)}</td>
-                                )}
-
-                                {/* Recorded By */}
-                                <td className="col-hide" style={td}>
-                                  <span style={{
-                                    fontSize: '0.85rem', fontWeight: '500', padding: '0.3rem 0.6rem', borderRadius: '6px',
-                                    color: record.is_mine == 1 ? '#28a745' : '#6c757d',
-                                    background: record.is_mine == 1 ? 'rgba(40,167,69,0.1)' : 'rgba(108,117,125,0.1)'
-                                  }}>
-                                    {record.recorded_by || 'City Vet Muntinlupa'}
-                                  </span>
-                                </td>
-
-                                {/* Status (Inactive filter only) */}
-                                {inactiveView && (
-                                  <td className="col-hide" style={td}>
-                                    {getInactiveLabel(record) && (
-                                      <span style={{ fontSize: '0.8rem', fontWeight: '700', padding: '0.3rem 0.6rem', borderRadius: '6px', color: '#fd7e14', background: 'rgba(253,126,20,0.1)', whiteSpace: 'nowrap' }}>
-                                        <i className="fas fa-clock me-1"></i>{getInactiveLabel(record)}
-                                      </span>
-                                    )}
-                                  </td>
-                                )}
-
-                                {/* Actions */}
-                                {renderEllipsisButton(dropdownKey, record, type)}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </Table>
-                    </div>
-                  );
-                })()}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* Pagination */}
-        {currentRecords.length > itemsPerPage && (
-          <Row className="mt-4" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
-            <Col className="d-flex justify-content-between align-items-center">
-              <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
-              </span>
-
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  style={{ background: currentPage === 1 ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === 1 ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
-                  onMouseOver={(e) => { if (currentPage !== 1) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={(e) => { if (currentPage !== 1) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
-                >
-                  <i className="fas fa-chevron-left"></i>
-                </button>
-
-                {(() => {
-                  let start = Math.max(1, currentPage - 1);
-                  let end = Math.min(totalPages, start + 2);
-                  if (end - start < 2) start = Math.max(1, end - 2);
-                  const pages = [];
-                  for (let i = start; i <= end; i++) pages.push(i);
-                  return pages.map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      style={{ background: currentPage === page ? '#ffc107' : '#ffffff', border: '2px solid', borderColor: currentPage === page ? '#ffc107' : '#dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', minWidth: '40px', cursor: 'pointer', fontWeight: '700', color: currentPage === page ? '#000000' : '#333333', transition: 'all 0.2s', boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none' }}
-                      onMouseOver={(e) => { if (currentPage !== page) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                      onMouseOut={(e) => { if (currentPage !== page) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
-                    >
-                      {page}
-                    </button>
-                  ));
-                })()}
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  style={{ background: currentPage === totalPages ? '#e9ecef' : '#ffffff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === totalPages ? '#adb5bd' : '#333333', transition: 'all 0.2s' }}
-                  onMouseOver={(e) => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={(e) => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#ffffff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
-                >
-                  <i className="fas fa-chevron-right"></i>
-                </button>
+                    {t.key !== 'all' && <i className={`fas ${REC_META[t.key].icon}`} style={{ color: activeTab === t.key ? REC_META[t.key].color : undefined }} />}
+                    {t.label}
+                    <span className="count">{t.count}</span>
+                  </button>
+                ))}
               </div>
-            </Col>
-          </Row>
-        )}
+              <button type="button" className="rm-btn primary rec-add-btn" onClick={handleOpenModal}>
+                <i className="fas fa-plus" /><span>Add record</span>
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="rm-filters">
+              <div className="rm-search">
+                <i className="fas fa-search" />
+                <input
+                  className="rm-input"
+                  placeholder="Search by pet name, reg. number, or veterinarian..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Search records"
+                />
+                {searchTerm && (
+                  <button type="button" className="rm-clear" onClick={() => setSearchTerm('')} aria-label="Clear search">
+                    <i className="fas fa-times" />
+                  </button>
+                )}
+              </div>
+              <div className="rm-select">
+                <i className="fas fa-paw" />
+                <select className="rm-input" value={filterSpecies} onChange={(e) => setFilterSpecies(e.target.value)} aria-label="Species">
+                  <option value="all">All species</option>
+                  <option value="dog">Dogs</option>
+                  <option value="cat">Cats</option>
+                </select>
+              </div>
+              <div className="rm-seg" role="group" aria-label="Record status">
+                {[['active', 'Active'], ['inactive', 'Inactive']].map(([v, l]) => (
+                  <button key={v} type="button" className={`${filterStatus === v ? 'on' : ''} ${v}`} onClick={() => { setFilterStatus(v); setCurrentPage(1); setShowDropdown(null); }} aria-pressed={filterStatus === v}>{l}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="mobile-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+              {loading ? (
+                <div style={{ padding: '0.5rem 0 1rem' }}>
+                  {Array.from({ length: 6 }, (_, i) => (
+                    <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                      <div className="skeleton" style={{ width: 90, height: 13 }} />
+                      <div className="flex-grow-1">
+                        <div className="skeleton mb-2" style={{ width: '30%', height: 13 }} />
+                        <div className="skeleton" style={{ width: '20%', height: 10 }} />
+                      </div>
+                      <div className="skeleton" style={{ width: 160, height: 24, borderRadius: 999 }} />
+                    </div>
+                  ))}
+                </div>
+              ) : currentRecords.length === 0 ? (
+                <div className="rm-empty">
+                  <div className="ic"><i className={`fas ${filterStatus === 'inactive' ? 'fa-archive' : 'fa-clipboard-list'}`} /></div>
+                  <h6>{filterStatus === 'inactive' ? 'No inactive records' : 'No records found'}</h6>
+                  <p>{hasRecordFilters ? 'Try changing or clearing the filters.' : filterStatus === 'inactive' ? 'Archived and missed records will show here.' : 'Search a pet by its registration number to add a record.'}</p>
+                  {hasRecordFilters ? (
+                    <button type="button" className="rm-btn ghost" onClick={() => { setSearchTerm(''); setFilterSpecies('all'); }}>
+                      <i className="fas fa-undo" />Clear filters
+                    </button>
+                  ) : filterStatus !== 'inactive' && (
+                    <button type="button" className="rm-btn primary" onClick={handleOpenModal}>
+                      <i className="fas fa-plus" />Add record
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="table-responsive" style={{ overflow: 'visible' }}>
+                  <table className="rm-table mobile-table-wrap">
+                    <thead>
+                      <tr>
+                        <th className="mobile-hide" style={{ width: '15%' }}>Date</th>
+                        <th style={{ width: '20%' }}>Pet</th>
+                        <th style={{ width: filterStatus === 'inactive' ? '27%' : '37%' }}>Record</th>
+                        <th className="mobile-hide" style={{ width: '22%' }}>Recorded by</th>
+                        {filterStatus === 'inactive' && <th className="mobile-hide" style={{ width: '16%' }}>Status</th>}
+                        <th style={{ width: '6%' }} aria-label="Actions" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedRecords.map((record, i) => renderRecordRow(record, i))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {currentRecords.length > itemsPerPage && (
+              <div className="rm-foot mobile-pagination">
+                <span className="rm-muted page-info" style={{ fontSize: '0.84rem' }}>
+                  Showing <strong style={{ color: '#1f2328' }}>{startIdx + 1}–{Math.min(endIdx, currentRecords.length)}</strong> of {currentRecords.length}
+                </span>
+                <div className="d-flex align-items-center gap-1">
+                  <button type="button" className="rm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
+                    <i className="fas fa-chevron-left" />
+                  </button>
+                  {recPagerNumbers.map(n => (
+                    <button key={n} type="button" className={`rm-page page-btn${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+                  ))}
+                  <button type="button" className="rm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
+                    <i className="fas fa-chevron-right" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
         {/* Add Record Modal */}
         <Modal show={showModal} onHide={handleCloseModal} size="lg" style={{zoom: '0.75'}}>
@@ -2124,56 +2115,6 @@ style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', f
 
       </Container>
 
-      {/* Ellipsis Dropdown Portal */}
-      {showDropdown !== null && (
-        <>
-          <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
-          <div style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, transform: 'translateY(-50%)', background: '#ffffff', border: '1px solid #e0e0e0', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', minWidth: '170px', zIndex: 1050, overflow: 'hidden', zoom: '0.75' }}>
-            {(() => {
-              const id = showDropdown;
-              const type = id.startsWith('mic-tab-') ? 'microchip'
-                : id.startsWith('microchip-') ? 'microchip'
-                : id.startsWith('vac-tab-') ? 'vaccination'
-                : id.startsWith('vaccination-') ? 'vaccination'
-                : id.startsWith('dew-tab-') ? 'deworming'
-                : id.startsWith('deworming-') ? 'deworming'
-                : id.startsWith('ster-tab-') ? 'sterilization'
-                : id.startsWith('sterilization-') ? 'sterilization'
-                : null;
-              const sourceArr = type === 'vaccination' ? vaccinations
-                : type === 'deworming' ? dewormings
-                : type === 'sterilization' ? sterilizations
-                : type === 'microchip' ? microchips
-                : [];
-              const recordId = parseInt(id.replace(/^[a-z]+-(?:tab-)?/, ''));
-              const record = sourceArr.find(r => r.id === recordId);
-              if (!record || !type) return null;
-              const isMine = record.is_mine == 1;
-              const inTrash = filterStatus === 'inactive';
-              return (<>
-                <button onClick={() => handleViewRecord(record, type)} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}>
-                  <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>View Details</span>
-                </button>
-                {isMine && !inTrash && (
-                  <button onClick={() => handleOpenEditModal(record, type)} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}>
-                    <img src="/edit(1).png" alt="Edit" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Edit Record</span>
-                  </button>
-                )}
-                {isMine && !inTrash && (
-                  <button onClick={() => handleDeleteClick(record, type)} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#dc3545', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#fff5f5'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}>
-                    <img src="/remove.png" alt="Delete" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Archive Record</span>
-                  </button>
-                )}
-                {isMine && inTrash && (
-                  <button onClick={() => handleRestoreClick(record, type)} style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#28a745', fontWeight: '500', borderTop: '1px solid #f0f0f0' }} onMouseOver={(e) => e.currentTarget.style.background = '#f0fff4'} onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}>
-                    <img src="/restore.png" alt="Restore" style={{ width: '18px', height: '18px', objectFit: 'contain' }} /><span>Restore Record</span>
-                  </button>
-                )}
-              </>);
-            })()}
-          </div>
-        </>
-      )}
 
             {/* Restore Confirmation Modal */}
       <Modal show={showRestoreModal} onHide={() => !restoreLoading && setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>

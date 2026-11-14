@@ -54,9 +54,6 @@ const SuperAdminOwnerManagement = () => {
   const [ownerPets, setOwnerPets] = useState([]);
   const [viewLoading, setViewLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const dropdownButtonRef = useRef(null);
-  const ZOOM = 0.75;
 
   useEffect(() => {
     if (showDropdown === null) return;
@@ -91,7 +88,7 @@ const SuperAdminOwnerManagement = () => {
   const petsPerPage = 5;
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const totalPages = Math.ceil(totalOwners / itemsPerPage);
 
   const styles = `
@@ -153,6 +150,137 @@ const SuperAdminOwnerManagement = () => {
       .mobile-verif-actions { flex-direction: column !important; }
       .mobile-verif-actions button { width: 100% !important; font-size: 0.78rem !important; padding: 0.5rem 1rem !important; }
     }
+    /* ---------------- Community Management ---------------- */
+    @keyframes cmIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes cmRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes cmMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes cmToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes cmGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .cm-anim { animation: cmIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .cm-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .cm-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .cm-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .cm-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .cm-btn.primary { background: #ffc107; color: #1f2328; }
+    .cm-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .cm-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: cmToast 0.35s ease-out; }
+    .cm-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .cm-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .cm-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .cm-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .cm-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .cm-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .cm-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .cm-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .cm-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .cm-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .cm-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .cm-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .cm-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .cm-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .cm-seg button:hover { color: #1f2328; }
+    .cm-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .cm-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .cm-search, .cm-select { position: relative; }
+    .cm-search { flex: 1 1 260px; }
+    .cm-search > i, .cm-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .cm-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .cm-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.cm-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .cm-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .cm-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .cm-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .cm-link:hover { text-decoration: underline; }
+
+    .cm-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .cm-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .cm-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .cm-table tbody tr { animation: cmRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .cm-table tbody tr:hover { background: #fafbfc; }
+    .cm-table tbody tr:last-child td { border-bottom: none; }
+    .cm-table tbody tr.raised { position: relative; z-index: 5; }
+    .cm-strong { font-weight: 600; color: #1f2328; }
+    .cm-muted { font-size: 0.78rem; color: #6b7280; }
+    .cm-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cm-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .cm-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .cm-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .cm-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .cm-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .cm-bar > div { height: 100%; border-radius: 3px; transform-origin: left; animation: cmGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .cm-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .cm-pill i { font-size: 0.4rem; }
+
+    .cm-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .cm-icon-btn:hover, .cm-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .cm-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: cmMenu 0.16s ease-out; transform-origin: top right; text-align: left; }
+    .cm-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .cm-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .cm-menu-item:hover { background: #f6f7f9; }
+    .cm-menu-item.danger, .cm-menu-item.danger i { color: #dc3545; }
+    .cm-menu-item.danger:hover { background: #fff5f5; }
+    .cm-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .cm-empty { text-align: center; padding: 3rem 1rem; }
+    .cm-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .cm-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .cm-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .cm-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .cm-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .cm-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .cm-page:hover:not(:disabled) { background: #f3f4f6; }
+    .cm-page.on { background: #ffc107; color: #1f2328; }
+    .cm-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .cm-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .cm-btn:focus-visible, .cm-seg button:focus-visible, .cm-icon-btn:focus-visible, .cm-menu-item:focus-visible, .cm-page:focus-visible, .cm-link:focus-visible, .cm-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .cm-title { font-size: 1.45rem; }
+      .cm-sub { font-size: 0.85rem; }
+      .cm-filters select.cm-input { min-width: 0; width: 100%; }
+      .cm-select { flex: 1 1 140px; }
+      .cm-ellipsis { max-width: 160px; }
+      .cm-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .cm-anim, .cm-table tbody tr, .cm-menu, .cm-toast, .cm-bar > div, .cm-skel { animation: none !important; }
+    }
+    .cm-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
+    .cm-filters { padding-top: 1rem; }
+    .cm-table { table-layout: fixed; }
+    .cm-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #ffe08a, #ffc107); color: #1f2328; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
+    .cm-ic { width: 14px; margin-right: 0.4rem; color: #9ca3af; font-size: 0.72rem; }
+    .cm-pets { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #9ca3af; }
+    .cm-pets i { font-size: 0.72rem; }
+    .cm-pets.has { color: #1f2328; }
+    .cm-pets.has i { color: #e0a800; }
+    .cm-pill i { font-size: 0.68rem; }
+    .cm-active { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 600; }
+    .cm-active i { font-size: 0.42rem; }
+    .cm-active.on { color: #198754; }
+    .cm-active.off { color: #6b7280; }
+    .cm-menu { min-width: 230px; }
+    .cm-menu-item.info, .cm-menu-item.info i { color: #0d6efd; }
+    .cm-menu-item.info:hover { background: #f0f4ff; }
+    .cm-menu-item.warn, .cm-menu-item.warn i { color: #b88a00; }
+    .cm-menu-item.warn:hover { background: #fff8e1; }
+    .cm-menu-note { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.55rem 0.7rem; margin-top: 0.2rem; border-radius: 8px; background: #fafbfc; color: #6b7280; font-size: 0.78rem; line-height: 1.45; white-space: normal; }
+    .cm-menu-note i { margin-top: 2px; color: #9ca3af; }
+    @media (max-width: 768px) {
+      .cm-table { table-layout: auto; }
+      .cm-table th { width: auto !important; }
+    }
+    .som-wrap { zoom: 0.75; }
+    @media (min-width: 1600px) { .som-wrap { zoom: 0.9; } }
+    @media (min-width: 1920px) { .som-wrap { zoom: 1; } }
+    @media (max-width: 768px) { .som-wrap { zoom: 1; } }
   `;
 
   const CACHE_TTL = 60_000;
@@ -320,41 +448,47 @@ const SuperAdminOwnerManagement = () => {
   });
 
   const activeOwners = owners.filter(o => o.is_active);
+  const cmPagerNumbers = (() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  })();
+  const hasOwnerFilters = searchTerm || filterVerif !== 'all' || filterActive !== '1';
+  const lastLoginInfo = (ll) => {
+    if (!ll) return { label: 'Never signed in', color: '#9ca3af' };
+    const diffDay = Math.floor((Date.now() - new Date(String(ll).replace(' ', 'T')).getTime()) / 86400000);
+    const diffWk = Math.floor(diffDay / 7);
+    const diffMo = Math.floor(diffDay / 30);
+    if (diffDay <= 0) return { label: 'Signed in today', color: '#198754' };
+    if (diffDay === 1) return { label: 'Signed in yesterday', color: '#198754' };
+    if (diffDay < 7) return { label: `Signed in ${diffDay}d ago`, color: '#198754' };
+    if (diffDay < 30) return { label: `Signed in ${diffWk}w ago`, color: '#b88a00' };
+    if (diffMo < 3) return { label: `Signed in ${diffMo}mo ago`, color: '#fd7e14' };
+    return { label: `Signed in ${diffMo}mo ago`, color: '#dc3545' };
+  };
+
   const totalPets = pets.length;
 
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', zoom: '0.75' }}>
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div>
-              <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-                <i 
-                  className="fas fa-users" 
-                  style={{ 
-                    fontSize: '1.5rem', 
-                    color: '#000000',
-                    animation: 'float 3s ease-in-out infinite'
-                  }}
-                ></i>
-                <h2 className="mobile-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>Community Management</h2>
-              </div>
-              
-            </div>
-          </Col>
-        </Row>
+      <Container fluid className="py-4 som-wrap" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
+
+        {/* Header */}
+        <div className="mb-4 cm-anim">
+          <h2 className="cm-title mobile-title">Community Management</h2>
+          <p className="cm-sub">Pet owners registered in PetUnity, their pets and ID verification.</p>
+        </div>
 
         {error && (
-        <Row className="mb-4">
-          <Col>
-            <Alert variant="danger" dismissible onClose={() => setError('')}>
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
-          </Col>
-        </Row>
-      )}
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2"></i>
+            {error}
+          </Alert>
+        )}
 
       {/* Statistics */}
       <Row className="mb-4">
@@ -482,394 +616,197 @@ const SuperAdminOwnerManagement = () => {
         ))}
       </Row>
 
-      {/* Search + Filters */}
-      <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-        <Col xs={12} md={5} className="mb-2 mb-md-0">
-          <InputGroup>
-            <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
-              <i className="fas fa-search"></i>
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
+      {/* Communities table */}
+      <div className="cm-panel cm-anim" style={{ '--d': '0.18s', overflow: 'visible' }}>
+        {/* Header */}
+        <div className="cm-toolbar">
+          <div className="cm-toolbar-title">
+            <span>Communities</span>
+            <span className="cm-count">{totalOwners}</span>
+          </div>
+          <div className="cm-seg" role="group" aria-label="Account status">
+            {[['1', 'Active'], ['0', 'Inactive'], ['all', 'All']].map(([v, l]) => (
+              <button key={v} type="button" className={filterActive === v ? 'on' : ''} onClick={() => { setFilterActive(v); setCurrentPage(1); setShowDropdown(null); }} aria-pressed={filterActive === v}>{l}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="cm-filters">
+          <div className="cm-search">
+            <i className="fas fa-search" />
+            <input
+              className="cm-input"
               placeholder="Search by name, email, phone, or username..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ border: '2px solid #e9ecef', borderLeft: 'none', borderRight: searchTerm ? 'none' : '2px solid #e9ecef' }}
+              aria-label="Search communities"
             />
             {searchTerm && (
-              <Button
-                variant="outline-secondary"
-                onClick={() => setSearchTerm('')}
-                style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}
-              >
-                <i className="fas fa-times"></i>
-              </Button>
-            )}
-          </InputGroup>
-        </Col>
-        <Col xs={6} md={4} className="mb-2 mb-md-0">
-          <Form.Select
-            value={filterVerif}
-            onChange={(e) => { setFilterVerif(e.target.value); setCurrentPage(1); }}
-            style={{ border: '2px solid #e9ecef', borderRadius: '8px', fontWeight: '500', height: '100%' }}
-          >
-            <option value="all">All</option>
-            <option value="not_verified">Not Verified</option>
-            <option value="pending">Pending Review</option>
-            <option value="semi_verified">Semi Verified</option>
-            <option value="fully_verified">Fully Verified</option>
-          </Form.Select>
-        </Col>
-        <Col xs={6} md={3}>
-          <Form.Select
-            value={filterActive}
-            onChange={(e) => { setFilterActive(e.target.value); setCurrentPage(1); }}
-            style={{ border: '2px solid #e9ecef', borderRadius: '8px', fontWeight: '500', height: '100%' }}
-          >
-            <option value="all">All</option>
-            <option value="1">Active</option>
-            <option value="0">Inactive</option>
-          </Form.Select>
-        </Col>
-      </Row>
-
-      {/* Owners Table */}
-      <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-        <Col>
-          <Card 
-            className="border-0"
-            style={{
-              borderRadius: '20px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-              overflow: 'hidden'
-            }}
-          >
-            <Card.Header
-              className="mobile-card-header"
-              style={{
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                borderBottom: '2px solid #ffc107',
-                padding: '1.5rem',
-                borderRadius: '20px 20px 0 0'
-              }}
-            >
-              <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                <i className="fas fa-users me-2" style={{ color: '#ffc107' }}></i>
-                Communities ({filteredOwners.length})
-              </h5>
-            </Card.Header>
-            <Card.Body className="mobile-card-body" style={{ padding: '2rem' }}>
-              {loading || pageLoading ? (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-    <div style={{ display: 'flex', gap: '1rem', padding: '0.75rem 1rem', borderRadius: '8px', background: '#f8f9fa', marginBottom: '0.25rem' }}>
-      {[18, 20, 15, 12, 15, 10].map((w, i) => (
-        <div key={i} className="skeleton" style={{ width: `${w}%`, height: '12px', flexShrink: 0 }} />
-      ))}
-    </div>
-    {Array.from({ length: 5 }).map((_, i) => (
-      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', borderRadius: '8px', background: '#fafafa', border: '1px solid #f0f0f0', animation: `fadeInUp 0.3s ease-out ${i * 0.05}s backwards` }}>
-        <div style={{ width: '18%', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
-          <div className="skeleton" style={{ width: '80%', height: '13px' }} />
-          <div className="skeleton" style={{ width: '50%', height: '10px' }} />
-        </div>
-        <div style={{ width: '20%', flexShrink: 0 }}>
-          <div className="skeleton" style={{ width: '85%', height: '12px' }} />
-        </div>
-        <div style={{ width: '15%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-          <div className="skeleton" style={{ width: '70%', height: '12px' }} />
-        </div>
-        <div style={{ width: '12%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-          <div className="skeleton" style={{ width: '30px', height: '13px' }} />
-        </div>
-        <div style={{ width: '15%', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-          <div className="skeleton" style={{ width: '70px', height: '22px', borderRadius: '999px' }} />
-          <div className="skeleton" style={{ width: '55px', height: '10px' }} />
-        </div>
-        <div style={{ width: '10%', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-          <div className="skeleton" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
-        </div>
-      </div>
-    ))}
-  </div>
-) : filteredOwners.length === 0 ? (
-                <div className="text-center py-5">
-                  <i className="fas fa-users text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }}></i>
-                  <h5 style={{ color: '#666666', fontWeight: '600' }}>No Communities Found</h5>
-                  <p className="text-muted">
-                    {searchTerm ? 'Try adjusting your search' : 'No Communities registered yet'}
-                  </p>
-                </div>
-              ) : (
-                <div className="table-responsive">
-                  <Table hover className="mobile-table-wrap align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
-                    <thead>
-                      <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Name</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Email</th>
-<th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Contact</th> 
-                        <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Total Pets</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
-                        <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        return (
-                          <>
-                            {filteredOwners.map(owner => {
-                              const petCount = getOwnerPetCount(owner);
-                              const displayFirstName = owner.po_first_name || owner.first_name;
-                              const displayLastName = owner.po_last_name || owner.last_name;
-                              const displayPhone = owner.po_phone || owner.phone;
-                              
-                              return (
-                                <tr
-                                    key={owner.user_id || owner.id}
-                                    style={{ transition: 'all 0.2s ease', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
-                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 193, 7, 0.05)'; }}
-                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                                  >
-                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>
-    {displayFirstName} {displayLastName}
-    {(() => {
-      const vs = owner.verification_status;
-      if (!vs || vs === 'not_verified') return null;
-      const cfg = {
-        pending:        { icon: 'fa-hourglass-half', color: '#fd7e14' },
-        semi_verified:  { icon: 'fa-shield-alt',     color: '#0d6efd' },
-        fully_verified: { icon: 'fa-check-circle',   color: '#198754' },
-      }[vs];
-      if (!cfg) return null;
-      return <i className={`fas ${cfg.icon} ms-1`} title={vs.replace('_', ' ')} style={{ fontSize: '0.75rem', color: cfg.color }} />;
-    })()}
-  </strong>
-  <small style={{ color: '#aaa', fontWeight: '500' }}>
-    <i className="fas fa-venus-mars me-1"></i>{owner.gender || '—'}
-  </small>
-</td>
-<td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle' }}>
-  <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
-    <i className="fas fa-envelope me-1" style={{ color: '#ffc107' }}></i>
-    {owner.email || '—'}
-  </small>
-</td>
-                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <small style={{ fontWeight: '600', color: '#333', display: 'block' }}>
-    <i className="fas fa-phone me-1" style={{ color: '#ffc107' }}></i>
-    {displayPhone || '—'}
-  </small>
-</td>
-                                  
-                                  <td className="mobile-hide" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <span style={{ fontSize: '1rem', fontWeight: '700', color: petCount > 0 ? '#0d6efd' : '#aaa' }}>
-    {petCount}
-  </span>
-</td>
-                                  <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.75rem', borderRadius: '999px', background: owner.is_active ? 'rgba(25,135,84,0.1)' : 'rgba(108,117,125,0.1)', border: `1px solid ${owner.is_active ? 'rgba(25,135,84,0.3)' : 'rgba(108,117,125,0.3)'}`, fontSize: '0.75rem', fontWeight: '700', color: owner.is_active ? '#198754' : '#6c757d', whiteSpace: 'nowrap' }}>
-    <i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />
-    {owner.is_active ? 'Active' : 'Inactive'}
-  </span>
-  {(() => {
-    const ll = owner.last_login;
-    if (!ll) return <div style={{ fontSize: '0.65rem', color: '#bbb', fontStyle: 'italic', marginTop: '0.25rem' }}>Never signed in</div>;
-    const diffMs  = Date.now() - new Date(ll).getTime();
-    const diffDay = Math.floor(diffMs / 86400000);
-    const diffWk  = Math.floor(diffDay / 7);
-    const diffMo  = Math.floor(diffDay / 30);
-    let label, color;
-    if (diffDay === 0)      { label = 'Today';          color = '#198754'; }
-    else if (diffDay === 1) { label = 'Yesterday';       color = '#198754'; }
-    else if (diffDay < 7)   { label = `${diffDay}d ago`; color = '#198754'; }
-    else if (diffDay < 30)  { label = `${diffWk}w ago`;  color = '#e6a817'; }
-    else if (diffMo < 3)    { label = `${diffMo}mo ago`; color = '#fd7e14'; }
-    else                    { label = `${diffMo}mo ago`; color = '#dc3545'; }
-    return <div style={{ fontSize: '0.65rem', color, fontWeight: '600', whiteSpace: 'nowrap', marginTop: '0.25rem' }}><i className="fas fa-clock me-1" style={{ fontSize: '0.58rem' }} />{label}</div>;
-  })()}
-</td>
-                                  <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <div style={{ position: 'relative' }}>
-    <button
-      ref={showDropdown === owner.user_id ? dropdownButtonRef : null}
-      onClick={(e) => {
-        if (showDropdown === owner.user_id) {
-          setShowDropdown(null);
-        } else {
-          const rect = e.currentTarget.getBoundingClientRect();
-          dropdownButtonRef.current = e.currentTarget;
-          const menuItems = owners.find(o => o.user_id === owner.user_id)?.verification_status !== 'not_verified' ? 2 : 1;
-          const dropdownHeight = menuItems * 50;
-          const nearBottom = (rect.bottom / ZOOM) + dropdownHeight > (window.innerHeight / ZOOM);
-          setDropdownPos({
-            top: nearBottom
-              ? rect.top / ZOOM - dropdownHeight + (rect.height / ZOOM) / 2
-              : rect.top / ZOOM + (rect.height / ZOOM) / 2,
-            left: (rect.left / ZOOM) - 185
-          });
-          setShowDropdown(owner.user_id);
-        }
-      }}
-      style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}
-      onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-      onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-    >
-      <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-    </button>
-  </div>
-</td>
-                                </tr>
-                              );
-                            })}
-                          </>
-                        );
-                      })()}
-                    </tbody>
-                  </Table>
-                </div>
-              )}
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-      {/* Pagination */}
-      {totalOwners > itemsPerPage && (
-        <Row className="mt-4 mobile-pagination" style={{ animation: 'dropDown 0.4s ease-out 0.6s backwards' }}>
-          <Col className="d-flex justify-content-between align-items-center">
-            <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-              Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
-            </span>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <button
-                className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                style={{
-                  background: currentPage === 1 ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === 1 ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== 1) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-left"></i>
+              <button type="button" className="cm-clear" onClick={() => setSearchTerm('')} aria-label="Clear search">
+                <i className="fas fa-times" />
               </button>
+            )}
+          </div>
+          <div className="cm-select">
+            <i className="fas fa-shield-alt" />
+            <select className="cm-input" value={filterVerif} onChange={(e) => { setFilterVerif(e.target.value); setCurrentPage(1); }} aria-label="Verification">
+              <option value="all">All verification</option>
+              <option value="not_verified">Not Verified</option>
+              <option value="pending">Pending Review</option>
+              <option value="semi_verified">Semi Verified</option>
+              <option value="fully_verified">Fully Verified</option>
+            </select>
+          </div>
+          {hasOwnerFilters && (
+            <button type="button" className="cm-link" onClick={() => { setSearchTerm(''); setFilterVerif('all'); setFilterActive('1'); setCurrentPage(1); }}>
+              <i className="fas fa-undo me-1" />Clear filters
+            </button>
+          )}
+        </div>
 
-              {(() => {
-                const pages = [];
-                
-                if (totalPages <= 3) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    let start = Math.max(1, currentPage - 1);
-                    let end = Math.min(totalPages, start + 2);
-                    if (end - start < 2) start = Math.max(1, end - 2);
-                    
-                    for (let i = start; i <= end; i++) pages.push(i);
-                    
-                  }
-
-                return pages.map((page, idx) => {
-                  if (page === '...') {
+        {/* Body */}
+        <div className="mobile-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+          {loading || pageLoading ? (
+            <div style={{ padding: '0.5rem 0 1rem' }}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                  <div className="skeleton" style={{ width: 38, height: 38, borderRadius: '50%' }} />
+                  <div className="flex-grow-1">
+                    <div className="skeleton" style={{ width: '25%', height: 13, marginBottom: 8 }} />
+                    <div className="skeleton" style={{ width: '15%', height: 10 }} />
+                  </div>
+                  <div className="skeleton" style={{ width: 160, height: 12 }} />
+                  <div className="skeleton" style={{ width: 100, height: 22, borderRadius: 999 }} />
+                </div>
+              ))}
+            </div>
+          ) : filteredOwners.length === 0 ? (
+            <div className="cm-empty">
+              <div className="ic"><i className="fas fa-users" /></div>
+              <h6>No communities found</h6>
+              <p>{hasOwnerFilters ? 'Try changing or clearing the filters.' : 'No communities have registered yet.'}</p>
+            </div>
+          ) : (
+            <div className="table-responsive" style={{ overflow: 'visible' }}>
+              <table className="cm-table mobile-table-wrap">
+                <thead>
+                  <tr>
+                    <th style={{ width: '25%' }}>Name</th>
+                    <th className="mobile-hide" style={{ width: '25%' }}>Contact</th>
+                    <th className="mobile-hide" style={{ width: '8%' }}>Pets</th>
+                    <th style={{ width: '17%' }}>Verification</th>
+                    <th className="mobile-hide" style={{ width: '19%' }}>Account</th>
+                    <th style={{ width: '6%' }} aria-label="Actions" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOwners.map((owner, i) => {
+                    const petCount = getOwnerPetCount(owner);
+                    const firstName = owner.po_first_name || owner.first_name || '';
+                    const lastName = owner.po_last_name || owner.last_name || '';
+                    const phone = owner.po_phone || owner.phone;
+                    const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || '?';
+                    const verif = VERIF_CONFIG[owner.verification_status] || VERIF_CONFIG.not_verified;
+                    const login = lastLoginInfo(owner.last_login);
+                    const key = owner.user_id || owner.id;
+                    const menuOpen = showDropdown === owner.user_id;
                     return (
-                      <span
-                        key={`ellipsis-${idx}`}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          color: '#6c757d',
-                          fontWeight: '600'
-                        }}
-                      >
-                        ...
-                      </span>
+                      <tr key={key} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
+                        <td>
+                          <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                            <div className="cm-avatar">{initials}</div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="cm-strong cm-ellipsis" title={`${firstName} ${lastName}`}>{firstName} {lastName}</div>
+                              <div className="cm-muted text-capitalize">{owner.gender || '—'}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="mobile-hide">
+                          <div className="cm-ellipsis" style={{ fontSize: '0.84rem' }} title={owner.email}>
+                            <i className="fas fa-envelope cm-ic" />{owner.email || '—'}
+                          </div>
+                          <div className="cm-muted">
+                            <i className="fas fa-phone-alt cm-ic" />{phone || '—'}
+                          </div>
+                        </td>
+                        <td className="mobile-hide">
+                          <span className={`cm-pets${petCount > 0 ? ' has' : ''}`}>
+                            <i className="fas fa-paw" />{petCount}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="cm-pill" style={{ color: verif.color, background: `color-mix(in srgb, ${verif.color} 12%, #fff)` }}>
+                            <i className={`fas ${verif.icon}`} />{verif.label}
+                          </span>
+                        </td>
+                        <td className="mobile-hide">
+                          <div className={`cm-active ${owner.is_active ? 'on' : 'off'}`}>
+                            <i className="fas fa-circle" />{owner.is_active ? 'Active' : 'Inactive'}
+                          </div>
+                          <div className="cm-muted" style={{ color: login.color, fontWeight: owner.last_login ? 600 : 400 }}>{login.label}</div>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <button
+                              type="button"
+                              className={`cm-icon-btn${menuOpen ? ' on' : ''}`}
+                              onClick={() => setShowDropdown(menuOpen ? null : owner.user_id)}
+                              aria-label={`Options for ${firstName} ${lastName}`}
+                              aria-expanded={menuOpen}
+                            >
+                              <i className="fas fa-ellipsis-v" />
+                            </button>
+                            {menuOpen && (
+                              <>
+                                <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                                <div className="cm-menu" role="menu">
+                                  <button type="button" role="menuitem" className="cm-menu-item" onClick={() => handleViewOwner(owner)}>
+                                    <i className="fas fa-eye" />View community
+                                  </button>
+                                  {owner.verification_status !== 'not_verified' ? (
+                                    <button type="button" role="menuitem" className={`cm-menu-item${owner.verification_status === 'pending' ? ' warn' : ' info'}`} onClick={() => handleOpenVerifModal(owner)}>
+                                      <i className="fas fa-id-card" />{owner.verification_status === 'pending' ? 'Review ID verification' : 'View ID verification'}
+                                    </button>
+                                  ) : (
+                                    <div className="cm-menu-note">
+                                      <i className="fas fa-info-circle" />This user hasn't submitted an ID yet.
+                                    </div>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                     );
-                  }
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
-                  return (
-                    <button
-                      className="page-btn"
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      style={{
-                        background: currentPage === page ? '#ffc107' : '#ffffff',
-                        border: '2px solid',
-                        borderColor: currentPage === page ? '#ffc107' : '#dee2e6',
-                        borderRadius: '8px',
-                        padding: '0.5rem 0.75rem',
-                        minWidth: '40px',
-                        cursor: 'pointer',
-                        fontWeight: '700',
-                        color: currentPage === page ? '#000000' : '#333333',
-                        transition: 'all 0.2s',
-                        boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none'
-                      }}
-                      onMouseOver={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#f8f9fa';
-                          e.target.style.borderColor = '#ffc107';
-                        }
-                      }}
-                      onMouseOut={(e) => {
-                        if (currentPage !== page) {
-                          e.target.style.background = '#ffffff';
-                          e.target.style.borderColor = '#dee2e6';
-                        }
-                      }}
-                    >
-                      {page}
-                    </button>
-                  );
-                });
-              })()}
-
-              <button
-                className="page-btn"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                style={{
-                  background: currentPage === totalPages ? '#e9ecef' : '#ffffff',
-                  border: '2px solid #dee2e6',
-                  borderRadius: '8px',
-                  padding: '0.5rem 0.75rem',
-                  cursor: currentPage === Math.ceil(filteredOwners.length / itemsPerPage) ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  color: currentPage === totalPages ? '#adb5bd' : '#333333',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#f8f9fa';
-                    e.target.style.borderColor = '#ffc107';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (currentPage !== totalPages) {
-                    e.target.style.background = '#ffffff';
-                    e.target.style.borderColor = '#dee2e6';
-                  }
-                }}
-              >
-                <i className="fas fa-chevron-right"></i>
+        {/* Pagination */}
+        {totalOwners > itemsPerPage && (
+          <div className="cm-foot mobile-pagination">
+            <span className="cm-muted page-info" style={{ fontSize: '0.84rem' }}>
+              Showing <strong style={{ color: '#1f2328' }}>{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, totalOwners)}</strong> of {totalOwners}
+            </span>
+            <div className="d-flex align-items-center gap-1">
+              <button type="button" className="cm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
+                <i className="fas fa-chevron-left" />
+              </button>
+              {cmPagerNumbers.map(n => (
+                <button key={n} type="button" className={`cm-page page-btn${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+              ))}
+              <button type="button" className="cm-page nav page-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
+                <i className="fas fa-chevron-right" />
               </button>
             </div>
-          </Col>
-        </Row>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* View Community Details Modal */}
       <Modal 
@@ -1051,58 +988,6 @@ const SuperAdminOwnerManagement = () => {
       </Modal>
     </Container>
 
-    {/* ── Ellipsis Dropdown Portal ── */}
-      {showDropdown !== null && (
-        <>
-          <div
-            onClick={() => setShowDropdown(null)}
-            style={{ position: 'fixed', inset: 0, zIndex: 1049 }}
-          />
-          <div style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            transform: 'translateY(-50%)',
-            background: '#ffffff',
-            border: '1px solid #e0e0e0',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            minWidth: '185px',
-            zIndex: 1050,
-            overflow: 'hidden',
-            zoom: '0.75',
-          }}>
-            {(() => {
-              const owner = owners.find(o => o.user_id === showDropdown);
-              if (!owner) return null;
-              return (
-                <>
-                  <button
-                    onClick={() => handleViewOwner(owner)}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', transition: 'background 0.2s' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#f8f9fa'}
-                    onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                  >
-                    <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span>View Community</span>
-                  </button>
-                  {owner.verification_status !== 'not_verified' && (
-                    <button
-                      onClick={() => handleOpenVerifModal(owner)}
-                      style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#0d6efd', fontWeight: '500', borderTop: '1px solid #f0f0f0', transition: 'background 0.2s' }}
-                      onMouseOver={(e) => e.currentTarget.style.background = '#f0f4ff'}
-                      onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                    >
-                      <i className="fas fa-id-card" style={{ fontSize: '1rem', width: '18px', textAlign: 'center', color: '#0d6efd' }} />
-                      <span>View ID Verification</span>
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </>
-      )}
 
     {/* ══════════ VERIFICATION MODAL ══════════ */}
     {verifOwner && (
