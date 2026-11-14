@@ -251,6 +251,18 @@ const streamRef = useRef(null);
     if (!showScannerModal) setScanResult('');
   }, [showScannerModal]);
 
+  // Mobile bottom bar: keep the current page's tab in view
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const bar = document.querySelector('.sidebar-bottom-bar');
+      const tab = bar?.querySelector('.sb-tab.active');
+      if (bar && tab && bar.scrollWidth > bar.clientWidth) {
+        bar.scrollTo({ left: tab.offsetLeft - (bar.clientWidth - tab.offsetWidth) / 2, behavior: 'smooth' });
+      }
+    }, 50);
+    return () => clearTimeout(t);
+  }, [location.pathname]);
+
   const playScanBeep = () => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -443,6 +455,10 @@ const streamRef = useRef(null);
 
   const sidebarWidth = collapsed ? '72px' : '240px';
 
+  // Active link: light yellow tint instead of a solid yellow button
+  const activeBg = 'rgba(255,193,7,0.14)';
+  const activeText = darkMode ? '#ffd24d' : '#1a1a1a';
+
   // ─── Nav link configs per role ───────────────────────────────────────────
   const getLandingLinks = () => [
     { label: 'Home', icon: 'fa-home', action: () => { window.scrollTo({ top: 0, behavior: 'smooth' }); setMobileOpen(false); } },
@@ -527,10 +543,8 @@ const streamRef = useRef(null);
       marginBottom: '3px',
       cursor: 'pointer',
       transition: 'all 0.25s ease',
-      background: anyChildActive
-        ? 'linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(255,179,0,0.15) 100%)'
-        : 'transparent',
-      color: anyChildActive ? '#ffc107' : (darkMode ? '#bbbbbb' : '#333333'),
+      background: 'transparent',
+      color: anyChildActive ? activeText : (darkMode ? '#bbbbbb' : '#333333'),
       fontWeight: anyChildActive ? '700' : '500',
       fontSize: '0.875rem',
       justifyContent: collapsed ? 'center' : 'flex-start',
@@ -568,7 +582,7 @@ const streamRef = useRef(null);
             width: '18px',
             textAlign: 'center',
             flexShrink: 0,
-            color: anyChildActive ? '#ffc107' : (darkMode ? '#888888' : '#666666'),
+            color: anyChildActive ? '#e0a800' : (darkMode ? '#888888' : '#666666'),
           }} />
           {!collapsed && (
             <>
@@ -610,14 +624,11 @@ const streamRef = useRef(null);
                     borderRadius: '10px',
                     marginBottom: '2px',
                     textDecoration: 'none',
-                    background: childActive
-                      ? 'linear-gradient(135deg, #ffc107 0%, #ffb300 100%)'
-                      : 'transparent',
-                    color: childActive ? '#1a1a1a' : (darkMode ? '#bbbbbb' : '#444444'),
+                    background: childActive ? activeBg : 'transparent',
+                    color: childActive ? activeText : (darkMode ? '#bbbbbb' : '#444444'),
                     fontWeight: childActive ? '700' : '500',
                     fontSize: '0.85rem',
                     transition: 'all 0.2s',
-                    boxShadow: childActive ? '0 3px 10px rgba(255,193,7,0.3)' : 'none',
                   }}
                   onClick={() => setMobileOpen(false)}
                   onMouseOver={(e) => {
@@ -637,7 +648,7 @@ const streamRef = useRef(null);
                     fontSize: '0.82rem',
                     width: '16px',
                     textAlign: 'center',
-                    color: childActive ? '#1a1a1a' : (darkMode ? '#888' : '#777'),
+                    color: childActive ? '#e0a800' : (darkMode ? '#888' : '#777'),
                   }} />
                   <span>{child.label}</span>
                 </Link>
@@ -659,10 +670,8 @@ const streamRef = useRef(null);
     marginBottom: '3px',
     cursor: 'pointer',
     transition: 'all 0.25s ease',
-    background: active
-      ? 'linear-gradient(135deg, #ffc107 0%, #ffb300 100%)'
-      : 'transparent',
-    color: active ? '#1a1a1a' : (darkMode ? '#bbbbbb' : '#333333'),
+    background: active ? activeBg : 'transparent',
+    color: active ? activeText : (darkMode ? '#bbbbbb' : '#333333'),
     fontWeight: active ? '700' : '500',
     fontSize: '0.875rem',
     textDecoration: 'none',
@@ -670,7 +679,6 @@ const streamRef = useRef(null);
     position: 'relative',
     overflow: 'hidden',
     whiteSpace: 'nowrap',
-    boxShadow: active ? '0 4px 14px rgba(255,193,7,0.35)' : 'none',
   };
 
   const iconStyle = {
@@ -678,7 +686,7 @@ const streamRef = useRef(null);
     width: '18px',
     textAlign: 'center',
     flexShrink: 0,
-    color: active ? '#1a1a1a' : (darkMode ? '#888888' : '#666666'),
+    color: active ? '#e0a800' : (darkMode ? '#888888' : '#666666'),
     transition: 'color 0.2s',
   };
 
@@ -699,6 +707,7 @@ const streamRef = useRef(null);
 
   const content = (
     <>
+      {active && <span className="sb-active-bar" />}
       {icon}
       {!collapsed && <span style={{ flex: 1, letterSpacing: '0.01em' }}>{link.label}</span>}
       {!collapsed && link.badge > 0 && (
@@ -863,6 +872,10 @@ const streamRef = useRef(null);
     <>
       <style dangerouslySetInnerHTML={{ __html: `
         .sidebar-scroll::-webkit-scrollbar { display: none; }
+        .sb-active-bar { position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: #ffc107; animation: sbBar 0.25s ease-out; }
+        @keyframes sbBar { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+        @keyframes sbFade { from { opacity: 0; } to { opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .sb-active-bar, .sb-tab.active::before { animation: none !important; } }
         nav::-webkit-scrollbar { display: none; }
         @media (max-width: 991px) {
           .sidebar-desktop { display: none !important; }
@@ -1482,15 +1495,26 @@ const streamRef = useRef(null);
             WebkitOverflowScrolling: 'touch',
           }}
         >
-          <style>{`.sidebar-bottom-bar::-webkit-scrollbar { display: none; }`}</style>
+          <style>{`
+            .sidebar-bottom-bar::-webkit-scrollbar { display: none; }
+            .sb-tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 62px; height: 56px; padding: 0 0.6rem; text-decoration: none; color: ${darkMode ? '#8b8b94' : '#7b8190'}; cursor: pointer; }
+            .sb-tab i { font-size: 1.05rem; transition: transform 0.2s ease; }
+            .sb-tab span { font-size: 0.62rem; font-weight: 600; white-space: nowrap; }
+            .sb-tab.active { color: #e0a800; }
+            .sb-tab.active span { color: ${darkMode ? '#e5e7eb' : '#1f2328'}; font-weight: 700; }
+            .sb-tab.active i { transform: translateY(-1px); }
+            .sb-tab.active::before { content: ''; position: absolute; top: 0; left: 50%; width: 26px; height: 3px; margin-left: -13px; border-radius: 0 0 3px 3px; background: #ffc107; animation: sbFade 0.25s ease; }
+            .sb-tab .sb-tab-badge { position: absolute; top: 6px; right: 12px; background: #ef4444; color: #fff; border-radius: 999px; font-size: 0.5rem; font-weight: 700; min-width: 15px; padding: 0.05rem 0.3rem; text-align: center; line-height: 1.5; }
+            .sb-tab:focus-visible { outline: 2px solid #ffc107; outline-offset: -2px; }
+          `}</style>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: '0',
             width: '100%',
-            padding: '0 0.5rem',
+            padding: '0 0.25rem',
             height: '100%',
-            justifyContent: user?.role === 'pet_owner' ? 'center' : 'flex-start',
+            justifyContent: user?.role === 'pet_owner' ? 'space-around' : 'flex-start',
             minWidth: user?.role === 'pet_owner' ? 'unset' : 'max-content',
           }}>
             {links.flatMap((link, idx) => {
@@ -1504,54 +1528,16 @@ const streamRef = useRef(null);
             }).map((link) => {
               const active = link.to ? isActive(link.to) : false;
               const inner = (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '2px',
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  background: active ? 'rgba(255,193,7,0.15)' : 'transparent',
-                  transition: 'background 0.2s',
-                  position: 'relative',
-                  minWidth: '56px',
-                }}>
-                  <i className={`fas ${link.icon}`} style={{
-                    fontSize: '1.1rem',
-                    color: active ? '#ffc107' : (darkMode ? '#888' : '#666'),
-                  }} />
-                  <span style={{
-                    fontSize: '0.6rem',
-                    fontWeight: active ? '700' : '500',
-                    color: active ? '#ffc107' : (darkMode ? '#888' : '#666'),
-                    whiteSpace: 'nowrap',
-                  }}>{link.label}</span>
-                  {link.badge > 0 && (
-                    <span style={{
-                      position: 'absolute',
-                      top: '2px',
-                      right: '6px',
-                      background: '#ef4444',
-                      color: '#fff',
-                      borderRadius: '999px',
-                      fontSize: '0.5rem',
-                      fontWeight: '700',
-                      padding: '0.08rem 0.32rem',
-                      minWidth: '14px',
-                      textAlign: 'center',
-                      lineHeight: '1.5',
-                    }}>
-                      {link.badge > 9 ? '9+' : link.badge}
-                    </span>
-                  )}
-                </div>
+                <>
+                  <i className={`fas ${link.icon}`} />
+                  <span>{link.label}</span>
+                  {link.badge > 0 && <span className="sb-tab-badge">{link.badge > 9 ? '9+' : link.badge}</span>}
+                </>
               );
               return link.to ? (
-                <Link key={link._key} to={link.to} style={{ textDecoration: 'none' }}>{inner}</Link>
+                <Link key={link._key} to={link.to} className={`sb-tab${active ? ' active' : ''}`} aria-current={active ? 'page' : undefined}>{inner}</Link>
               ) : (
-                <div key={link._key} onClick={link.action}>{inner}</div>
+                <div key={link._key} className="sb-tab" onClick={link.action}>{inner}</div>
               );
             })}
           </div>
