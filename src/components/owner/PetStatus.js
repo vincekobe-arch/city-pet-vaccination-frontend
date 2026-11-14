@@ -501,6 +501,144 @@ useEffect(() => {
         min-width: 32px !important;
       }
     }
+
+    /* ---------------- My Pets ---------------- */
+    @keyframes ptIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ptMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes ptShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    @keyframes ptToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    .pt-anim { animation: ptIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+
+    .pt-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .pt-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .pt-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.85rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .pt-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .pt-btn.sm { padding: 0.42rem 0.8rem; font-size: 0.8rem; }
+    .pt-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .pt-btn.primary { background: #ffc107; color: #1f2328; }
+    .pt-btn.primary:hover:not(:disabled) { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .pt-btn.ghost { background: #fff; color: #1f2328; border-color: #e5e7eb; }
+    .pt-btn.ghost:hover:not(:disabled) { background: #fff8e1; border-color: #ffc107; }
+    .pt-btn.amber { background: rgba(255,193,7,0.16); color: #8a6700; }
+    .pt-btn.amber:hover:not(:disabled) { background: rgba(255,193,7,0.28); }
+    .pt-btn.success { background: #198754; color: #fff; }
+    .pt-btn.success:hover:not(:disabled) { background: #157347; }
+    .pt-btn.danger-outline { background: #fff; color: #dc3545; border-color: rgba(220,53,69,0.35); }
+    .pt-btn.danger-outline:hover:not(:disabled) { background: rgba(220,53,69,0.06); }
+
+    .pt-tabs { display: inline-flex; gap: 0.25rem; padding: 4px; border-radius: 12px; background: #f3f4f6; align-self: flex-start; max-width: 100%; overflow-x: auto; }
+    .pt-tab { display: inline-flex; align-items: center; gap: 0.5rem; border: none; background: transparent; padding: 0.5rem 0.95rem; border-radius: 9px; font-size: 0.86rem; font-weight: 600; color: #5b6270; white-space: nowrap; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .pt-tab i { font-size: 0.8rem; }
+    .pt-tab .count { font-size: 0.72rem; padding: 0.05rem 0.45rem; border-radius: 999px; background: rgba(0,0,0,0.06); color: #6b7280; }
+    .pt-tab:hover { color: #1f2328; }
+    .pt-tab.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .pt-tab.active.on i { color: #e0a800; }
+    .pt-tab.archived.on i { color: #b88a00; }
+    .pt-tab.trash.on i { color: #dc3545; }
+    .pt-tab.on .count { background: #1f2328; color: #fff; }
+
+    .pt-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: ptToast 0.35s ease-out; }
+    .pt-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pt-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .pt-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .pt-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .pt-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .pt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1.1rem; }
+    .pt-card { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid #e9ecef; border-radius: 16px; padding: 1.15rem; transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease; }
+    .pt-card:hover { box-shadow: 0 12px 28px rgba(16,24,40,0.08); transform: translateY(-3px); border-color: #e2e5ea; }
+    .pt-card.raised { z-index: 5; }
+    .pt-card.muted { background: #fcfcfd; }
+    .pt-card.muted:hover { transform: none; }
+
+    .pt-top { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 0.85rem; }
+    .pt-photo { position: relative; width: 64px; height: 64px; border-radius: 14px; overflow: hidden; flex-shrink: 0; background: #f6f7f9; border: 1px solid #eef0f3; cursor: pointer; }
+    .pt-photo.static { cursor: default; }
+    .pt-photo img { width: 100%; height: 100%; object-fit: cover; }
+    .pt-photo-hover { position: absolute; inset: 0; background: rgba(0,0,0,0.4); color: #fff; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s ease; }
+    .pt-photo:hover .pt-photo-hover, .pt-photo:focus-visible .pt-photo-hover { opacity: 1; }
+    .pt-photo-cam { position: absolute; right: 4px; bottom: 4px; width: 20px; height: 20px; border-radius: 50%; background: #ffc107; color: #1f2328; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+    .pt-photo-busy { position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; }
+    .pt-name { font-weight: 700; font-size: 1.08rem; color: #1f2328; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pt-reg { font-size: 0.78rem; color: #6b7280; font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .pt-reg i { font-size: 0.65rem; margin-right: 0.3rem; color: #9ca3af; }
+    .pt-breed { font-size: 0.8rem; color: #6b7280; margin-top: 0.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pt-breed .dot { margin: 0 0.35rem; color: #c4c9d0; }
+
+    .pt-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .pt-icon-btn:hover, .pt-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .pt-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 210px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1000; animation: ptMenu 0.16s ease-out; transform-origin: top right; }
+    .pt-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; }
+    .pt-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .pt-menu-item:hover:not(:disabled) { background: #f6f7f9; }
+    .pt-menu-item:disabled { opacity: 0.5; }
+    .pt-menu-item.warn, .pt-menu-item.warn i { color: #8a6700; }
+    .pt-menu-item.warn:hover { background: #fff8e1; }
+    .pt-menu-item.danger, .pt-menu-item.danger i { color: #dc3545; }
+    .pt-menu-item.danger:hover { background: #fff5f5; }
+    .pt-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+    .pt-menu-note { display: flex; gap: 0.5rem; padding: 0.55rem 0.7rem; margin-top: 0.15rem; border-radius: 8px; background: #fafbfc; color: #6b7280; font-size: 0.75rem; line-height: 1.45; }
+    .pt-menu-note i { margin-top: 2px; color: #9ca3af; }
+
+    .pt-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.85rem; }
+    .pt-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .pt-chip i { font-size: 0.65rem; }
+    .pt-chip.green { background: rgba(25,135,84,0.1); color: #198754; }
+    .pt-chip.grey { background: #f3f4f6; color: #6b7280; }
+    .pt-chip.teal { background: rgba(10,162,192,0.1); color: #0a8aa3; }
+    .pt-chip.pink { background: rgba(214,51,132,0.1); color: #c02a74; }
+    .pt-chip.amber { background: rgba(255,193,7,0.16); color: #8a6700; }
+    .pt-chip.red { background: rgba(220,53,69,0.1); color: #dc3545; }
+
+    .pt-info { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1rem; padding: 0.85rem 0.95rem; border-radius: 12px; background: #fafbfc; border: 1px solid #f0f1f3; }
+    .pt-info .k { font-size: 0.68rem; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.1rem; }
+    .pt-info .v { font-size: 0.88rem; font-weight: 600; color: #1f2328; }
+    .pt-last { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.7rem; font-size: 0.8rem; color: #6b7280; }
+    .pt-last i { color: #e0a800; font-size: 0.75rem; }
+    .pt-last strong { color: #1f2328; font-weight: 600; }
+    .pt-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-top: auto; padding-top: 0.9rem; }
+    .pt-card .pt-info + .pt-foot, .pt-card .pt-last + .pt-foot { margin-top: auto; }
+    .pt-card > .pt-foot { border-top: 1px solid #f0f1f3; margin-top: 0.9rem; }
+    .pt-muted { font-size: 0.78rem; color: #6b7280; }
+
+    .pt-note { display: flex; align-items: center; gap: 0.55rem; padding: 0.65rem 0.9rem; border-radius: 10px; font-size: 0.84rem; font-weight: 500; margin-bottom: 1rem; }
+    .pt-note.warn { background: rgba(255,193,7,0.1); color: #8a6700; }
+    .pt-note.danger { background: rgba(220,53,69,0.07); color: #b02a37; }
+
+    .pt-empty { text-align: center; padding: 3.5rem 1.5rem; border: 1px dashed #e2e5ea; border-radius: 16px; background: #fcfcfd; }
+    .pt-empty .ic { width: 68px; height: 68px; border-radius: 18px; margin: 0 auto 1rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; }
+    .pt-empty h5 { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; }
+    .pt-empty p { color: #6b7280; font-size: 0.9rem; max-width: 420px; margin: 0 auto 1.25rem; }
+    .pt-empty p:last-child { margin-bottom: 0; }
+
+    .pt-skel-card { min-height: 220px; }
+    .pt-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: ptShimmer 1.3s ease infinite; }
+
+    .pt-pager { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-top: 1.5rem; }
+    .pt-pager-text { font-size: 0.85rem; color: #6b7280; }
+    .pt-pager-text strong { color: #1f2328; }
+    .pt-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .pt-page:hover:not(:disabled) { background: #f3f4f6; }
+    .pt-page.on { background: #ffc107; color: #1f2328; }
+    .pt-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .pt-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .pt-btn:focus-visible, .pt-tab:focus-visible, .pt-icon-btn:focus-visible, .pt-menu-item:focus-visible, .pt-page:focus-visible, .pt-photo:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .pt-title { font-size: 1.45rem; }
+      .pt-sub { font-size: 0.85rem; }
+      .pt-grid { grid-template-columns: 1fr; gap: 0.85rem; }
+      .pt-card { padding: 0.95rem; }
+      .pt-photo { width: 56px; height: 56px; }
+      .pt-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+      .pt-tab { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pt-anim, .pt-menu, .pt-toast, .pt-skel { animation: none !important; }
+      .pt-card, .pt-btn { transition: none !important; }
+    }
   `;
 
   const fetchOwnerId = async () => {
@@ -899,1102 +1037,417 @@ const handleRegisterPet = async (e) => {
     }
   };
 
+  const formatShortDate = (value) => {
+    if (!value) return '—';
+    const d = new Date(String(value).replace(' ', 'T'));
+    return isNaN(d) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const isSterilized = (pet) => pet.sterilized === 1 || pet.sterilized === true || pet.sterilized === '1';
+
+  // Shared pager for the three tabs
+  const renderPager = (page, setPage, total) => {
+    const totalPages = Math.ceil(total / itemsPerPage);
+    if (totalPages <= 1) return null;
+    let start = Math.max(1, page - 1);
+    const end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    const pages = [];
+    for (let i = start; i <= end; i++) pages.push(i);
+    return (
+      <div className="pt-pager pet-pagination">
+        <span className="pt-pager-text">
+          Showing <strong>{(page - 1) * itemsPerPage + 1}–{Math.min(page * itemsPerPage, total)}</strong> of {total}
+        </span>
+        <div className="d-flex align-items-center gap-1">
+          <button type="button" className="pt-page nav" onClick={() => setPage(Math.max(page - 1, 1))} disabled={page === 1} aria-label="Previous page">
+            <i className="fas fa-chevron-left" />
+          </button>
+          {pages.map(n => (
+            <button key={n} type="button" className={`pt-page${n === page ? ' on' : ''}`} onClick={() => setPage(n)} aria-current={n === page ? 'page' : undefined}>{n}</button>
+          ))}
+          <button type="button" className="pt-page nav" onClick={() => setPage(Math.min(page + 1, totalPages))} disabled={page === totalPages} aria-label="Next page">
+            <i className="fas fa-chevron-right" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEmpty = (icon, title, text, action) => (
+    <div className="pt-empty pt-anim">
+      <div className="ic"><i className={`fas ${icon}`} /></div>
+      <h5>{title}</h5>
+      <p>{text}</p>
+      {action}
+    </div>
+  );
+
+  const renderSkeleton = () => (
+    <div className="pt-grid">
+      {Array.from({ length: 3 }, (_, i) => (
+        <div key={i} className="pt-card pt-skel-card" style={{ opacity: 1 - i * 0.2 }}>
+          <div className="d-flex gap-3 align-items-center mb-3">
+            <div className="pt-skel" style={{ width: 64, height: 64, borderRadius: 14 }} />
+            <div className="flex-grow-1">
+              <div className="pt-skel mb-2" style={{ width: '60%', height: 14 }} />
+              <div className="pt-skel" style={{ width: '40%', height: 10 }} />
+            </div>
+          </div>
+          <div className="pt-skel mb-2" style={{ height: 60 }} />
+          <div className="pt-skel" style={{ width: '50%', height: 10 }} />
+        </div>
+      ))}
+    </div>
+  );
+
+  const tabs = [
+    { key: 'active',   label: 'Active',   icon: 'fa-paw',     count: pets.length },
+    { key: 'archived', label: 'Archived', icon: 'fa-archive', count: archivedPets.length },
+    { key: 'trash',    label: 'Trash',    icon: 'fa-trash-alt', count: trashedPets.length },
+  ];
+
+  const switchTab = (key) => {
+    if (key === activeTab) return;
+    setShowDropdown(null);
+    setActiveTab(key);
+    if (key === 'active') setCurrentPage(1);
+    if (key === 'archived') { setArchivePage(1); loadArchived(); }
+    if (key === 'trash') { setTrashPage(1); loadTrash(); }
+  };
+
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
-      <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <div className="d-flex align-items-center" style={{ gap: '0.75rem' }}>
-                <i 
-                  className="fas fa-paw" 
-                  style={{ 
-                    fontSize: '1.5rem', 
-                    color: '#000000',
-                    animation: 'float 3s ease-in-out infinite'
-                  }}
-                ></i>
-                <h2 className="mobile-page-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: '0' }}>My Pets</h2>
-                {/* Tab Dropdown */}
-                <div style={{ position: 'relative' }}>
-                  <button
-                    onClick={() => setShowDropdown(showDropdown === 'tab' ? null : 'tab')}
-                    style={{
-                      background: activeTab === 'trash' ? '#dc3545' : activeTab === 'archived' ? '#856404' : '#f0f0f0',
-                      border: 'none',
-                      borderRadius: '20px',
-                      padding: '0.3rem 0.85rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem',
-                      fontSize: '0.82rem',
-                      fontWeight: '700',
-                      color: activeTab === 'trash' || activeTab === 'archived' ? '#fff' : '#555',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    {activeTab === 'active' ? (
-                      <><i className="fas fa-check-circle" style={{ color: '#198754' }}></i> Active</>
-                    ) : activeTab === 'archived' ? (
-                      <><i className="fas fa-archive"></i> Archived {archivedPets.length > 0 && <span style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '10px', padding: '0 5px' }}>{archivedPets.length}</span>}</>
-                    ) : (
-                      <><i className="fas fa-trash"></i> Trash {trashedPets.length > 0 && <span style={{ background: 'rgba(255,255,255,0.3)', borderRadius: '10px', padding: '0 5px' }}>{trashedPets.length}</span>}</>
-                    )}
-                    <i className="fas fa-chevron-down" style={{ fontSize: '0.65rem', opacity: 0.7 }}></i>
-                  </button>
-
-                  {showDropdown === 'tab' && (
-                    <>
-                      <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
-                      <div style={{
-                        position: 'absolute',
-                        top: '110%',
-                        left: 0,
-                        background: '#fff',
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '12px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                        minWidth: '150px',
-                        zIndex: 1000,
-                        overflow: 'hidden'
-                      }}>
-                        <button
-                          onClick={() => { setActiveTab('active'); setShowDropdown(null); setCurrentPage(1); }}
-                          style={{
-                            width: '100%', padding: '0.75rem 1rem', border: 'none',
-                            background: activeTab === 'active' ? '#f0fdf4' : '#fff',
-                            textAlign: 'left', cursor: 'pointer', display: 'flex',
-                            alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem',
-                            color: activeTab === 'active' ? '#198754' : '#333',
-                            fontWeight: activeTab === 'active' ? '700' : '500'
-                          }}
-                        >
-                          <i className="fas fa-check-circle" style={{ color: '#198754', width: '16px' }}></i>
-                          Active
-                          <span style={{ marginLeft: 'auto', background: '#e8f5e9', color: '#198754', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: '700' }}>{pets.length}</span>
-                        </button>
-                        <button
-                          onClick={() => { setActiveTab('archived'); setShowDropdown(null); setArchivePage(1); loadArchived(); }}
-                          style={{
-                            width: '100%', padding: '0.75rem 1rem', border: 'none',
-                            borderTop: '1px solid #f0f0f0',
-                            background: activeTab === 'archived' ? '#fff8e1' : '#fff',
-                            textAlign: 'left', cursor: 'pointer', display: 'flex',
-                            alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem',
-                            color: activeTab === 'archived' ? '#856404' : '#333',
-                            fontWeight: activeTab === 'archived' ? '700' : '500'
-                          }}
-                        >
-                          <i className="fas fa-archive" style={{ color: '#856404', width: '16px' }}></i>
-                          Archived
-                          {archivedPets.length > 0 && (
-                            <span style={{ marginLeft: 'auto', background: '#fff3cd', color: '#856404', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: '700' }}>{archivedPets.length}</span>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => { setActiveTab('trash'); setShowDropdown(null); setTrashPage(1); loadTrash(); }}
-                          style={{
-                            width: '100%', padding: '0.75rem 1rem', border: 'none',
-                            borderTop: '1px solid #f0f0f0',
-                            background: activeTab === 'trash' ? '#fff5f5' : '#fff',
-                            textAlign: 'left', cursor: 'pointer', display: 'flex',
-                            alignItems: 'center', gap: '0.6rem', fontSize: '0.88rem',
-                            color: activeTab === 'trash' ? '#dc3545' : '#333',
-                            fontWeight: activeTab === 'trash' ? '700' : '500'
-                          }}
-                        >
-                          <i className="fas fa-trash" style={{ color: '#dc3545', width: '16px' }}></i>
-                          Trash
-                          {trashedPets.length > 0 && (
-                            <span style={{ marginLeft: 'auto', background: '#fde8e8', color: '#dc3545', borderRadius: '10px', padding: '1px 8px', fontSize: '0.75rem', fontWeight: '700' }}>{trashedPets.length}</span>
-                          )}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              
-            </div>
-            {pets.length > 0 && (
-              <Button 
-                onClick={handleOpenRegisterModal} 
-                className="border-0"
-                style={{
-                  background: '#ffc107',
-                  color: '#000000',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  fontWeight: '700',
-                  boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)',
-                  transition: 'all 0.3s'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-                  e.target.style.background = '#ffb300';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-                  e.target.style.background = '#ffc107';
-                }}
-              >
-                <i className="fas fa-plus me-2"></i>
-                Register Pet
-              </Button>
-            )}
+        {/* Header */}
+        <div className="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4 pt-anim">
+          <div>
+            <h2 className="pt-title mobile-page-title">My Pets</h2>
+            <p className="pt-sub">Register your pets and keep their health records in one place.</p>
           </div>
-        </Col>
-      </Row>
-
-      {error && (
-        <Row className="mb-4">
-          <Col>
-            <Alert 
-              variant="danger" 
-              dismissible 
-              onClose={() => setError('')}
-              style={{
-                borderRadius: '12px',
-                border: '2px solid #dc3545',
-                background: 'rgba(220, 53, 69, 0.1)',
-                color: '#dc3545'
-              }}
-            >
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
-          </Col>
-        </Row>
-      )}
-
-      {updateSuccess && (
-        <div style={{
-          position: 'fixed',
-          top: '24px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 99999,
-          minWidth: '320px',
-          maxWidth: '480px',
-          animation: 'dropDown 0.4s ease-out',
-          pointerEvents: 'auto'
-        }}>
-          <Alert
-            variant="success"
-            dismissible
-            onClose={() => setUpdateSuccess('')}
-            style={{
-              borderRadius: '14px',
-              border: '2px solid #198754',
-              background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-              color: '#fff',
-              fontWeight: '600',
-              boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '1rem 1.25rem',
-              marginBottom: 0
-            }}
-          >
-            <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-            <div>
-              <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
-              <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{updateSuccess}</div>
-            </div>
-          </Alert>
+          {pets.length > 0 && activeTab === 'active' && (
+            <button type="button" className="pt-btn primary lg" onClick={handleOpenRegisterModal}>
+              <i className="fas fa-plus" />Register pet
+            </button>
+          )}
         </div>
-      )}
 
-            {loading ? (
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards', flex: '1 1 auto' }}>
-          <Col className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
-            <Spinner animation="border" style={{ color: '#ffc107', width: '3rem', height: '3rem' }} />
-          </Col>
-        </Row>
-      ) : pets.length === 0 ? (
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards', flex: '1 1 auto' }}>
-          <Col>
-            <Card 
-              className="text-center py-5 border-0"
-              style={{
-                borderRadius: '20px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                background: '#ffffff'
-              }}
+        {/* Tabs */}
+        <div className="pt-tabs mb-4 pt-anim" style={{ '--d': '0.05s' }} role="tablist">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === t.key}
+              className={`pt-tab ${t.key}${activeTab === t.key ? ' on' : ''}`}
+              onClick={() => switchTab(t.key)}
             >
-              <Card.Body>
-                <i className="fas fa-paw text-muted mb-4" style={{ fontSize: '4rem' }}></i>
-                <h4 className="text-muted mb-3">No Pets Registered Yet</h4>
-                <p className="text-muted mb-4">
-                  Start by registering your first pet to track their health and vaccination records.
-                </p>
-                <Button 
-                  onClick={handleOpenRegisterModal} 
-                  size="lg"
-                  className="border-0"
-                  style={{
-                    background: '#ffc107',
-                    color: '#000000',
-                    padding: '0.875rem 2rem',
-                    borderRadius: '12px',
-                    fontWeight: '700',
-                    boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)',
-                    transition: 'all 0.3s'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-                    e.target.style.background = '#ffb300';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-                    e.target.style.background = '#ffc107';
-                  }}
-                >
-                  <i className="fas fa-plus me-2"></i>
-                  Register Your First Pet
-                </Button>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      ) : (
-        <>
-        {activeTab === 'active' && 
-                <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
-          {pets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((pet, index) => (
-<Col key={pet.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + (index * 0.1)}s backwards` }}>              
-<Card 
-                className="h-100 border-0" 
-                style={{ 
-                  position: 'relative',
-                  borderRadius: '20px',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                  transition: 'all 0.3s',
-                  overflow: 'hidden'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-5px)';
-                  e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.15)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
-                }}
-              >
-                <div style={{ position: 'absolute', top: '15px', right: '15px', zIndex: 10 }}>
-                  <button
-                    onClick={() => setShowDropdown(showDropdown === pet.id ? null : pet.id)}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      borderRadius: '50%',
-                      padding: '0.5rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    onMouseOver={(e) => e.target.style.background = 'rgba(0,0,0,0.05)'}
-                    onMouseOut={(e) => e.target.style.background = 'transparent'}
-                  >
-                    <img 
-                      src="/ellipsis.png" 
-                      alt="Menu"
-                      style={{ width: '20px', height: '20px', objectFit: 'contain' }}
-                    />
-                  </button>
-                  
-                  {showDropdown === pet.id && (
-                    <>
-                      <div
-                        onClick={() => setShowDropdown(null)}
-                        style={{
-                          position: 'fixed',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          zIndex: 999
-                        }}
-                      />
-                      
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          right: 0,
-                          marginTop: '0.5rem',
-                          background: '#ffffff',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '12px',
-                          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                          minWidth: '160px',
-                          zIndex: 1000,
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <button
-                          onClick={() => {
-                            setShowDropdown(null);
-                            loadPetDetails(pet.id);
-                          }}
-                          disabled={detailsLoading}
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            border: 'none',
-                            background: '#ffffff',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            fontSize: '0.9rem',
-                            color: '#333333',
-                            fontWeight: '500',
-                            transition: 'background 0.2s'
-                          }}
-                          onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-                          onMouseOut={(e) => e.target.style.background = '#ffffff'}
+              <i className={`fas ${t.icon}`} />
+              {t.label}
+              <span className="count">{t.count}</span>
+            </button>
+          ))}
+        </div>
+
+        {error && (
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2"></i>
+            {error}
+          </Alert>
+        )}
+
+        {updateSuccess && (
+          <div className="pt-toast" role="status">
+            <div className="ic"><i className="fas fa-check" /></div>
+            <div className="flex-grow-1">
+              <div className="t">Success</div>
+              <div className="d">{updateSuccess}</div>
+            </div>
+            <button type="button" className="pt-toast-close" onClick={() => setUpdateSuccess('')} aria-label="Close">
+              <i className="fas fa-times" />
+            </button>
+          </div>
+        )}
+
+        {/* ===== ACTIVE VIEW ===== */}
+        {activeTab === 'active' && (
+          loading ? renderSkeleton() : pets.length === 0 ? (
+            renderEmpty(
+              'fa-paw',
+              'No pets registered yet',
+              'Register your first pet to keep track of its vaccinations and other health records.',
+              <button type="button" className="pt-btn primary lg" onClick={handleOpenRegisterModal}>
+                <i className="fas fa-plus" />Register your first pet
+              </button>
+            )
+          ) : (
+            <>
+              <div className="pt-grid" style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
+                {pets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((pet, index) => {
+                  const hasRecords = checkPetHasRecords(pet);
+                  const withCard = hasVetCard(pet.id);
+                  const menuOpen = showDropdown === pet.id;
+                  return (
+                    <div key={pet.id} className={`pt-card pt-anim${menuOpen ? ' raised' : ''}`} style={{ '--d': `${0.08 + index * 0.06}s` }}>
+                      {/* Top: photo, name, menu */}
+                      <div className="pt-top">
+                        <div
+                          className="pt-photo"
+                          role="button"
+                          tabIndex={0}
+                          title="View photo"
+                          onClick={() => setPhotoPreview({
+                            url: getPetImage(pet.species, pet.photo_url),
+                            species: pet.species,
+                            petId: pet.id,
+                            hasPhoto: !!pet.photo_url
+                          })}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.click(); }}
                         >
-                          <img 
-                            src="/view.png" 
-                            alt="View"
-                            style={{ width: '18px', height: '18px', objectFit: 'contain' }}
+                          <img
+                            src={getPetImage(pet.species, pet.photo_url)}
+                            alt={pet.name}
+                            onError={(e) => e.target.src = '/pet-default.png'}
                           />
-                          <span>View Details</span>
-                        </button>
+                          <div className="pt-photo-hover"><i className="fas fa-expand-alt" /></div>
+                          <div className="pt-photo-cam"><i className="fas fa-camera" /></div>
+                          {photoUploading && (
+                            <div className="pt-photo-busy"><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
+                          )}
+                        </div>
 
-                        {hasVetCard(pet.id) && (
-                          <button
-                            onClick={() => {
-                              setShowDropdown(null);
-                              handleViewVetCard(pet.id);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              border: 'none',
-                              background: '#ffffff',
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.75rem',
-                              fontSize: '0.9rem',
-                              color: '#333333',
-                              fontWeight: '500',
-                              borderTop: '1px solid #f0f0f0',
-                              transition: 'background 0.2s'
-                            }}
-                            onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-                            onMouseOut={(e) => e.target.style.background = '#ffffff'}
-                          >
-                            <i className="fas fa-id-card" style={{ width: '18px', textAlign: 'center', color: '#4361ee' }}></i>
-                            <span>View Vet Card</span>
-                          </button>
-                        )}
-                        
-                        {/* Archive */}
-                        <button
-                          onClick={() => {
-                            setShowDropdown(null);
-                            handleArchivePet(pet);
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '0.75rem 1rem',
-                            border: 'none',
-                            background: '#ffffff',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            fontSize: '0.9rem',
-                            color: '#856404',
-                            fontWeight: '500',
-                            borderTop: '1px solid #f0f0f0',
-                            transition: 'background 0.2s'
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.background = '#fff8e1'}
-                          onMouseOut={(e) => e.currentTarget.style.background = '#ffffff'}
-                        >
-                          <i className="fas fa-archive" style={{ width: '18px', textAlign: 'center', color: '#856404' }}></i>
-                          <span>Archive Pet</span>
-                        </button>
-
-                        {/* Only show Edit button if pet has NO records */}
-                        {!checkPetHasRecords(pet) && (
-                          <button
-                            onClick={() => {
-                              setShowDropdown(null);
-                              handleEditPet(pet);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              border: 'none',
-                              background: '#ffffff',
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.75rem',
-                              fontSize: '0.9rem',
-                              color: '#333333',
-                              fontWeight: '500',
-                              borderTop: '1px solid #f0f0f0',
-                              transition: 'background 0.2s'
-                            }}
-                            onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-                            onMouseOut={(e) => e.target.style.background = '#ffffff'}
-                          >
-                            <img 
-                              src="/edit(1).png" 
-                              alt="Edit"
-                              style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-                            />
-                            <span>Edit Info</span>
-                          </button>
-                        )}
-                        
-                        {/* Show info message if pet has records */}
-                        {checkPetHasRecords(pet) && (
-                          <div
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              borderTop: '1px solid #f0f0f0',
-                              background: '#fff9e6',
-                              fontSize: '0.8rem',
-                              color: '#856404',
-                              lineHeight: '1.4'
-                            }}
-                          >
-                            <i className="fas fa-info-circle me-1"></i>
-                            <span>Cannot edit: Pet has existing records</span>
+                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                          <div className="pt-name mobile-pet-name" title={pet.name}>{pet.name}</div>
+                          <div className="pt-reg mobile-pet-reg">
+                            <i className="fas fa-hashtag" />{pet.registration_number}
                           </div>
-                        )}
-                        
-                        {!checkPetHasRecords(pet) ? (
-                          <button
-                            onClick={() => {
-                              setShowDropdown(null);
-                              handleDeletePet(pet);
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              border: 'none',
-                              background: '#ffffff',
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.75rem',
-                              fontSize: '0.9rem',
-                              color: '#dc3545',
-                              fontWeight: '500',
-                              borderTop: '1px solid #f0f0f0',
-                              transition: 'background 0.2s'
-                            }}
-                            onMouseOver={(e) => e.target.style.background = '#fff5f5'}
-                            onMouseOut={(e) => e.target.style.background = '#ffffff'}
-                          >
-                            <img 
-                              src="/remove.png" 
-                              alt="Delete"
-                              style={{ width: '18px', height: '18px', objectFit: 'contain' }}
-                            />
-                            <span>Remove Pet</span>
-                          </button>
-                        ) : (
-                          <div
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem 1rem',
-                              borderTop: '1px solid #f0f0f0',
-                              background: '#fff5f5',
-                              fontSize: '0.8rem',
-                              color: '#dc3545',
-                              lineHeight: '1.4'
-                            }}
-                          >
-                            <i className="fas fa-lock me-1"></i>
-                            <span>Cannot remove: Pet has existing records</span>
+                          <div className="pt-breed">
+                            <span className="text-capitalize">{pet.species}</span>
+                            <span className="dot">·</span>
+                            {pet.breed || 'Mixed'}
                           </div>
+                        </div>
+
+                        {/* Menu */}
+                        <div style={{ position: 'relative', alignSelf: 'flex-start' }}>
+                          <button
+                            type="button"
+                            className={`pt-icon-btn${menuOpen ? ' on' : ''}`}
+                            onClick={() => setShowDropdown(menuOpen ? null : pet.id)}
+                            aria-label={`More options for ${pet.name}`}
+                            aria-expanded={menuOpen}
+                          >
+                            <i className="fas fa-ellipsis-v" />
+                          </button>
+
+                          {menuOpen && (
+                            <>
+                              <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+                              <div className="pt-menu" role="menu">
+                                <button type="button" role="menuitem" className="pt-menu-item" disabled={detailsLoading}
+                                  onClick={() => { setShowDropdown(null); loadPetDetails(pet.id); }}>
+                                  <i className="fas fa-eye" />View details
+                                </button>
+                                {withCard && (
+                                  <button type="button" role="menuitem" className="pt-menu-item"
+                                    onClick={() => { setShowDropdown(null); handleViewVetCard(pet.id); }}>
+                                    <i className="fas fa-id-card" />View vet card
+                                  </button>
+                                )}
+                                {!hasRecords && (
+                                  <button type="button" role="menuitem" className="pt-menu-item"
+                                    onClick={() => { setShowDropdown(null); handleEditPet(pet); }}>
+                                    <i className="fas fa-pen" />Edit info
+                                  </button>
+                                )}
+                                <div className="pt-menu-sep" />
+                                <button type="button" role="menuitem" className="pt-menu-item warn"
+                                  onClick={() => { setShowDropdown(null); handleArchivePet(pet); }}>
+                                  <i className="fas fa-archive" />Archive pet
+                                </button>
+                                {!hasRecords ? (
+                                  <button type="button" role="menuitem" className="pt-menu-item danger"
+                                    onClick={() => { setShowDropdown(null); handleDeletePet(pet); }}>
+                                    <i className="fas fa-trash-alt" />Remove pet
+                                  </button>
+                                ) : (
+                                  <div className="pt-menu-note">
+                                    <i className="fas fa-lock" />
+                                    This pet has health records, so it can't be edited or removed.
+                                  </div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status chips */}
+                      <div className="pt-chips">
+                        <span className={`pt-chip ${withCard ? 'green' : 'grey'}`}>
+                          <i className={`fas ${withCard ? 'fa-id-card' : 'fa-id-card'}`} />{withCard ? 'Vet card' : 'No vet card'}
+                        </span>
+                        {isSterilized(pet) && (
+                          <span className="pt-chip teal"><i className="fas fa-cut" />{getSterilizationLabel(pet.gender)}</span>
+                        )}
+                        {pet.microchip_number && (
+                          <span className="pt-chip pink"><i className="fas fa-microchip" />Microchipped</span>
                         )}
                       </div>
-                    </>
-                  )}
-                </div>
 
-                <Card.Header 
-                  className="d-flex align-items-center justify-content-between"
-                  style={{
-                    background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                    borderBottom: '2px solid #ffc107',
-                    paddingRight: '3.5rem',
-                    borderRadius: '20px 20px 0 0'
-                  }}
-                >
-                  <div className="d-flex align-items-center flex-grow-1">
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: '70px',
-                        height: '70px',
-                        borderRadius: '15px',
-                        background: '#ffffff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginRight: '1rem',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                        cursor: 'pointer',
-                        overflow: 'hidden',
-                        flexShrink: 0
-                      }}
-                      onClick={() => setPhotoPreview({
-                        url: getPetImage(pet.species, pet.photo_url),
-                        species: pet.species,
-                        petId: pet.id,
-                        hasPhoto: !!pet.photo_url
-                      })}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.querySelector('.photo-overlay').style.opacity = '1';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.querySelector('.photo-overlay').style.opacity = '0';
-                      }}
-                    >
-                      <img
-                        src={getPetImage(pet.species, pet.photo_url)}
-                        alt={pet.species}
-                        style={{
-                          width: '70px',
-                          height: '70px',
-                          objectFit: 'cover',
-                          borderRadius: '15px'
-                        }}
-                        onError={(e) => e.target.src = '/pet-default.png'}
-                      />
-                      {/* Hover maximize overlay */}
-                      <div
-                        className="photo-overlay"
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'rgba(0,0,0,0.45)',
-                          borderRadius: '15px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          opacity: 0,
-                          transition: 'opacity 0.2s',
-                          gap: '2px'
-                        }}
-                      >
-                        <i className="fas fa-expand-alt" style={{ color: '#fff', fontSize: '1rem' }}></i>
-                        <span style={{ color: '#fff', fontSize: '0.45rem', fontWeight: '600', letterSpacing: '0.3px' }}>VIEW</span>
+                      {/* Details */}
+                      <div className="pt-info mobile-pet-body">
+                        <div>
+                          <div className="k mobile-pet-label">Gender</div>
+                          <div className="v text-capitalize mobile-pet-value">{pet.gender || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="k mobile-pet-label">Age</div>
+                          <div className="v mobile-pet-value">{calculateAge(pet.birth_date)}</div>
+                        </div>
+                        <div>
+                          <div className="k mobile-pet-label">Color</div>
+                          <div className="v mobile-pet-value">{pet.color || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="k mobile-pet-label">Vaccinations</div>
+                          <div className="v mobile-pet-value">
+                            {pet.vaccination_count || 0} record{Number(pet.vaccination_count) === 1 ? '' : 's'}
+                          </div>
+                        </div>
                       </div>
-                      {/* Bottom-right edit icon */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: '4px',
-                          right: '4px',
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#ffc107',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                          zIndex: 2
-                        }}
-                      >
-                        <i className="fas fa-camera" style={{ color: '#000', fontSize: '0.55rem' }}></i>
-                      </div>
-                      {photoUploading && (
-                        <div style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'rgba(255,255,255,0.7)',
-                          borderRadius: '15px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <Spinner animation="border" size="sm" style={{ color: '#ffc107' }} />
+
+                      {pet.last_vaccination_date && (
+                        <div className="pt-last">
+                          <i className="fas fa-syringe" />
+                          Last vaccination: <strong>{formatShortDate(pet.last_vaccination_date)}</strong>
                         </div>
                       )}
-                    </div>
-                    <div className="flex-grow-1">
-                      <h5 className="mb-1" style={{ fontWeight: '700', color: '#333333' }}>{pet.name}</h5>
-                      <small className="text-muted" style={{ fontSize: '0.85rem' }}>
-                        <i className="fas fa-id-card me-1"></i>
-                        {pet.registration_number}
-                      </small>
-                    </div>
-                  </div>
-                  <div>
-                    {getVetCardBadge(pet)}
-                  </div>
-                </Card.Header>
-                
-                <Card.Body style={{ padding: '1.5rem' }}>
-                  <Row className="mb-3">
-                    <Col xs={6}>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <small style={{ color: '#999999', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Species</small>
-                      </div>
-                      <span className="text-capitalize" style={{ fontWeight: '600', color: '#333333' }}>{pet.species}</span>
-                    </Col>
-                    <Col xs={6}>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <small style={{ color: '#999999', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Breed</small>
-                      </div>
-                      <span style={{ fontWeight: '600', color: '#333333' }}>{pet.breed || 'Mixed'}</span>
-                    </Col>
-                  </Row>
-                  
-                  <Row className="mb-3">
-                    <Col xs={6}>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <small style={{ color: '#999999', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Gender</small>
-                      </div>
-                      <span className="text-capitalize" style={{ fontWeight: '600', color: '#333333' }}>{pet.gender}</span>
-                    </Col>
-                    <Col xs={6}>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <small style={{ color: '#999999', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Age</small>
-                      </div>
-                      <span style={{ fontWeight: '600', color: '#333333' }}>{calculateAge(pet.birth_date)}</span>
-                    </Col>
-                  </Row>
 
-                  {pet.color && (
-                    <Row className="mb-3">
-                      <Col>
-                        <div style={{ marginBottom: '0.5rem' }}>
-                          <small style={{ color: '#999999', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Color</small>
-                        </div>
-                        <span style={{ fontWeight: '600', color: '#333333' }}>{pet.color}</span>
-                      </Col>
-                    </Row>
-                  )}
-
-                  <Row className="mb-3">
-                    <Col>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <small style={{ color: '#999999', fontWeight: '600', fontSize: '0.75rem', textTransform: 'uppercase' }}>Vaccinations</small>
-                      </div>
-                      <div>
-                        <span style={{ fontWeight: '600', color: '#333333' }}>{pet.vaccination_count || 0} record(s)</span>
-                        {pet.last_vaccination_date && pet.last_vaccination_date !== null && (
-                          <div className="mt-1">
-                            <small className="text-muted">
-                              <i className="fas fa-calendar-check me-1"></i>
-                              Last: {(() => {
-                                try {
-                                  const date = new Date(pet.last_vaccination_date);
-                                  return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleDateString();
-                                } catch (error) {
-                                  return 'Invalid date';
-                                }
-                              })()}
-                            </small>
-                          </div>
-                        )}
-                      </div>
-                    </Col>
-                  </Row>
-
-                  
-
-                  <Row>
-                    <Col>
-                      <small className="text-muted">
-                        <i className="fas fa-calendar me-1"></i>
-                        Registered: {new Date(pet.created_at).toLocaleDateString()}
-                      </small>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        {/* Pagination */}
-        {activeTab === 'active' && pets.length > itemsPerPage && (
-          <Row className="mt-4 pet-pagination">
-            <Col className="d-flex justify-content-between align-items-center">
-              <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{Math.ceil(pets.length / itemsPerPage)}</strong>
-              </span>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  style={{
-                    background: currentPage === 1 ? '#e9ecef' : '#ffffff',
-                    border: '2px solid #dee2e6',
-                    borderRadius: '8px',
-                    padding: '0.5rem 0.75rem',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    fontWeight: '600',
-                    color: currentPage === 1 ? '#adb5bd' : '#333333',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => {
-                    if (currentPage !== 1) {
-                      e.target.style.background = '#f8f9fa';
-                      e.target.style.borderColor = '#ffc107';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (currentPage !== 1) {
-                      e.target.style.background = '#ffffff';
-                      e.target.style.borderColor = '#dee2e6';
-                    }
-                  }}
-                >
-                  <i className="fas fa-chevron-left"></i>
-                </button>
-
-                {(() => {
-                  const totalPages = Math.ceil(pets.length / itemsPerPage);
-                  const pages = [];
-                  
-                  if (totalPages <= 3) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    let start = Math.max(1, currentPage - 1);
-                    let end = Math.min(totalPages, start + 2);
-                    if (end - start < 2) start = Math.max(1, end - 2);
-                    
-                    for (let i = start; i <= end; i++) pages.push(i);
-                    
-                  }
-
-                  return pages.map((page, idx) => {
-                    if (page === '...') {
-                      return (
-                        <span
-                          key={`ellipsis-${idx}`}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            color: '#6c757d',
-                            fontWeight: '600'
-                          }}
-                        >
-                          ...
+                      {/* Footer */}
+                      <div className="pt-foot mobile-pet-footer">
+                        <span className="pt-muted">
+                          <i className="far fa-calendar me-1" />Registered {formatShortDate(pet.created_at)}
                         </span>
-                      );
-                    }
-
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        style={{
-                          background: currentPage === page ? '#ffc107' : '#ffffff',
-                          border: '2px solid',
-                          borderColor: currentPage === page ? '#ffc107' : '#dee2e6',
-                          borderRadius: '8px',
-                          padding: '0.5rem 0.75rem',
-                          minWidth: '40px',
-                          cursor: 'pointer',
-                          fontWeight: '700',
-                          color: currentPage === page ? '#000000' : '#333333',
-                          transition: 'all 0.2s',
-                          boxShadow: currentPage === page ? '0 2px 8px rgba(255, 193, 7, 0.3)' : 'none'
-                        }}
-                        onMouseOver={(e) => {
-                          if (currentPage !== page) {
-                            e.target.style.background = '#f8f9fa';
-                            e.target.style.borderColor = '#ffc107';
-                          }
-                        }}
-                        onMouseOut={(e) => {
-                          if (currentPage !== page) {
-                            e.target.style.background = '#ffffff';
-                            e.target.style.borderColor = '#dee2e6';
-                          }
-                        }}
-                      >
-                        {page}
-                      </button>
-                    );
-                  });
-                })()}
-
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(pets.length / itemsPerPage)))}
-                  disabled={currentPage === Math.ceil(pets.length / itemsPerPage)}
-                  style={{
-                    background: currentPage === Math.ceil(pets.length / itemsPerPage) ? '#e9ecef' : '#ffffff',
-                    border: '2px solid #dee2e6',
-                    borderRadius: '8px',
-                    padding: '0.5rem 0.75rem',
-                    cursor: currentPage === Math.ceil(pets.length / itemsPerPage) ? 'not-allowed' : 'pointer',
-                    fontWeight: '600',
-                    color: currentPage === Math.ceil(pets.length / itemsPerPage) ? '#adb5bd' : '#333333',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => {
-                    if (currentPage !== Math.ceil(pets.length / itemsPerPage)) {
-                      e.target.style.background = '#f8f9fa';
-                      e.target.style.borderColor = '#ffc107';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (currentPage !== Math.ceil(pets.length / itemsPerPage)) {
-                      e.target.style.background = '#ffffff';
-                      e.target.style.borderColor = '#dee2e6';
-                    }
-                  }}
-                >
-                  <i className="fas fa-chevron-right"></i>
-                </button>
-              </div>
-            </Col>
-          </Row>
-        )}
-        </Row>}
-        </>
-      )}
-
-      {/* ===== ARCHIVED VIEW ===== */}
-      {activeTab === 'archived' && (
-        <>
-          {archiveLoading ? (
-            <Row style={{ flex: '1 1 auto' }}>
-              <Col className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
-                <Spinner animation="border" style={{ color: '#856404', width: '3rem', height: '3rem' }} />
-              </Col>
-            </Row>
-          ) : archivedPets.length === 0 ? (
-            <Row style={{ flex: '1 1 auto' }}>
-              <Col>
-                <Card className="text-center py-5 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-                  <Card.Body>
-                    <i className="fas fa-archive text-muted mb-3" style={{ fontSize: '3.5rem', color: '#e0e0e0' }}></i>
-                    <h4 className="text-muted mb-2">No Archived Pets</h4>
-                    <p className="text-muted mb-0">Archived pets will appear here. They remain inactive until unarchived.</p>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-          ) : (
-            <>
-              <div className="mb-3 px-1">
-                <small style={{ color: '#856404', fontWeight: '600' }}>
-                  <i className="fas fa-info-circle me-1"></i>
-                  Archived pets are inactive and hidden from active records. You can unarchive them anytime.
-                </small>
-              </div>
-              <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
-                {archivedPets.slice((archivePage - 1) * itemsPerPage, archivePage * itemsPerPage).map((pet, index) => (
-                  <Col key={pet.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + index * 0.08}s backwards` }}>
-                    <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(133,100,4,0.1)', opacity: 0.88, overflow: 'hidden' }}>
-                      <Card.Header className="d-flex align-items-center" style={{ background: 'linear-gradient(135deg, #fffbf0 0%, #fff3cd 100%)', borderBottom: '2px solid #856404', borderRadius: '20px 20px 0 0' }}>
-                        <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0, overflow: 'hidden' }}>
-                          <img src={getPetImage(pet.species, pet.photo_url)} alt={pet.species} style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '12px', filter: 'grayscale(40%)' }} onError={(e) => e.target.src = '/pet-default.png'} />
-                        </div>
-                        <div className="flex-grow-1">
-                          <h5 className="mb-0" style={{ fontWeight: '700', color: '#555' }}>{pet.name}</h5>
-                          <small className="text-muted" style={{ fontSize: '0.8rem' }}>
-                            <i className="fas fa-id-card me-1"></i>{pet.registration_number}
-                          </small>
-                        </div>
-                        <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem' }}>Archived</Badge>
-                      </Card.Header>
-                      <Card.Body style={{ padding: '1.25rem' }}>
-                        <Row className="mb-2">
-                          <Col xs={6}>
-                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Species</small>
-                            <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.species}</div>
-                          </Col>
-                          <Col xs={6}>
-                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Breed</small>
-                            <div style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.breed || 'Mixed'}</div>
-                          </Col>
-                        </Row>
-                        <Row className="mb-3">
-                          <Col xs={6}>
-                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Gender</small>
-                            <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.gender}</div>
-                          </Col>
-                          <Col xs={6}>
-                            <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Vaccinations</small>
-                            <div style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.vaccination_count || 0} record(s)</div>
-                          </Col>
-                        </Row>
-                        <button
-                          onClick={() => handleUnarchivePet(pet)}
-                          style={{ width: '100%', background: '#856404', border: 'none', borderRadius: '8px', padding: '0.55rem', color: '#fff', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                          onMouseOver={(e) => e.currentTarget.style.background = '#6d5203'}
-                          onMouseOut={(e) => e.currentTarget.style.background = '#856404'}
-                        >
-                          <i className="fas fa-box-open me-1"></i>Unarchive
+                        <button type="button" className="pt-btn ghost sm" disabled={detailsLoading} onClick={() => loadPetDetails(pet.id)}>
+                          View details<i className="fas fa-arrow-right" style={{ fontSize: '0.7rem' }} />
                         </button>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-              {archivedPets.length > itemsPerPage && (
-                <Row className="mt-4">
-                  <Col className="d-flex justify-content-between align-items-center">
-                    <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                      Page <strong>{archivePage}</strong> of <strong>{Math.ceil(archivedPets.length / itemsPerPage)}</strong>
-                    </span>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => setArchivePage(p => Math.max(p - 1, 1))} disabled={archivePage === 1} style={{ background: archivePage === 1 ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: archivePage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: archivePage === 1 ? '#adb5bd' : '#333' }}>
-                        <i className="fas fa-chevron-left"></i>
-                      </button>
-                      <button onClick={() => setArchivePage(p => Math.min(p + 1, Math.ceil(archivedPets.length / itemsPerPage)))} disabled={archivePage === Math.ceil(archivedPets.length / itemsPerPage)} style={{ background: archivePage === Math.ceil(archivedPets.length / itemsPerPage) ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: archivePage === Math.ceil(archivedPets.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontWeight: '600', color: archivePage === Math.ceil(archivedPets.length / itemsPerPage) ? '#adb5bd' : '#333' }}>
-                        <i className="fas fa-chevron-right"></i>
-                      </button>
+                      </div>
                     </div>
-                  </Col>
-                </Row>
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      {/* ===== TRASH VIEW ===== */}
-      {activeTab === 'trash' && (
-        <>
-          {trashLoading ? (
-            <Row style={{ flex: '1 1 auto' }}>
-              <Col className="d-flex justify-content-center align-items-center" style={{ minHeight: '300px' }}>
-                <Spinner animation="border" style={{ color: '#dc3545', width: '3rem', height: '3rem' }} />
-              </Col>
-            </Row>
-          ) : trashedPets.length === 0 ? (
-            <Row style={{ flex: '1 1 auto' }}>
-              <Col>
-                <Card className="text-center py-5 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-                  <Card.Body>
-                    <i className="fas fa-trash text-muted mb-3" style={{ fontSize: '3.5rem', color: '#e0e0e0' }}></i>
-                    <h4 className="text-muted mb-2">Trash is Empty</h4>
-                    <p className="text-muted mb-0">Removed pets will appear here for 30 days before being permanently deleted.</p>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-          ) : (
-            <>
-              <div className="mb-3 px-1">
-                <small style={{ color: '#dc3545', fontWeight: '600' }}>
-                  <i className="fas fa-info-circle me-1"></i>
-                  Pets in trash are automatically permanently deleted after 30 days.
-                </small>
-              </div>
-              <Row style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
-                {trashedPets.slice((trashPage - 1) * itemsPerPage, trashPage * itemsPerPage).map((pet, index) => {
-                  const daysLeft = getDaysUntilPermanentDelete(pet.deleted_at);
-                  return (
-                    <Col key={pet.id} lg={6} xl={4} className="mb-4" style={{ animation: `dropDown 0.4s ease-out ${0.1 + index * 0.08}s backwards` }}>
-                      <Card className="h-100 border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(220,53,69,0.1)', opacity: 0.88, overflow: 'hidden' }}>
-                        <Card.Header className="d-flex align-items-center" style={{ background: 'linear-gradient(135deg, #fff5f5 0%, #fde8e8 100%)', borderBottom: '2px solid #dc3545', borderRadius: '20px 20px 0 0' }}>
-                          <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0, overflow: 'hidden' }}>
-                            <img src={getPetImage(pet.species, pet.photo_url)} alt={pet.species} style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '12px', filter: 'grayscale(60%)' }} onError={(e) => e.target.src = '/pet-default.png'} />
-                          </div>
-                          <div className="flex-grow-1">
-                            <h5 className="mb-0" style={{ fontWeight: '700', color: '#555', textDecoration: 'line-through' }}>{pet.name}</h5>
-                            <small className="text-muted" style={{ fontSize: '0.8rem' }}>
-                              <i className="fas fa-id-card me-1"></i>{pet.registration_number}
-                            </small>
-                          </div>
-                          <Badge bg={daysLeft <= 5 ? 'danger' : daysLeft <= 10 ? 'warning' : 'secondary'} style={{ fontSize: '0.7rem' }}>
-                            {daysLeft}d left
-                          </Badge>
-                        </Card.Header>
-                        <Card.Body style={{ padding: '1.25rem' }}>
-                          <Row className="mb-2">
-                            <Col xs={6}>
-                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Species</small>
-                              <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.species}</div>
-                            </Col>
-                            <Col xs={6}>
-                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Breed</small>
-                              <div style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.breed || 'Mixed'}</div>
-                            </Col>
-                          </Row>
-                          <Row className="mb-3">
-                            <Col xs={6}>
-                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Gender</small>
-                              <div className="text-capitalize" style={{ fontWeight: '600', color: '#888', fontSize: '0.9rem' }}>{pet.gender}</div>
-                            </Col>
-                            <Col xs={6}>
-                              <small style={{ color: '#999', fontWeight: '600', fontSize: '0.7rem', textTransform: 'uppercase' }}>Deleted</small>
-                              <div style={{ fontWeight: '600', color: '#dc3545', fontSize: '0.82rem' }}>{pet.deleted_at ? new Date(pet.deleted_at).toLocaleDateString() : '—'}</div>
-                            </Col>
-                          </Row>
-                          <div className="d-flex gap-2">
-                            <button
-                              onClick={() => handleRestorePet(pet)}
-                              style={{ flex: 1, background: '#198754', border: 'none', borderRadius: '8px', padding: '0.55rem', color: '#fff', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                              onMouseOver={(e) => e.currentTarget.style.background = '#157347'}
-                              onMouseOut={(e) => e.currentTarget.style.background = '#198754'}
-                            >
-                              <i className="fas fa-undo me-1"></i>Restore
-                            </button>
-                            <button
-                              onClick={() => handleForceDeletePet(pet)}
-                              style={{ flex: 1, background: '#dc3545', border: 'none', borderRadius: '8px', padding: '0.55rem', color: '#fff', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s' }}
-                              onMouseOver={(e) => e.currentTarget.style.background = '#bb2d3b'}
-                              onMouseOut={(e) => e.currentTarget.style.background = '#dc3545'}
-                            >
-                              <i className="fas fa-times me-1"></i>Delete Forever
-                            </button>
-                          </div>
-                        </Card.Body>
-                      </Card>
-                    </Col>
                   );
                 })}
-              </Row>
-              {trashedPets.length > itemsPerPage && (
-                <Row className="mt-4">
-                  <Col className="d-flex justify-content-between align-items-center">
-                    <span style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                      Page <strong>{trashPage}</strong> of <strong>{Math.ceil(trashedPets.length / itemsPerPage)}</strong>
-                    </span>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => setTrashPage(p => Math.max(p - 1, 1))} disabled={trashPage === 1} style={{ background: trashPage === 1 ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: trashPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: trashPage === 1 ? '#adb5bd' : '#333' }}>
-                        <i className="fas fa-chevron-left"></i>
-                      </button>
-                      <button onClick={() => setTrashPage(p => Math.min(p + 1, Math.ceil(trashedPets.length / itemsPerPage)))} disabled={trashPage === Math.ceil(trashedPets.length / itemsPerPage)} style={{ background: trashPage === Math.ceil(trashedPets.length / itemsPerPage) ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: trashPage === Math.ceil(trashedPets.length / itemsPerPage) ? 'not-allowed' : 'pointer', fontWeight: '600', color: trashPage === Math.ceil(trashedPets.length / itemsPerPage) ? '#adb5bd' : '#333' }}>
-                        <i className="fas fa-chevron-right"></i>
+              </div>
+              {renderPager(currentPage, setCurrentPage, pets.length)}
+            </>
+          )
+        )}
+
+        {/* ===== ARCHIVED VIEW ===== */}
+        {activeTab === 'archived' && (
+          archiveLoading ? renderSkeleton() : archivedPets.length === 0 ? (
+            renderEmpty('fa-archive', 'No archived pets', 'Pets you archive will show here. You can bring them back anytime.')
+          ) : (
+            <>
+              <div className="pt-note warn pt-anim">
+                <i className="fas fa-info-circle" />
+                Archived pets are hidden from your active list. You can unarchive them anytime.
+              </div>
+              <div className="pt-grid" style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
+                {archivedPets.slice((archivePage - 1) * itemsPerPage, archivePage * itemsPerPage).map((pet, index) => (
+                  <div key={pet.id} className="pt-card muted pt-anim" style={{ '--d': `${0.08 + index * 0.06}s` }}>
+                    <div className="pt-top">
+                      <div className="pt-photo static">
+                        <img src={getPetImage(pet.species, pet.photo_url)} alt={pet.name} style={{ filter: 'grayscale(40%)' }} onError={(e) => e.target.src = '/pet-default.png'} />
+                      </div>
+                      <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                        <div className="pt-name" title={pet.name}>{pet.name}</div>
+                        <div className="pt-reg"><i className="fas fa-hashtag" />{pet.registration_number}</div>
+                        <div className="pt-breed"><span className="text-capitalize">{pet.species}</span><span className="dot">·</span>{pet.breed || 'Mixed'}</div>
+                      </div>
+                      <span className="pt-chip amber" style={{ alignSelf: 'flex-start' }}><i className="fas fa-archive" />Archived</span>
+                    </div>
+                    <div className="pt-info">
+                      <div>
+                        <div className="k">Gender</div>
+                        <div className="v text-capitalize">{pet.gender || '—'}</div>
+                      </div>
+                      <div>
+                        <div className="k">Vaccinations</div>
+                        <div className="v">{pet.vaccination_count || 0} record{Number(pet.vaccination_count) === 1 ? '' : 's'}</div>
+                      </div>
+                    </div>
+                    <div className="pt-foot">
+                      <span className="pt-muted"><i className="far fa-calendar me-1" />Registered {formatShortDate(pet.created_at)}</span>
+                      <button type="button" className="pt-btn amber sm" onClick={() => handleUnarchivePet(pet)}>
+                        <i className="fas fa-box-open" />Unarchive
                       </button>
                     </div>
-                  </Col>
-                </Row>
-              )}
+                  </div>
+                ))}
+              </div>
+              {renderPager(archivePage, setArchivePage, archivedPets.length)}
             </>
-          )}
-        </>
-      )}
+          )
+        )}
+
+        {/* ===== TRASH VIEW ===== */}
+        {activeTab === 'trash' && (
+          trashLoading ? renderSkeleton() : trashedPets.length === 0 ? (
+            renderEmpty('fa-trash-alt', 'Trash is empty', 'Removed pets stay here for 30 days before they are deleted for good.')
+          ) : (
+            <>
+              <div className="pt-note danger pt-anim">
+                <i className="fas fa-info-circle" />
+                Pets in the trash are deleted for good after 30 days.
+              </div>
+              <div className="pt-grid" style={{ flex: '1 1 auto', alignContent: 'flex-start' }}>
+                {trashedPets.slice((trashPage - 1) * itemsPerPage, trashPage * itemsPerPage).map((pet, index) => {
+                  const daysLeft = getDaysUntilPermanentDelete(pet.deleted_at);
+                  const urgency = daysLeft <= 5 ? 'red' : daysLeft <= 10 ? 'amber' : 'grey';
+                  return (
+                    <div key={pet.id} className="pt-card muted pt-anim" style={{ '--d': `${0.08 + index * 0.06}s` }}>
+                      <div className="pt-top">
+                        <div className="pt-photo static">
+                          <img src={getPetImage(pet.species, pet.photo_url)} alt={pet.name} style={{ filter: 'grayscale(60%)' }} onError={(e) => e.target.src = '/pet-default.png'} />
+                        </div>
+                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                          <div className="pt-name" title={pet.name}>{pet.name}</div>
+                          <div className="pt-reg"><i className="fas fa-hashtag" />{pet.registration_number}</div>
+                          <div className="pt-breed"><span className="text-capitalize">{pet.species}</span><span className="dot">·</span>{pet.breed || 'Mixed'}</div>
+                        </div>
+                        <span className={`pt-chip ${urgency}`} style={{ alignSelf: 'flex-start' }}>
+                          <i className="fas fa-hourglass-half" />{daysLeft} day{daysLeft === 1 ? '' : 's'} left
+                        </span>
+                      </div>
+                      <div className="pt-info">
+                        <div>
+                          <div className="k">Gender</div>
+                          <div className="v text-capitalize">{pet.gender || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="k">Removed on</div>
+                          <div className="v" style={{ color: '#dc3545' }}>{formatShortDate(pet.deleted_at)}</div>
+                        </div>
+                      </div>
+                      <div className="d-flex gap-2 mt-auto pt-2">
+                        <button type="button" className="pt-btn success sm flex-fill" onClick={() => handleRestorePet(pet)}>
+                          <i className="fas fa-undo" />Restore
+                        </button>
+                        <button type="button" className="pt-btn danger-outline sm flex-fill" onClick={() => handleForceDeletePet(pet)}>
+                          <i className="fas fa-times" />Delete forever
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {renderPager(trashPage, setTrashPage, trashedPets.length)}
+            </>
+          )
+        )}
 
       {/* ===== ARCHIVE MODAL ===== */}
       <Modal show={showArchiveModal} onHide={() => setShowArchiveModal(false)} centered style={{ zoom: '0.75' }}>
