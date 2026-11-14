@@ -132,7 +132,7 @@ const [chartJsLoaded, setChartJsLoaded] = useState(!!window.Chart);
 const [filterSource, setFilterSource] = useState('all');
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 10;
 
   const styles = `
     .reports-page {
@@ -179,6 +179,147 @@ const [filterSource, setFilterSource] = useState('all');
       .rpt-view-modal .modal-body p { font-size: 0.85rem !important; }
       .rpt-view-modal .card-header h6 { font-size: 0.8rem !important; }
     }
+
+    /* ---------------- Report Management ---------------- */
+    @keyframes raIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes raRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes raMenu { from { opacity: 0; transform: translateY(-6px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes raToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes raGrow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .ra-anim { animation: raIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    .ra-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
+    .ra-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
+
+    .ra-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.86rem; padding: 0.5rem 0.95rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .ra-btn.lg { padding: 0.7rem 1.25rem; font-size: 0.92rem; }
+    .ra-btn.primary { background: #ffc107; color: #1f2328; }
+    .ra-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+
+    .ra-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: raToast 0.35s ease-out; }
+    .ra-toast .ic { width: 34px; height: 34px; border-radius: 50%; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ra-toast .t { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .ra-toast .d { color: #6b7280; font-size: 0.84rem; }
+    .ra-toast-close { border: none; background: transparent; color: #9ca3af; width: 28px; height: 28px; border-radius: 7px; }
+    .ra-toast-close:hover { background: #f3f4f6; color: #1f2328; }
+
+    .ra-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
+    .ra-panel-head { display: flex; align-items: center; gap: 0.75rem; padding: 0.95rem 1.1rem; border-bottom: 1px solid #eef0f3; }
+    .ra-head-ic { width: 36px; height: 36px; border-radius: 10px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+    .ra-panel-title { font-weight: 700; color: #1f2328; font-size: 0.95rem; }
+    .ra-panel-sub { font-size: 0.76rem; color: #6b7280; }
+
+    .ra-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; }
+    .ra-toolbar-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.02rem; color: #1f2328; }
+    .ra-count { font-size: 0.75rem; font-weight: 700; padding: 0.1rem 0.55rem; border-radius: 999px; background: #1f2328; color: #fff; }
+    .ra-seg { display: inline-flex; padding: 3px; border-radius: 10px; background: #f3f4f6; }
+    .ra-seg button { border: none; background: transparent; padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; color: #5b6270; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .ra-seg button:hover { color: #1f2328; }
+    .ra-seg button.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .ra-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; padding: 0 1.25rem 1rem; border-bottom: 1px solid #eef0f3; }
+    .ra-search, .ra-select { position: relative; }
+    .ra-search { flex: 1 1 260px; }
+    .ra-search > i, .ra-select > i { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.78rem; pointer-events: none; }
+    .ra-input { width: 100%; height: 38px; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; padding: 0 0.85rem 0 2.1rem; font-size: 0.86rem; color: #1f2328; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .ra-input:focus { border-color: #e0a800; box-shadow: 0 0 0 3px rgba(255,193,7,0.2); }
+    select.ra-input { width: auto; min-width: 170px; padding-right: 2rem; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.7rem center; background-size: 12px; }
+    .ra-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .ra-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .ra-link { border: none; background: none; padding: 0 0.25rem; color: #0d6efd; font-size: 0.82rem; font-weight: 600; }
+    .ra-link:hover { text-decoration: underline; }
+
+    .ra-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .ra-table th { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.85rem 0.65rem 0.6rem; border-bottom: 1px solid #eef0f3; white-space: nowrap; text-align: left; }
+    .ra-table td { padding: 0.8rem 0.65rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .ra-table tbody tr { animation: raRow 0.35s ease-out backwards; transition: background 0.15s ease; }
+    .ra-table tbody tr:hover { background: #fafbfc; }
+    .ra-table tbody tr:last-child td { border-bottom: none; }
+    .ra-table tbody tr.raised { position: relative; z-index: 5; }
+    .ra-strong { font-weight: 600; color: #1f2328; }
+    .ra-muted { font-size: 0.78rem; color: #6b7280; }
+    .ra-ellipsis { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ra-date { width: 48px; flex-shrink: 0; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); text-align: center; padding: 0.35rem 0; line-height: 1.1; }
+    .ra-date .m { display: block; font-size: 0.62rem; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: 0.06em; }
+    .ra-date .d { display: block; font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .ra-type-ic { width: 34px; height: 34px; border-radius: 9px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .ra-bar { height: 5px; border-radius: 3px; background: #eef0f3; margin-top: 0.35rem; overflow: hidden; max-width: 130px; }
+    .ra-bar > div { height: 100%; border-radius: 3px; transfora-origin: left; animation: raGrow 0.9s cubic-bezier(0.22,1,0.36,1) backwards 0.2s; }
+    .ra-pill { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .ra-pill i { font-size: 0.4rem; }
+
+    .ra-icon-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #6b7280; display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s ease, border-color 0.15s ease; }
+    .ra-icon-btn:hover, .ra-icon-btn.on { background: #f3f4f6; border-color: #e5e7eb; color: #1f2328; }
+    .ra-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: #fff; border: 1px solid #e9ecef; border-radius: 12px; box-shadow: 0 16px 36px rgba(16,24,40,0.14); padding: 0.35rem; z-index: 1050; animation: raMenu 0.16s ease-out; transfora-origin: top right; text-align: left; }
+    .ra-menu-item { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.55rem 0.7rem; border: none; border-radius: 8px; background: transparent; color: #1f2328; font-size: 0.86rem; font-weight: 500; text-align: left; white-space: nowrap; }
+    .ra-menu-item i { width: 16px; text-align: center; color: #6b7280; font-size: 0.82rem; }
+    .ra-menu-item:hover { background: #f6f7f9; }
+    .ra-menu-item.danger, .ra-menu-item.danger i { color: #dc3545; }
+    .ra-menu-item.danger:hover { background: #fff5f5; }
+    .ra-menu-sep { height: 1px; background: #f0f1f3; margin: 0.3rem 0.2rem; }
+
+    .ra-empty { text-align: center; padding: 3rem 1rem; }
+    .ra-empty .ic { width: 62px; height: 62px; border-radius: 16px; margin: 0 auto 0.9rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .ra-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.25rem; }
+    .ra-empty p { color: #6b7280; font-size: 0.88rem; margin-bottom: 1rem; }
+    .ra-skel { border-radius: 8px; background: linear-gradient(90deg, #f3f4f6 25%, #e9ebee 37%, #f3f4f6 63%); background-size: 400% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+
+    .ra-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0.85rem 1.25rem; border-top: 1px solid #eef0f3; }
+    .ra-page { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 0.6rem; border-radius: 9px; border: 1px solid transparent; background: transparent; font-size: 0.85rem; font-weight: 600; color: #4b5563; transition: background 0.15s ease; }
+    .ra-page:hover:not(:disabled) { background: #f3f4f6; }
+    .ra-page.on { background: #ffc107; color: #1f2328; }
+    .ra-page.nav { border-color: #e5e7eb; background: #fff; font-size: 0.75rem; }
+    .ra-page:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .ra-btn:focus-visible, .ra-seg button:focus-visible, .ra-icon-btn:focus-visible, .ra-menu-item:focus-visible, .ra-page:focus-visible, .ra-link:focus-visible, .ra-clear:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    @media (max-width: 768px) {
+      .ra-title { font-size: 1.45rem; }
+      .ra-sub { font-size: 0.85rem; }
+      .ra-filters select.ra-input { min-width: 0; width: 100%; }
+      .ra-select { flex: 1 1 140px; }
+      .ra-ellipsis { max-width: 160px; }
+      .ra-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ra-anim, .ra-table tbody tr, .ra-menu, .ra-toast, .ra-bar > div, .ra-skel { animation: none !important; }
+    }
+    .ra-table { table-layout: fixed; }
+    .ra-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.01em; }
+    .ra-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
+    .ra-filters { border-bottom: 1px solid #eef0f3; padding-top: 1rem; }
+    .ra-tabs { display: inline-flex; gap: 0.25rem; padding: 4px; border-radius: 12px; background: #f3f4f6; max-width: 100%; overflow-x: auto; }
+    .ra-tab { display: inline-flex; align-items: center; gap: 0.45rem; border: none; background: transparent; padding: 0.45rem 0.85rem; border-radius: 9px; font-size: 0.85rem; font-weight: 600; color: #5b6270; white-space: nowrap; transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+    .ra-tab i { font-size: 0.78rem; }
+    .ra-tab .count { font-size: 0.72rem; padding: 0.02rem 0.45rem; border-radius: 999px; background: rgba(0,0,0,0.06); color: #6b7280; }
+    .ra-tab:hover { color: #1f2328; }
+    .ra-tab.on { background: #fff; color: #1f2328; box-shadow: 0 1px 3px rgba(16,24,40,0.12); }
+    .ra-tab.on .count { background: #1f2328; color: #fff; }
+    .ra-tab:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+    .ra-seg button.inactive.on { color: #dc3545; }
+    .ra-chip { display: inline-flex; align-items: center; gap: 0.35rem; max-width: 100%; font-size: 0.74rem; font-weight: 700; padding: 0.22rem 0.65rem; border-radius: 999px; white-space: nowrap; }
+    .ra-chip i { font-size: 0.68rem; }
+    .ra-chip.city { background: rgba(255,193,7,0.14); color: #8a6700; }
+    .ra-chip.clinic { background: rgba(25,135,84,0.1); color: #198754; }
+    .ra-chip.missed { background: rgba(220,53,69,0.1); color: #dc3545; }
+    .ra-chip.archived { background: #f3f4f6; color: #6b7280; }
+    .ra-menu-item.success, .ra-menu-item.success i { color: #198754; }
+    .ra-menu-item.success:hover { background: #f0fdf4; }
+    @media (max-width: 768px) {
+      .ra-table { table-layout: auto; }
+      .ra-table th { width: auto !important; }
+      .ra-toolbar .ra-btn span { display: none; }
+    }
+    .ra-tab .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .ra-type-ic { width: 38px; height: 38px; border-radius: 10px; background: color-mix(in srgb, var(--c) 10%, #fff); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .ra-tag { flex-shrink: 0; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.05rem 0.4rem; border-radius: 5px; background: rgba(25,135,84,0.1); color: #198754; }
+    .ra-menu { min-width: 230px; }
+    .ra-menu-item.warn, .ra-menu-item.warn i { color: #b88a00; }
+    .ra-menu-item.warn:hover { background: #fff8e1; }
+    .ra-menu-item.info, .ra-menu-item.info i { color: #0a8aa3; }
+    .ra-menu-item.info:hover { background: #ecfbfe; }
+    .ra-menu-note { display: flex; gap: 0.5rem; align-items: flex-start; padding: 0.55rem 0.7rem; margin-top: 0.3rem; border-radius: 8px; background: #fafbfc; color: #6b7280; font-size: 0.78rem; line-height: 1.45; white-space: normal; }
+    .ra-menu-note i { margin-top: 2px; }
+    .ra-pill i { font-size: 0.68rem; }
+
   `;
 
 const location = useLocation();
@@ -237,7 +378,7 @@ const location = useLocation();
       reports.filter(r => r.status === 'resolved').length,
       reports.filter(r => r.status === 'declined').length,
     ];
-    const colors = ['#ffc107','#f0c800','#e00000','#0dcaf0','#198754','#6c757d'];
+    const colors = ['#e0a800','#dc3545','#8b0000','#0aa2c0','#198754','#9ca3af'];
     statusChartObj.current = new Chart(statusChartRef.current, {
       type: 'bar',
       data: {
@@ -276,8 +417,8 @@ const location = useLocation();
       data: {
         labels: months.map(m => m.label),
         datasets: [
-          { label: 'Total Reports', data: countByMonth(['pending','suspected_rabies','positive_rabies','ongoing','resolved','declined']), borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.08)', tension: 0.4, pointBackgroundColor: '#ffc107', pointRadius: 5, fill: true, borderWidth: 2.5 },
-          { label: 'Rabies Cases',  data: countByMonth(['suspected_rabies','positive_rabies']), borderColor: '#e00000', backgroundColor: 'rgba(224,0,0,0.06)', tension: 0.4, pointBackgroundColor: '#e00000', pointRadius: 5, fill: true, borderWidth: 2.5 },
+          { label: 'Total Reports', data: countByMonth(['pending','suspected_rabies','positive_rabies','ongoing','resolved','declined']), borderColor: '#1f2328', backgroundColor: 'rgba(31,35,40,0.05)', tension: 0.4, pointBackgroundColor: '#1f2328', pointRadius: 5, fill: true, borderWidth: 2.5 },
+          { label: 'Rabies Cases',  data: countByMonth(['suspected_rabies','positive_rabies']), borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.06)', tension: 0.4, pointBackgroundColor: '#dc3545', pointRadius: 5, fill: true, borderWidth: 2.5 },
           { label: 'Resolved',      data: countByMonth(['resolved']), borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.06)', tension: 0.4, pointBackgroundColor: '#198754', pointRadius: 5, fill: true, borderWidth: 2.5 },
         ],
       },
@@ -481,349 +622,311 @@ const matchArchive = true;
   const ongoingCount = reports.filter(r => ['ongoing', 'suspected_rabies', 'positive_rabies'].includes(r.status)).length;
   const avgRabies    = getAvgRabiesPerMonth(reports);
 
+  const RA_STATUS = {
+    pending:          { label: 'Pending',          color: '#b88a00', icon: 'fa-clock' },
+    suspected_rabies: { label: 'Suspected Rabies', color: '#dc3545', icon: 'fa-exclamation-triangle' },
+    positive_rabies:  { label: 'Positive Rabies',  color: '#8b0000', icon: 'fa-biohazard' },
+    ongoing:          { label: 'Ongoing',          color: '#0a8aa3', icon: 'fa-spinner' },
+    resolved:         { label: 'Resolved',         color: '#198754', icon: 'fa-check-circle' },
+    declined:         { label: 'Declined',         color: '#6b7280', icon: 'fa-ban' },
+  };
+  const raStatus = (s) => RA_STATUS[s] || { label: s || 'Unknown', color: '#6b7280', icon: 'fa-question-circle' };
+  const ACTION_STYLE = {
+    danger:    { cls: 'danger',  icon: 'fa-biohazard' },
+    warning:   { cls: 'warn',    icon: 'fa-exclamation-triangle' },
+    success:   { cls: 'success', icon: 'fa-check-circle' },
+    info:      { cls: 'info',    icon: 'fa-spinner' },
+    secondary: { cls: '',        icon: 'fa-ban' },
+  };
+  const hasReportFilters = searchTerm || filterType !== 'all' || filterBarangay !== 'all' || filterSource !== 'all';
+  const statusCounts = {
+    all: reports.length,
+    pending: pendingCount,
+    ongoing: ongoingCount,
+    resolved: reports.filter(r => r.status === 'resolved').length,
+    declined: reports.filter(r => r.status === 'declined').length,
+  };
+  const raPagerNumbers = (() => {
+    const pages = [];
+    let start = Math.max(1, currentPage - 1);
+    const end = Math.min(totalPages, start + 2);
+    if (end - start < 2) start = Math.max(1, end - 2);
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  })();
+
   return (
     <>
       <style>{styles}</style>
       <Container fluid className="py-4 reports-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
 
-        {/* ── Header ── */}
-        <Row className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <div className="d-flex align-items-center" style={{ gap: '0.5rem' }}>
-              <i className="fas fa-flag" style={{ fontSize: '1.5rem', color: '#000000', animation: 'float 3s ease-in-out infinite' }} />
-              <h2 className="rpt-title" style={{ fontWeight: '700', color: '#333333', fontSize: '2rem', marginBottom: 0 }}>
-                Report Management
-              </h2>
-            </div>
-          </Col>
-        </Row>
+        {/* Header */}
+        <div className="mb-4 ra-anim">
+          <h2 className="ra-title rpt-title">Report Management</h2>
+          <p className="ra-sub">Review community and clinic reports of rabies cases, animal bites and rescues.</p>
+        </div>
 
-        {/* ── Alerts ── */}
         {error && (
-          <Row className="mb-4">
-            <Col>
-              <Alert variant="danger" dismissible onClose={() => setError('')}
-                style={{ borderRadius: '12px', border: '2px solid #dc3545', background: 'rgba(220,53,69,0.1)', color: '#dc3545' }}>
-                <i className="fas fa-exclamation-triangle me-2" />{error}
-              </Alert>
-            </Col>
-          </Row>
+          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
+            <i className="fas fa-exclamation-triangle me-2" />{error}
+          </Alert>
         )}
         {success && (
-          <div style={{
-            position: 'fixed',
-            top: '24px',
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            zIndex: 99999,
-            pointerEvents: 'none'
-          }}>
-            <div style={{
-              minWidth: '320px',
-              maxWidth: '480px',
-              animation: 'dropDown 0.4s ease-out',
-              pointerEvents: 'auto'
-            }}>
-              <Alert
-                variant="success"
-                dismissible
-                onClose={() => setSuccess('')}
-                style={{
-                  borderRadius: '14px',
-                  border: '2px solid #198754',
-                  background: 'linear-gradient(135deg, rgba(25,135,84,0.97), rgba(20,110,68,0.97))',
-                  color: '#fff',
-                  fontWeight: '600',
-                  boxShadow: '0 8px 32px rgba(25,135,84,0.35)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '1rem 1.25rem',
-                  marginBottom: 0
-                }}
-              >
-                <i className="fas fa-check-circle" style={{ fontSize: '1.6rem', flexShrink: 0 }}></i>
-                <div>
-                  <div style={{ fontWeight: '700', fontSize: '1rem' }}>Success!</div>
-                  <div style={{ fontSize: '0.88rem', opacity: 0.9 }}>{success}</div>
-                </div>
-              </Alert>
+          <div className="ra-toast" role="status">
+            <div className="ic"><i className="fas fa-check" /></div>
+            <div className="flex-grow-1">
+              <div className="t">Success</div>
+              <div className="d">{success}</div>
             </div>
+            <button type="button" className="ra-toast-close" onClick={() => setSuccess('')} aria-label="Close">
+              <i className="fas fa-times" />
+            </button>
           </div>
         )}
 
-                {/* ── Stats + Charts ── */}
-        <Row className="mb-4 g-3" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
-
-          {/* Status bar chart */}
+        {/* Charts */}
+        <Row className="mb-4 g-3">
           <Col md={5}>
-            <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-              <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <i className="fas fa-chart-bar" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
-                <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Reports by Status</span>
+            <div className="ra-panel h-100 ra-anim" style={{ '--d': '0.06s' }}>
+              <div className="ra-panel-head">
+                <div className="ra-head-ic" style={{ '--c': '#e0a800' }}><i className="fas fa-chart-bar" /></div>
+                <div>
+                  <div className="ra-panel-title">Reports by status</div>
+                  <div className="ra-panel-sub">All reports in the system</div>
+                </div>
               </div>
-              <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
-                {loading
-                  ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
-                  : <canvas ref={statusChartRef} />
-                }
+              <div style={{ padding: '0.75rem 1.1rem 1rem', height: '210px' }}>
+                {loading ? <div className="ra-skel" style={{ height: '100%' }} /> : <canvas ref={statusChartRef} />}
               </div>
-            </Card>
+            </div>
           </Col>
-
-          {/* Monthly trend line chart */}
           <Col md={7}>
-            <Card className="border-0 h-100" style={{ borderRadius: '18px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-              <div style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', padding: '0.9rem 1.25rem', borderBottom: '2px solid #ffc107', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <i className="fas fa-chart-line" style={{ color: '#ffc107', fontSize: '0.9rem' }} />
-                <span style={{ fontWeight: '700', color: '#333', fontSize: '0.88rem' }}>Monthly Report Trend</span>
-                <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#aaa', fontWeight: '500' }}>Last 6 months</span>
+            <div className="ra-panel h-100 ra-anim" style={{ '--d': '0.12s' }}>
+              <div className="ra-panel-head">
+                <div className="ra-head-ic" style={{ '--c': '#dc3545' }}><i className="fas fa-chart-line" /></div>
+                <div>
+                  <div className="ra-panel-title">Monthly report trend</div>
+                  <div className="ra-panel-sub">Last 6 months</div>
+                </div>
               </div>
-              <div style={{ padding: '1rem 1.25rem', height: '190px' }}>
-                {loading
-                  ? <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spinner animation="border" size="sm" style={{ color: '#ffc107' }} /></div>
-                  : <canvas ref={monthlyChartRef} />
-                }
+              <div style={{ padding: '0.75rem 1.1rem 1rem', height: '210px' }}>
+                {loading ? <div className="ra-skel" style={{ height: '100%' }} /> : <canvas ref={monthlyChartRef} />}
               </div>
-            </Card>
+            </div>
           </Col>
         </Row>
 
-        {/* ── Filters ── */}
-        <Row className="mb-4 g-2" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
-          {/* Search — full width on all screens */}
-          <Col xs={12}>
-            <InputGroup>
-              <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
-                <i className="fas fa-search" />
-              </InputGroup.Text>
-              <Form.Control
+        {/* Reports table */}
+        <div className="ra-panel ra-anim" style={{ '--d': '0.18s', overflow: 'visible' }}>
+          {/* Header */}
+          <div className="ra-toolbar">
+            <div className="ra-tabs" role="tablist">
+              {[['all', 'All'], ['pending', 'Pending'], ['ongoing', 'Ongoing'], ['resolved', 'Resolved'], ['declined', 'Declined']].map(([v, l]) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="tab"
+                  aria-selected={filterStatus === v}
+                  className={`ra-tab${filterStatus === v ? ' on' : ''}`}
+                  onClick={() => { setFilterStatus(v); setCurrentPage(1); setShowDropdown(null); }}
+                >
+                  {v !== 'all' && <i className="dot" style={{ background: raStatus(v).color }} />}
+                  {l}
+                  <span className="count">{statusCounts[v]}</span>
+                </button>
+              ))}
+            </div>
+            <button type="button" className="ra-btn primary" onClick={handleOpenGenerateModal}>
+              <i className="fas fa-plus" /><span>Generate rabies report</span>
+            </button>
+          </div>
+
+          {/* Filters */}
+          <div className="ra-filters rpt-filters-row">
+            <div className="ra-search">
+              <i className="fas fa-search" />
+              <input
+                className="ra-input"
                 placeholder="Search by reporter, report no., address..."
                 value={searchTerm}
                 onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                style={{ border: '2px solid #e9ecef', borderLeft: 'none', borderRight: searchTerm ? 'none' : '2px solid #e9ecef' }}
+                aria-label="Search reports"
               />
               {searchTerm && (
-                <Button variant="outline-secondary" onClick={() => setSearchTerm('')}
-                  style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}>
+                <button type="button" className="ra-clear" onClick={() => setSearchTerm('')} aria-label="Clear search">
                   <i className="fas fa-times" />
-                </Button>
+                </button>
               )}
-            </InputGroup>
-          </Col>
-          {/* Filters — 2 per row on mobile, all in one row on desktop */}
-          <Col xs={6} md>
-            <Form.Select value={filterType} onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
-              style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
-              <option value="all">All Types</option>
-              {REPORT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </Form.Select>
-          </Col>
-          <Col xs={6} md>
-            <Form.Select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-  style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
-  <option value="all">All</option>
-  <option value="pending">Pending</option>
-  <option value="ongoing">Ongoing</option>
-  <option value="resolved">Resolved</option>
-  <option value="declined">Declined</option>
-</Form.Select>
-          </Col>
-          <Col xs={6} md>
-            <Form.Select value={filterBarangay} onChange={e => { setFilterBarangay(e.target.value); setCurrentPage(1); }}
-              style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
-              <option value="all">All</option>
-              {barangays.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </Form.Select>
-          </Col>
-          <Col xs={6} md>
-            <Form.Select value={filterSource} onChange={e => { setFilterSource(e.target.value); setCurrentPage(1); }}
-              style={{ borderRadius: '12px', border: '2px solid #e9ecef', fontWeight: '500' }}>
-              <option value="all">All</option>
-              <option value="community">Community</option>
-              <option value="clinic">Private Clinic</option>
-            </Form.Select>
-          </Col>
-        </Row>
+            </div>
+            <div className="ra-select">
+              <i className="fas fa-tag" />
+              <select className="ra-input" value={filterType} onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }} aria-label="Report type">
+                <option value="all">All types</option>
+                {REPORT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+            <div className="ra-select">
+              <i className="fas fa-map-marker-alt" />
+              <select className="ra-input" value={filterBarangay} onChange={e => { setFilterBarangay(e.target.value); setCurrentPage(1); }} aria-label="Barangay">
+                <option value="all">All barangays</option>
+                {barangays.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </div>
+            <div className="ra-select">
+              <i className="fas fa-user" />
+              <select className="ra-input" value={filterSource} onChange={e => { setFilterSource(e.target.value); setCurrentPage(1); }} aria-label="Reported by">
+                <option value="all">All sources</option>
+                <option value="community">Community</option>
+                <option value="clinic">Private clinic</option>
+              </select>
+            </div>
+            {hasReportFilters && (
+              <button type="button" className="ra-link" onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterBarangay('all'); setFilterSource('all'); setCurrentPage(1); }}>
+                <i className="fas fa-undo me-1" />Clear filters
+              </button>
+            )}
+          </div>
 
-        {/* ── Table Card ── */}
-        <Row style={{ animation: 'dropDown 0.4s ease-out 0.5s backwards' }}>
-          <Col>
-            <Card className="border-0" style={{ borderRadius: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-              <Card.Header className="rpt-card-header" style={{
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-                borderBottom: '2px solid #ffc107',
-                padding: '1.5rem',
-                borderRadius: '20px 20px 0 0'
-              }}>
-                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                  <h5 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                    <i className="fas fa-flag me-2" style={{ color: '#ffc107' }} />
-                    All Reports ({filtered.length})
-                  </h5>
-                  <button onClick={handleOpenGenerateModal}
-                    style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '10px', padding: '0.55rem 1.2rem', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 14px rgba(255,193,7,0.35)', transition: 'all 0.2s' }}
-                    onMouseOver={e => { e.currentTarget.style.background = '#ffb300'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                    onMouseOut={e  => { e.currentTarget.style.background = '#ffc107'; e.currentTarget.style.transform = 'translateY(0)'; }}>
-                    <i className="fas fa-plus" /> Generate Rabies Report
-                  </button>
-                </div>
-              </Card.Header>
-
-              <Card.Body className="rpt-card-body" style={{ padding: '2rem' }}>
-                {loading ? (
-                  <div className="text-center py-5">
-                    <Spinner animation="border" style={{ color: '#ffc107', width: '3rem', height: '3rem' }} />
-                    <p className="mt-3 text-muted">Loading reports...</p>
+          {/* Body */}
+          <div className="rpt-card-body" style={{ padding: '0 1.25rem 0.5rem' }}>
+            {loading ? (
+              <div style={{ padding: '0.5rem 0 1rem' }}>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.85rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.12 }}>
+                    <div className="ra-skel" style={{ width: 40, height: 40, borderRadius: 10 }} />
+                    <div className="flex-grow-1">
+                      <div className="ra-skel mb-2" style={{ width: '30%', height: 13 }} />
+                      <div className="ra-skel" style={{ width: '18%', height: 10 }} />
+                    </div>
+                    <div className="ra-skel" style={{ width: 120, height: 22, borderRadius: 999 }} />
                   </div>
-                ) : filtered.length === 0 ? (
-                  <div className="text-center py-5">
-                    <i className="fas fa-flag text-muted mb-3" style={{ fontSize: '4rem', color: '#e0e0e0' }} />
-                    <h5 style={{ color: '#666', fontWeight: '600' }}>No Reports Found</h5>
-                    <p className="text-muted">Try adjusting your filters or search term.</p>
-                  </div>
-                ) : (
-                  <div className="table-responsive">
-                    <Table hover className="rpt-table align-middle" style={{ marginBottom: 0, borderCollapse: 'separate', borderSpacing: 0 }}>
-                      <thead>
-  <tr style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107' }}>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Type</th>
-    <th className="mobile-hide-reporter" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'left', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Reporter</th>
-    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Barangay</th>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Status</th>
-    <th className="mobile-hide" style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Date</th>
-    <th style={{ fontWeight: '700', color: '#555', padding: '1rem 1.25rem', textAlign: 'center', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Actions</th>
-  </tr>
-</thead>
-                      <tbody>
-                        {paginated.map((report) => {
-                          const typeInfo = getReportType(report.report_type);
-                          const actions  = getActionButtons(report);
-                          return (
-                            <tr key={report.id}
-  style={{ transition: 'all 0.2s ease', cursor: 'default', borderBottom: '1px solid #f0f0f0' }}
-  onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,193,7,0.05)'}
-  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
->
-                              {/* Type */}
-                              <td style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  <ReportTypeImg type={typeInfo} size={20} />
-                                  <span style={{ fontWeight: '600', fontSize: '0.85rem', color: typeInfo.color }}>{typeInfo.label}</span>
-                                </span>
-                              </td>
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="ra-empty">
+                <div className="ic"><i className="fas fa-flag" /></div>
+                <h6>No reports found</h6>
+                <p>{hasReportFilters || filterStatus !== 'all' ? 'Try changing or clearing the filters.' : 'Reports from the community and clinics will show here.'}</p>
+              </div>
+            ) : (
+              <div className="table-responsive" style={{ overflow: 'visible' }}>
+                <table className="ra-table rpt-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '26%' }}>Report</th>
+                      <th className="mobile-hide-reporter" style={{ width: '19%' }}>Reporter</th>
+                      <th className="mobile-hide" style={{ width: '20%' }}>Location</th>
+                      <th style={{ width: '16%' }}>Status</th>
+                      <th className="mobile-hide" style={{ width: '13%' }}>Submitted</th>
+                      <th style={{ width: '6%' }} aria-label="Actions" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((report, i) => {
+                      const typeInfo = getReportType(report.report_type);
+                      const st = raStatus(report.status);
+                      const actions = getActionButtons(report);
+                      const fromClinic = !!parseInt(report.reported_by_clinic);
+                      const menuOpen = showDropdown === report.id;
+                      return (
+                        <tr key={report.id} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                              <div className="ra-type-ic" style={{ '--c': typeInfo.color }}>
+                                <ReportTypeImg type={typeInfo} size={22} />
+                              </div>
+                              <div style={{ minWidth: 0 }}>
+                                <div className="ra-strong ra-ellipsis" style={{ color: typeInfo.color }}>{typeInfo.label}</div>
+                                <div className="ra-muted ra-mono ra-ellipsis">{report.report_number || `RPT-${String(report.id).padStart(6, '0')}`}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="mobile-hide-reporter">
+                            <div className="d-flex align-items-center gap-1" style={{ minWidth: 0 }}>
+                              <span className="ra-strong ra-ellipsis" title={report.reporter_name}>{report.reporter_name || 'N/A'}</span>
+                              {fromClinic && <span className="ra-tag">Clinic</span>}
+                            </div>
+                            <div className="ra-muted">{report.phone_number || ''}</div>
+                          </td>
+                          <td className="mobile-hide">
+                            <div className="ra-strong" style={{ fontSize: '0.85rem' }}>{report.barangay_name || getBarangayName(report.barangay_id)}</div>
+                            <div className="ra-muted ra-ellipsis" title={report.address}>{report.address || '—'}</div>
+                          </td>
+                          <td>
+                            <span className="ra-pill" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 12%, #fff)` }}>
+                              <i className={`fas ${st.icon}`} />{st.label}
+                            </span>
+                          </td>
+                          <td className="mobile-hide">
+                            <div style={{ fontSize: '0.85rem' }}>{formatDate(report.created_at)}</div>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                              <button
+                                type="button"
+                                className={`ra-icon-btn${menuOpen ? ' on' : ''}`}
+                                onClick={() => setShowDropdown(menuOpen ? null : report.id)}
+                                aria-label="Report options"
+                                aria-expanded={menuOpen}
+                              >
+                                <i className="fas fa-ellipsis-v" />
+                              </button>
+                              {menuOpen && (
+                                <>
+                                  <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
+                                  <div className="ra-menu" role="menu">
+                                    <button type="button" role="menuitem" className="ra-menu-item" onClick={() => { setSelectedReport(report); setShowViewModal(true); setShowDropdown(null); }}>
+                                      <i className="fas fa-eye" />View details
+                                    </button>
+                                    {actions.length > 0 && <div className="ra-menu-sep" />}
+                                    {actions.map(a => {
+                                      const s = ACTION_STYLE[a.variant] || ACTION_STYLE.secondary;
+                                      return (
+                                        <button key={a.next} type="button" role="menuitem" className={`ra-menu-item ${s.cls}`} onClick={() => { setShowDropdown(null); handleActionClick(report, a.next); }}>
+                                          <i className={`fas ${s.icon}`} />{a.label}
+                                        </button>
+                                      );
+                                    })}
+                                    {actions.length === 0 && (
+                                      <div className="ra-menu-note">
+                                        <i className={`fas ${st.icon}`} style={{ color: st.color }} />
+                                        This report is {st.label.toLowerCase()}. No further action needed.
+                                      </div>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
-                              {/* Reporter */}
-<td className="mobile-hide-reporter" style={{ padding: '1rem 1.25rem', verticalAlign: 'middle', textAlign: 'left' }}>
-  <strong style={{ fontSize: '0.95rem', color: '#333', display: 'block' }}>{report.reporter_name || 'N/A'}</strong>
-  <small style={{ color: '#aaa', fontWeight: '500' }}>{report.phone_number || ''}</small>
-</td>
-
-                              {/* Barangay */}
-                              <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <span style={{ fontWeight: '500', fontSize: '0.9rem', color: '#555' }}>
-                                  {report.barangay_name || getBarangayName(report.barangay_id)}
-                                </span>
-                              </td>
-
-                              
-
-                              {/* Status */}
-                              <td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <StatusBadge status={report.status} />
-                              </td>
-
-                              {/* Date */}
-                              <td className="mobile-hide" style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-                                <small style={{ color: '#666', fontSize: '0.85rem' }}>{formatDate(report.created_at)}</small>
-                              </td>
-
-                              {/* Actions */}
-<td style={{ padding: '1rem', verticalAlign: 'middle', textAlign: 'center' }}>
-  <button
-    ref={showDropdown === report.id ? dropdownButtonRef : null}
-    onClick={(e) => {
-      if (showDropdown === report.id) { setShowDropdown(null); return; }
-      const rect = e.currentTarget.getBoundingClientRect();
-      dropdownButtonRef.current = e.currentTarget;
-      setDropdownPos({ top: rect.top / ZOOM + (rect.height / ZOOM) / 2, left: (rect.left / ZOOM) - 215 });
-      setShowDropdown(report.id);
-    }}
-    style={{ background: 'transparent', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', transition: 'all 0.2s' }}
-    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-    onMouseOut={e  => e.currentTarget.style.background = 'transparent'}
-  >
-    <img src="/ellipsis.png" alt="Menu" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
-  </button>
-</td>
-                            </tr>
-                          );
-                        })}
-
-                        
-                      </tbody>
-                    </Table>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        {/* ── Pagination ── */}
-        {totalPages > 1 && (
-          <Row className="mt-4 rpt-pagination">
-            <Col className="d-flex justify-content-between align-items-center">
-              <span className="page-info" style={{ fontSize: '0.875rem', color: '#6c757d', fontWeight: '500' }}>
-                Page <strong style={{ color: '#333' }}>{currentPage}</strong> of <strong style={{ color: '#333' }}>{totalPages}</strong>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="ra-foot rpt-pagination">
+              <span className="ra-muted page-info" style={{ fontSize: '0.84rem' }}>
+                Showing <strong style={{ color: '#1f2328' }}>{(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filtered.length)}</strong> of {filtered.length}
               </span>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <button className="page-btn" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}
-                  style={{ background: currentPage === 1 ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === 1 ? '#adb5bd' : '#333', transition: 'all 0.2s' }}
-                  onMouseOver={e => { if (currentPage !== 1) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={e  => { if (currentPage !== 1) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
-                >
+              <div className="d-flex align-items-center gap-1">
+                <button type="button" className="ra-page nav page-btn" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1} aria-label="Previous page">
                   <i className="fas fa-chevron-left" />
                 </button>
-
-                {(() => {
-                  const pages = [];
-                  if (totalPages <= 3) {
-                    for (let i = 1; i <= totalPages; i++) pages.push(i);
-                  } else {
-                    let start = Math.max(1, currentPage - 1);
-                    let end = Math.min(totalPages, start + 2);
-                    if (end - start < 2) start = Math.max(1, end - 2);
-                    
-                    for (let i = start; i <= end; i++) pages.push(i);
-                    
-                  }
-                  return pages.map((page, idx) => page === '...' ? (
-                    <span key={`ellipsis-${idx}`} style={{ padding: '0.5rem 0.25rem', color: '#6c757d', fontWeight: '600' }}>...</span>
-                  ) : (
-                    <button className="page-btn" key={page} onClick={() => setCurrentPage(page)}
-                      style={{ background: currentPage === page ? '#ffc107' : '#fff', border: '2px solid', borderColor: currentPage === page ? '#ffc107' : '#dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', minWidth: '40px', cursor: 'pointer', fontWeight: '700', color: currentPage === page ? '#000' : '#333', boxShadow: currentPage === page ? '0 2px 8px rgba(255,193,7,0.3)' : 'none', transition: 'all 0.2s' }}
-                      onMouseOver={e => { if (currentPage !== page) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                      onMouseOut={e  => { if (currentPage !== page) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
-                    >
-                      {page}
-                    </button>
-                  ));
-                })()}
-
-                <button className="page-btn" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}
-                  style={{ background: currentPage === totalPages ? '#e9ecef' : '#fff', border: '2px solid #dee2e6', borderRadius: '8px', padding: '0.5rem 0.75rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', fontWeight: '600', color: currentPage === totalPages ? '#adb5bd' : '#333', transition: 'all 0.2s' }}
-                  onMouseOver={e => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#f8f9fa'; e.currentTarget.style.borderColor = '#ffc107'; } }}
-                  onMouseOut={e  => { if (currentPage !== totalPages) { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#dee2e6'; } }}
-                >
+                {raPagerNumbers.map(n => (
+                  <button key={n} type="button" className={`ra-page page-btn${n === currentPage ? ' on' : ''}`} onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined}>{n}</button>
+                ))}
+                <button type="button" className="ra-page nav page-btn" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page">
                   <i className="fas fa-chevron-right" />
                 </button>
               </div>
-            </Col>
-          </Row>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* ══════════ VIEW DETAILS MODAL ══════════ */}
         <Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" className="rpt-view-modal" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
@@ -1207,71 +1310,6 @@ const matchArchive = true;
           </Button>
         </Modal.Footer>
       </Modal>
-    {/* ── Ellipsis Dropdown Portal ── */}
-      {showDropdown !== null && (
-        <>
-          <div onClick={() => setShowDropdown(null)} style={{ position: 'fixed', inset: 0, zIndex: 1049 }} />
-          <div style={{
-            position: 'fixed',
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            transform: 'translateY(-50%)',
-            background: '#ffffff',
-            border: '1px solid #e0e0e0',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            minWidth: '200px',
-            zIndex: 1050,
-            overflow: 'hidden',
-            zoom: '0.75',
-          }}>
-            {(() => {
-              const report = reports.find(r => r.id === showDropdown);
-              if (!report) return null;
-              const actions = getActionButtons(report);
-              return (
-                <>
-                  <button
-                    onClick={() => { setSelectedReport(report); setShowViewModal(true); setShowDropdown(null); }}
-                    style={{ width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.9rem', color: '#333333', fontWeight: '500', transition: 'background 0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                    onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
-                  >
-                    <img src="/view.png" alt="View" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-                    <span>View Details</span>
-                  </button>
-                  {actions.map(a => (
-                    <button key={a.next}
-                      onClick={() => { setShowDropdown(null); handleActionClick(report, a.next); }}
-                      style={{
-                        width: '100%', padding: '0.75rem 1rem', border: 'none', background: '#ffffff',
-                        textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center',
-                        gap: '0.75rem', fontSize: '0.9rem', fontWeight: '500',
-                        borderTop: '1px solid #f0f0f0', transition: 'background 0.2s',
-                        color: a.variant === 'danger' ? '#dc3545' : a.variant === 'success' ? '#198754' : a.variant === 'warning' ? '#856404' : '#055160'
-                      }}
-                      onMouseOver={e => e.currentTarget.style.background = '#f8f9fa'}
-                      onMouseOut={e  => e.currentTarget.style.background = '#ffffff'}
-                    >
-                      <i className={`fas ${
-                        a.variant === 'danger'  ? 'fa-circle-exclamation' :
-                        a.variant === 'success' ? 'fa-check-circle' :
-                        a.variant === 'warning' ? 'fa-triangle-exclamation' : 'fa-rotate'
-                      }`} style={{ width: '18px', textAlign: 'center' }} />
-                      <span>{a.label}</span>
-                    </button>
-                  ))}
-                  {actions.length === 0 && (
-                    <div style={{ width: '100%', padding: '0.75rem 1rem', borderTop: '1px solid #f0f0f0', background: '#f0fff5', fontSize: '0.8rem', color: '#0f5132' }}>
-                      <i className="fas fa-check-circle me-1" />Already Resolved
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        </>
-      )}
     </>
   );
 };
