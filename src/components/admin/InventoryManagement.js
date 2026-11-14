@@ -670,16 +670,13 @@ const handleDeleteClick = (item) => {
   return (
     <>
       {toast.visible && (
-        <div className={`inv-toast${toast.hiding ? ' hiding' : ''}`}>
-          <i className="fas fa-check-circle" style={{ fontSize: '1.5rem', flexShrink: 0 }} />
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>Success!</div>
-            <div style={{ fontSize: '0.82rem', opacity: 0.9 }}>{toast.msg}</div>
+        <div className="iv-toast" role="status">
+          <div className="ic"><i className="fas fa-check" /></div>
+          <div className="flex-grow-1">
+            <div className="t">Success</div>
+            <div className="d">{toast.msg}</div>
           </div>
-          <button
-            onClick={() => setToast({ visible: false, hiding: false, msg: '' })}
-            style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '24px', height: '24px', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', flexShrink: 0 }}
-          >
+          <button type="button" className="iv-toast-close" onClick={() => setToast({ visible: false, hiding: false, msg: '' })} aria-label="Close">
             <i className="fas fa-times" />
           </button>
         </div>
