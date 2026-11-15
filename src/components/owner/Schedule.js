@@ -2278,17 +2278,18 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Registration Modal */}
-      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" backdrop="static" className="ev-zoom-modal">
+      {/* Seminars use a small, centered confirmation modal (no pet selection needed) */}
+      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size={scheduleType === 'seminar' ? undefined : 'lg'} centered={scheduleType === 'seminar'} backdrop="static" className="ev-zoom-modal">
         <Modal.Header 
   closeButton
-  style={{
+  style={scheduleType === 'seminar' ? { background: '#f8f9fa', borderBottom: '2px solid #ffc107' } : {
     background: '#f8f9fa',
     borderBottom: '2px solid #ffc107',
     borderRadius: '20px 20px 0 0'
   }}
         >
           <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-  <i className="fas fa-user-plus me-2"></i>
+  <i className={`fas ${scheduleType === 'seminar' ? 'fa-chalkboard-teacher' : 'fa-user-plus'} me-2`} style={scheduleType === 'seminar' ? { color: '#e0a800' } : undefined}></i>
   Register for {
     scheduleType === 'vaccination' ? 'Vaccination' : 
     scheduleType === 'deworming' ? 'Deworming' :
@@ -2300,7 +2301,7 @@ const getVaccineDetails = (schedule) => {
 </Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleRegistrationSubmit}>
-          <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
+          <Modal.Body style={scheduleType === 'seminar' ? { padding: '2rem' } : { maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
             {registerError && (
               <Alert 
                 variant="danger"
@@ -2331,7 +2332,38 @@ const getVaccineDetails = (schedule) => {
               </Alert>
             )}
 
-            {selectedSchedule && (
+            {selectedSchedule && scheduleType === 'seminar' && (
+              <>
+                <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                  Are you sure you want to register as an attendee for this seminar?
+                </p>
+                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
+                  <div className="mb-2">
+                    <span style={{ fontWeight: '500', color: '#555' }}>
+                      <i className="fas fa-chalkboard-teacher me-1" style={{ color: '#ffc107' }}></i>
+                      Seminar Information
+                    </span>
+                  </div>
+                  <strong style={{ fontSize: '1.1rem' }}>{selectedSchedule.title}</strong>
+                  <br />
+                  <small className="text-muted d-block mt-1">
+                    <i className="fas fa-calendar me-1"></i>
+                    {new Date(selectedSchedule.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                    {selectedSchedule.start_time && <> • {formatClock(selectedSchedule.start_time)}{selectedSchedule.end_time ? ` – ${formatClock(selectedSchedule.end_time)}` : ''}</>}
+                  </small>
+                  <small className="text-muted d-block mt-1">
+                    <i className="fas fa-map-marker-alt me-1"></i>
+                    {[selectedSchedule.venue, selectedSchedule.custom_place || selectedSchedule.barangay_name].filter(Boolean).join(', ')}
+                  </small>
+                </div>
+                <Alert variant="info" className="mt-3 mb-0">
+                  <i className="fas fa-info-circle me-2"></i>
+                  <strong>Note:</strong> No pet is needed. You will be registered as an attendee.
+                </Alert>
+              </>
+            )}
+
+            {selectedSchedule && scheduleType !== 'seminar' && (
               <div 
                 className="mb-4"
                 style={{
@@ -3169,13 +3201,13 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
 })()}
             
           </Modal.Body>
-          <Modal.Footer style={{ padding: '1.5rem', borderTop: '1px solid #e0e0e0' }}>
+          <Modal.Footer style={scheduleType === 'seminar' ? { padding: '1.25rem 2rem' } : { padding: '1.5rem', borderTop: '1px solid #e0e0e0' }}>
             <Button 
               variant="secondary" 
               onClick={() => setShowRegisterModal(false)}
               disabled={registerLoading}
               style={{
-                borderRadius: '10px',
+                borderRadius: scheduleType === 'seminar' ? '8px' : '10px',
                 padding: '0.75rem 1.5rem',
                 fontWeight: '600'
               }}
@@ -3228,7 +3260,7 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
               ) : (
                 <>
                   <i className="fas fa-check me-2"></i>
-                  Confirm Registration
+                  {scheduleType === 'seminar' ? 'Register' : 'Confirm Registration'}
                 </>
               )}
             </Button>
