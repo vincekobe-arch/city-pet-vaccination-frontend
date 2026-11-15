@@ -228,7 +228,7 @@ const OwnerDashboard = () => {
       .od-slots { display: none; }
       .od-banner { flex-wrap: wrap; }
       .od-banner .od-btn { width: 100%; justify-content: center; }
-      .od-date { width: 100%; justify-content: center; }
+
       .od-panel-head { padding: 0.9rem 1rem; }
       .od-panel-body { padding: 0.5rem 1rem 1rem; }
       .od-event { gap: 0.7rem; }
@@ -398,7 +398,7 @@ const OwnerDashboard = () => {
     return parseDate(event.scheduled_date).toLocaleDateString('en-US', { weekday: 'long' });
   };
 
-  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
   const greeting = (() => {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
@@ -431,7 +431,7 @@ const OwnerDashboard = () => {
             <h2 className="od-title">{greeting}{ownerName ? `, ${ownerName}` : ''}</h2>
             <p className="od-sub">Here is what is happening with your pets.</p>
           </div>
-          <div className="od-date"><i className="fas fa-calendar-day" />{todayLabel}</div>
+
         </div>
 
         {error && (
