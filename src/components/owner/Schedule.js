@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Badge, Modal, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Alert, Modal, Form } from 'react-bootstrap';
 import { scheduleAPI, petAPI, vaccinationAPI, inventoryAPI, handleAPIError } from '../../services/api';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
@@ -167,6 +167,128 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
       .ev-zoom-modal { zoom: 1; }
       .ev-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
       .ev-zoom-modal .modal-body { max-height: calc(100vh - 170px) !important; overflow-y: auto; }
+    }
+
+    /* Event details modal */
+    .ed-modal { max-width: 620px; }
+    .ed-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .ed-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 7%, #fff) 0%, #fff 100%); }
+    .ed-head-main { display: flex; gap: 0.9rem; align-items: flex-start; min-width: 0; flex: 1; }
+    .ed-head-ic { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .ed-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.4rem; }
+    .ed-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; word-break: break-word; }
+    .ed-body { padding: 1.25rem 1.5rem !important; }
+    .ed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .ed-item { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.75rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .ed-item-ic { width: 32px; height: 32px; border-radius: 9px; background: #fff; border: 1px solid #eef0f3; color: #6b7280; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
+    .ed-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .ed-value { font-size: 0.9rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .ed-section { margin-top: 1.25rem; }
+    .ed-section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.5rem; }
+    .ed-desc { font-size: 0.92rem; color: #374151; line-height: 1.6; margin: 0; white-space: pre-line; }
+    .ed-slots-text { font-size: 0.85rem; color: #6b7280; }
+    .ed-slots-text strong { color: #1f2328; }
+    .ed-bar { height: 8px; border-radius: 99px; background: #eef0f3; overflow: hidden; }
+    .ed-bar.sm { height: 5px; margin-top: 0.5rem; }
+    .ed-bar > div { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+    .ed-vax-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .ed-vax { display: flex; align-items: center; gap: 1rem; padding: 0.8rem 0.95rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fff; }
+    .ed-vax-name { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .ed-vax-desc { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .ed-pill { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.12rem 0.5rem; border-radius: 999px; background: #f3f4f6; color: #4b5563; }
+    .ed-vax-count { text-align: right; flex-shrink: 0; line-height: 1.15; }
+    .ed-vax-count strong { font-size: 1.1rem; }
+    .ed-vax-count span { color: #9ca3af; font-size: 0.85rem; margin-left: 0.15rem; }
+    .ed-vax-count small { display: block; font-size: 0.7rem; color: #9ca3af; }
+    .ed-chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem; border-radius: 999px; border: 1px solid #e5e7eb; background: #fff; font-size: 0.82rem; font-weight: 600; color: #374151; }
+    .ed-chip i { color: #e0a800; }
+    .ed-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: space-between; gap: 0.6rem; }
+    .ed-foot .ev-btn { padding: 0.6rem 1.1rem; font-size: 0.88rem; }
+    @media (max-width: 768px) {
+      .ed-head { padding: 1rem !important; }
+      .ed-head-ic { width: 40px; height: 40px; }
+      .ed-title { font-size: 1.05rem; }
+      .ed-body { padding: 1rem !important; }
+      .ed-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+      .ed-item { padding: 0.65rem 0.75rem; }
+      .ed-foot { padding: 0.75rem 1rem !important; }
+      .ed-foot .ev-btn { flex: 1; justify-content: center; }
+    }
+
+    /* Register modal */
+    .rg-modal { max-width: 680px; }
+    .rg-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .rg-kicker { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.15rem; }
+    .rg-when { display: flex; flex-wrap: wrap; gap: 0.25rem 0.9rem; margin-top: 0.4rem; font-size: 0.8rem; color: #6b7280; }
+    .rg-when i { margin-right: 0.3rem; color: #9ca3af; }
+    .rg-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.85rem; }
+    .rg-hint { font-size: 0.82rem; color: #6b7280; margin-top: 0.15rem; }
+    .rg-count { font-size: 0.75rem; font-weight: 700; color: #4b5563; background: #f3f4f6; padding: 0.2rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .rg-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .rg-pet { display: block; border: 1.5px solid #e9ecef; border-radius: 14px; padding: 0.85rem 1rem; background: #fff; margin: 0; transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease; }
+    .rg-pet.selectable { cursor: pointer; }
+    .rg-pet.selectable:hover { border-color: #ffd65c; }
+    .rg-pet.selected { border-color: #ffc107; background: #fffcf2; box-shadow: 0 0 0 3px rgba(255,193,7,0.12); }
+    .rg-pet.registered { border-color: rgba(25,135,84,0.35); background: #f6fbf8; }
+    .rg-pet.disabled { cursor: not-allowed; background: #fafafa; opacity: 0.75; }
+    .rg-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .rg-pet-head { display: flex; align-items: center; gap: 0.75rem; min-width: 0; flex: 1; }
+    .rg-avatar { width: 42px; height: 42px; border-radius: 12px; background: #f3f4f6; color: #b88a00; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0; }
+    .rg-pet.registered .rg-avatar { background: rgba(25,135,84,0.1); color: #198754; }
+    .rg-pet.selected .rg-avatar { background: rgba(255,193,7,0.18); }
+    .rg-pet-info { min-width: 0; }
+    .rg-pet-name { font-weight: 700; color: #1f2328; font-size: 0.98rem; display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem; }
+    .rg-pet-meta { font-size: 0.8rem; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rg-badge { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px; }
+    .rg-badge.ok { color: #198754; background: rgba(25,135,84,0.12); }
+    .rg-badge.warn { color: #946200; background: rgba(255,193,7,0.2); }
+    .rg-badge.sel { color: #946200; background: rgba(255,193,7,0.2); }
+    .rg-check { width: 1.25rem; height: 1.25rem; margin: 0 !important; flex-shrink: 0; cursor: pointer; border-color: #cfd4da; }
+    .rg-check.sm { width: 1.05rem; height: 1.05rem; }
+    .rg-check:checked { background-color: #ffc107; border-color: #ffc107; }
+    .rg-check:focus { box-shadow: 0 0 0 3px rgba(255,193,7,0.25); border-color: #ffc107; }
+    .rg-cancel { flex-shrink: 0; }
+    .rg-sub { margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed #e5e7eb; }
+    .rg-sub-title { font-size: 0.78rem; font-weight: 700; color: #4b5563; margin-bottom: 0.55rem; }
+    .rg-sub-title span { font-weight: 500; color: #9ca3af; }
+    .rg-vax-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; }
+    .rg-vax { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.6rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; cursor: pointer; margin: 0; transition: border-color 0.15s ease, background 0.15s ease; }
+    .rg-vax .rg-check { margin-top: 0.1rem !important; }
+    .rg-vax:hover { border-color: #ffd65c; }
+    .rg-vax.on { border-color: #ffc107; background: #fffaeb; }
+    .rg-vax.done { border-color: rgba(25,135,84,0.3); background: #fff; }
+    .rg-vax.cancel { border-color: rgba(220,53,69,0.4); background: rgba(220,53,69,0.04); }
+    .rg-vax.cancel .rg-check:checked { background-color: #dc3545; border-color: #dc3545; }
+    .rg-vax-main { min-width: 0; }
+    .rg-vax-name { font-weight: 700; font-size: 0.86rem; color: #1f2328; }
+    .rg-vax-meta { font-size: 0.72rem; color: #6b7280; margin-top: 0.1rem; }
+    .rg-vax.cancel .rg-vax-meta { color: #dc3545; font-weight: 600; }
+    .rg-vax-desc { font-size: 0.74rem; color: #9ca3af; margin-top: 0.15rem; }
+    .rg-note { font-size: 0.8rem; color: #6b7280; }
+    .rg-note.warn { margin-top: 0.6rem; color: #946200; background: rgba(255,193,7,0.12); padding: 0.45rem 0.65rem; border-radius: 8px; display: flex; gap: 0.45rem; align-items: flex-start; }
+    .rg-note.warn i { margin-top: 2px; }
+    .rg-alert { display: flex; align-items: flex-start; gap: 0.55rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .rg-alert i { margin-top: 3px; }
+    .rg-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .rg-alert.success { background: rgba(25,135,84,0.07); border: 1px solid rgba(25,135,84,0.25); color: #146c43; }
+    .rg-alert.info { background: rgba(13,110,253,0.06); border: 1px solid rgba(13,110,253,0.2); color: #0a58ca; margin-bottom: 0; }
+    .rg-empty { text-align: center; padding: 2rem 1rem; border: 1px dashed #e5e7eb; border-radius: 14px; }
+    .rg-empty .ic { width: 52px; height: 52px; border-radius: 14px; margin: 0 auto 0.75rem; display: flex; align-items: center; justify-content: center; background: rgba(255,193,7,0.12); color: #e0a800; font-size: 1.25rem; }
+    .rg-empty h6 { font-weight: 700; color: #1f2328; margin-bottom: 0.2rem; }
+    .rg-empty p { font-size: 0.85rem; color: #6b7280; margin: 0; }
+    .rg-foot-count { font-size: 0.85rem; color: #6b7280; }
+    .rg-foot-count strong { color: #1f2328; }
+    @media (max-width: 768px) {
+      .rg-pet { padding: 0.75rem 0.8rem; }
+      .rg-avatar { width: 38px; height: 38px; }
+      .rg-pet-meta { white-space: normal; }
+      .rg-vax-grid { grid-template-columns: 1fr; }
+      .rg-cancel { padding: 0.4rem 0.65rem !important; font-size: 0.78rem !important; }
+      .rg-foot-count { width: 100%; text-align: center; }
+      .rg-foot-count:empty { display: none; }
+      .rg-foot-btns { width: 100%; }
+      .rg-foot-btns .ev-btn { flex: 1; justify-content: center; }
+      .ed-foot { flex-wrap: wrap; }
     }
 
     /* Skeleton loading */
@@ -629,58 +751,6 @@ const getFilteredSchedules = () => {
   }
 
   return schedules;
-};
-
-  const getScheduleStatusBadge = (schedule) => {
-    const now = new Date();
-    const scheduleDate = new Date(schedule.scheduled_date);
-    const [startHour, startMinute] = schedule.start_time.split(':');
-    const [endHour, endMinute] = schedule.end_time.split(':');
-    
-    const startDateTime = new Date(scheduleDate);
-    startDateTime.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-    
-    const endDateTime = new Date(scheduleDate);
-    endDateTime.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
-    
-    // Check time-based status first
-    if (now > endDateTime) {
-      return <span style={{ color: '#6c757d', fontWeight: '600' }}>Past</span>;
-    }
-    
-    if (now >= startDateTime && now <= endDateTime) {
-      return <span style={{ color: '#198754', fontWeight: '600' }}>Ongoing</span>;
-    }
-    
-    // Then check database status for cancelled/completed
-    if (schedule.status === 'completed') {
-      return <span style={{ color: '#6c757d', fontWeight: '600' }}>Completed</span>;
-    }
-    if (schedule.status === 'cancelled') {
-      return <span style={{ color: '#dc3545', fontWeight: '600' }}>Cancelled</span>;
-    }
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const schedDateOnly = new Date(scheduleDate);
-    schedDateOnly.setHours(0, 0, 0, 0);
-    const diffDays = Math.ceil((schedDateOnly - today) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return <span style={{ color: '#198754', fontWeight: '600' }}>Today</span>;
-    if (diffDays <= 3) return <span style={{ color: '#ffc107', fontWeight: '600' }}>Soon</span>;
-    if (diffDays <= 7) return <span style={{ color: '#0dcaf0', fontWeight: '600' }}>This Week</span>;
-    return <span style={{ color: '#0d6efd', fontWeight: '600' }}>Upcoming</span>;
-  };
-
-  const getScheduleTypeBadge = (type) => {
-  const badges = {
-    vaccination: <span style={{ color: '#ffc107', fontWeight: '600', fontSize: '0.85rem' }}>Vaccination</span>,
-    deworming: <span style={{ color: '#0d6efd', fontWeight: '600', fontSize: '0.85rem' }}>Deworming</span>,  
-    seminar: <span style={{ color: '#0dcaf0', fontWeight: '600', fontSize: '0.85rem' }}>Seminar</span>,
-    sterilization: <span style={{ color: '#198754', fontWeight: '600', fontSize: '0.85rem' }}>Sterilization</span>,
-    other: <span style={{ color: '#6f42c1', fontWeight: '600', fontSize: '0.85rem' }}>Other Event</span>
-  };
-  return badges[type] || <span style={{ color: '#6c757d', fontWeight: '600', fontSize: '0.85rem' }}>{type}</span>;
 };
 
   const getAvailableSpots = (schedule) => {
@@ -1999,1272 +2069,486 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
     {/* Details Modal */}
-      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" className="ev-zoom-modal">
-        <Modal.Header 
-          closeButton
-          style={{
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-            borderBottom: '2px solid #ffc107',
-            borderRadius: '20px 20px 0 0'
-          }}
-        >
-          <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-            <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }}></i>
-            Event Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedSchedule && (
+      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} dialogClassName="ed-modal" className="ev-zoom-modal" scrollable>
+        {selectedSchedule && (() => {
+          const s = selectedSchedule;
+          const meta = typeMeta(s.type);
+          const status = getStatusMeta(s);
+          const slots = getSlots(s);
+          const action = getEventAction(s);
+          const registered = isScheduleRegistered(s);
+          const pct = slots ? Math.min(100, Math.round((slots.taken / slots.total) * 100)) : 0;
+          const date = keyToDate(dateKey(s));
+          const place = s.custom_place || s.barangay_name;
+          const parseList = (v) => { try { return Array.isArray(v) ? v : JSON.parse(v || '[]'); } catch (e) { return []; } };
+          const petTypes = s.type === 'sterilization' ? parseList(s.sterilization_species)
+            : (s.type === 'deworming' || s.type === 'other') ? parseList(s.pet_types_allowed) : [];
+          const vaccines = s.type === 'vaccination' ? getVaccineDetails(s) : [];
+          const info = [
+            { icon: 'fa-calendar-day', label: 'Date', value: date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) },
+            { icon: 'fa-clock', label: 'Time', value: [formatClock(s.start_time), formatClock(s.end_time)].filter(Boolean).join(' – ') },
+            { icon: 'fa-map-marker-alt', label: 'Place', value: place },
+            { icon: 'fa-building', label: 'Venue', value: s.venue },
+            s.speaker && { icon: 'fa-user-tie', label: 'Speaker', value: s.speaker },
+            s.type === 'other' && s.other_event_type && { icon: 'fa-tag', label: 'Event type', value: s.other_event_type },
+          ].filter(x => x && x.value);
+
+          return (
             <>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Type</strong>
+              <Modal.Header closeButton className="ed-head" style={{ '--c': meta.color }}>
+                <div className="ed-head-main">
+                  <div className="ed-head-ic"><i className={`fas ${meta.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="ed-tags">
+                      <span className="ev-tag" style={{ color: meta.color, background: `${meta.color}14` }}>{meta.label}</span>
+                      <span className="ev-tag" style={{ color: status.color, background: `${status.color}14` }}>{status.label}</span>
+                      {registered && (
+                        <span className="ev-tag" style={{ color: '#198754', background: 'rgba(25,135,84,0.1)' }}>
+                          <i className="fas fa-check-circle" />Registered
+                        </span>
+                      )}
+                    </div>
+                    <Modal.Title as="h5" className="ed-title">{s.title}</Modal.Title>
                   </div>
-                  {getScheduleTypeBadge(selectedSchedule.type)}
-                </Col>
-                <Col md={6}>
-                  <div style={{ marginBottom: '0.5rem' }}>
-                    <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Status</strong>
+                </div>
+              </Modal.Header>
+
+              <Modal.Body className="ed-body">
+                <div className="ed-grid">
+                  {info.map(item => (
+                    <div key={item.label} className="ed-item">
+                      <div className="ed-item-ic"><i className={`fas ${item.icon}`} /></div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="ed-label">{item.label}</div>
+                        <div className="ed-value">{item.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="ed-section">
+                  <div className="ed-section-title">About this event</div>
+                  <p className="ed-desc">{s.description || 'No description provided.'}</p>
+                </div>
+
+                {slots && (
+                  <div className="ed-section">
+                    <div className="d-flex justify-content-between align-items-baseline mb-2">
+                      <div className="ed-section-title mb-0">{s.type === 'vaccination' ? 'Vaccine slots' : 'Slots'}</div>
+                      <span className="ed-slots-text">
+                        {slots.left === 0
+                          ? <strong style={{ color: '#dc3545' }}>Fully booked</strong>
+                          : <><strong>{slots.left}</strong> of {slots.total} left</>}
+                      </span>
+                    </div>
+                    <div className="ed-bar">
+                      <div style={{ width: `${pct}%`, background: slots.left === 0 ? '#dc3545' : slots.left <= 10 ? '#e0a800' : '#198754' }} />
+                    </div>
                   </div>
-                  {getScheduleStatusBadge(selectedSchedule)}
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={12}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Title</strong>
-                  <p className="mb-0" style={{ fontWeight: '600', color: '#333333' }}>{selectedSchedule.title}</p>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={12}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Description</strong>
-                  <p className="mb-0" style={{ color: '#333333' }}>{selectedSchedule.description || 'No description provided'}</p>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Date</strong>
-                  <p className="mb-0" style={{ fontWeight: '600', color: '#333333' }}>{new Date(selectedSchedule.scheduled_date).toLocaleDateString()}</p>
-                </Col>
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Time</strong>
-                  <p className="mb-0" style={{ fontWeight: '600', color: '#333333' }}>{selectedSchedule.start_time} - {selectedSchedule.end_time}</p>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Place</strong>
-                  <p className="mb-0" style={{ fontWeight: '600', color: '#333333' }}>{selectedSchedule.custom_place || selectedSchedule.barangay_name}</p>
-                </Col>
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Venue</strong>
-                  <p className="mb-0" style={{ fontWeight: '600', color: '#333333' }}>{selectedSchedule.venue}</p>
-                </Col>
-              </Row>
+                )}
 
-              {selectedSchedule.speaker && (
-                <Row className="mb-3">
-                  <Col md={12}>
-                    <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Speaker</strong>
-                    <p className="mb-0" style={{ fontWeight: '600', color: '#333333' }}>{selectedSchedule.speaker}</p>
-                  </Col>
-                </Row>
-              )}
-              {selectedSchedule && selectedSchedule.type === 'other' && selectedSchedule.other_event_type && (
-  <Row className="mb-3">
-    <Col md={12}>
-      <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Event Type</strong>
-      <p className="mb-0" style={{ fontWeight: '600', color: '#333333' }}>
-        {selectedSchedule.other_event_type}
-      </p>
-    </Col>
-  </Row>
-)}
-
-              {/* Capacity based on type */}
-              {selectedSchedule.type === 'vaccination' ? (
-                <>
-                  <Row className="mb-3">
-                    <Col md={12}>
-                      <strong style={{ fontSize: '0.9rem', color: '#666' }}>Total Capacity</strong>
-                      <p className="mb-0">
-                        <strong>{selectedSchedule.current_registrations || 0}</strong> / {getTotalVaccineShots(selectedSchedule)} total vaccine shots available
-                      </p>
-                    </Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col md={12}>
-                      <strong style={{ fontSize: '0.9rem', color: '#666' }} className="d-block mb-2">Available Vaccines</strong>
-                      <div style={{ border: '2px solid #dee2e6', borderRadius: '8px', padding: '1rem', background: '#f8f9fa' }}>
-                        {getVaccineDetails(selectedSchedule).length === 0 ? (
-                          <p className="text-muted mb-0">No vaccines available for this schedule</p>
-                        ) : (
-                          getVaccineDetails(selectedSchedule).map((vaccine, idx) => (
-                            <div 
-                              key={idx} 
-                              style={{ 
-                                padding: '1rem', 
-                                background: '#ffffff', 
-                                borderRadius: '8px', 
-                                marginBottom: idx !== getVaccineDetails(selectedSchedule).length - 1 ? '0.75rem' : '0', 
-                                border: '1px solid #e0e0e0',
-                                transition: 'all 0.2s ease'
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)'}
-                              onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
-                            >
-                              <div className="d-flex justify-content-between align-items-center">
-                                <div style={{ flex: 1 }}>
-                                  <div className="d-flex align-items-center gap-2 mb-1">
-                                    <strong style={{ fontSize: '1rem', color: '#333' }}>{vaccine.name}</strong>
-                                    <span style={{ 
-                                      fontSize: '0.7rem', 
-                                      padding: '0.25rem 0.6rem', 
-                                      background: '#6c757d', 
-                                      color: '#fff', 
-                                      borderRadius: '4px',
-                                      fontWeight: '600',
-                                      textTransform: 'uppercase'
-                                    }}>
-                                      {vaccine.species}
-                                    </span>
-                                  </div>
-                                  {vaccine.description && (
-                                    <small className="text-muted d-block mt-1">
-                                      {vaccine.description}
-                                    </small>
-                                  )}
+                {s.type === 'vaccination' && (
+                  <div className="ed-section">
+                    <div className="ed-section-title">Available vaccines</div>
+                    {vaccines.length === 0 ? (
+                      <p className="ed-desc mb-0">No vaccines available for this event.</p>
+                    ) : (
+                      <div className="ed-vax-list">
+                        {vaccines.map((v, idx) => {
+                          const full = v.registered >= v.limit;
+                          const vp = v.limit ? Math.min(100, Math.round((v.registered / v.limit) * 100)) : 0;
+                          return (
+                            <div key={idx} className="ed-vax">
+                              <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                                <div className="d-flex align-items-center gap-2 flex-wrap">
+                                  <span className="ed-vax-name">{v.name}</span>
+                                  {v.species && <span className="ed-pill">{v.species}</span>}
                                 </div>
-                                <div className="text-end">
-  <div style={{ fontSize: '1.1rem' }}>
-    <strong style={{ color: vaccine.registered >= vaccine.limit ? '#dc3545' : '#28a745' }}>
-      {vaccine.registered}
-    </strong>
-    <span className="text-muted"> / {vaccine.limit}</span>
-  </div>
-  <small className="text-muted" style={{ fontSize: '0.75rem' }}>shots</small>
-</div>
+                                {v.description && <div className="ed-vax-desc">{v.description}</div>}
+                                <div className="ed-bar sm"><div style={{ width: `${vp}%`, background: full ? '#dc3545' : '#198754' }} /></div>
+                              </div>
+                              <div className="ed-vax-count">
+                                <strong style={{ color: full ? '#dc3545' : '#1f2328' }}>{v.registered}</strong>
+                                <span>/ {v.limit}</span>
+                                <small>{full ? 'Full' : 'shots'}</small>
                               </div>
                             </div>
-                          ))
-                        )}
+                          );
+                        })}
                       </div>
-                    </Col>
-                  </Row>
-                </>
-              ) : selectedSchedule.max_capacity ? (
-                <Row className="mb-3">
-                  <Col md={12}>
-                    <strong style={{ fontSize: '0.9rem', color: '#666' }}>Capacity</strong>
-                    <p className="mb-0">
-                      <strong>{selectedSchedule.current_registrations || 0}</strong> / {selectedSchedule.max_capacity} registered
-                    </p>
-                  </Col>
-                </Row>
-              ) : null}
+                    )}
+                  </div>
+                )}
 
-              {selectedSchedule.pet_types_allowed && selectedSchedule.type === 'deworming' && (
-                <Row className="mb-3">
-                  <Col md={12}>
-                    <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Available for Pet Types</strong>
-                    <div className="mt-2">
-                      {(Array.isArray(selectedSchedule.pet_types_allowed)
-                        ? selectedSchedule.pet_types_allowed
-                        : JSON.parse(selectedSchedule.pet_types_allowed || '[]')
-                      ).map((type, idx) => (
-                        <Badge key={idx} bg="primary" className="me-2 mb-2">
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </Badge>
+                {petTypes.length > 0 && (
+                  <div className="ed-section">
+                    <div className="ed-section-title">Open to</div>
+                    <div className="d-flex flex-wrap gap-2">
+                      {petTypes.map(t => (
+                        <span key={t} className="ed-chip"><i className={`fas ${String(t).toLowerCase() === 'cat' ? 'fa-cat' : String(t).toLowerCase() === 'dog' ? 'fa-dog' : 'fa-paw'}`} />{String(t).charAt(0).toUpperCase() + String(t).slice(1)}</span>
                       ))}
                     </div>
-                  </Col>
-                </Row>
-              )}
+                  </div>
+                )}
+              </Modal.Body>
 
-              {selectedSchedule.sterilization_species && selectedSchedule.type === 'sterilization' && (
-                <Row className="mb-3">
-                  <Col md={12}>
-                    <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Available for Pet Types</strong>
-                    <div className="mt-2">
-                      {(Array.isArray(selectedSchedule.sterilization_species)
-                        ? selectedSchedule.sterilization_species
-                        : JSON.parse(selectedSchedule.sterilization_species || '[]')
-                      ).map((type, idx) => (
-                        <Badge key={idx} bg="success" className="me-2 mb-2">
-                          {type.charAt(0).toUpperCase() + type.slice(1)}
-                        </Badge>
-                      ))}
-                    </div>
-                  </Col>
-                </Row>
-              )}
-              {selectedSchedule && selectedSchedule.pet_types_allowed && selectedSchedule.type === 'other' && (() => {
-  const allowedTypes = Array.isArray(selectedSchedule.pet_types_allowed)
-    ? selectedSchedule.pet_types_allowed
-    : JSON.parse(selectedSchedule.pet_types_allowed || '[]');
-  
-  if (allowedTypes.length === 0) return null;
-  
-  return (
-    <Row className="mb-3">
-      <Col md={12}>
-        <strong style={{ fontSize: '0.9rem', color: '#666666' }}>Available for Pet Types</strong>
-        <div className="mt-2">
-          {allowedTypes.map((type, idx) => (
-            <Badge key={idx} bg="secondary" className="me-2 mb-2">
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </Badge>
-          ))}
-        </div>
-      </Col>
-    </Row>
-  );
-})()}
+              <Modal.Footer className="ed-foot">
+                <button type="button" className="ev-btn ghost" onClick={() => setShowDetailsModal(false)}>Close</button>
+                {action && (
+                  <button
+                    type="button"
+                    className={`ev-btn ${action.tone}`}
+                    disabled={action.tone === 'primary' && slots && slots.left === 0}
+                    onClick={() => { setShowDetailsModal(false); action.onClick(); }}
+                  >
+                    <i className={`fas ${action.icon}`} />
+                    {action.tone === 'primary' && slots && slots.left === 0 ? 'Fully booked' : action.label === 'Register' ? 'Register for event' : action.label}
+                  </button>
+                )}
+              </Modal.Footer>
             </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', display: 'flex', justifyContent: 'space-between' }}>
-  <Button 
-    variant="secondary" 
-    onClick={() => setShowDetailsModal(false)}
-    style={{
-      borderRadius: '10px',
-      padding: '0.75rem 1.5rem',
-      fontWeight: '600'
-    }}
-  >
-    Close
-  </Button>
-  
-  {selectedSchedule && selectedSchedule.status !== 'completed' && selectedSchedule.status !== 'cancelled' && (() => {
-    const now = new Date();
-    const scheduleDate = new Date(selectedSchedule.scheduled_date);
-    const [startHour, startMinute] = selectedSchedule.start_time.split(':');
-    scheduleDate.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-    return now < scheduleDate;
-  })() && (
-    <Button 
-      onClick={() => {
-        setShowDetailsModal(false);
-        handleRegisterClick(selectedSchedule);
-      }}
-      className="border-0"
-      style={{
-        background: '#ffc107',
-        color: '#000000',
-        padding: '0.75rem 1.5rem',
-        borderRadius: '12px',
-        fontWeight: '700',
-        boxShadow: '0 4px 15px rgba(255, 193, 7, 0.4)',
-        transition: 'all 0.3s'
-      }}
-      onMouseOver={(e) => {
-        e.target.style.transform = 'translateY(-2px)';
-        e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-        e.target.style.background = '#ffb300';
-      }}
-      onMouseOut={(e) => {
-        e.target.style.transform = 'translateY(0)';
-        e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-        e.target.style.background = '#ffc107';
-      }}
-    >
-      <i className="fas fa-user-plus me-2"></i>
-      Register for Event
-    </Button>
-  )}
-</Modal.Footer>
+          );
+        })()}
       </Modal>
 
       {/* Registration Modal */}
-      {/* Seminars use a small, centered confirmation modal (no pet selection needed) */}
-      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size={scheduleType === 'seminar' ? undefined : 'lg'} centered={scheduleType === 'seminar'} backdrop="static" className="ev-zoom-modal">
-        <Modal.Header 
-  closeButton
-  style={scheduleType === 'seminar' ? { background: '#f8f9fa', borderBottom: '2px solid #ffc107' } : {
-    background: '#f8f9fa',
-    borderBottom: '2px solid #ffc107',
-    borderRadius: '20px 20px 0 0'
-  }}
-        >
-          <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-  <i className={`fas ${scheduleType === 'seminar' ? 'fa-chalkboard-teacher' : 'fa-user-plus'} me-2`} style={scheduleType === 'seminar' ? { color: '#e0a800' } : undefined}></i>
-  Register for {
-    scheduleType === 'vaccination' ? 'Vaccination' : 
-    scheduleType === 'deworming' ? 'Deworming' :
-    scheduleType === 'sterilization' ? 'Sterilization' :
-    scheduleType === 'microchip' ? 'Microchip' :
-    scheduleType === 'other' ? 'Other Event' :
-    'Seminar'
-  }
-</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleRegistrationSubmit}>
-          <Modal.Body style={scheduleType === 'seminar' ? { padding: '2rem' } : { maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
-            {registerError && (
-              <Alert 
-                variant="danger"
-                style={{
-                  borderRadius: '12px',
-                  border: '2px solid #dc3545',
-                  background: 'rgba(220, 53, 69, 0.1)',
-                  color: '#dc3545'
-                }}
-              >
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                {registerError}
-              </Alert>
-            )}
+      {/* Registration Modal — seminars use a small centered confirmation; other events use the pet picker */}
+      <Modal
+        show={showRegisterModal}
+        onHide={() => setShowRegisterModal(false)}
+        size={scheduleType === 'seminar' ? undefined : 'lg'}
+        centered={scheduleType === 'seminar'}
+        dialogClassName={scheduleType === 'seminar' ? undefined : 'rg-modal'}
+        backdrop="static"
+        className="ev-zoom-modal"
+        scrollable={scheduleType !== 'seminar'}
+      >
+        <Form onSubmit={handleRegistrationSubmit} style={{ display: 'contents' }}>
+        {(() => {
+          const s = selectedSchedule;
+          const meta = typeMeta(scheduleType);
+          const isSeminar = scheduleType === 'seminar';
+          const place = s ? [s.venue, s.custom_place || s.barangay_name].filter(Boolean).join(', ') : '';
+          const dateLabel = s ? keyToDate(dateKey(s)).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }) : '';
+          const timeLabel = s ? [formatClock(s.start_time), formatClock(s.end_time)].filter(Boolean).join(' – ') : '';
+          const parseList = (v) => { try { return Array.isArray(v) ? v : JSON.parse(v || '[]'); } catch (e) { return []; } };
+          const otherNeedsPets = scheduleType === 'other' && parseList(s?.pet_types_allowed).length > 0;
+          const usesPetPicker = ['vaccination', 'deworming', 'sterilization', 'microchip'].includes(scheduleType) || otherNeedsPets;
+          const ageRule = ['deworming', 'sterilization'].includes(scheduleType);
 
-            {registerSuccess && (
-              <Alert 
-                variant="success"
-                style={{
-                  borderRadius: '12px',
-                  border: '2px solid #198754',
-                  background: 'rgba(25, 135, 84, 0.1)',
-                  color: '#198754'
-                }}
-              >
-                <i className="fas fa-check-circle me-2"></i>
-                {registerSuccess}
-              </Alert>
-            )}
+          const petIcon = (species) => {
+            const sp = String(species || '').toLowerCase();
+            return sp === 'cat' ? 'fa-cat' : sp === 'dog' ? 'fa-dog' : 'fa-paw';
+          };
 
-            {selectedSchedule && scheduleType === 'seminar' && (
-              <>
-                <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                  Are you sure you want to register as an attendee for this seminar?
-                </p>
-                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-                  <div className="mb-2">
-                    <span style={{ fontWeight: '500', color: '#555' }}>
-                      <i className="fas fa-chalkboard-teacher me-1" style={{ color: '#ffc107' }}></i>
-                      Seminar Information
-                    </span>
-                  </div>
-                  <strong style={{ fontSize: '1.1rem' }}>{selectedSchedule.title}</strong>
-                  <br />
-                  <small className="text-muted d-block mt-1">
-                    <i className="fas fa-calendar me-1"></i>
-                    {new Date(selectedSchedule.scheduled_date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
-                    {selectedSchedule.start_time && <> • {formatClock(selectedSchedule.start_time)}{selectedSchedule.end_time ? ` – ${formatClock(selectedSchedule.end_time)}` : ''}</>}
-                  </small>
-                  <small className="text-muted d-block mt-1">
-                    <i className="fas fa-map-marker-alt me-1"></i>
-                    {[selectedSchedule.venue, selectedSchedule.custom_place || selectedSchedule.barangay_name].filter(Boolean).join(', ')}
-                  </small>
-                </div>
-                <Alert variant="info" className="mt-3 mb-0">
-                  <i className="fas fa-info-circle me-2"></i>
-                  <strong>Note:</strong> No pet is needed. You will be registered as an attendee.
-                </Alert>
-              </>
-            )}
+          const sortedPets = [...compatiblePets].sort((a, b) => {
+            if (a.isRegistered !== b.isRegistered) return a.isRegistered ? -1 : 1;
+            if (ageRule) {
+              const ma = meetsAgeRequirement(a, scheduleType).meets, mb = meetsAgeRequirement(b, scheduleType).meets;
+              if (ma !== mb) return ma ? -1 : 1;
+            }
+            return 0;
+          });
 
-            {selectedSchedule && scheduleType !== 'seminar' && (
-              <div 
-                className="mb-4"
-                style={{
-                  background: 'rgba(255, 193, 7, 0.05)',
-                  padding: '1.25rem',
-                  borderRadius: '12px',
-                  borderLeft: '4px solid #ffc107'
-                }}
-              >
-                <h6 style={{ fontWeight: '700', color: '#333333' }}>{selectedSchedule.title}</h6>
-                <p className="text-muted mb-0">
-                  <i className="fas fa-calendar me-2"></i>
-                  {new Date(selectedSchedule.scheduled_date).toLocaleDateString()} at {selectedSchedule.start_time}
-                  <br />
-                  <i className="fas fa-map-marker-alt me-2"></i>
-                  {selectedSchedule.custom_place || selectedSchedule.barangay_name} — {selectedSchedule.venue}
-                </p>
-              </div>
-            )}
+          const selectedCount = scheduleType === 'vaccination'
+            ? compatiblePets.filter(p => p.selectedVaccines && p.selectedVaccines.length > 0).length
+            : registrationData.pets_registered.length;
 
-            {scheduleType === 'vaccination' && (
-              <>
-                <h6 style={{ fontWeight: '700', marginBottom: '1rem', color: '#333333' }}>Select pets and their vaccines:</h6>
-                {compatiblePets.length === 0 ? (
-                  <Alert 
-                    variant="warning"
-                    style={{
-                      borderRadius: '12px',
-                      border: '2px solid #ffc107',
-                      background: 'rgba(255, 193, 7, 0.1)'
-                    }}
-                  >
-                    {myPets.length === 0 
-                      ? 'You don\'t have any registered pets yet. Please register your pets first.'
-                      : 'No eligible pets for this vaccination event.'
-                    }
-                  </Alert>
-                ) : (
-                  <div className="mb-4">
-                    {compatiblePets
-                      .sort((a, b) => {
-                        if (a.isRegistered && !b.isRegistered) return -1;
-                        if (!a.isRegistered && b.isRegistered) return 1;
-                        return 0;
-                      })
-                      .map(pet => {
-                        const availableVaccines = getAvailableVaccinesForPet(
-                          pet.species, 
-                          selectedSchedule?.vaccine_shot_limits
-                        );
-                        
-                        return (
-                          <div 
-                            key={pet.id} 
-                            className="mb-4" 
-                            style={{ 
-                              background: pet.isRegistered ? '#e8f5e9' : '#ffffff',
-                              padding: '1.25rem',
-                              borderRadius: '12px',
-                              border: pet.isRegistered ? '2px solid #4caf50' : '2px solid #e0e0e0',
-                              position: 'relative'
-                            }}
-                          >
-                            {pet.isRegistered ? (
-  <div>
-    <div className="d-flex justify-content-between align-items-start mb-3">
-      <div className="flex-grow-1">
-        <div className="d-flex align-items-center mb-2">
-          <i className="fas fa-check-circle text-success me-2" style={{ fontSize: '1.2rem' }}></i>
-          <div>
-            <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-            <Badge bg="success" className="ms-2">Registered</Badge>
-          </div>
-        </div>
-        <small className="text-muted d-block">
-          <i className="fas fa-paw me-1"></i>
-          {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-        </small>
-      </div>
-      <button
-  type="button"
-  onClick={() => handleCancelSelectedOrAll(pet.id, pet.registration_id)}
-  disabled={registerLoading}
-  style={{
-    background: '#dc3545',
-    color: '#ffffff',
-    border: 'none',
-    padding: '0.4rem 0.8rem',
-    borderRadius: '6px',
-    fontSize: '0.85rem',
-    cursor: registerLoading ? 'not-allowed' : 'pointer',
-    transition: 'all 0.2s',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.3rem',
-    opacity: registerLoading ? 0.6 : 1
-  }}
-  onMouseOver={(e) => !registerLoading && (e.target.style.background = '#c82333')}
-  onMouseOut={(e) => !registerLoading && (e.target.style.background = '#dc3545')}
->
-  <i className="fas fa-times"></i>
-{(selectedVaccinesToCancel[pet.id] || []).length > 0 ? 'Cancel Selected' : 'Cancel All'}
-</button>
-    </div>
-    
-    {/* Show registered vaccines */}
-    <div 
-      style={{
-        marginTop: '1rem',
-        paddingTop: '1rem',
-        borderTop: '1px solid #dee2e6'
-      }}
-    >
-      <strong style={{ fontSize: '0.95rem', display: 'block', marginBottom: '0.75rem' }}>
-        Registered vaccines for {pet.name}:
-      </strong>
-      
-      {(() => {
-const registration = currentRegistrations.find(r => r.pet_id === pet.id);
-        const registeredVaccineIds = registration?.selected_vaccines || [];
-        
-        if (registeredVaccineIds.length === 0) {
-          return (
-            <Alert 
-              variant="info" 
-              className="mb-0 py-2"
-              style={{
-                borderRadius: '8px',
-                fontSize: '0.875rem'
-              }}
-            >
-              <small>No vaccines registered yet</small>
-            </Alert>
+          const submitDisabled = registerLoading || (
+            scheduleType === 'vaccination'
+              ? compatiblePets.filter(p => p.selectedVaccines && p.selectedVaccines.length > 0).length === 0
+              : (scheduleType === 'deworming' || scheduleType === 'sterilization' || scheduleType === 'microchip')
+                ? registrationData.pets_registered.length === 0 && compatiblePets.filter(p => !p.isRegistered).length > 0
+                : scheduleType === 'other'
+                  ? (otherNeedsPets ? registrationData.pets_registered.length === 0 : false)
+                  : false
           );
-        }
-        
-        return registeredVaccineIds.map(vaccineId => {
-  const vaccineType = inventoryItems.find(i => i.id === parseInt(vaccineId));
-const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);  
-  return (
-    <div 
-      key={vaccineId}
-      style={{
-        background: isSelected ? '#fff3cd' : '#e8f5e9',
-        padding: '0.75rem 1rem',
-        borderRadius: '8px',
-        marginBottom: '0.5rem',
-        border: isSelected ? '2px solid #ffc107' : '2px solid #4caf50',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '1rem',
-        transition: 'all 0.2s'
-      }}
-    >
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <Form.Check
-  type="checkbox"
-  checked={isSelected}
-  onChange={(e) => handleVaccineCancelSelection(pet.id, vaccineId, e.target.checked)}
-  disabled={registerLoading}
-  style={{ marginTop: '0' }}
-/>
-        <div style={{ flex: 1 }}>
-          <div className="d-flex align-items-center gap-2 mb-1">
-            <strong style={{ fontSize: '0.95rem' }}>{vaccineType?.item_name || vaccineType?.name || 'Unknown Vaccine'}</strong>
-            <Badge bg="secondary" style={{ fontSize: '0.7rem' }}>
-              {vaccineType?.species?.toUpperCase() || 'N/A'}
-            </Badge>
-          </div>
-          {vaccineType?.description && (
-            <small className="text-muted d-block">
-              {vaccineType.description}
-            </small>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
-      })()}
-    </div>
-  </div>
-) : (
-                              <div>
-                                <div className="d-flex align-items-start mb-3">
-                                  <Form.Check
-                                    type="checkbox"
-                                    id={`pet_${pet.id}`}
-                                    onChange={() => handlePetSelectionToggle(pet.id)}
-                                    disabled={registerLoading}
-                                    checked={pet.selectedVaccines !== undefined}
-                                    style={{ marginTop: '0.4rem' }}
-                                  />
-                                  <label 
-                                    className="w-100 ms-2" 
-                                    htmlFor={`pet_${pet.id}`}
-                                    style={{ cursor: 'pointer' }}
-                                  >
-                                    <div>
-                                      <strong style={{ fontSize: '1.1rem' }}>{pet.name}</strong>
-                                      <br />
-                                      <small className="text-muted">
-                                        <i className="fas fa-paw me-1"></i>
-                                        {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                                      </small>
-                                    </div>
-                                  </label>
-                                </div>
-                                
-                                {pet.selectedVaccines !== undefined && (
-                                  <div 
-                                    style={{
-                                      marginTop: '1rem',
-                                      paddingTop: '1rem',
-                                      borderTop: '1px solid #dee2e6'
-                                    }}
-                                  >
-                                    <strong style={{ fontSize: '0.95rem', display: 'block', marginBottom: '0.75rem' }}>
-                                      Select vaccines for {pet.name}:
-                                    </strong>
-                                    
-                                    {availableVaccines.length === 0 ? (
-                                      <Alert 
-                                        variant="info" 
-                                        className="mb-0 py-2"
-                                        style={{
-                                          borderRadius: '8px',
-                                          fontSize: '0.875rem'
-                                        }}
-                                      >
-                                        <small>No vaccines available for this pet type</small>
-                                      </Alert>
-                                    ) : (
-                                      <div>
-                                        {availableVaccines.map(vaccine => (
-                                          <div 
-                                            key={vaccine.id}
-                                            style={{
-                                              background: pet.selectedVaccines?.includes(vaccine.id) ? '#fff9e6' : '#f8f9fa',
-                                              padding: '0.75rem',
-                                              borderRadius: '8px',
-                                              marginBottom: '0.5rem',
-                                              border: pet.selectedVaccines?.includes(vaccine.id) ? '2px solid #ffc107' : '1px solid #e0e0e0'
-                                            }}
-                                          >
-                                            <Form.Check
-                                              type="checkbox"
-                                              id={`vaccine_${pet.id}_${vaccine.id}`}
-                                              checked={pet.selectedVaccines?.includes(vaccine.id) || false}
-                                              onChange={(e) => handleVaccineSelection(pet.id, vaccine.id, e.target.checked)}
-                                              disabled={registerLoading}
-                                              label={
-                                                <div>
-                                                  <strong>{vaccine.name}</strong>
-                                                  <Badge bg="secondary" className="ms-2" style={{ fontSize: '0.7rem' }}>
-                                                    {vaccine.species.toUpperCase()}
-                                                  </Badge>
-                                                  <Badge bg="info" className="ms-1" style={{ fontSize: '0.7rem' }}>
-                                                    {vaccine.shotsRemaining} shots left
-                                                  </Badge>
-                                                  {vaccine.description && (
-                                                    <small className="text-muted d-block mt-1">
-                                                      {vaccine.description}
-                                                    </small>
-                                                  )}
-                                                </div>
-                                              }
-                                            />
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </>
-            )}
 
-            {scheduleType === 'deworming' && (
-              <>
-                <h6 style={{ fontWeight: '700', marginBottom: '1rem', color: '#333333' }}>Select pets for deworming:</h6>
-                {compatiblePets.length === 0 ? (
-                  <Alert 
-                    variant="warning"
-                    style={{
-                      borderRadius: '12px',
-                      border: '2px solid #ffc107',
-                      background: 'rgba(255, 193, 7, 0.1)'
-                    }}
-                  >
-                    {myPets.length === 0 
-                      ? 'You don\'t have any registered pets yet. Please register your pets first.'
-                      : 'No compatible pets for this deworming event.'
-                    }
-                  </Alert>
-                ) : (
-                  <div className="mb-4">
-                    {compatiblePets
-                      .sort((a, b) => {
-                        const ageCheckA = meetsAgeRequirement(a, 'deworming');
-                        const ageCheckB = meetsAgeRequirement(b, 'deworming');
-                        if (a.isRegistered && !b.isRegistered) return -1;
-                        if (!a.isRegistered && b.isRegistered) return 1;
-                        if (ageCheckA.meets && !ageCheckB.meets) return -1;
-                        if (!ageCheckA.meets && ageCheckB.meets) return 1;
-                        return 0;
-                      })
-                      .map(pet => {
-                        const ageCheck = meetsAgeRequirement(pet, 'deworming');
-                        
-                        return (
-                          <div 
-                            key={pet.id} 
-                            className="mb-3" 
-                            style={{ 
-                              background: pet.isRegistered ? '#e8f5e9' : (ageCheck.meets ? '#ffffff' : '#f5f5f5'),
-                              padding: '1rem',
-                              borderRadius: '12px',
-                              border: pet.isRegistered ? '2px solid #4caf50' : (ageCheck.meets ? '2px solid #e0e0e0' : '2px solid #ffc107'),
-                              position: 'relative',
-                              opacity: ageCheck.meets ? 1 : 0.7
-                            }}
-                          >
-                            {pet.isRegistered ? (
-                              <div className="d-flex justify-content-between align-items-center" style={{ flexWrap: 'nowrap', gap: '0.5rem' }}>
-                                <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                                  <div className="d-flex align-items-center mb-2">
-                                    <i className="fas fa-check-circle text-success me-2" style={{ fontSize: '1.2rem', flexShrink: 0 }}></i>
-                                    <div style={{ minWidth: 0 }}>
-                                      <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                                      <Badge bg="success" className="ms-2">Registered</Badge>
-                                    </div>
-                                  </div>
-                                  <small className="text-muted d-block">
-                                    <i className="fas fa-paw me-1"></i>
-                                    {pet.species} • {pet.breed ||'Mixed'} • {pet.gender}
-                                  </small>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCancelRegistration(pet.id, pet.registration_id)}
-                                  disabled={registerLoading}
-                                  style={{
-                                    background: '#dc3545',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '0.4rem 0.8rem',
-                                    borderRadius: '6px',
-                                    fontSize: '0.85rem',
-                                    cursor: registerLoading ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.3rem',
-                                    opacity: registerLoading ? 0.6 : 1,
-                                    flexShrink: 0,
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                  onMouseOver={(e) => !registerLoading && (e.currentTarget.style.background = '#c82333')}
-                                  onMouseOut={(e) => !registerLoading && (e.currentTarget.style.background = '#dc3545')}
-                                >
-                                  <i className="fas fa-times"></i>
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <div>
-                                <div className="form-check">
-                                  <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    id={`pet_deworm_${pet.id}`}
-                                    onChange={(e) => handlePetSelection(pet.id, e.target.checked)}
-                                    disabled={registerLoading || !ageCheck.meets}
-                                    checked={registrationData.pets_registered.includes(pet.id)}
-                                    style={{ marginTop: '0.4rem' }}
-                                  />
-                                  <label 
-                                    className="form-check-label w-100" 
-                                    htmlFor={`pet_deworm_${pet.id}`}
-                                    style={{ cursor: ageCheck.meets ? 'pointer' : 'not-allowed' }}
-                                  >
-                                    <div>
-                                      <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                                      {!ageCheck.meets && (
-                                        <Badge bg="warning" className="ms-2">Age Restriction</Badge>
-                                      )}
-                                      <br />
-                                      <small className="text-muted">
-                                        <i className="fas fa-paw me-1"></i>
-                                        {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                                      </small>
-                                    </div>
-                                  </label>
-                                </div>
-                                {!ageCheck.meets && (
-                                  <Alert variant="warning" className="mt-2 mb-0 py-2" style={{ borderRadius: '8px', fontSize: '0.875rem' }}>
-                                    <small>
-                                      <i className="fas fa-exclamation-triangle me-2"></i>
-                                      {ageCheck.reason}
-                                    </small>
-                                  </Alert>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </>
-            )}
-
-            {scheduleType === 'sterilization' && (
-              <>
-                <h6 style={{ fontWeight: '700', marginBottom: '1rem', color: '#333333' }}>Select pets for sterilization:</h6>
-                {compatiblePets.length === 0 ? (
-                  <Alert 
-                    variant="warning"
-                    style={{
-                      borderRadius: '12px',
-                      border: '2px solid #ffc107',
-                      background: 'rgba(255, 193, 7, 0.1)'
-                    }}
-                  >
-                    {myPets.length === 0 
-                      ? 'You don\'t have any registered pets yet. Please register your pets first.'
-                      : 'No compatible pets for this sterilization event.'
-                    }
-                  </Alert>
-                ) : (
-                  <div className="mb-4">
-                    {compatiblePets
-                      .sort((a, b) => {
-                        const ageCheckA = meetsAgeRequirement(a, 'sterilization');
-                        const ageCheckB = meetsAgeRequirement(b, 'sterilization');
-                        if (a.isRegistered && !b.isRegistered) return -1;
-                        if (!a.isRegistered && b.isRegistered) return 1;
-                        if (ageCheckA.meets && !ageCheckB.meets) return -1;
-                        if (!ageCheckA.meets && ageCheckB.meets) return 1;
-                        return 0;
-                      })
-                      .map(pet => {
-                        const ageCheck = meetsAgeRequirement(pet, 'sterilization');
-                        
-                        return (
-                          <div 
-                            key={pet.id} 
-                            className="mb-3" 
-                            style={{ 
-                              background: pet.isRegistered ? '#e8f5e9' : (ageCheck.meets ? '#ffffff' : '#f5f5f5'),
-                              padding: '1rem',
-                              borderRadius: '12px',
-                              border: pet.isRegistered ? '2px solid #4caf50' : (ageCheck.meets ? '2px solid #e0e0e0' : '2px solid #ffc107'),
-                              position: 'relative',
-                              opacity: ageCheck.meets ? 1 : 0.7
-                            }}
-                          >
-                            {pet.isRegistered ? (
-                              <div className="d-flex justify-content-between align-items-start">
-                                <div className="flex-grow-1">
-                                  <div className="d-flex align-items-center mb-2">
-                                    <i className="fas fa-check-circle text-success me-2" style={{ fontSize: '1.2rem' }}></i>
-                                    <div>
-                                      <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                                      <Badge bg="success" className="ms-2">Registered</Badge>
-                                    </div>
-                                  </div>
-                                  <small className="text-muted d-block">
-                                    <i className="fas fa-paw me-1"></i>
-                                    {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                                  </small>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCancelRegistration(pet.id, pet.registration_id)}
-                                  disabled={registerLoading}
-                                  style={{
-                                    background: '#dc3545',
-                                    color: '#ffffff',
-                                    border: 'none',
-                                    padding: '0.4rem 0.8rem',
-                                    borderRadius: '6px',
-                                    fontSize: '0.85rem',
-                                    cursor: registerLoading ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.3rem',
-                                    opacity: registerLoading ? 0.6 : 1
-                                  }}
-                                  onMouseOver={(e) => !registerLoading && (e.target.style.background = '#c82333')}
-                                  onMouseOut={(e) => !registerLoading && (e.target.style.background = '#dc3545')}
-                                >
-                                  <i className="fas fa-times"></i>
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <div>
-                                <div className="form-check">
-                                  <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    id={`pet_steril_${pet.id}`}
-                                    onChange={(e) => handlePetSelection(pet.id, e.target.checked)}
-                                    disabled={registerLoading || !ageCheck.meets}
-                                    checked={registrationData.pets_registered.includes(pet.id)}
-                                    style={{ marginTop: '0.4rem' }}
-                                  />
-                                  <label 
-                                    className="form-check-label w-100" 
-                                    htmlFor={`pet_steril_${pet.id}`}
-                                    style={{ cursor: ageCheck.meets ? 'pointer' : 'not-allowed' }}
-                                  >
-                                    <div>
-                                      <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                                      {!ageCheck.meets && (
-                                        <Badge bg="warning" className="ms-2">Age Restriction</Badge>
-                                      )}
-                                      <br />
-                                      <small className="text-muted">
-                                        <i className="fas fa-paw me-1"></i>
-                                        {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                                      </small>
-                                    </div>
-                                  </label>
-                                </div>
-                                {!ageCheck.meets && (
-                                  <Alert variant="warning" className="mt-2 mb-0 py-2" style={{ borderRadius: '8px', fontSize: '0.875rem' }}>
-                                    <small>
-                                      <i className="fas fa-exclamation-triangle me-2"></i>
-                                      {ageCheck.reason}
-                                    </small>
-                                  </Alert>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </>
-            )}
-            {scheduleType === 'microchip' && (
-              <>
-                <h6 style={{ fontWeight: '700', marginBottom: '1rem', color: '#333333' }}>Select pets for microchipping:</h6>
-                {compatiblePets.length === 0 ? (
-                  <Alert 
-                    variant="warning"
-                    style={{
-                      borderRadius: '12px',
-                      border: '2px solid #ffc107',
-                      background: 'rgba(255, 193, 7, 0.1)'
-                    }}
-                  >
-                    {myPets.length === 0 
-                      ? 'You don\'t have any registered pets yet. Please register your pets first.'
-                      : 'No compatible pets for this microchipping event.'
-                    }
-                  </Alert>
-                ) : (
-                  <div className="mb-4">
-                    {compatiblePets
-                      .sort((a, b) => {
-                        if (a.isRegistered && !b.isRegistered) return -1;
-                        if (!a.isRegistered && b.isRegistered) return 1;
-                        return 0;
-                      })
-                      .map(pet => (
-                        <div 
-                          key={pet.id} 
-                          className="mb-3" 
-                          style={{ 
-                            background: pet.isRegistered ? '#e8f5e9' : '#ffffff',
-                            padding: '1rem',
-                            borderRadius: '12px',
-                            border: pet.isRegistered ? '2px solid #4caf50' : '2px solid #e0e0e0'
-                          }}
-                        >
-                          {pet.isRegistered ? (
-                            <div className="d-flex justify-content-between align-items-center" style={{ flexWrap: 'nowrap', gap: '0.5rem' }}>
-                              <div className="flex-grow-1" style={{ minWidth: 0 }}>
-                                <div className="d-flex align-items-center mb-2">
-                                  <i className="fas fa-check-circle text-success me-2" style={{ fontSize: '1.2rem', flexShrink: 0 }}></i>
-                                  <div style={{ minWidth: 0 }}>
-                                    <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                                    <Badge bg="success" className="ms-2">Registered</Badge>
-                                  </div>
-                                </div>
-                                <small className="text-muted d-block">
-                                  <i className="fas fa-paw me-1"></i>
-                                  {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                                </small>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleCancelRegistration(pet.id, pet.registration_id)}
-                                disabled={registerLoading}
-                                style={{
-                                  background: '#dc3545',
-                                  color: '#ffffff',
-                                  border: 'none',
-                                  padding: '0.4rem 0.8rem',
-                                  borderRadius: '6px',
-                                  fontSize: '0.85rem',
-                                  cursor: registerLoading ? 'not-allowed' : 'pointer',
-                                  transition: 'all 0.2s',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.3rem',
-                                  opacity: registerLoading ? 0.6 : 1,
-                                  flexShrink: 0,
-                                  whiteSpace: 'nowrap'
-                                }}
-                                onMouseOver={(e) => !registerLoading && (e.currentTarget.style.background = '#c82333')}
-                                onMouseOut={(e) => !registerLoading && (e.currentTarget.style.background = '#dc3545')}
-                              >
-                                <i className="fas fa-times"></i>
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="form-check">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                id={`pet_microchip_${pet.id}`}
-                                onChange={(e) => handlePetSelection(pet.id, e.target.checked)}
-                                disabled={registerLoading}
-                                checked={registrationData.pets_registered.includes(pet.id)}
-                                style={{ marginTop: '0.4rem' }}
-                              />
-                              <label 
-                                className="form-check-label w-100" 
-                                htmlFor={`pet_microchip_${pet.id}`}
-                                style={{ cursor: 'pointer' }}
-                              >
-                                <div>
-                                  <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                                  <br />
-                                  <small className="text-muted">
-                                    <i className="fas fa-paw me-1"></i>
-                                    {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                                  </small>
-                                </div>
-                              </label>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </>
-            )}
-
-            {scheduleType === 'other' && (() => {
-  // Check if pet selection is required
-  const petTypesAllowed = selectedSchedule?.pet_types_allowed;
-  const hasPetTypes = petTypesAllowed && (
-    (Array.isArray(petTypesAllowed) && petTypesAllowed.length > 0) ||
-    (typeof petTypesAllowed === 'string' && JSON.parse(petTypesAllowed || '[]').length > 0)
-  );
-
-  if (!hasPetTypes) {
-    // Seminar-like registration (no pet selection required)
-    const isAlreadyRegistered = currentRegistrations.some(r => 
-      r.schedule_id === selectedSchedule?.id && 
-      r.schedule_type === 'other' &&
-      r.status !== 'cancelled'
-    );
-
-    if (isAlreadyRegistered) {
-      const registration = currentRegistrations.find(r => 
-        r.schedule_id === selectedSchedule?.id && 
-        r.schedule_type === 'other' &&
-        r.status !== 'cancelled'
-      );
-
-      return (
-        <Alert variant="success" style={{ borderRadius: '12px' }}>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <i className="fas fa-check-circle me-2"></i>
-              <strong>You are already registered for this event</strong>
+          const petHead = (pet, extra) => (
+            <div className="rg-pet-head">
+              <div className="rg-avatar"><i className={`fas ${petIcon(pet.species)}`} /></div>
+              <div className="rg-pet-info">
+                <div className="rg-pet-name">
+                  {pet.name}
+                  {extra}
+                </div>
+                <div className="rg-pet-meta">
+                  <span className="text-capitalize">{pet.species}</span> · {pet.breed || 'Mixed'} · <span className="text-capitalize">{pet.gender}</span>
+                </div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setPetToCancel({ petId: null, registrationId: registration.id });
-                setShowCancelConfirm(true);
-              }}
-              disabled={registerLoading}
-              style={{
-                background: '#dc3545',
-                color: '#ffffff',
-                border: 'none',
-                padding: '0.5rem 1rem',
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                cursor: registerLoading ? 'not-allowed' : 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              <i className="fas fa-times me-2"></i>
-              Cancel Registration
-            </button>
-          </div>
-        </Alert>
-      );
-    }
+          );
 
-    return (
-      <Alert variant="info" style={{ borderRadius: '12px' }}>
-        <i className="fas fa-info-circle me-2"></i>
-        Click "Confirm Registration" below to register for this event.
-      </Alert>
-    );
-  }
-
-  // Pet selection required
-  return (
-    <>
-      <h6 style={{ fontWeight: '700', marginBottom: '1rem', color: '#333333' }}>
-        Select pets for {selectedSchedule?.other_event_type || 'this event'}:
-      </h6>
-      {compatiblePets.length === 0 ? (
-        <Alert 
-          variant="warning"
-          style={{
-            borderRadius: '12px',
-            border: '2px solid #ffc107',
-            background: 'rgba(255, 193, 7, 0.1)'
-          }}
-        >
-          {myPets.length === 0 
-            ? 'You don\'t have any registered pets yet. Please register your pets first.'
-            : 'No compatible pets for this event.'
-          }
-        </Alert>
-      ) : (
-        <div className="mb-4">
-          {compatiblePets.map(pet => (
-            <div 
-              key={pet.id} 
-              className="mb-3" 
-              style={{ 
-                background: pet.isRegistered ? '#e8f5e9' : '#ffffff',
-                padding: '1rem',
-                borderRadius: '12px',
-                border: pet.isRegistered ? '2px solid #4caf50' : '2px solid #e0e0e0'
-              }}
-            >
-              {pet.isRegistered ? (
-                <div className="d-flex justify-content-between align-items-start">
-                  <div className="flex-grow-1">
-                    <div className="d-flex align-items-center mb-2">
-                      <i className="fas fa-check-circle text-success me-2" style={{ fontSize: '1.2rem' }}></i>
-                      <div>
-                        <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                        <Badge bg="success" className="ms-2">Registered</Badge>
-                      </div>
-                    </div>
-                    <small className="text-muted d-block">
-                      <i className="fas fa-paw me-1"></i>
-                      {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                    </small>
+          // One pet row for deworming / sterilization / microchip / other
+          const renderSimplePet = (pet) => {
+            const age = ageRule ? meetsAgeRequirement(pet, scheduleType) : { meets: true };
+            if (pet.isRegistered) {
+              return (
+                <div key={pet.id} className="rg-pet registered">
+                  <div className="rg-row">
+                    {petHead(pet, <span className="rg-badge ok"><i className="fas fa-check" />Registered</span>)}
+                    <button type="button" className="ev-btn danger rg-cancel" disabled={registerLoading}
+                      onClick={() => handleCancelRegistration(pet.id, pet.registration_id)}>
+                      <i className="fas fa-times" /> Cancel
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCancelRegistration(pet.id, pet.registration_id)}
-                    disabled={registerLoading}
-                    style={{
-                      background: '#dc3545',
-                      color: '#ffffff',
-                      border: 'none',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: '6px',
-                      fontSize: '0.85rem',
-                      cursor: registerLoading ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      opacity: registerLoading ? 0.6 : 1
-                    }}
-                    onMouseOver={(e) => !registerLoading && (e.target.style.background = '#c82333')}
-                    onMouseOut={(e) => !registerLoading && (e.target.style.background = '#dc3545')}
-                  >
-                    <i className="fas fa-times"></i>
+                </div>
+              );
+            }
+            const checked = registrationData.pets_registered.includes(pet.id);
+            return (
+              <label key={pet.id} className={`rg-pet selectable${checked ? ' selected' : ''}${age.meets ? '' : ' disabled'}`}>
+                <div className="rg-row">
+                  {petHead(pet, !age.meets && <span className="rg-badge warn">Age restriction</span>)}
+                  <input type="checkbox" className="form-check-input rg-check" checked={checked}
+                    disabled={registerLoading || !age.meets}
+                    onChange={(e) => handlePetSelection(pet.id, e.target.checked)} />
+                </div>
+                {!age.meets && (
+                  <div className="rg-note warn"><i className="fas fa-exclamation-triangle" />{age.reason}</div>
+                )}
+              </label>
+            );
+          };
+
+          // Vaccination pet row: pick the pet, then pick its vaccines
+          const renderVaccinationPet = (pet) => {
+            if (pet.isRegistered) {
+              const registration = currentRegistrations.find(r => r.pet_id === pet.id);
+              const registeredVaccineIds = registration?.selected_vaccines || [];
+              const toCancel = selectedVaccinesToCancel[pet.id] || [];
+              return (
+                <div key={pet.id} className="rg-pet registered">
+                  <div className="rg-row">
+                    {petHead(pet, <span className="rg-badge ok"><i className="fas fa-check" />Registered</span>)}
+                    <button type="button" className="ev-btn danger rg-cancel" disabled={registerLoading}
+                      onClick={() => handleCancelSelectedOrAll(pet.id, pet.registration_id)}>
+                      <i className="fas fa-times" /> {toCancel.length > 0 ? 'Cancel selected' : 'Cancel all'}
+                    </button>
+                  </div>
+                  <div className="rg-sub">
+                    <div className="rg-sub-title">Registered vaccines <span>· tick to cancel only some</span></div>
+                    {registeredVaccineIds.length === 0 ? (
+                      <div className="rg-note">No vaccines registered yet.</div>
+                    ) : (
+                      <div className="rg-vax-grid">
+                        {registeredVaccineIds.map(vaccineId => {
+                          const v = inventoryItems.find(i => i.id === parseInt(vaccineId));
+                          const isSel = toCancel.includes(vaccineId);
+                          return (
+                            <label key={vaccineId} className={`rg-vax${isSel ? ' cancel' : ' done'}`}>
+                              <input type="checkbox" className="form-check-input rg-check sm" checked={isSel} disabled={registerLoading}
+                                onChange={(e) => handleVaccineCancelSelection(pet.id, vaccineId, e.target.checked)} />
+                              <div className="rg-vax-main">
+                                <div className="rg-vax-name">{v?.item_name || v?.name || 'Unknown vaccine'}</div>
+                                <div className="rg-vax-meta">{isSel ? 'Will be cancelled' : (v?.species ? String(v.species).toUpperCase() : 'Registered')}</div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            const picked = pet.selectedVaccines !== undefined;
+            const available = getAvailableVaccinesForPet(pet.species, s?.vaccine_shot_limits);
+            return (
+              <div key={pet.id} className={`rg-pet selectable${picked ? ' selected' : ''}`}>
+                <label className="rg-row" style={{ cursor: 'pointer', margin: 0 }}>
+                  {petHead(pet, picked && pet.selectedVaccines.length > 0 && (
+                    <span className="rg-badge sel">{pet.selectedVaccines.length} vaccine{pet.selectedVaccines.length > 1 ? 's' : ''}</span>
+                  ))}
+                  <input type="checkbox" className="form-check-input rg-check" checked={picked} disabled={registerLoading}
+                    onChange={() => handlePetSelectionToggle(pet.id)} />
+                </label>
+                {picked && (
+                  <div className="rg-sub">
+                    <div className="rg-sub-title">Choose vaccines for {pet.name}</div>
+                    {available.length === 0 ? (
+                      <div className="rg-note">No vaccines available for this pet type.</div>
+                    ) : (
+                      <div className="rg-vax-grid">
+                        {available.map(v => {
+                          const on = pet.selectedVaccines?.includes(v.id) || false;
+                          return (
+                            <label key={v.id} className={`rg-vax${on ? ' on' : ''}`}>
+                              <input type="checkbox" className="form-check-input rg-check sm" checked={on} disabled={registerLoading}
+                                onChange={(e) => handleVaccineSelection(pet.id, v.id, e.target.checked)} />
+                              <div className="rg-vax-main">
+                                <div className="rg-vax-name">{v.name}</div>
+                                <div className="rg-vax-meta">
+                                  {String(v.species || '').toUpperCase()} · <strong>{v.shotsRemaining}</strong> shots left
+                                </div>
+                                {v.description && <div className="rg-vax-desc">{v.description}</div>}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          };
+
+          const errorBox = registerError && (
+            <div className="rg-alert danger"><i className="fas fa-exclamation-triangle" />{registerError}</div>
+          );
+          const successBox = registerSuccess && (
+            <div className="rg-alert success"><i className="fas fa-check-circle" />{registerSuccess}</div>
+          );
+
+          /* ── Seminar: small confirmation, same style as the Restore / Delete modals ── */
+          if (isSeminar) {
+            return (
+              <>
+                <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107' }}>
+                  <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
+                    <i className="fas fa-chalkboard-teacher me-2" style={{ color: '#e0a800' }} />Register for Seminar
+                  </Modal.Title>
+                </Modal.Header>
+                <Modal.Body style={{ padding: '2rem' }}>
+                  {errorBox}{successBox}
+                  {s && (
+                    <>
+                      <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+                        Are you sure you want to register as an attendee for this seminar?
+                      </p>
+                      <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
+                        <div className="mb-2">
+                          <span style={{ fontWeight: '500', color: '#555' }}>
+                            <i className="fas fa-chalkboard-teacher me-1" style={{ color: '#ffc107' }} />Seminar Information
+                          </span>
+                        </div>
+                        <strong style={{ fontSize: '1.1rem' }}>{s.title}</strong>
+                        <small className="text-muted d-block mt-1"><i className="fas fa-calendar me-1" />{dateLabel}{timeLabel && ` • ${timeLabel}`}</small>
+                        {place && <small className="text-muted d-block mt-1"><i className="fas fa-map-marker-alt me-1" />{place}</small>}
+                      </div>
+                      <Alert variant="info" className="mt-3 mb-0">
+                        <i className="fas fa-info-circle me-2" />
+                        <strong>Note:</strong> No pet is needed. You will be registered as an attendee.
+                      </Alert>
+                    </>
+                  )}
+                </Modal.Body>
+                <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
+                  <Button variant="secondary" onClick={() => setShowRegisterModal(false)} disabled={registerLoading}
+                    style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
                     Cancel
+                  </Button>
+                  <Button type="submit" disabled={submitDisabled} className="border-0"
+                    style={{ background: '#ffc107', color: '#000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700' }}>
+                    {registerLoading ? <WaveDots /> : <><i className="fas fa-check me-2" />Register</>}
+                  </Button>
+                </Modal.Footer>
+              </>
+            );
+          }
+
+          /* ── All other events ── */
+          return (
+            <>
+              <Modal.Header closeButton className="ed-head" style={{ '--c': meta.color }}>
+                <div className="ed-head-main">
+                  <div className="ed-head-ic"><i className={`fas ${meta.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rg-kicker" style={{ color: meta.color }}>Register for {meta.label.toLowerCase()}</div>
+                    <Modal.Title as="h5" className="ed-title">{s?.title}</Modal.Title>
+                    {s && (
+                      <div className="rg-when">
+                        <span><i className="far fa-calendar" />{dateLabel}</span>
+                        {timeLabel && <span><i className="far fa-clock" />{timeLabel}</span>}
+                        {place && <span><i className="fas fa-map-marker-alt" />{place}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Modal.Header>
+
+              <Modal.Body className="ed-body">
+                {errorBox}{successBox}
+
+                {usesPetPicker ? (
+                  <>
+                    <div className="rg-section-head">
+                      <div>
+                        <div className="ed-section-title mb-0">
+                          {scheduleType === 'vaccination' ? 'Select pets and their vaccines' : 'Select pets to register'}
+                        </div>
+                        <div className="rg-hint">
+                          {scheduleType === 'vaccination'
+                            ? 'Tick a pet, then choose which vaccines it will get.'
+                            : 'Tick the pets you want to bring to this event.'}
+                        </div>
+                      </div>
+                      {compatiblePets.length > 0 && <span className="rg-count">{compatiblePets.length} pet{compatiblePets.length > 1 ? 's' : ''}</span>}
+                    </div>
+
+                    {compatiblePets.length === 0 ? (
+                      <div className="rg-empty">
+                        <div className="ic"><i className="fas fa-paw" /></div>
+                        <h6>{myPets.length === 0 ? 'No pets yet' : 'No eligible pets'}</h6>
+                        <p>
+                          {myPets.length === 0
+                            ? "You don't have any registered pets yet. Register your pets first in My Pets."
+                            : 'None of your pets can join this event.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rg-list">
+                        {sortedPets.map(pet => scheduleType === 'vaccination' ? renderVaccinationPet(pet) : renderSimplePet(pet))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* "Other" event with no pet needed */
+                  (() => {
+                    const reg = currentRegistrations.find(r =>
+                      r.schedule_id === s?.id && r.schedule_type === 'other' && r.status !== 'cancelled');
+                    return reg ? (
+                      <div className="rg-pet registered">
+                        <div className="rg-row">
+                          <div className="rg-pet-head">
+                            <div className="rg-avatar" style={{ color: '#198754' }}><i className="fas fa-check" /></div>
+                            <div className="rg-pet-info">
+                              <div className="rg-pet-name">You are registered</div>
+                              <div className="rg-pet-meta">You are on the attendee list for this event.</div>
+                            </div>
+                          </div>
+                          <button type="button" className="ev-btn danger rg-cancel" disabled={registerLoading}
+                            onClick={() => { setPetToCancel({ petId: null, registrationId: reg.id }); setShowCancelConfirm(true); }}>
+                            <i className="fas fa-times" /> Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rg-alert info">
+                        <i className="fas fa-info-circle" />
+                        No pet is needed for this event. Click <strong>&nbsp;Confirm registration&nbsp;</strong> to join as an attendee.
+                      </div>
+                    );
+                  })()
+                )}
+              </Modal.Body>
+
+              <Modal.Footer className="ed-foot">
+                <span className="rg-foot-count">
+                  {usesPetPicker && selectedCount > 0 ? <><strong>{selectedCount}</strong> pet{selectedCount > 1 ? 's' : ''} selected</> : ''}
+                </span>
+                <div className="d-flex gap-2 rg-foot-btns">
+                  <button type="button" className="ev-btn ghost" onClick={() => setShowRegisterModal(false)} disabled={registerLoading}>Cancel</button>
+                  <button type="submit" className="ev-btn primary" disabled={submitDisabled}>
+                    {registerLoading ? <WaveDots /> : <><i className="fas fa-check" /> Confirm registration</>}
                   </button>
                 </div>
-              ) : (
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id={`pet_other_${pet.id}`}
-                    onChange={(e) => handlePetSelection(pet.id, e.target.checked)}
-                    disabled={registerLoading}
-                    checked={registrationData.pets_registered.includes(pet.id)}
-                    style={{ marginTop: '0.4rem' }}
-                  />
-                  <label 
-                    className="form-check-label w-100" 
-                    htmlFor={`pet_other_${pet.id}`}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div>
-                      <strong style={{ fontSize: '1rem' }}>{pet.name}</strong>
-                      <br />
-                      <small className="text-muted">
-                        <i className="fas fa-paw me-1"></i>
-                        {pet.species} • {pet.breed || 'Mixed'} • {pet.gender}
-                      </small>
-                    </div>
-                  </label>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-})()}
-            
-          </Modal.Body>
-          <Modal.Footer style={scheduleType === 'seminar' ? { padding: '1.25rem 2rem' } : { padding: '1.5rem', borderTop: '1px solid #e0e0e0' }}>
-            <Button 
-              variant="secondary" 
-              onClick={() => setShowRegisterModal(false)}
-              disabled={registerLoading}
-              style={{
-                borderRadius: scheduleType === 'seminar' ? '8px' : '10px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: '600'
-              }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={registerLoading || (
-  scheduleType === 'vaccination' 
-    ? compatiblePets.filter(p => p.selectedVaccines && p.selectedVaccines.length > 0).length === 0
-    : (scheduleType === 'deworming' || scheduleType === 'sterilization' || scheduleType === 'microchip')
-      ? registrationData.pets_registered.length === 0 && compatiblePets.filter(p => !p.isRegistered).length > 0
-      : scheduleType === 'other'
-        ? (() => {
-            const petTypesAllowed = selectedSchedule?.pet_types_allowed;
-            const hasPetTypes = petTypesAllowed && (
-              (Array.isArray(petTypesAllowed) && petTypesAllowed.length > 0) ||
-              (typeof petTypesAllowed === 'string' && JSON.parse(petTypesAllowed || '[]').length > 0)
-            );
-            return hasPetTypes ? registrationData.pets_registered.length === 0 : false;
-          })()
-        : false
-)}
-              className="border-0"
-              style={{
-                background: registerLoading ? '#6c757d' : '#ffc107',
-                color: '#000000',
-                borderRadius: '10px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: '700',
-                boxShadow: registerLoading ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)',
-                transition: 'all 0.3s'
-              }}
-              onMouseOver={(e) => {
-                if (!registerLoading) {
-                  e.target.style.background = '#ffb300';
-                  e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!registerLoading) {
-                  e.target.style.background = '#ffc107';
-                  e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-                }
-              }}
-            >
-              {registerLoading ? (
-                <WaveDots />
-              ) : (
-                <>
-                  <i className="fas fa-check me-2"></i>
-                  {scheduleType === 'seminar' ? 'Register' : 'Confirm Registration'}
-                </>
-              )}
-            </Button>
-          </Modal.Footer>
+              </Modal.Footer>
+            </>
+          );
+        })()}
         </Form>
       </Modal>
 
