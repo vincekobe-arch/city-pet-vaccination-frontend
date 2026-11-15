@@ -1472,7 +1472,7 @@ const handleRegisterPet = async (e) => {
         )}
 
       {/* ===== ARCHIVE MODAL ===== */}
-      <Modal show={showArchiveModal} onHide={() => setShowArchiveModal(false)} className="pt-modal">
+      <Modal show={showArchiveModal} onHide={() => setShowArchiveModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-archive me-2" style={{ color: '#856404' }}></i>Archive Pet
@@ -1507,7 +1507,7 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* ===== UNARCHIVE MODAL ===== */}
-      <Modal show={showUnarchiveModal} onHide={() => setShowUnarchiveModal(false)} className="pt-modal">
+      <Modal show={showUnarchiveModal} onHide={() => setShowUnarchiveModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-box-open me-2" style={{ color: '#856404' }}></i>Unarchive Pet
@@ -1542,7 +1542,7 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* ===== RESTORE MODAL ===== */}
-      <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} className="pt-modal">
+      <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #198754' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-undo text-success me-2"></i>Restore Pet
@@ -1586,7 +1586,7 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* ===== FORCE DELETE MODAL ===== */}
-      <Modal show={showForceDeleteModal} onHide={() => setShowForceDeleteModal(false)} className="pt-modal">
+      <Modal show={showForceDeleteModal} onHide={() => setShowForceDeleteModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dc3545' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-exclamation-triangle text-danger me-2"></i>Permanently Delete
@@ -2512,6 +2512,7 @@ const handleRegisterPet = async (e) => {
 <Modal 
   show={showDeleteModal} 
   onHide={() => setShowDeleteModal(false)}
+  centered
   className="pt-modal"
 >
   <Modal.Header 
