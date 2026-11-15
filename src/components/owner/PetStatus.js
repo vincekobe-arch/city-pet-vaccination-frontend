@@ -398,6 +398,22 @@ useEffect(() => {
     }
     @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
     @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+    @media (max-width: 768px)  { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
+
+    /* Modals: same zoom as the page, but normal size on phones so they stay centered */
+    .pt-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .pt-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .pt-modal { zoom: 1; } }
+    @media (max-width: 768px) {
+      .pt-modal { zoom: 1; }
+      .pt-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); }
+      .pt-modal .modal-content { border-radius: 16px; }
+      .pt-modal .modal-header { padding: 0.9rem 1rem !important; }
+      .pt-modal .modal-title { font-size: 1.05rem !important; }
+      .pt-modal .modal-body { padding: 1rem !important; max-height: calc(100vh - 170px) !important; }
+      .pt-modal .modal-footer { padding: 0.75rem 1rem !important; gap: 0.5rem; flex-wrap: wrap; }
+      .pt-modal .modal-footer > * { flex: 1 1 auto; margin: 0 !important; }
+    }
 
     @keyframes dropDown {
       0% { opacity: 0; transform: translateY(-30px); }
@@ -634,6 +650,8 @@ useEffect(() => {
       .pt-photo { width: 56px; height: 56px; }
       .pt-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
       .pt-tab { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
+      .pt-tabs { align-self: stretch; }
+      .pt-btn.lg { width: 100%; justify-content: center; }
     }
     @media (prefers-reduced-motion: reduce) {
       .pt-anim, .pt-menu, .pt-toast, .pt-skel { animation: none !important; }
@@ -1454,7 +1472,7 @@ const handleRegisterPet = async (e) => {
         )}
 
       {/* ===== ARCHIVE MODAL ===== */}
-      <Modal show={showArchiveModal} onHide={() => setShowArchiveModal(false)} centered style={{ zoom: '0.75' }}>
+      <Modal show={showArchiveModal} onHide={() => setShowArchiveModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-archive me-2" style={{ color: '#856404' }}></i>Archive Pet
@@ -1489,7 +1507,7 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* ===== UNARCHIVE MODAL ===== */}
-      <Modal show={showUnarchiveModal} onHide={() => setShowUnarchiveModal(false)} centered style={{ zoom: '0.75' }}>
+      <Modal show={showUnarchiveModal} onHide={() => setShowUnarchiveModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-box-open me-2" style={{ color: '#856404' }}></i>Unarchive Pet
@@ -1524,7 +1542,7 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* ===== RESTORE MODAL ===== */}
-      <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
+      <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #198754' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-undo text-success me-2"></i>Restore Pet
@@ -1568,7 +1586,7 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* ===== FORCE DELETE MODAL ===== */}
-      <Modal show={showForceDeleteModal} onHide={() => setShowForceDeleteModal(false)} centered style={{ zoom: '0.75' }}>
+      <Modal show={showForceDeleteModal} onHide={() => setShowForceDeleteModal(false)} centered className="pt-modal">
         <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dc3545' }}>
           <Modal.Title style={{ fontWeight: '700' }}>
             <i className="fas fa-exclamation-triangle text-danger me-2"></i>Permanently Delete
@@ -1600,8 +1618,9 @@ const handleRegisterPet = async (e) => {
   show={showRegisterModal} 
   onHide={() => setShowRegisterModal(false)} 
   size="lg"
+  centered
   backdrop="static"
-  style={{zoom: '0.75'}}
+  className="pt-modal"
 >
   <Modal.Header 
   closeButton
@@ -1954,7 +1973,7 @@ const handleRegisterPet = async (e) => {
 </Modal>
 
       {/* Pet Details Modal */}
-      <Modal show={showDetailsModal} onHide={() => { setShowDetailsModal(false); setQrDataURL(''); }} size="lg" style={{zoom: '0.75'}}>
+      <Modal show={showDetailsModal} onHide={() => { setShowDetailsModal(false); setQrDataURL(''); }} size="lg" centered className="pt-modal">
         <Modal.Header 
           closeButton
           style={{
@@ -2226,7 +2245,7 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* Edit Pet Modal */}
-<Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" style={{ zoom: '0.75' }}>
+<Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" centered className="pt-modal">
   <Modal.Header 
   closeButton
   style={{
@@ -2495,7 +2514,7 @@ const handleRegisterPet = async (e) => {
   show={showDeleteModal} 
   onHide={() => setShowDeleteModal(false)}
   centered
-  style={{zoom: '0.75'}}
+  className="pt-modal"
 >
   <Modal.Header 
     closeButton
