@@ -8,6 +8,7 @@ function useReveal() {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setVisible(true); obs.disconnect(); } },
       { threshold: 0.12 }
@@ -52,36 +53,84 @@ const getDistMeters = (lat1,lng1,lat2,lng2) => {
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 };
 
+/* ── static content ── */
+const SERVICES = [
+  { image:'vaccine.png',       icon:'fa-syringe',            label:'Vaccination',   description:'Anti-rabies and other vaccination drives held in barangays across the city.',  color:'#10b981' },
+  { image:'sterilization.png', icon:'fa-cut',                label:'Sterilization', description:'Spay and neuter programs that help control the stray animal population.',      color:'#8b5cf6' },
+  { image:'microchip.png',     icon:'fa-microchip',          label:'Microchipping', description:'Permanent pet identification so lost pets can be traced back to their owners.', color:'#0ea5e9' },
+  { image:'seminar.png',       icon:'fa-chalkboard-teacher', label:'Seminars',      description:'Learn about responsible pet ownership, rabies prevention, and proper care.',     color:'#f59e0b' },
+];
+
+const FEATURES = [
+  { icon:'fa-paw',            title:'Pet Registration',     label:'Pet Profiles',      description:'Register your pets and get a registration number and QR code for each one.' },
+  { icon:'fa-calendar-check', title:'Event Registration',   label:'Event Management',  description:'Find upcoming veterinary events in your area and reserve a slot for your pet.' },
+  { icon:'fa-id-card',        title:'Digital Vet Cards',    label:'Health Records',    description:"View your pet's vaccination and deworming history anytime from your phone." },
+  { icon:'fa-qrcode',         title:'Pet QR Code',          label:'Identification',    description:"Anyone who scans your pet's QR code can see its basic profile and contact the owner." },
+  { icon:'fa-bullhorn',       title:'Incident Reporting',   label:'Community Safety',  description:'Report rabies cases, animal bites, and animals needing rescue with a pinned location.' },
+  { icon:'fa-chart-line',     title:'City Vet Management',  label:'Admin Tools',       description:'The City Veterinary Office manages records, events, inventory, and reports in one place.' },
+];
+
+const STEPS = [
+  { icon:'fa-user-plus',      title:'Create an account', text:'Sign up with your email and verify your identity.' },
+  { icon:'fa-paw',            title:'Register your pets', text:'Add your pets and receive their QR codes.' },
+  { icon:'fa-calendar-check', title:'Join vet events',    text:'Book vaccination and other services near you.' },
+];
+
+const MAP_FEATURES = [
+  { icon:'fa-map-marked-alt', color:'#e00000', title:'Rabies Case Mapping', desc:'See confirmed and suspected rabies cases reported across Muntinlupa City.' },
+  { icon:'fa-hospital',       color:'#0d6efd', title:'Nearby Vet Clinics',  desc:'Locate the City Veterinary Office and registered private clinics.' },
+  { icon:'fa-radiation-alt',  color:'#d4a800', title:'1 km Alert Zones',    desc:'Danger and alert zones are drawn automatically around active cases.' },
+  { icon:'fa-shield-alt',     color:'#10b981', title:'Pet Safety Tips',     desc:'Know what to do when a rabies case is reported near your area.' },
+];
+
+/* image with icon fallback */
+const IconImage = ({ src, icon, color, size }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <i className={`fas ${icon}`} style={{ fontSize: size * 0.45, color }} />;
+  return <img src={src} alt="" style={{ width: size * 0.8, height: size * 0.8, objectFit: 'contain' }} onError={() => setFailed(true)} />;
+};
+
 const LandingPage = () => {
   const navigate = useNavigate();
-  const [scrollY,        setScrollY]        = useState(0);
-  const [hoveredFeature, setHoveredFeature] = useState(null);
-  const [hoveredService, setHoveredService] = useState(null);
-  const [mousePosition,  setMousePosition]  = useState({ x: 0, y: 0 });
+  const [scrollY, setScrollY] = useState(0);
+  const [canHover, setCanHover] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: -400, y: -400 });
 
   const [servicesRef, servicesVisible] = useReveal();
+  const [stepsRef, stepsVisible] = useReveal();
   const [featuresRef, featuresVisible] = useReveal();
   const [mapSectionRef, mapSectionVisible] = useReveal();
 
-  /* Leaflet */
-  const leafletMapRef      = useRef(null);
-  const leafletInstanceRef = useRef(null);
-  const markersRef         = useRef([]);
-  const circlesRef         = useRef([]);
-  const clinicMarkersRef   = useRef([]);
-  const [leafletLoaded,    setLeafletLoaded] = useState(false);
-  const [mapReports,       setMapReports]    = useState([]);
-  const [mapClinics,       setMapClinics]    = useState([]);
+  /* Google Map */
+  const mapElRef         = useRef(null);
+  const mapInstanceRef   = useRef(null);
+  const markersRef       = useRef([]);
+  const circlesRef       = useRef([]);
+  const clinicMarkersRef = useRef([]);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [mapReady,   setMapReady]   = useState(false);
+  const [mapError,   setMapError]   = useState(false);
+  const [mapReports, setMapReports] = useState([]);
+  const [mapClinics, setMapClinics] = useState([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
-  /* scroll */
+  /* scroll (throttled with requestAnimationFrame) */
   useEffect(() => {
-    const h = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', h);
+    let ticking = false;
+    const h = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => { setScrollY(window.scrollY); ticking = false; });
+    };
+    window.addEventListener('scroll', h, { passive: true });
     return () => window.removeEventListener('scroll', h);
   }, []);
 
-  /* mouse */
+  /* mouse glow — desktop only */
   useEffect(() => {
+    const mq = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null;
+    if (!mq || !mq.matches) return;
+    setCanHover(true);
     const h = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
     window.addEventListener('mousemove', h);
     return () => window.removeEventListener('mousemove', h);
@@ -89,12 +138,20 @@ const LandingPage = () => {
 
   /* load Google Maps JS */
   useEffect(() => {
-    if (window.google && window.google.maps) { setLeafletLoaded(true); return; }
+    if (window.google && window.google.maps) { setMapsLoaded(true); return; }
+    const existing = document.querySelector('script[data-gmaps]');
+    if (existing) {
+      existing.addEventListener('load', () => setMapsLoaded(true));
+      existing.addEventListener('error', () => setMapError(true));
+      return;
+    }
     const script = document.createElement('script');
     script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB72rFhd2GZd0PKiWSI_duS5WXDWXQb0To';
     script.async = true;
     script.defer = true;
-    script.onload = () => setLeafletLoaded(true);
+    script.dataset.gmaps = '1';
+    script.onload = () => setMapsLoaded(true);
+    script.onerror = () => setMapError(true);
     document.head.appendChild(script);
   }, []);
 
@@ -104,27 +161,26 @@ const LandingPage = () => {
       try {
         const [rRes, cRes] = await Promise.all([reportsAPI.getMapReports(), clinicAPI.getAll()]);
         const rabies = (rRes.data.reports || []).filter(r =>
-          (r.status === 'positive_rabies' || r.status === 'suspected_rabies') && r.status !== 'resolved'
+          r.status === 'positive_rabies' || r.status === 'suspected_rabies'
         );
         const clinics = (cRes.data.clinics || []).filter(c => c.is_active == 1 && c.latitude && c.longitude);
         setMapReports(rabies);
         setMapClinics(clinics);
-      } catch (e) { /* silent — map still loads tiles */ }
+      } catch (e) { /* silent — map still loads */ }
+      finally { setDataLoaded(true); }
     };
     load();
   }, []);
 
-    /* init Google Map — bounds locked to Muntinlupa */
+  /* init Google Map — bounds locked to Muntinlupa */
   useEffect(() => {
-    if (!leafletLoaded || !leafletMapRef.current || leafletInstanceRef.current) return;
+    if (!mapsLoaded || !mapElRef.current || mapInstanceRef.current) return;
+    let timer;
 
     const initMap = () => {
-      if (!leafletMapRef.current) return;
-      const el = leafletMapRef.current;
-      if (!el.offsetWidth || !el.offsetHeight) {
-        setTimeout(initMap, 150);
-        return;
-      }
+      if (!mapElRef.current) return;
+      const el = mapElRef.current;
+      if (!el.offsetWidth || !el.offsetHeight) { timer = setTimeout(initMap, 150); return; }
 
       const google = window.google;
       const map = new google.maps.Map(el, {
@@ -132,11 +188,12 @@ const LandingPage = () => {
         zoom: 13,
         minZoom: 12,
         maxZoom: 22,
-        scrollwheel: false,
+        gestureHandling: 'cooperative', // page scrolls normally; two fingers / ctrl+scroll to move map
         zoomControl: true,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
+        clickableIcons: false,
         restriction: {
           latLngBounds: {
             north: MUNTI_BOUNDS[1][0],
@@ -167,28 +224,29 @@ const LandingPage = () => {
         ],
       });
 
-      // Draw boundary polygon
       new google.maps.Polygon({
         paths: BOUNDARY.map(([lat, lng]) => ({ lat, lng })),
         strokeColor: '#ffc107',
         strokeOpacity: 0.8,
         strokeWeight: 2.5,
-        fillColor: '#ffc107',
         fillOpacity: 0,
+        clickable: false,
         map,
       });
 
-      leafletInstanceRef.current = map;
+      mapInstanceRef.current = map;
+      setMapReady(true);
     };
 
     initMap();
-  }, [leafletLoaded]);
+    return () => clearTimeout(timer);
+  }, [mapsLoaded]);
 
-  /* render report markers + danger circles */
+  /* report markers + 1 km zones */
   useEffect(() => {
-    if (!leafletInstanceRef.current || !leafletLoaded) return;
+    if (!mapReady || !mapInstanceRef.current) return;
     const google = window.google;
-    const map    = leafletInstanceRef.current;
+    const map    = mapInstanceRef.current;
 
     markersRef.current.forEach(m => m.setMap(null));
     circlesRef.current.forEach(c => c.setMap(null));
@@ -221,9 +279,10 @@ const LandingPage = () => {
           radius: 1000,
           strokeColor:   isPos ? '#e00000' : '#f0c800',
           strokeOpacity: 0.85,
-          strokeWeight:  2.5,
+          strokeWeight:  2,
           fillColor:     isPos ? '#e00000' : '#f0c800',
           fillOpacity:   isPos ? 0.12 : 0.10,
+          clickable: false,
         });
         const labelMarker = new google.maps.Marker({
           position: { lat: o.lat + 0.0085, lng: o.lng },
@@ -233,9 +292,9 @@ const LandingPage = () => {
             scaledSize: new google.maps.Size(1, 1),
           },
           label: {
-            text: `1 km ${isPos ? '⚠️ Danger Zone' : '🔍 Alert Zone'}`,
+            text: `1 km ${isPos ? 'Danger Zone' : 'Alert Zone'}`,
             color: '#fff',
-            fontSize: '0.7rem',
+            fontSize: '11px',
             fontWeight: 'bold',
           },
           clickable: false,
@@ -270,225 +329,297 @@ const LandingPage = () => {
       });
       markersRef.current.push(m);
     });
-  }, [mapReports, leafletLoaded]);
+  }, [mapReports, mapReady]);
 
-  /* render clinic markers */
+  /* clinic markers */
   useEffect(() => {
-    if (!leafletInstanceRef.current || !leafletLoaded) return;
+    if (!mapReady || !mapInstanceRef.current) return;
     const google = window.google;
-    const map    = leafletInstanceRef.current;
+    const map    = mapInstanceRef.current;
 
     clinicMarkersRef.current.forEach(m => m.setMap(null));
     clinicMarkersRef.current = [];
 
-    const cityVet = {
-      id:'cityvet', clinic_name:'City Veterinary Office', clinic_code:'CITYVET-MNL',
-      owner_name:'City Veterinarian', phone:null,
-      specialization:'Government Veterinary Office',
-      latitude:14.395293, longitude:121.044737,
-    };
+    const cityVet = { id:'cityvet', latitude:14.395293, longitude:121.044737 };
 
     [cityVet, ...mapClinics].forEach(clinic => {
       const lat=parseFloat(clinic.latitude), lng=parseFloat(clinic.longitude);
       if (isNaN(lat)||isNaN(lng)) return;
       const isCityVet = clinic.id==='cityvet';
+      const w = isCityVet ? 48 : 32, h = isCityVet ? 58 : 40;
+      const c = isCityVet ? 24 : 16, r = isCityVet ? 20 : 14;
 
       const m = new google.maps.Marker({
         position: { lat, lng },
         map,
         icon: {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="${isCityVet?48:32}" height="${isCityVet?58:40}" viewBox="0 0 ${isCityVet?48:32} ${isCityVet?58:40}">
-              <circle cx="${isCityVet?24:16}" cy="${isCityVet?22:16}" r="${isCityVet?20:14}" fill="${isCityVet?'#ffc107':'#0d6efd'}" stroke="white" stroke-width="2.5"/>
-              <text x="${isCityVet?24:16}" y="${isCityVet?28:21}" text-anchor="middle" font-size="${isCityVet?16:12}" fill="white">🏥</text>
-              <rect x="${isCityVet?22:14}" y="${isCityVet?42:30}" width="4" height="${isCityVet?10:8}" rx="2" fill="rgba(0,0,0,0.25)"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+              <circle cx="${c}" cy="${isCityVet?22:16}" r="${r}" fill="${isCityVet?'#ffc107':'#0d6efd'}" stroke="white" stroke-width="2.5"/>
+              <text x="${c}" y="${isCityVet?28:21}" text-anchor="middle" font-size="${isCityVet?16:12}" fill="white">🏥</text>
+              <rect x="${c-2}" y="${isCityVet?42:30}" width="4" height="${isCityVet?10:8}" rx="2" fill="rgba(0,0,0,0.25)"/>
             </svg>`)}`,
-          scaledSize: new google.maps.Size(isCityVet?48:32, isCityVet?58:40),
-          anchor: new google.maps.Point(isCityVet?24:16, isCityVet?58:40),
+          scaledSize: new google.maps.Size(w, h),
+          anchor: new google.maps.Point(c, h),
         },
         clickable: false,
       });
       clinicMarkersRef.current.push(m);
     });
-  }, [mapClinics, leafletLoaded]);
+  }, [mapClinics, mapReady]);
 
-  /* ── static data ── */
-  const features = [
-    { image:'vaccination_tracking.png', icon:'fa-syringe',          title:'Vaccination Tracking', description:"Keep track of all your pet's vaccinations and get reminders for upcoming shots.",        featureLabel:'Health Monitoring' },
-    { image:'event_schedules.png',      icon:'fa-calendar-alt',      title:'Event Schedules',       description:'Register for vaccination drives, seminars, and sterilization services in your barangay.',featureLabel:'Event Management' },
-    { image:'digital_vetcards.png',     icon:'fa-id-card',           title:'Digital Vet Cards',     description:"Access your pet's health records anytime, anywhere with digital vet cards.",            featureLabel:'Digital Records' },
-    { image:'deworming_records.png',    icon:'fa-pills',             title:'Deworming Records',     description:'Monitor deworming schedules and maintain complete health records for your pets.',       featureLabel:'Treatment Tracking' },
-    { image:'barangay_management.png',  icon:'fa-building',          title:'Barangay Management',   description:'Officials can manage pet registrations and organize health services efficiently.',       featureLabel:'Admin Tools' },
-    { image:'analytics_reports.png',    icon:'fa-chart-line',        title:'Analytics & Reports',   description:'Track vaccination rates and generate reports for better health management.',            featureLabel:'Data Insights' },
-  ];
-
-  const services = [
-    { image:'vaccine.png',       icon:'fa-syringe',            label:'Vaccination',   description:'Protect your pet from preventable diseases with regular vaccinations.',      color:'#10b981' },
-    { image:'deworm.png',        icon:'fa-pills',              label:'Deworming',     description:'Keep your pet parasite-free with scheduled deworming treatments.',           color:'#f59e0b' },
-    { image:'sterilization.png', icon:'fa-cut',                label:'Sterilization', description:'Access affordable spay/neuter services through community programs.',         color:'#8b5cf6' },
-    { image:'seminar.png',       icon:'fa-chalkboard-teacher', label:'Seminar',       description:'Learn about responsible pet ownership and proper animal care.',              color:'#3b82f6' },
-  ];
-
-  const mapFeatures = [
-    { icon:'fa-map-marked-alt', color:'#e00000', title:'Rabies Case Mapping',  desc:'Real-time visualization of confirmed and suspected rabies cases across Muntinlupa City barangays.' },
-    { icon:'fa-hospital',       color:'#0d6efd', title:'Nearest Vet Clinics',  desc:'Locate government and private veterinary clinics near you with contact details and specializations.' },
-    { icon:'fa-radiation-alt',  color:'#f0c800', title:'Danger Zone Alerts',   desc:'Automatically computed 1km danger and alert zones around active rabies cases to keep your pets safe.' },
-    { icon:'fa-shield-alt',     color:'#10b981', title:'Pet Safety Tips',      desc:'Context-aware safety guidance based on your proximity to active cases and outbreak zones.' },
-  ];
+  const positiveCount  = mapReports.filter(r => r.status === 'positive_rabies').length;
+  const suspectedCount = mapReports.filter(r => r.status === 'suspected_rabies').length;
+  const goToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
-    <div style={{ background:'#ffffff', overflowX:'hidden' }}>
-
+    <div className="lp-root">
       <style>{`
-        * { box-sizing: border-box; }
+        .lp-root { background:#ffffff; overflow-x:hidden; color:#1a1a1a; }
+        .lp-root *, .lp-root *::before, .lp-root *::after { box-sizing:border-box; }
 
-        @media (max-width: 768px) {
-          .hero-title { font-size: 1.45rem !important; text-align: center !important; }
-          .hero-sub { font-size: 1rem !important; text-align: center !important; }
-          .hero-logo { max-width: 120px !important; }
-          .hero-img { width: 100% !important; max-width: 100% !important; margin-top: 1.5rem; }
-          .hero-btns { flex-direction: column !important; align-items: center !important; }
-          .hero-btns button { width: 100% !important; justify-content: center !important; }
-          .section-heading { font-size: 1.8rem !important; }
-          .section-sub { font-size: 1rem !important; }
-          .section-eyebrow { font-size: 0.65rem !important; }
-          .map-preview-card { margin: 0 !important; }
-          .map-leaflet-div { height: 260px !important; }
-          .cta-band-title { font-size: 1.8rem !important; }
-          .cta-band-sub { font-size: 1rem !important; }
-          .cta-band-btns { flex-direction: column !important; align-items: center !important; }
-          .cta-band-btns button { width: 100% !important; justify-content: center !important; }
-          .map-feature-item { padding: 0.75rem 0.9rem !important; }
+        /* responsive zoom (same as the rest of the system) */
+        .lp-zoom { zoom:0.75; }
+        @media (min-width:1600px) { .lp-zoom { zoom:0.9; } }
+        @media (min-width:1920px) { .lp-zoom { zoom:1; } }
+        @media (max-width:768px)  { .lp-zoom { zoom:1; } }
+
+        @keyframes lpFloat     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+        @keyframes lpFloatSlow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+        @keyframes lpBounce    { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes lpDrop      { from{opacity:0;transform:translateY(-30px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes lpScan      { 0%{top:-2px} 100%{top:102%} }
+        @keyframes lpPulse     { 0%{box-shadow:0 0 0 0 rgba(16,185,129,0.5)} 70%{box-shadow:0 0 0 6px rgba(16,185,129,0)} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0)} }
+
+        .lp-reveal { opacity:0; transform:translateY(32px); transition:opacity 0.7s ease, transform 0.7s ease; }
+        .lp-reveal.visible { opacity:1; transform:translateY(0); }
+        .lp-d1{transition-delay:0.05s} .lp-d2{transition-delay:0.12s} .lp-d3{transition-delay:0.19s}
+        .lp-d4{transition-delay:0.26s} .lp-d5{transition-delay:0.33s} .lp-d6{transition-delay:0.40s}
+
+        /* section text */
+        .lp-eyebrow { display:inline-flex; align-items:center; gap:0.45rem; font-size:0.72rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#d39e00; margin-bottom:0.75rem; }
+        .lp-heading { font-size:2.5rem; font-weight:800; line-height:1.2; color:#111827; margin-bottom:1rem; }
+        .lp-heading em { font-style:normal; color:#ffc107; }
+        .lp-sub { font-size:1.15rem; color:#6b7280; line-height:1.65; max-width:580px; }
+        .lp-section { padding:6rem 0; }
+
+        /* buttons */
+        .lp-btn { display:inline-flex; align-items:center; justify-content:center; gap:0.6rem; border-radius:14px; padding:0.9rem 2rem; font-weight:700; font-size:1rem; cursor:pointer; transition:all 0.25s; border:2px solid transparent; text-decoration:none; }
+        .lp-btn-primary { background:#ffc107; color:#1a1a1a; }
+        .lp-btn-primary:hover { background:#e6ac00; transform:translateY(-2px); box-shadow:0 12px 28px rgba(255,193,7,0.35); }
+        .lp-btn-outline { background:transparent; color:#1a1a1a; border-color:#1a1a1a; }
+        .lp-btn-outline:hover { background:#1a1a1a; color:#ffc107; transform:translateY(-2px); }
+        .lp-btn-ghost { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.18); }
+        .lp-btn-ghost:hover { background:rgba(255,255,255,0.14); color:#fff; transform:translateY(-2px); }
+        .lp-btn:focus-visible { outline:3px solid rgba(255,193,7,0.6); outline-offset:2px; }
+
+        /* hero */
+        .lp-hero { background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%); min-height:100vh; display:flex; align-items:center; position:relative; overflow:hidden; padding:3rem 0; }
+        .lp-blob { position:absolute; width:384px; height:384px; border-radius:50%; filter:blur(80px); pointer-events:none; }
+        .lp-dot { position:absolute; border-radius:50%; background:#ffc107; opacity:0.5; pointer-events:none; }
+        .lp-hero-logo { max-width:170px; height:auto; margin-bottom:1.25rem; filter:drop-shadow(0 0 20px rgba(255,193,7,0.3)); animation:lpDrop 0.8s ease-out, lpBounce 2.5s ease-in-out 0.8s infinite; }
+        .lp-hero-title { font-size:3.5rem; font-weight:800; line-height:1.15; margin-bottom:1.25rem; animation:lpDrop 0.8s ease-out 0.15s backwards; }
+        .lp-hero-sub { font-size:1.25rem; color:#555; line-height:1.65; margin-bottom:2rem; animation:lpDrop 0.8s ease-out 0.3s backwards; }
+        .lp-hero-btns { display:flex; gap:0.85rem; flex-wrap:wrap; justify-content:center; animation:lpDrop 0.8s ease-out 0.45s backwards; }
+        .lp-hero-chips { display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center; margin-top:1.75rem; animation:lpDrop 0.8s ease-out 0.6s backwards; }
+        .lp-chip { display:inline-flex; align-items:center; gap:0.4rem; font-size:0.82rem; font-weight:600; color:#4b5563; background:#fff; border:1px solid #eceef1; padding:0.4rem 0.85rem; border-radius:999px; }
+        .lp-chip i { color:#d39e00; }
+        .lp-hero-art { position:relative; display:flex; align-items:center; justify-content:center; animation:lpDrop 0.8s ease-out 0.35s backwards; }
+        .lp-hero-glow { position:absolute; width:130%; height:130%; background:radial-gradient(ellipse 80% 70% at 50% 55%, rgba(255,193,7,0.25) 0%, rgba(255,193,7,0.1) 45%, transparent 75%); filter:blur(18px); z-index:0; }
+        .lp-hero-img { position:relative; z-index:1; width:120%; max-width:680px; height:auto; object-fit:contain; filter:drop-shadow(0 20px 40px rgba(255,193,7,0.2)) drop-shadow(0 8px 16px rgba(0,0,0,0.08)); animation:lpFloat 4s ease-in-out infinite; }
+        .lp-scroll-cue { position:absolute; left:50%; bottom:1.5rem; transform:translateX(-50%); background:none; border:none; color:#9ca3af; font-size:0.78rem; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:0.3rem; cursor:pointer; z-index:10; }
+        .lp-scroll-cue i { animation:lpFloatSlow 1.8s ease-in-out infinite; }
+
+        /* cards */
+        .lp-card { background:#fff; border-radius:18px; padding:1.75rem; border:1px solid #f0f1f3; box-shadow:0 4px 10px rgba(0,0,0,0.04); position:relative; overflow:hidden; height:100%; transition:transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease; }
+        .lp-card:hover { transform:translateY(-6px); box-shadow:0 18px 40px rgba(0,0,0,0.09); border-color:#e5e7eb; }
+        .lp-card-bar { position:absolute; top:0; left:0; right:0; height:3px; opacity:0; transition:opacity 0.3s; }
+        .lp-card:hover .lp-card-bar { opacity:1; }
+        .lp-icon { width:64px; height:64px; border-radius:16px; display:flex; align-items:center; justify-content:center; margin-bottom:1.25rem; transition:transform 0.3s; flex-shrink:0; }
+        .lp-card:hover .lp-icon { transform:scale(1.08) rotate(-4deg); }
+        .lp-card h3 { font-size:1.2rem; font-weight:700; color:#111827; margin-bottom:0.6rem; }
+        .lp-card p { color:#6b7280; line-height:1.6; margin:0; font-size:0.97rem; }
+        .lp-tag { display:inline-block; background:rgba(255,193,7,0.14); color:#a16207; padding:2px 10px; border-radius:100px; font-size:0.66rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+        .lp-feat-head { display:flex; align-items:center; gap:0.9rem; margin-bottom:1rem; }
+        .lp-feat-head .lp-icon { width:54px; height:54px; margin:0; background:#fef3c7; }
+        .lp-feat-head h3 { margin:0; }
+
+        /* steps */
+        .lp-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:1.25rem; position:relative; }
+        .lp-step { text-align:center; padding:1.5rem 1rem; position:relative; }
+        .lp-step-num { width:56px; height:56px; border-radius:50%; background:#1a1a1a; color:#ffc107; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; font-size:1.2rem; position:relative; z-index:1; box-shadow:0 0 0 6px #f9fafb; }
+        .lp-step-num span { position:absolute; top:-4px; right:-4px; width:22px; height:22px; border-radius:50%; background:#ffc107; color:#1a1a1a; font-size:0.72rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
+        .lp-step h4 { font-size:1.08rem; font-weight:700; color:#111827; margin-bottom:0.35rem; }
+        .lp-step p { font-size:0.93rem; color:#6b7280; margin:0; line-height:1.55; }
+        .lp-steps::before { content:''; position:absolute; top:calc(1.5rem + 28px); left:16.66%; right:16.66%; border-top:2px dashed #e5e7eb; }
+
+        /* map */
+        .lp-map-item { display:flex; gap:1rem; align-items:flex-start; padding:1rem 1.15rem; border-radius:14px; border:1.5px solid #f0f0f0; background:#fff; transition:all 0.25s; }
+        .lp-map-item:hover { border-color:rgba(255,193,7,0.45); box-shadow:0 6px 24px rgba(0,0,0,0.06); transform:translateX(4px); }
+        .lp-map-item-ic { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .lp-map-item strong { display:block; font-size:1rem; color:#111827; margin-bottom:2px; }
+        .lp-map-item span { font-size:0.9rem; color:#6b7280; line-height:1.55; }
+        .lp-map-card { background:#fff; border-radius:20px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06); }
+        .lp-map-head { background:linear-gradient(135deg,#1a1a1a,#2d2d2d); padding:0.95rem 1.4rem; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; }
+        .lp-map-head-title { display:flex; align-items:center; gap:0.6rem; color:#fff; font-weight:700; font-size:0.9rem; min-width:0; }
+        .lp-map-head-title span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .lp-map-body { position:relative; overflow:hidden; background:#0d1424; }
+        .lp-map-el { height:420px; width:100%; }
+        .lp-map-scan { position:absolute; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,rgba(255,193,7,0.6),transparent); animation:lpScan 4s linear infinite; pointer-events:none; z-index:5; }
+        .lp-map-legend { position:absolute; top:12px; right:12px; z-index:6; background:rgba(255,255,255,0.95); border-radius:12px; padding:0.65rem 0.9rem; box-shadow:0 4px 16px rgba(0,0,0,0.12); }
+        .lp-map-legend div { display:flex; align-items:center; gap:0.5rem; }
+        .lp-map-legend div + div { margin-top:0.35rem; }
+        .lp-map-legend i.sw { width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:8px; font-style:normal; flex-shrink:0; color:#fff; }
+        .lp-map-legend span { font-size:0.68rem; font-weight:600; color:#444; }
+        .lp-map-note { position:absolute; left:12px; bottom:12px; z-index:6; background:rgba(255,255,255,0.95); border-radius:10px; padding:0.45rem 0.8rem; font-size:0.75rem; font-weight:600; color:#065f46; display:flex; align-items:center; gap:0.45rem; box-shadow:0 4px 14px rgba(0,0,0,0.12); }
+        .lp-map-msg { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.6rem; color:#a9b4cc; font-size:0.9rem; z-index:4; text-align:center; padding:1rem; }
+        .lp-map-foot { padding:0.75rem 1.25rem; border-top:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; }
+        .lp-map-stats { display:flex; align-items:center; gap:0.9rem; flex-wrap:wrap; font-size:0.75rem; color:#6b7280; font-weight:600; }
+        .lp-live { width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block; margin-right:0.35rem; animation:lpPulse 2s infinite; }
+        .lp-map-btn { background:#1a1a1a; color:#ffc107; border:none; border-radius:8px; padding:0.45rem 0.95rem; font-size:0.75rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem; transition:background 0.2s; }
+        .lp-map-btn:hover { background:#333; }
+
+        /* CTA */
+        .lp-cta { padding:5rem 0; background:#1a1a1a; position:relative; overflow:hidden; }
+        .lp-cta h2 { font-size:2.6rem; font-weight:800; color:#fff; margin-bottom:1rem; }
+        .lp-cta p { font-size:1.15rem; color:rgba(255,255,255,0.6); max-width:540px; margin:0 auto 2.25rem; line-height:1.65; }
+        .lp-cta-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+
+        .lp-glow { position:fixed; width:320px; height:320px; border-radius:50%; pointer-events:none; z-index:9999; background:radial-gradient(circle, rgba(255,193,7,0.10) 0%, transparent 70%); transition:transform 0.4s ease; left:0; top:0; }
+
+        /* ── tablet ── */
+        @media (max-width:991.98px) {
+          .lp-hero { min-height:auto; padding:4rem 0 4.5rem; }
+          .lp-hero-art { margin-top:2.5rem; }
+          .lp-hero-img { width:100%; max-width:520px; }
+          .lp-scroll-cue { display:none; }
+          .lp-map-copy { margin-bottom:0.5rem; }
         }
 
-        @keyframes float     { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-12px)} }
-        @keyframes floatSlow { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-6px)}  }
-        @keyframes bounce    { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
-        @keyframes dropDown  { from{opacity:0;transform:translateY(-40px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes ping      { 0%{transform:scale(1);opacity:0.8} 80%,100%{transform:scale(2.2);opacity:0} }
-        @keyframes scanLine  { 0%{top:-2px} 100%{top:102%} }
-        @keyframes borderGlow{ 0%,100%{box-shadow:0 0 0 0 rgba(255,193,7,0)} 50%{box-shadow:0 0 0 6px rgba(255,193,7,0.2)} }
-
-        .reveal-section { opacity:0; transform:translateY(36px); transition:opacity 0.75s ease,transform 0.75s ease; }
-        .reveal-section.visible { opacity:1; transform:translateY(0); }
-        .stagger-1{transition-delay:0.05s!important} .stagger-2{transition-delay:0.13s!important}
-        .stagger-3{transition-delay:0.21s!important} .stagger-4{transition-delay:0.29s!important}
-        .stagger-5{transition-delay:0.37s!important} .stagger-6{transition-delay:0.45s!important}
-
-        .map-preview-card {
-          background:#fff; border-radius:20px; overflow:hidden;
-          box-shadow:0 24px 64px rgba(0,0,0,0.10),0 4px 16px rgba(0,0,0,0.06);
-          transition:transform 0.35s ease,box-shadow 0.35s ease;
+        /* ── mobile ── */
+        @media (max-width:768px) {
+          .lp-section { padding:3.5rem 0; }
+          .lp-hero { padding:2.5rem 0 3rem; }
+          .lp-hero-logo { max-width:110px; margin-bottom:1rem; }
+          .lp-hero-title { font-size:2rem; text-align:center; }
+          .lp-hero-sub { font-size:1rem; text-align:center; margin-bottom:1.5rem; }
+          .lp-hero-btns { flex-direction:column; align-items:stretch; }
+          .lp-hero-btns .lp-btn { width:100%; padding:0.85rem 1rem; }
+          .lp-hero-chips { margin-top:1.25rem; }
+          .lp-chip { font-size:0.75rem; padding:0.35rem 0.7rem; }
+          .lp-hero-art { margin-top:2rem; }
+          .lp-hero-img { animation:none; }
+          .lp-blob { width:240px; height:240px; filter:blur(60px); }
+          .lp-heading { font-size:1.7rem; }
+          .lp-sub { font-size:0.98rem; }
+          .lp-eyebrow { font-size:0.66rem; }
+          .lp-card { padding:1.35rem; border-radius:16px; }
+          .lp-card:hover { transform:none; }
+          .lp-icon { width:54px; height:54px; margin-bottom:1rem; }
+          .lp-card h3 { font-size:1.08rem; }
+          .lp-card p { font-size:0.92rem; }
+          .lp-steps { grid-template-columns:1fr; gap:0.25rem; }
+          .lp-steps::before { display:none; }
+          .lp-step { display:flex; align-items:center; text-align:left; gap:1rem; padding:0.85rem 0.25rem; }
+          .lp-step-num { margin:0; flex-shrink:0; width:50px; height:50px; font-size:1.05rem; }
+          .lp-map-item { padding:0.8rem 0.9rem; }
+          .lp-map-item:hover { transform:none; }
+          .lp-map-item span { font-size:0.85rem; }
+          .lp-map-el { height:300px; }
+          .lp-map-card { border-radius:16px; }
+          .lp-map-head { padding:0.8rem 1rem; }
+          .lp-map-head .lp-dots { display:none; }
+          .lp-map-legend { top:8px; right:8px; padding:0.5rem 0.65rem; }
+          .lp-map-legend span { font-size:0.62rem; }
+          .lp-map-foot { padding:0.7rem 1rem; }
+          .lp-map-btn { width:100%; justify-content:center; padding:0.6rem; font-size:0.8rem; }
+          .lp-cta { padding:3.5rem 0; }
+          .lp-cta h2 { font-size:1.7rem; }
+          .lp-cta p { font-size:0.98rem; margin-bottom:1.75rem; }
+          .lp-cta-btns { flex-direction:column; align-items:stretch; }
+          .lp-cta-btns .lp-btn { width:100%; }
         }
-        .map-preview-card:hover { transform:translateY(-6px); box-shadow:0 36px 80px rgba(0,0,0,0.13),0 6px 20px rgba(0,0,0,0.07); }
 
-        .section-eyebrow { font-size:0.72rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#ffc107;margin-bottom:0.75rem;display:block; }
-        .section-heading { font-size:2.5rem;font-weight:800;line-height:1.2;color:#111827;margin-bottom:1rem; }
-        .section-sub     { font-size:1.2rem;color:#6b7280;line-height:1.6;max-width:560px; }
-
-        .map-feature-item {
-          display:flex;gap:1rem;align-items:flex-start;
-          padding:1.1rem 1.25rem;border-radius:14px;
-          border:1.5px solid #f0f0f0;background:#fff;
-          transition:all 0.25s;cursor:default;
+        @media (prefers-reduced-motion: reduce) {
+          .lp-root *, .lp-root *::before, .lp-root *::after { animation:none !important; transition:none !important; }
+          .lp-reveal { opacity:1; transform:none; }
         }
-        .map-feature-item:hover { border-color:rgba(255,193,7,0.4);box-shadow:0 6px 24px rgba(0,0,0,0.07);transform:translateX(4px); }
-
-        .cta-btn-primary {
-          display:inline-flex;align-items:center;gap:0.6rem;
-          background:#ffc107;color:#1a1a1a;border:none;border-radius:14px;
-          padding:0.85rem 2rem;font-weight:700;font-size:0.95rem;
-          cursor:pointer;transition:all 0.25s;text-decoration:none;
-          animation:borderGlow 2.5s infinite;
-        }
-        .cta-btn-primary:hover { background:#e6ac00;transform:translateY(-2px);box-shadow:0 12px 30px rgba(255,193,7,0.35); }
-        .cta-btn-outline {
-          display:inline-flex;align-items:center;gap:0.6rem;
-          background:transparent;color:#1a1a1a;border:2px solid #1a1a1a;
-          border-radius:14px;padding:0.83rem 1.8rem;font-weight:700;
-          font-size:0.95rem;cursor:pointer;transition:all 0.25s;
-        }
-        .cta-btn-outline:hover { background:#1a1a1a;color:#ffc107;transform:translateY(-2px); }
       `}</style>
 
-      {/* Mouse follower */}
-      <div style={{
-        position:'fixed', width:'320px', height:'320px',
-        background:'radial-gradient(circle, rgba(255,193,7,0.12) 0%, transparent 70%)',
-        borderRadius:'50%', pointerEvents:'none',
-        left:mousePosition.x-160, top:mousePosition.y-160,
-        transition:'left 0.4s ease,top 0.4s ease', zIndex:9999
-      }} />
+      {/* soft cursor glow (desktop only) */}
+      {canHover && (
+        <div className="lp-glow" style={{ transform:`translate(${mousePosition.x - 160}px, ${mousePosition.y - 160}px)` }} />
+      )}
 
       {/* ════ HERO ════ */}
-      <section id="home" style={{
-        background:'linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%)',
-        color:'#1a1a1a', minHeight:'100vh',
-        display:'flex', alignItems:'center', position:'relative', overflow:'hidden'
-      }}>
-        <div style={{ position:'absolute', width:'384px', height:'384px', background:'#f59e0b', borderRadius:'50%', opacity:0.15, filter:'blur(80px)', top:'10%', right:'10%', transform:`translateY(${scrollY*0.3}px)`, transition:'transform 0.1s ease-out' }} />
-        <div style={{ position:'absolute', width:'384px', height:'384px', background:'#3b82f6', borderRadius:'50%', opacity:0.1,  filter:'blur(80px)', bottom:'10%', left:'10%',  transform:`translateY(${-scrollY*0.2}px)`, transition:'transform 0.1s ease-out' }} />
+      <section id="home" className="lp-hero">
+        <div className="lp-blob" style={{ background:'#f59e0b', opacity:0.15, top:'10%', right:'10%', transform:`translateY(${scrollY*0.3}px)` }} />
+        <div className="lp-blob" style={{ background:'#3b82f6', opacity:0.1, bottom:'10%', left:'10%', transform:`translateY(${-scrollY*0.2}px)` }} />
         {[{top:'20%',left:'5%',size:8,delay:'0s'},{top:'70%',left:'8%',size:5,delay:'0.8s'},{top:'40%',right:'5%',size:6,delay:'1.2s'},{top:'80%',right:'12%',size:10,delay:'0.4s'}].map((d,i)=>(
-          <div key={i} style={{ position:'absolute', width:d.size, height:d.size, borderRadius:'50%', background:'#ffc107', opacity:0.5, top:d.top, left:d.left, right:d.right, animation:`floatSlow 4s ease-in-out ${d.delay} infinite` }} />
+          <div key={i} className="lp-dot" style={{ width:d.size, height:d.size, top:d.top, left:d.left, right:d.right, animation:`lpFloatSlow 4s ease-in-out ${d.delay} infinite` }} />
         ))}
-        <Container style={{ position:'relative', zIndex:10, zoom:'0.75' }}>
+
+        <Container className="lp-zoom" style={{ position:'relative', zIndex:10 }}>
           <Row className="align-items-center">
             <Col lg={6}>
-              <div className="text-center mb-4">
-                <img src="logo.png" alt="PetUnity Logo" className="hero-logo" style={{ maxWidth:'180px', height:'auto', marginBottom:'1.5rem', filter:'drop-shadow(0 0 20px rgba(255,193,7,0.3))', animation:'dropDown 0.8s ease-out, bounce 2s infinite 0.8s' }} />
+              <div className="text-center text-lg-start">
+                <img src="/logo.png" alt="PetUnity Logo" className="lp-hero-logo" />
               </div>
-              <h1 className="hero-title" style={{ fontSize:'3.5rem', fontWeight:'800', marginBottom:'1.5rem', lineHeight:'1.2', animation:'dropDown 0.8s ease-out 0.2s backwards' }}>
-                Welcome to{' '}<span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
+              <h1 className="lp-hero-title text-center text-lg-start">
+                Welcome to <span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
               </h1>
-              <p className="hero-sub" style={{ fontSize:'1.3rem', marginBottom:'2rem', color:'#555555', lineHeight:'1.6', animation:'dropDown 0.8s ease-out 0.4s backwards' }}>
+              <p className="lp-hero-sub text-center text-lg-start">
                 Managing pet health and vaccination records across Muntinlupa City. Keep your pets healthy and compliant with ease.
               </p>
-              <div className="d-flex gap-3 mb-4 justify-content-center flex-wrap hero-btns" style={{ animation:'dropDown 0.8s ease-out 0.6s backwards' }}>
-                
+              <div className="lp-hero-btns justify-content-lg-start">
+                <button className="lp-btn lp-btn-primary" onClick={() => navigate('/register')}>
+                  <i className="fas fa-user-plus" /> Create Account
+                </button>
+                <button className="lp-btn lp-btn-outline" onClick={() => navigate('/login')}>
+                  <i className="fas fa-sign-in-alt" /> Sign In
+                </button>
+              </div>
+              <div className="lp-hero-chips justify-content-lg-start">
+                <span className="lp-chip"><i className="fas fa-syringe" /> Vaccination records</span>
+                <span className="lp-chip"><i className="fas fa-qrcode" /> Pet QR code</span>
+                <span className="lp-chip"><i className="fas fa-map-marked-alt" /> Rabies map</span>
               </div>
             </Col>
             <Col lg={6}>
-              <div style={{ position:'relative', display:'flex', alignItems:'center', justifyContent:'center', animation:'dropDown 0.8s ease-out 0.4s backwards' }}>
-                <div style={{ position:'absolute', width:'140%', height:'140%', background:'radial-gradient(ellipse 80% 70% at 50% 55%, rgba(255,193,7,0.25) 0%, rgba(255,193,7,0.12) 45%, transparent 75%)', filter:'blur(18px)', borderRadius:'60% 40% 55% 45% / 45% 55% 45% 55%', transform:'rotate(-6deg) scale(1.1)', zIndex:0 }} />
-                <div style={{ position:'absolute', width:'120%', height:'120%', background:'radial-gradient(ellipse 70% 60% at 55% 50%, rgba(255,193,7,0.18) 0%, transparent 70%)', filter:'blur(24px)', borderRadius:'45% 55% 40% 60% / 55% 45% 60% 40%', transform:'rotate(8deg)', zIndex:0 }} />
-                <img src="/ads1.png" alt="PetUnity Ad" className="hero-img" style={{ position:'relative', zIndex:1, width:'130%', maxWidth:'700px', height:'auto', objectFit:'contain', filter:'drop-shadow(0 20px 40px rgba(255,193,7,0.2)) drop-shadow(0 8px 16px rgba(0,0,0,0.08))', animation:'float 4s ease-in-out infinite' }} />
+              <div className="lp-hero-art">
+                <div className="lp-hero-glow" />
+                <img src="/ads1.png" alt="PetUnity preview" className="lp-hero-img" />
               </div>
             </Col>
           </Row>
         </Container>
+
+        <button type="button" className="lp-scroll-cue" onClick={() => goToSection('about')} aria-label="Scroll to services">
+          Explore <i className="fas fa-chevron-down" />
+        </button>
       </section>
 
       {/* ════ SERVICES ════ */}
-      <section id="about" style={{ padding:'6rem 0', background:'#ffffff', zoom:'0.75' }}>
-        <Container>
-          <div ref={servicesRef} className={`text-center mb-5 reveal-section ${servicesVisible?'visible':''}`}>
-            <span className="section-eyebrow">What We Offer</span>
-            <h2 className="section-heading">Our Services</h2>
-            <p className="section-sub mx-auto">Comprehensive pet care at your fingertips</p>
+      <section id="about" className="lp-section" style={{ background:'#ffffff' }}>
+        <Container className="lp-zoom">
+          <div ref={servicesRef} className={`text-center mb-5 lp-reveal ${servicesVisible?'visible':''}`}>
+            <span className="lp-eyebrow">What We Offer</span>
+            <h2 className="lp-heading">Veterinary Services</h2>
+            <p className="lp-sub mx-auto">Programs offered by the City Veterinary Office that you can register for through PetUnity.</p>
           </div>
-          <Row>
-            {services.map((service, index) => (
-              <Col key={index} md={6} lg={3} className="mb-4">
-                <div className={`reveal-section stagger-${index+1} ${servicesVisible?'visible':''}`}
-                  style={{
-                    background:'#fff', borderRadius:'16px', padding:'2rem', cursor:'pointer',
-                    transition:'all 0.3s', border:'1px solid #f3f4f6',
-                    transform:hoveredService===index?'translateY(-8px)':'translateY(0)',
-                    boxShadow:hoveredService===index?'0 20px 40px rgba(0,0,0,0.1)':'0 4px 6px rgba(0,0,0,0.05)',
-                    position:'relative', overflow:'hidden'
-                  }}
-                  onMouseEnter={()=>setHoveredService(index)}
-                  onMouseLeave={()=>setHoveredService(null)}
-                >
-                  <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:service.color, borderRadius:'16px 16px 0 0', opacity:hoveredService===index?1:0, transition:'opacity 0.3s' }} />
-                  <div style={{ width:'64px', height:'64px', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'1.5rem', background:`${service.color}20`, transition:'all 0.3s', transform:hoveredService===index?'scale(1.1) rotate(5deg)':'scale(1) rotate(0deg)' }}>
-                    <img src={service.image} alt={service.label} style={{ width:'100px', height:'100px', objectFit:'contain' }}
-                      onError={e=>{ e.target.style.display='none'; e.target.nextSibling.style.display='block'; }} />
-                    <i className={`fas ${service.icon}`} style={{ fontSize:'2rem', color:service.color, display:'none' }}></i>
+          <Row className="g-3 g-md-4">
+            {SERVICES.map((s, i) => (
+              <Col key={s.label} xs={12} sm={6} lg={3}>
+                <div className={`lp-card lp-reveal lp-d${i+1} ${servicesVisible?'visible':''}`}>
+                  <div className="lp-card-bar" style={{ background:s.color }} />
+                  <div className="lp-icon" style={{ background:`${s.color}1f` }}>
+                    <IconImage src={s.image} icon={s.icon} color={s.color} size={64} />
                   </div>
-                  <h3 style={{ fontSize:'1.25rem', fontWeight:'700', color:'#111827', marginBottom:'0.75rem' }}>{service.label}</h3>
-                  <p style={{ color:'#6b7280', lineHeight:'1.6', marginBottom:0 }}>{service.description}</p>
-                  <div style={{ position:'absolute', bottom:0, left:0, height:'4px', borderRadius:'50px', background:service.color, width:hoveredService===index?'100%':'0%', transition:'width 0.3s' }} />
+                  <h3>{s.label}</h3>
+                  <p>{s.description}</p>
                 </div>
               </Col>
             ))}
@@ -496,27 +627,48 @@ const LandingPage = () => {
         </Container>
       </section>
 
-      {/* ════ MAP SECTION ════ */}
-      <section id="map-feature" style={{ padding:'6rem 0', background:'#f9fafb', zoom:'0.75' }}>
-        <Container>
-          <Row className="align-items-center g-5">
-            {/* Left copy */}
+      {/* ════ HOW IT WORKS ════ */}
+      <section id="how" className="lp-section" style={{ background:'#f9fafb' }}>
+        <Container className="lp-zoom">
+          <div ref={stepsRef} className={`text-center mb-4 mb-md-5 lp-reveal ${stepsVisible?'visible':''}`}>
+            <span className="lp-eyebrow">Getting Started</span>
+            <h2 className="lp-heading">How It Works</h2>
+            <p className="lp-sub mx-auto">Three simple steps to start managing your pet's health.</p>
+          </div>
+          <div className="lp-steps">
+            {STEPS.map((s, i) => (
+              <div key={s.title} className={`lp-step lp-reveal lp-d${i+1} ${stepsVisible?'visible':''}`}>
+                <div className="lp-step-num"><i className={`fas ${s.icon}`} /><span>{i + 1}</span></div>
+                <div>
+                  <h4>{s.title}</h4>
+                  <p>{s.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Container>
+      </section>
+
+      {/* ════ MAP ════ */}
+      <section id="map-feature" className="lp-section" style={{ background:'#ffffff' }}>
+        <Container className="lp-zoom">
+          <Row className="align-items-center g-4 g-lg-5">
             <Col lg={5}>
-              <div ref={mapSectionRef} className={`reveal-section ${mapSectionVisible?'visible':''}`}>
-                <span className="section-eyebrow"><i className="fas fa-map-marked-alt me-2"></i>Live Map Intelligence</span>
-                <h2 className="section-heading">Know What's Happening <em>Near You</em></h2>
-                <p className="section-sub" style={{ marginBottom:'2rem', fontSize:'1.2rem', lineHeight:'1.6' }}>
-                  PetUnity's interactive map gives you real-time visibility into rabies activity, danger zones, and the nearest veterinary services — all in one place.
+              <div ref={mapSectionRef} className={`lp-map-copy lp-reveal ${mapSectionVisible?'visible':''}`}>
+                <span className="lp-eyebrow"><i className="fas fa-map-marked-alt" />Rabies Activity Map</span>
+                <h2 className="lp-heading">Know What's Happening <em>Near You</em></h2>
+                <p className="lp-sub" style={{ marginBottom:'1.75rem' }}>
+                  See reported rabies cases, alert zones, and the nearest veterinary services in Muntinlupa City, all in one map.
                 </p>
-                <div style={{ display:'flex', flexDirection:'column', gap:'0.75rem' }}>
-                  {mapFeatures.map((f, i) => (
-                    <div key={i} className={`map-feature-item reveal-section stagger-${i+1} ${mapSectionVisible?'visible':''}`}>
-                      <div style={{ width:42, height:42, borderRadius:12, background:`${f.color}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        <i className={`fas ${f.icon}`} style={{ color:f.color, fontSize:'1rem' }}></i>
+                <div style={{ display:'flex', flexDirection:'column', gap:'0.7rem' }}>
+                  {MAP_FEATURES.map((f, i) => (
+                    <div key={f.title} className={`lp-map-item lp-reveal lp-d${i+1} ${mapSectionVisible?'visible':''}`}>
+                      <div className="lp-map-item-ic" style={{ background:`${f.color}18` }}>
+                        <i className={`fas ${f.icon}`} style={{ color:f.color }} />
                       </div>
                       <div>
-                        <div style={{ fontWeight:700, fontSize:'1rem', color:'#111827', marginBottom:2 }}>{f.title}</div>
-                        <div style={{ fontSize:'0.9rem', color:'#6b7280', lineHeight:1.6 }}>{f.desc}</div>
+                        <strong>{f.title}</strong>
+                        <span>{f.desc}</span>
                       </div>
                     </div>
                   ))}
@@ -524,62 +676,71 @@ const LandingPage = () => {
               </div>
             </Col>
 
-            {/* Right — real Leaflet map with scanner */}
             <Col lg={7}>
-              <div className={`reveal-section stagger-2 ${mapSectionVisible?'visible':''}`}>
-                <div className="map-preview-card">
-                  {/* Header */}
-                  <div style={{ background:'linear-gradient(135deg,#1a1a1a,#2d2d2d)', padding:'1rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:'0.6rem' }}>
-                      <i className="fas fa-map" style={{ color:'#ffc107' }}></i>
-                      <span style={{ color:'#fff', fontWeight:700, fontSize:'0.9rem' }}>Rabies Activity Map — Muntinlupa City</span>
+              <div className={`lp-reveal lp-d2 ${mapSectionVisible?'visible':''}`}>
+                <div className="lp-map-card">
+                  <div className="lp-map-head">
+                    <div className="lp-map-head-title">
+                      <i className="fas fa-map" style={{ color:'#ffc107' }} />
+                      <span>Rabies Activity Map — Muntinlupa City</span>
                     </div>
-                    <div style={{ display:'flex', gap:'0.5rem' }}>
-                      {['#ff5f57','#febc2e','#28c840'].map((c,i)=>(
-                        <div key={i} style={{ width:10, height:10, borderRadius:'50%', background:c }} />
+                    <div className="lp-dots" style={{ display:'flex', gap:'0.45rem' }}>
+                      {['#ff5f57','#febc2e','#28c840'].map(c => (
+                        <div key={c} style={{ width:10, height:10, borderRadius:'50%', background:c }} />
                       ))}
                     </div>
                   </div>
 
-                  {/* Map + scanner overlay */}
-                  <div style={{ position:'relative', overflow:'hidden' }}>
-                    {/* Real Leaflet map */}
-                    <div ref={leafletMapRef} className="map-leaflet-div" style={{ height:'400px', width:'100%' }} />
+                  <div className="lp-map-body">
+                    <div ref={mapElRef} className="lp-map-el" />
 
-                    {/* Scanner line on top of real map */}
-                    <div style={{
-                      position:'absolute', left:0, right:0, height:2,
-                      background:'linear-gradient(90deg,transparent,rgba(255,193,7,0.6),transparent)',
-                      animation:'scanLine 4s linear infinite',
-                      pointerEvents:'none', zIndex:998
-                    }} />
+                    {!mapReady && (
+                      <div className="lp-map-msg">
+                        {mapError ? (
+                          <><i className="fas fa-map-marked-alt" style={{ fontSize:'1.6rem' }} />The map could not be loaded. Please check your connection.</>
+                        ) : (
+                          <><div className="spinner-border spinner-border-sm" role="status" />Loading map…</>
+                        )}
+                      </div>
+                    )}
 
-                    {/* Legend overlay */}
-                    <div style={{ position:'absolute', top:12, right:12, zIndex:999, background:'rgba(255,255,255,0.95)', borderRadius:12, padding:'0.7rem 1rem', boxShadow:'0 4px 16px rgba(0,0,0,0.12)' }}>
+                    {mapReady && <div className="lp-map-scan" />}
+
+                    <div className="lp-map-legend">
                       {[
-                        { color:'#e00000', emoji:'☣️', label:'Positive Rabies' },
-                        { color:'#f0c800', emoji:'⚠️', label:'Suspected Rabies' },
-                        { color:'#ffc107', icon:'fa-hospital', label:'City Vet' },
-                        { color:'#0d6efd', icon:'fa-hospital', label:'Private Clinic' },
-                      ].map((l,i)=>(
-                        <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:i<3?'0.35rem':0 }}>
-                          <div style={{ width:18, height:18, borderRadius:'50%', background:l.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, flexShrink:0 }}>
-                            {l.emoji ? l.emoji : <i className={`fas ${l.icon}`} style={{ color:'#fff', fontSize:7 }}></i>}
-                          </div>
-                          <span style={{ fontSize:'0.65rem', fontWeight:600, color:'#444' }}>{l.label}</span>
+                        { color:'#e00000', label:'Positive Rabies' },
+                        { color:'#f0c800', label:'Suspected Rabies' },
+                        { color:'#ffc107', label:'City Vet' },
+                        { color:'#0d6efd', label:'Private Clinic' },
+                      ].map(l => (
+                        <div key={l.label}>
+                          <i className="sw" style={{ background:l.color, border:'2px solid #fff', boxShadow:'0 0 0 1px rgba(0,0,0,0.08)' }} />
+                          <span>{l.label}</span>
                         </div>
                       ))}
                     </div>
+
+                    {mapReady && dataLoaded && mapReports.length === 0 && (
+                      <div className="lp-map-note">
+                        <i className="fas fa-check-circle" style={{ color:'#10b981' }} />
+                        No active rabies cases reported
+                      </div>
+                    )}
                   </div>
 
-                  {/* Footer */}
-                  <div style={{ padding:'0.75rem 1.25rem', borderTop:'1px solid #f0f0f0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                    <span style={{ fontSize:'0.72rem', color:'#aaa', fontWeight:500 }}>
-                      <i className="fas fa-circle me-1" style={{ color:'#10b981', fontSize:'0.5rem' }}></i>Live Data · Muntinlupa City
-                    </span>
-                    <button onClick={() => navigate('/owner/map-status')}
-                      style={{ background:'#1a1a1a', color:'#ffc107', border:'none', borderRadius:8, padding:'0.35rem 0.9rem', fontSize:'0.72rem', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:'0.4rem' }}>
-                      <i className="fas fa-expand-alt" style={{ fontSize:'0.65rem' }}></i> Full Map
+                  <div className="lp-map-foot">
+                    <div className="lp-map-stats">
+                      <span><span className="lp-live" />Live data</span>
+                      {dataLoaded && (
+                        <>
+                          <span style={{ color:'#e00000' }}>{positiveCount} positive</span>
+                          <span style={{ color:'#b38f00' }}>{suspectedCount} suspected</span>
+                          <span style={{ color:'#0d6efd' }}>{mapClinics.length + 1} vet location{mapClinics.length + 1 !== 1 ? 's' : ''}</span>
+                        </>
+                      )}
+                    </div>
+                    <button className="lp-map-btn" onClick={() => navigate('/owner/map-status')}>
+                      <i className="fas fa-expand-alt" /> Open Full Map
                     </button>
                   </div>
                 </div>
@@ -590,42 +751,27 @@ const LandingPage = () => {
       </section>
 
       {/* ════ FEATURES ════ */}
-      <section id="features" style={{ padding:'6rem 0', background:'#ffffff', zoom:'0.75' }}>
-        <Container>
-          <div ref={featuresRef} className={`text-center mb-5 reveal-section ${featuresVisible?'visible':''}`}>
-            <span className="section-eyebrow">Platform Features</span>
-            <h2 className="section-heading">Why Choose PetUnity?</h2>
-            <p className="section-sub mx-auto">Everything you need to manage your pet's health in one place</p>
+      <section id="features" className="lp-section" style={{ background:'#f9fafb' }}>
+        <Container className="lp-zoom">
+          <div ref={featuresRef} className={`text-center mb-5 lp-reveal ${featuresVisible?'visible':''}`}>
+            <span className="lp-eyebrow">Platform Features</span>
+            <h2 className="lp-heading">Why Choose PetUnity?</h2>
+            <p className="lp-sub mx-auto">Everything you need to manage your pet's health in one place.</p>
           </div>
-          <Row>
-            {features.map((feature, index) => (
-              <Col key={index} md={6} lg={4} className="mb-4">
-                <div className={`reveal-section stagger-${index+1} ${featuresVisible?'visible':''}`}
-                  style={{
-                    background:'#fff', borderRadius:'16px', padding:'2rem',
-                    transition:'all 0.3s', border:'1px solid #f3f4f6', height:'100%',
-                    transform:hoveredFeature===index?'translateY(-8px)':'translateY(0)',
-                    boxShadow:hoveredFeature===index?'0 20px 40px rgba(0,0,0,0.1)':'0 4px 6px rgba(0,0,0,0.05)',
-                    position:'relative', overflow:'hidden'
-                  }}
-                  onMouseEnter={()=>setHoveredFeature(index)}
-                  onMouseLeave={()=>setHoveredFeature(null)}
-                >
-                  {hoveredFeature===index && (
-                    <div style={{ position:'absolute', inset:0, background:'radial-gradient(circle at top left, rgba(255,193,7,0.06), transparent 60%)', pointerEvents:'none' }} />
-                  )}
-                  <div style={{ display:'flex', alignItems:'flex-start', gap:'0.75rem', marginBottom:'1rem' }}>
-                    <div style={{ width:56, height:56, background:'#fef3c7', borderRadius:16, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all 0.3s', transform:hoveredFeature===index?'scale(1.1) rotate(-5deg)':'scale(1)' }}>
-                      <img src={feature.image} alt={feature.title} style={{ width:48, height:48, objectFit:'contain' }}
-                        onError={e=>{ e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
-                      <i className={`fas ${feature.icon}`} style={{ fontSize:'1.6rem', color:'#d97706', display:'none' }}></i>
+          <Row className="g-3 g-md-4">
+            {FEATURES.map((f, i) => (
+              <Col key={f.title} xs={12} md={6} lg={4}>
+                <div className={`lp-card lp-reveal lp-d${i+1} ${featuresVisible?'visible':''}`}>
+                  <div className="lp-feat-head">
+                    <div className="lp-icon">
+                      <i className={`fas ${f.icon}`} style={{ fontSize:'1.35rem', color:'#d97706' }} />
                     </div>
                     <div>
-                      <span style={{ display:'inline-block', background:'rgba(255,193,7,0.12)', color:'#b45309', padding:'1px 10px', borderRadius:100, fontSize:'0.65rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>{feature.featureLabel}</span>
-                      <h3 style={{ fontSize:'1.25rem', fontWeight:'700', color:'#111827', margin:0 }}>{feature.title}</h3>
+                      <span className="lp-tag">{f.label}</span>
+                      <h3>{f.title}</h3>
                     </div>
                   </div>
-                  <p style={{ color:'#6b7280', lineHeight:'1.6', marginBottom:0 }}>{feature.description}</p>
+                  <p>{f.description}</p>
                 </div>
               </Col>
             ))}
@@ -633,30 +779,24 @@ const LandingPage = () => {
         </Container>
       </section>
 
-      {/* ════ CTA BAND ════ */}
-      <section style={{ padding:'5rem 0', background:'#1a1a1a', zoom:'0.75', position:'relative', overflow:'hidden' }}>
-        <div style={{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'#ffc107', opacity:0.06, filter:'blur(80px)', top:'-20%', right:'-5%' }} />
-        <div style={{ position:'absolute', width:300, height:300, borderRadius:'50%', background:'#3b82f6', opacity:0.05, filter:'blur(60px)', bottom:'-20%', left:'-5%' }} />
-        <Container style={{ textAlign:'center', position:'relative', zIndex:1 }}>
-          <span className="section-eyebrow" style={{ color:'#ffc107' }}>Get Started Today</span>
-          <h2 className="cta-band-title" style={{ fontSize:'2.8rem', fontWeight:'800', color:'#fff', marginBottom:'1rem' }}>Keep Your Pets Safe with PetUnity</h2>
-          <p className="cta-band-sub" style={{ fontSize:'1.2rem', color:'rgba(255,255,255,0.55)', maxWidth:520, margin:'0 auto 2.5rem', lineHeight:1.6 }}>
-            Join thousands of pet owners in Muntinlupa City managing their pets' health records, schedules, and safety — all in one place.
-          </p>
-          <div className="cta-band-btns" style={{ display:'flex', gap:'1rem', justifyContent:'center', flexWrap:'wrap' }}>
-            <button className="cta-btn-primary" onClick={()=>navigate('/register')} style={{ fontSize:'1rem', padding:'0.95rem 2.4rem' }}>
-              <i className="fas fa-user-plus"></i> Create Account
+      {/* ════ CTA ════ */}
+      <section className="lp-cta">
+        <div className="lp-blob" style={{ width:400, height:400, background:'#ffc107', opacity:0.06, top:'-20%', right:'-5%' }} />
+        <div className="lp-blob" style={{ width:300, height:300, background:'#3b82f6', opacity:0.05, bottom:'-20%', left:'-5%' }} />
+        <Container className="lp-zoom" style={{ textAlign:'center', position:'relative', zIndex:1 }}>
+          <span className="lp-eyebrow" style={{ color:'#ffc107' }}>Get Started Today</span>
+          <h2>Keep Your Pets Safe with PetUnity</h2>
+          <p>Register your pets, keep their health records in one place, and stay informed about rabies activity in Muntinlupa City.</p>
+          <div className="lp-cta-btns">
+            <button className="lp-btn lp-btn-primary" onClick={() => navigate('/register')}>
+              <i className="fas fa-user-plus" /> Create Account
             </button>
-            <button onClick={()=>navigate('/login')}
-              style={{ display:'inline-flex', alignItems:'center', gap:'0.6rem', background:'rgba(255,255,255,0.07)', color:'rgba(255,255,255,0.8)', border:'1.5px solid rgba(255,255,255,0.15)', borderRadius:14, padding:'0.93rem 2rem', fontWeight:700, fontSize:'1rem', cursor:'pointer', transition:'all 0.25s' }}
-              onMouseOver={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.13)'; e.currentTarget.style.color='#fff'; }}
-              onMouseOut={e=>{ e.currentTarget.style.background='rgba(255,255,255,0.07)'; e.currentTarget.style.color='rgba(255,255,255,0.8)'; }}>
-              <i className="fas fa-sign-in-alt"></i> Sign In
+            <button className="lp-btn lp-btn-ghost" onClick={() => navigate('/login')}>
+              <i className="fas fa-sign-in-alt" /> Sign In
             </button>
           </div>
         </Container>
       </section>
-
     </div>
   );
 };
