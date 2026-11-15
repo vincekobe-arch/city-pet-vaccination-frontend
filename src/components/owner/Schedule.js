@@ -291,6 +291,46 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
       .ed-foot { flex-wrap: wrap; }
     }
 
+    /* Registration confirmed modal */
+    .cf-body { padding: 1.75rem 1.5rem 1.25rem !important; position: relative; }
+    .cf-close { position: absolute; top: 1rem; right: 1rem; }
+    @keyframes cfPop { 0% { transform: scale(0.6); opacity: 0; } 70% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); } }
+    @keyframes cfRing { 0% { box-shadow: 0 0 0 0 rgba(25,135,84,0.35); } 100% { box-shadow: 0 0 0 16px rgba(25,135,84,0); } }
+    .cf-hero { text-align: center; margin-bottom: 1.25rem; }
+    .cf-check { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 0.85rem; background: #198754; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; animation: cfPop 0.45s ease-out, cfRing 1.4s ease-out 0.45s 2; }
+    .cf-hero h5 { font-weight: 800; color: #1f2328; margin-bottom: 0.2rem; }
+    .cf-hero p { font-size: 0.88rem; color: #6b7280; margin: 0; }
+    .cf-event { border: 1px solid #eef0f3; border-radius: 14px; padding: 0.95rem 1rem; background: #fafbfc; }
+    .cf-event-head { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.8rem; }
+    .cf-event-ic { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .cf-event-title { font-weight: 700; color: #1f2328; font-size: 1rem; margin-top: 0.2rem; word-break: break-word; }
+    .cf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1rem; padding-top: 0.75rem; border-top: 1px dashed #e5e7eb; }
+    .cf-row { display: flex; gap: 0.55rem; align-items: flex-start; }
+    .cf-row > i { color: #e0a800; font-size: 0.8rem; margin-top: 0.25rem; width: 14px; text-align: center; }
+    .cf-label { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .cf-value { font-size: 0.86rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .cf-pets-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 1.1rem 0 0.55rem; }
+    .cf-pets-title i { color: #e0a800; }
+    .cf-pets-title span { background: #f3f4f6; color: #4b5563; padding: 0.05rem 0.5rem; border-radius: 999px; font-size: 0.7rem; }
+    .cf-pets { display: flex; flex-direction: column; gap: 0.45rem; }
+    .cf-pet { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.7rem 0.85rem; border: 1px solid rgba(25,135,84,0.22); background: #f6fbf8; border-radius: 12px; }
+    .cf-pet-av { width: 36px; height: 36px; border-radius: 10px; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cf-pet-name { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .cf-pet-meta { font-size: 0.78rem; color: #6b7280; }
+    .cf-vax { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem; }
+    .cf-vax span { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 600; color: #198754; background: #fff; border: 1px solid rgba(25,135,84,0.35); border-radius: 999px; padding: 0.1rem 0.55rem; }
+    .cf-vax i { font-size: 0.62rem; }
+    .cf-note { margin-top: 1rem; display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 0.9rem; border-radius: 10px; background: rgba(25,135,84,0.06); border: 1px solid rgba(25,135,84,0.2); color: #146c43; font-size: 0.86rem; font-weight: 600; }
+    .cf-tip { margin-top: 1rem; display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.78rem; color: #6b7280; }
+    .cf-tip i { margin-top: 2px; color: #9ca3af; }
+    @media (max-width: 768px) {
+      .cf-body { padding: 1.5rem 1rem 1rem !important; }
+      .cf-grid { gap: 0.55rem 0.75rem; }
+      .cc-foot { flex-wrap: nowrap !important; gap: 0.5rem; padding: 0.9rem 1rem !important; }
+      .cc-foot .btn { flex: 1; margin: 0 !important; padding: 0.7rem 0.5rem !important; font-size: 0.88rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { .cf-check { animation: none; } }
+
     /* Skeleton loading */
     @keyframes evShimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
     .ev-skel { background: linear-gradient(90deg, #f0f1f3 25%, #e6e8eb 50%, #f0f1f3 75%); background-size: 936px 100%; animation: evShimmer 1.3s ease-in-out infinite; border-radius: 8px; }
@@ -1988,84 +2028,83 @@ const getVaccineDetails = (schedule) => {
 
 
       {/* Registration Confirmation Modal */}
-      <Modal show={showConfirmRegistrationModal} onHide={() => setShowConfirmRegistrationModal(false)} size="md" centered className="ev-zoom-modal">
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f0fff4, #e6f9ee)', borderBottom: '2px solid #198754', borderRadius: '20px 20px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', color: '#198754' }}>
-            <i className="fas fa-check-circle me-2"></i>
-            Registration Confirmed!
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {lastRegistrationData && (
+      <Modal show={showConfirmRegistrationModal} onHide={() => setShowConfirmRegistrationModal(false)} centered dialogClassName="ev-modal" className="ev-zoom-modal">
+        {lastRegistrationData && (() => {
+          const s = lastRegistrationData.schedule || {};
+          const meta = typeMeta(lastRegistrationData.scheduleType);
+          const pets = lastRegistrationData.pets || [];
+          const d = s.scheduled_date ? keyToDate(dateKey(s)) : null;
+          const rows = [
+            { icon: 'fa-calendar-day', label: 'Date', value: d ? d.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' }) : '' },
+            { icon: 'fa-clock', label: 'Time', value: [formatClock(s.start_time), formatClock(s.end_time)].filter(Boolean).join(' – ') },
+            { icon: 'fa-map-marker-alt', label: 'Place', value: s.custom_place || s.barangay_name },
+            { icon: 'fa-building', label: 'Venue', value: s.venue },
+          ].filter(r => r.value);
+          return (
             <>
-              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                <div style={{ width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(25,135,84,0.1)', border: '2px solid #198754', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                  <i className="fas fa-calendar-check" style={{ fontSize: '2rem', color: '#198754' }} />
+              <Modal.Body className="cf-body">
+                <button type="button" className="btn-close cf-close" aria-label="Close" onClick={() => setShowConfirmRegistrationModal(false)} />
+                <div className="cf-hero">
+                  <div className="cf-check"><i className="fas fa-check" /></div>
+                  <h5>You're registered!</h5>
+                  <p>Your slot has been reserved for this event.</p>
                 </div>
-                <h5 style={{ fontWeight: '800', color: '#1a1a1a', marginBottom: '0.25rem' }}>
-                  {lastRegistrationData.schedule?.title}
-                </h5>
-                <span style={{ fontSize: '0.82rem', color: '#888' }}>
-                  {lastRegistrationData.scheduleType?.charAt(0).toUpperCase() + lastRegistrationData.scheduleType?.slice(1)} Event
-                </span>
-              </div>
 
-              <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', marginBottom: '1rem', border: '1px solid #e9ecef' }}>
-                {[
-                  { icon: 'fa-calendar', label: 'Date', value: lastRegistrationData.schedule?.scheduled_date ? new Date(lastRegistrationData.schedule.scheduled_date).toLocaleDateString() : 'N/A' },
-                  { icon: 'fa-clock', label: 'Time', value: `${lastRegistrationData.schedule?.start_time} - ${lastRegistrationData.schedule?.end_time}` },
-                  { icon: 'fa-map-marker-alt', label: 'Place', value: lastRegistrationData.schedule?.custom_place || lastRegistrationData.schedule?.barangay_name },
-                  { icon: 'fa-building', label: 'Venue', value: lastRegistrationData.schedule?.venue },
-                ].map((item, i, arr) => (
-                  <div key={i} style={{ display: 'flex', gap: '0.75rem', paddingBottom: i < arr.length - 1 ? '0.75rem' : 0, marginBottom: i < arr.length - 1 ? '0.75rem' : 0, borderBottom: i < arr.length - 1 ? '1px solid #e9ecef' : 'none' }}>
-                    <i className={`fas ${item.icon}`} style={{ color: '#ffc107', fontSize: '0.85rem', marginTop: '3px', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{item.label}</div>
-                      <div style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>{item.value}</div>
+                <div className="cf-event" style={{ '--c': meta.color }}>
+                  <div className="cf-event-head">
+                    <div className="cf-event-ic"><i className={`fas ${meta.icon}`} /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <span className="ev-tag" style={{ color: meta.color, background: `${meta.color}14` }}>{meta.label}</span>
+                      <div className="cf-event-title">{s.title}</div>
                     </div>
                   </div>
-                ))}
-              </div>
-
-              {lastRegistrationData.scheduleType === 'seminar' ? (
-                <div style={{ background: 'rgba(25,135,84,0.06)', borderRadius: '10px', padding: '0.85rem 1rem', border: '1px solid rgba(25,135,84,0.2)', fontSize: '0.85rem', color: '#198754', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fas fa-user-check"></i>
-                  <span>You are registered as an attendee for this seminar.</span>
-                </div>
-              ) : lastRegistrationData.pets?.length > 0 ? (
-                <>
-                  <div style={{ fontWeight: '700', color: '#333', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-                    <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>
-                    Registered Pets ({lastRegistrationData.pets.length})
-                  </div>
-                  {lastRegistrationData.pets.map((pet, i) => (
-                    <div key={i} style={{ background: 'rgba(25,135,84,0.05)', borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '0.5rem', border: '1px solid rgba(25,135,84,0.15)' }}>
-                      <div style={{ fontWeight: '700', color: '#1a1a1a', fontSize: '0.95rem' }}>{pet.name}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#777', marginBottom: pet.vaccines?.length > 0 ? '0.5rem' : 0 }}>
-                        <span className="text-capitalize">{pet.species}</span> • {pet.breed || 'Mixed'}
-                      </div>
-                      {pet.vaccines?.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                          {pet.vaccines.map((v, vi) => (
-                            <span key={vi} style={{ background: '#fff', border: '1px solid #198754', borderRadius: '20px', padding: '0.15rem 0.6rem', fontSize: '0.72rem', fontWeight: '600', color: '#198754' }}>
-                              <i className="fas fa-syringe me-1" style={{ fontSize: '0.65rem' }}></i>{v}
-                            </span>
-                          ))}
+                  <div className="cf-grid">
+                    {rows.map(r => (
+                      <div key={r.label} className="cf-row">
+                        <i className={`fas ${r.icon}`} />
+                        <div style={{ minWidth: 0 }}>
+                          <div className="cf-label">{r.label}</div>
+                          <div className="cf-value">{r.value}</div>
                         </div>
-                      )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {lastRegistrationData.scheduleType === 'seminar' || pets.length === 0 ? (
+                  <div className="cf-note"><i className="fas fa-user-check" />You are registered as an attendee.</div>
+                ) : (
+                  <>
+                    <div className="cf-pets-title"><i className="fas fa-paw" />Registered pets <span>{pets.length}</span></div>
+                    <div className="cf-pets">
+                      {pets.map((pet, i) => (
+                        <div key={i} className="cf-pet">
+                          <div className="cf-pet-av"><i className={`fas ${String(pet.species).toLowerCase() === 'cat' ? 'fa-cat' : 'fa-dog'}`} /></div>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="cf-pet-name">{pet.name}</div>
+                            <div className="cf-pet-meta"><span className="text-capitalize">{pet.species}</span> · {pet.breed || 'Mixed'}</div>
+                            {pet.vaccines?.length > 0 && (
+                              <div className="cf-vax">
+                                {pet.vaccines.map((v, vi) => <span key={vi}><i className="fas fa-syringe" />{v}</span>)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </>
-              ) : null}
+                  </>
+                )}
+
+                <div className="cf-tip"><i className="fas fa-info-circle" />You can view or cancel this registration anytime from the event's details.</div>
+              </Modal.Body>
+              <Modal.Footer className="ed-foot">
+                <button type="button" className="ev-btn primary w-100 justify-content-center" style={{ padding: '0.7rem' }} onClick={() => setShowConfirmRegistrationModal(false)}>
+                  <i className="fas fa-check" /> Done
+                </button>
+              </Modal.Footer>
             </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1rem 2rem' }}>
-          <Button className="border-0 w-100" onClick={() => setShowConfirmRegistrationModal(false)}
-            style={{ background: '#198754', color: '#fff', borderRadius: '10px', padding: '0.75rem', fontWeight: '700' }}>
-            <i className="fas fa-check me-2"></i>Done
-          </Button>
-        </Modal.Footer>
+          );
+        })()}
       </Modal>
 
     {/* Details Modal */}
@@ -2553,82 +2592,54 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Cancel Confirmation Modal */}
-      <Modal 
-  show={showCancelConfirm} 
-  onHide={() => setShowCancelConfirm(false)}
-  className="ev-zoom-modal"
->
-  <Modal.Header 
-    closeButton
-    style={{
-      background: '#f8f9fa',
-      borderBottom: '2px solid #dee2e6'
-    }}
-  >
-    <Modal.Title style={{ fontWeight: '700' }}>
-      <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-      Confirm Cancel Registration
-    </Modal.Title>
-  </Modal.Header>
+      <Modal show={showCancelConfirm} onHide={() => setShowCancelConfirm(false)} centered className="ev-zoom-modal">
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dc3545' }}>
+          <Modal.Title style={{ fontWeight: '700' }}>
+            <i className="fas fa-times-circle text-danger me-2"></i>
+            Cancel Registration
+          </Modal.Title>
+        </Modal.Header>
         <Modal.Body style={{ padding: '2rem' }}>
-    <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-      {vaccineToCancel?.vaccineIds?.length > 0
-        ? `Are you sure you want to cancel ${vaccineToCancel.vaccineIds.length} selected vaccine${vaccineToCancel.vaccineIds.length > 1 ? 's' : ''}?`
-        : vaccineToCancel 
-          ? 'Are you sure you want to cancel this vaccine? The pet will remain registered for other vaccines.'
-          : 'Are you sure you want to cancel the entire registration for this pet?'
-      }
-    </p>
-    <Alert variant="warning" className="mt-3 mb-0">
-      <i className="fas fa-info-circle me-2"></i>
-      <strong>Warning:</strong> This action cannot be undone. You will need to register again if you change your mind.
-    </Alert>
-  </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-    <Button 
-      variant="secondary" 
-      onClick={() => {
-        setShowCancelConfirm(false);
-        setPetToCancel(null);
-        setVaccineToCancel(null);
-        // Clear selections for the specific pet
-        if (vaccineToCancel?.petId) {
-          setSelectedVaccinesToCancel(prev => {
-            const updated = { ...prev };
-            delete updated[vaccineToCancel.petId];
-            return updated;
-          });
-        }
-      }}
-      disabled={registerLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      Cancel
-    </Button>
-    <Button 
-      variant="danger"
-      onClick={confirmCancelRegistration}
-      disabled={registerLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      {registerLoading ? (
-        <WaveDots color="#ffffff" />
-      ) : (
-        <>
-          <i className="fas fa-times me-2"></i>
-          Cancel Registration
-        </>
-      )}
-    </Button>
-  </Modal.Footer>
+          <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
+            {vaccineToCancel?.vaccineIds?.length > 0
+              ? `Are you sure you want to cancel ${vaccineToCancel.vaccineIds.length} selected vaccine${vaccineToCancel.vaccineIds.length > 1 ? 's' : ''}? The pet stays registered for its other vaccines.`
+              : vaccineToCancel
+                ? 'Are you sure you want to cancel this vaccine? The pet will remain registered for other vaccines.'
+                : petToCancel && !petToCancel.petId
+                  ? 'Are you sure you want to cancel your registration for this event?'
+                  : 'Are you sure you want to cancel the entire registration for this pet?'}
+          </p>
+          <Alert variant="danger" className="mb-0">
+            <i className="fas fa-exclamation-triangle me-2"></i>
+            <strong>Note:</strong> Your slot will be released. You will need to register again if you change your mind.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer className="cc-foot" style={{ padding: '1.25rem 2rem' }}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowCancelConfirm(false);
+              setPetToCancel(null);
+              setVaccineToCancel(null);
+              // Clear selections for the specific pet
+              if (vaccineToCancel?.petId) {
+                setSelectedVaccinesToCancel(prev => {
+                  const updated = { ...prev };
+                  delete updated[vaccineToCancel.petId];
+                  return updated;
+                });
+              }
+            }}
+            disabled={registerLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
+          >
+            Keep registration
+          </Button>
+          <Button variant="danger" onClick={confirmCancelRegistration} disabled={registerLoading}
+            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+            {registerLoading ? <WaveDots color="#ffffff" /> : <><i className="fas fa-times me-2"></i>Cancel registration</>}
+          </Button>
+        </Modal.Footer>
       </Modal>
     <VerifyAccountModal
         show={showVerifyModal}

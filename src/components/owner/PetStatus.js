@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table } from 'react-bootstrap';
+import { Container, Row, Col, Button, Alert, Spinner, Badge, Modal, Form } from 'react-bootstrap';
 import { petAPI, ownerAPI, microchipAPI, vetCardAPI, handleAPIError } from '../../services/api';
 
 const WaveDots = ({ color = '#000000' }) => (
@@ -399,6 +399,107 @@ useEffect(() => {
     @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
     @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
     @media (max-width: 768px)  { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
+
+    /* Register / View / Edit pet modals */
+    .pm-modal { max-width: 640px; }
+    .pm-modal.lg { max-width: 860px; }
+    .pm-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .pm-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, #fffaeb 0%, #fff 100%); }
+    .pm-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .pm-head-ic { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #b88a00; background: rgba(255,193,7,0.18); }
+    .pm-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b88a00; }
+    .pm-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; word-break: break-word; }
+    .pm-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .pm-req { color: #dc3545; }
+    .pm-hero-photo { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 6px 18px rgba(16,24,40,0.12); background: #fff; flex-shrink: 0; }
+    .pm-reg { display: inline-block; margin-top: 0.3rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; font-weight: 600; color: #1f2328; background: #f3f4f6; padding: 0.15rem 0.55rem; border-radius: 999px; }
+    .pm-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+    .pm-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.74rem; font-weight: 600; color: #4b5563; background: #fff; border: 1px solid #e9ecef; padding: 0.18rem 0.6rem; border-radius: 999px; }
+    .pm-chip i { color: #b88a00; }
+    .pm-chip.ok { color: #198754; border-color: rgba(25,135,84,0.25); background: rgba(25,135,84,0.06); }
+    .pm-chip.ok i { color: #198754; }
+    .pm-body { padding: 1.4rem 1.5rem !important; }
+    .pm-section { margin-bottom: 1.4rem; }
+    .pm-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.75rem; }
+    .pm-section-title i { color: #e0a800; font-size: 0.8rem; }
+    .pm-label { font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+    .pm-input { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .pm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .pm-input:disabled { background-color: #f8f9fa; }
+    .pm-hint { font-size: 0.78rem; margin-top: 0.35rem; color: #6b7280; display: flex; align-items: center; gap: 0.35rem; }
+    .pm-hint.ok { color: #198754; font-weight: 600; }
+    .pm-suffix { position: relative; }
+    .pm-suffix .pm-input { padding-right: 2.6rem !important; }
+    .pm-suffix span { position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%); font-size: 0.82rem; font-weight: 600; color: #9ca3af; pointer-events: none; }
+    .pm-species { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .pm-species-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 0.55rem; padding: 0.8rem; border-radius: 12px; border: 1.5px solid #e5e7eb; background: #fff; font-weight: 700; color: #374151; font-size: 0.95rem; transition: all 0.15s ease; }
+    .pm-species-btn i:first-child { font-size: 1.15rem; color: #9ca3af; }
+    .pm-species-btn:hover:not(:disabled) { border-color: #ffd65c; }
+    .pm-species-btn.on { border-color: #ffc107; background: #fffaeb; color: #1f2328; box-shadow: 0 0 0 3px rgba(255,193,7,0.15); }
+    .pm-species-btn.on i:first-child { color: #e0a800; }
+    .pm-species-check { position: absolute; top: 6px; right: 8px; color: #e0a800; font-size: 0.85rem; }
+    .pm-hidden-req { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+    .pm-toggle { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.85rem 1rem; border: 1.5px solid #e5e7eb; border-radius: 12px; cursor: pointer; margin-bottom: 0.75rem; transition: border-color 0.15s ease, background 0.15s ease; }
+    .pm-toggle.on { border-color: rgba(25,135,84,0.35); background: #f6fbf8; }
+    .pm-toggle-title { font-weight: 700; color: #1f2328; font-size: 0.92rem; }
+    .pm-toggle-sub { font-size: 0.78rem; color: #6b7280; }
+    .pm-switch { margin: 0; padding-left: 2.6em; min-height: 0; }
+    .pm-switch .form-check-input { width: 2.4em; height: 1.3em; margin-left: -2.6em; cursor: pointer; }
+    .pm-switch .form-check-input:checked { background-color: #198754; border-color: #198754; }
+    .pm-switch .form-check-input:focus { box-shadow: 0 0 0 3px rgba(25,135,84,0.15); }
+    .pm-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .pm-alert i { margin-top: 3px; }
+    .pm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .pm-alert.success { background: rgba(25,135,84,0.07); border: 1px solid rgba(25,135,84,0.25); color: #146c43; }
+    .pm-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .pm-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .pm-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #fff; border: 1px solid #eef0f3; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .pm-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .pm-info-value { font-size: 0.9rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .pm-info-extra { font-size: 0.74rem; color: #6b7280; margin-top: 0.1rem; }
+    .pm-notes { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 12px; background: #fffaeb; border: 1px solid rgba(255,193,7,0.3); }
+    .pm-notes p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+    .pm-vax-list { display: flex; flex-direction: column; }
+    .pm-vax { display: flex; gap: 0.75rem; padding: 0.7rem 0; border-bottom: 1px solid #f1f3f5; }
+    .pm-vax:last-child { border-bottom: none; }
+    .pm-vax-dot { width: 10px; height: 10px; border-radius: 50%; background: #198754; margin-top: 0.4rem; flex-shrink: 0; box-shadow: 0 0 0 4px rgba(25,135,84,0.12); }
+    .pm-vax-dot.due { background: #e0a800; box-shadow: 0 0 0 4px rgba(255,193,7,0.18); }
+    .pm-vax-name { font-size: 0.9rem; color: #1f2328; }
+    .pm-vax-meta { font-size: 0.78rem; color: #6b7280; margin-top: 0.1rem; }
+    .pm-vax-meta i { margin-right: 0.3rem; color: #9ca3af; }
+    .pm-pill { font-size: 0.68rem; font-weight: 700; padding: 0.12rem 0.55rem; border-radius: 999px; white-space: nowrap; }
+    .pm-pill.ok { color: #198754; background: rgba(25,135,84,0.1); }
+    .pm-pill.warn { color: #946200; background: rgba(255,193,7,0.2); }
+    .pm-more { font-size: 0.78rem; color: #6b7280; padding-top: 0.5rem; }
+    .pm-empty { display: flex; gap: 0.8rem; align-items: center; padding: 0.9rem 1rem; border: 1px dashed #e5e7eb; border-radius: 12px; }
+    .pm-empty > i { width: 38px; height: 38px; border-radius: 10px; background: #f3f4f6; color: #9ca3af; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pm-empty strong { display: block; font-size: 0.88rem; color: #1f2328; }
+    .pm-empty span { font-size: 0.78rem; color: #6b7280; }
+    .pm-qr-card { border: 1px solid #eef0f3; border-radius: 14px; padding: 1.1rem; text-align: center; background: #fff; }
+    .pm-qr-img { width: 180px; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid #eef0f3; padding: 6px; background: #fff; }
+    .pm-qr-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem; font-weight: 600; color: #1f2328; margin-top: 0.5rem; }
+    .pm-qr-note { font-size: 0.76rem; color: #6b7280; margin: 0.4rem 0 0.85rem; line-height: 1.5; }
+    .pm-qr-skel { width: 180px; height: 180px; margin: 0 auto; border-radius: 12px; background: linear-gradient(90deg, #f0f1f3 25%, #e6e8eb 50%, #f0f1f3 75%); background-size: 400% 100%; animation: ptShimmer 1.3s ease-in-out infinite; }
+    .pm-qr-none { color: #9ca3af; font-size: 0.85rem; padding: 1.5rem 0; }
+    .pm-qr-none i { display: block; font-size: 2rem; color: #e5e7eb; margin-bottom: 0.4rem; }
+    .pm-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; }
+    .pm-foot-note { font-size: 0.8rem; color: #9ca3af; margin-right: auto; }
+    .pm-foot-btns { display: flex; gap: 0.6rem; }
+    @media (max-width: 768px) {
+      .pm-head { padding: 1rem !important; }
+      .pm-head-ic { width: 40px; height: 40px; }
+      .pm-hero-photo { width: 60px; height: 60px; border-radius: 15px; }
+      .pm-title { font-size: 1.08rem; }
+      .pm-body { padding: 1rem !important; }
+      .pm-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .pm-info-ic { display: none; }
+      .pm-info-value { font-size: 0.86rem; }
+      .pm-foot { padding: 0.75rem 1rem !important; flex-wrap: wrap; }
+      .pm-foot-note:empty { display: none; }
+      .pm-foot-note { width: 100%; text-align: center; margin: 0; }
+      .pm-foot > .pt-btn, .pm-foot-btns { flex: 1; }
+      .pm-foot-btns .pt-btn { flex: 1; }
+    }
 
     /* Modals: same zoom as the page, but normal size on phones so they stay centered */
     .pt-modal { zoom: 0.75; }
@@ -1614,900 +1715,383 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* Register Pet Modal */}
-<Modal 
-  show={showRegisterModal} 
-  onHide={() => setShowRegisterModal(false)} 
-  size="lg"
-  backdrop="static"
-  className="pt-modal"
->
-  <Modal.Header 
-  closeButton
-  style={{
-    background: '#f8f9fa',
-    borderBottom: '2px solid #ffc107',
-    borderRadius: '20px 20px 0 0'
-  }}
->
-  <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-    <i className="fas fa-eye me-2"></i>
-    Pet Details: {petDetails?.name}
-  </Modal.Title>
-</Modal.Header>
-  <Form onSubmit={handleRegisterPet}>
-    <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem'}}>
-      {registerError && (
-        <Alert variant="danger" className="mb-3">
-          <i className="fas fa-exclamation-triangle me-2"></i>
-          {registerError}
-        </Alert>
-      )}
+      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} backdrop="static" dialogClassName="pm-modal" className="pt-modal" scrollable>
+        <Form onSubmit={handleRegisterPet} style={{ display: 'contents' }}>
+          <Modal.Header closeButton className="pm-head">
+            <div className="pm-head-main">
+              <div className="pm-head-ic"><i className="fas fa-paw" /></div>
+              <div>
+                <div className="pm-kicker">New pet</div>
+                <Modal.Title as="h5" className="pm-title">Register a pet</Modal.Title>
+                <div className="pm-head-sub">Fields marked <span className="pm-req">*</span> are required.</div>
+              </div>
+            </div>
+          </Modal.Header>
 
-      {registerSuccess && (
-        <Alert variant="success" className="mb-3" style={{ borderRadius: '12px', border: '2px solid #198754', background: 'linear-gradient(135deg, rgba(25,135,84,0.12), rgba(25,135,84,0.06))', color: '#198754', fontWeight: '600', fontSize: '0.95rem', boxShadow: '0 4px 16px rgba(25,135,84,0.15)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <i className="fas fa-check-circle" style={{ fontSize: '1.4rem', flexShrink: 0 }}></i>
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '1rem' }}>Pet Registered Successfully!</div>
-            <div style={{ fontSize: '0.85rem', opacity: 0.85 }}>{registerSuccess}</div>
-          </div>
-        </Alert>
-      )}
-
-      {/* Basic Information */}
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Pet Name <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="name"
-              value={registerFormData.name}
-              onChange={handleRegisterFormChange}
-              placeholder="Enter your pet's name"
-              required
-              disabled={registerLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Type of Pet <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Select
-              name="species"
-              value={registerFormData.species}
-              onChange={handleRegisterFormChange}
-              required
-              disabled={registerLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            >
-              <option value="">Select species</option>
-              <option value="dog">Dog</option>
-              <option value="cat">Cat</option>
-              
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Breed
-            </Form.Label>
-            <Form.Select
-              name="breed"
-              value={registerFormData.breed}
-              onChange={handleRegisterFormChange}
-              disabled={registerLoading || !registerFormData.species}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6',
-                backgroundColor: !registerFormData.species ? '#f8f9fa' : '#ffffff'
-              }}
-            >
-              <option value="">
-                {registerFormData.species ? 'Select breed' : 'Select pet type first'}
-              </option>
-              {getBreedOptions().map(breed => (
-                <option key={breed} value={breed}>{breed}</option>
-              ))}
-              <option value="mixed">Mixed Breed</option>
-              <option value="unknown">Unknown</option>
-              <option value="other">Other</option>
-            </Form.Select>
-          {registerFormData.breed === 'other' && (
-            <Form.Control
-              type="text"
-              name="breed_other"
-              value={registerFormData.breed_other || ''}
-              onChange={handleRegisterFormChange}
-              placeholder="Please specify breed"
-              disabled={registerLoading}
-              className="mt-2"
-              style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #ffc107' }}
-            />
-          )}
-          </Form.Group>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Gender <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Select
-              name="gender"
-              value={registerFormData.gender}
-              onChange={handleRegisterFormChange}
-              required
-              disabled={registerLoading || !registerFormData.species}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6',
-                backgroundColor: !registerFormData.species ? '#f8f9fa' : '#ffffff'
-              }}
-            >
-              <option value="">
-                {registerFormData.species ? 'Select gender' : 'Select pet type first'}
-              </option>
-              {getGenderOptions(registerFormData.species).map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Birth Date
-            </Form.Label>
-            <Form.Control
-              type="date"
-              name="birth_date"
-              value={registerFormData.birth_date}
-              onChange={handleRegisterFormChange}
-              max={new Date().toISOString().split('T')[0]}
-              disabled={registerLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-            {registerFormData.birth_date && (
-              <Form.Text style={{ color: '#198754', fontWeight: '500' }}>
-                <i className="fas fa-check-circle me-1"></i>
-                Age: {calculateAgeForRegistration(registerFormData.birth_date)}
-              </Form.Text>
+          <Modal.Body className="pm-body">
+            {registerError && <div className="pm-alert danger"><i className="fas fa-exclamation-triangle" />{registerError}</div>}
+            {registerSuccess && (
+              <div className="pm-alert success">
+                <i className="fas fa-check-circle" />
+                <div><strong>Pet registered successfully!</strong><div>{registerSuccess}</div></div>
+              </div>
             )}
-          </Form.Group>
-        </Col>
-      </Row>
 
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Weight (kg)
-            </Form.Label>
-            <Form.Control
-              type="number"
-              name="weight"
-              value={registerFormData.weight}
-              onChange={handleRegisterFormChange}
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              disabled={registerLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
+            <div className="pm-section">
+              <div className="pm-section-title"><i className="fas fa-id-card" />Basic information</div>
 
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Sterilization Status
-            </Form.Label>
-            <Form.Check
-              type="checkbox"
-              id="sterilized-check"
-              name="sterilized"
-              checked={registerFormData.sterilized}
-              onChange={handleRegisterFormChange}
-              disabled={registerLoading}
-              label={getSterilizationLabel(registerFormData.gender)}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
-
-      {registerFormData.sterilized && (
-        <>
-          <Row>
-            <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                  {getSterilizedByLabel(registerFormData.gender)}
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  name="sterilized_by"
-                  value={registerFormData.sterilized_by}
-                  onChange={handleRegisterFormChange}
-                  placeholder="Dr. Juan Dela Cruz"
-                  disabled={registerLoading}
-                  style={{
-                    borderRadius: '8px',
-                    padding: '0.75rem',
-                    border: '2px solid #dee2e6'
-                  }}
-                />
+                <Form.Label className="pm-label">Pet name <span className="pm-req">*</span></Form.Label>
+                <Form.Control className="pm-input" type="text" name="name" value={registerFormData.name}
+                  onChange={handleRegisterFormChange} placeholder="e.g. Bantay" required disabled={registerLoading} />
               </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                  Sterilization Date
-                </Form.Label>
-                <Form.Control
-                  type="date"
-                  name="sterilization_date"
-                  value={registerFormData.sterilization_date}
-                  onChange={handleRegisterFormChange}
-                  max={new Date().toISOString().split('T')[0]}
-                  disabled={registerLoading}
-                  style={{
-                    borderRadius: '8px',
-                    padding: '0.75rem',
-                    border: '2px solid #dee2e6'
-                  }}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-        </>
-      )}
 
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Special Notes
-            </Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              name="special_notes"
-              value={registerFormData.special_notes}
-              onChange={handleRegisterFormChange}
-              placeholder="Any special medical conditions, behaviors, allergies, or notes about your pet..."
-              disabled={registerLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
-    </Modal.Body>
-    <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-      <Button 
-        variant="secondary" 
-        onClick={() => setShowRegisterModal(false)}
-        disabled={registerLoading}
-        style={{
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '600'
-        }}
-      >
-        Cancel
-      </Button>
-      <Button 
-        type="submit"
-        disabled={registerLoading}
-        className="border-0"
-        style={{
-          background: registerLoading ? '#6c757d' : '#ffc107',
-          color: '#000000',
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '700',
-          boxShadow: registerLoading ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)',
-          transition: 'all 0.3s'
-        }}
-        onMouseOver={(e) => {
-          if (!registerLoading) {
-            e.target.style.background = '#ffb300';
-            e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-          }
-        }}
-        onMouseOut={(e) => {
-          if (!registerLoading) {
-            e.target.style.background = '#ffc107';
-            e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-          }
-        }}
-      >
-        {registerLoading ? (
-          <WaveDots />
-        ) : (
-          <>
-            <i className="fas fa-plus-circle me-2"></i>
-            Register Pet
-          </>
-        )}
-      </Button>
-    </Modal.Footer>
-  </Form>
-</Modal>
+              <Form.Group className="mb-3">
+                <Form.Label className="pm-label">Type of pet <span className="pm-req">*</span></Form.Label>
+                <div className="pm-species">
+                  {[{ v: 'dog', l: 'Dog', i: 'fa-dog' }, { v: 'cat', l: 'Cat', i: 'fa-cat' }].map(o => (
+                    <button key={o.v} type="button" disabled={registerLoading}
+                      className={`pm-species-btn${registerFormData.species === o.v ? ' on' : ''}`}
+                      onClick={() => handleRegisterFormChange({ target: { name: 'species', value: o.v, type: 'select-one' } })}
+                      aria-pressed={registerFormData.species === o.v}>
+                      <i className={`fas ${o.i}`} />{o.l}
+                      {registerFormData.species === o.v && <i className="fas fa-check-circle pm-species-check" />}
+                    </button>
+                  ))}
+                </div>
+                {/* keeps the native "required" check */}
+                <input tabIndex={-1} aria-hidden="true" className="pm-hidden-req" value={registerFormData.species} onChange={() => {}} required />
+              </Form.Group>
+
+              <Row className="g-3 mb-3">
+                <Col md={6}>
+                  <Form.Label className="pm-label">Breed</Form.Label>
+                  <Form.Select className="pm-input" name="breed" value={registerFormData.breed} onChange={handleRegisterFormChange}
+                    disabled={registerLoading || !registerFormData.species}>
+                    <option value="">{registerFormData.species ? 'Select breed' : 'Select pet type first'}</option>
+                    {getBreedOptions().map(breed => <option key={breed} value={breed}>{breed}</option>)}
+                    <option value="mixed">Mixed Breed</option>
+                    <option value="unknown">Unknown</option>
+                    <option value="other">Other</option>
+                  </Form.Select>
+                  {registerFormData.breed === 'other' && (
+                    <Form.Control className="pm-input mt-2" type="text" name="breed_other" value={registerFormData.breed_other || ''}
+                      onChange={handleRegisterFormChange} placeholder="Please specify breed" disabled={registerLoading} />
+                  )}
+                </Col>
+                <Col md={6}>
+                  <Form.Label className="pm-label">Gender <span className="pm-req">*</span></Form.Label>
+                  <Form.Select className="pm-input" name="gender" value={registerFormData.gender} onChange={handleRegisterFormChange}
+                    required disabled={registerLoading || !registerFormData.species}>
+                    <option value="">{registerFormData.species ? 'Select gender' : 'Select pet type first'}</option>
+                    {getGenderOptions(registerFormData.species).map(option => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </Form.Select>
+                </Col>
+                <Col md={6}>
+                  <Form.Label className="pm-label">Birth date</Form.Label>
+                  <Form.Control className="pm-input" type="date" name="birth_date" value={registerFormData.birth_date}
+                    onChange={handleRegisterFormChange} max={new Date().toISOString().split('T')[0]} disabled={registerLoading} />
+                  {registerFormData.birth_date && (
+                    <div className="pm-hint ok"><i className="fas fa-birthday-cake" />{calculateAgeForRegistration(registerFormData.birth_date)} old</div>
+                  )}
+                </Col>
+                <Col md={6}>
+                  <Form.Label className="pm-label">Weight</Form.Label>
+                  <div className="pm-suffix">
+                    <Form.Control className="pm-input" type="number" name="weight" value={registerFormData.weight}
+                      onChange={handleRegisterFormChange} placeholder="0.00" step="0.01" min="0" disabled={registerLoading} />
+                    <span>kg</span>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="pm-section">
+              <div className="pm-section-title"><i className="fas fa-heartbeat" />Health</div>
+              <label className={`pm-toggle${registerFormData.sterilized ? ' on' : ''}`} htmlFor="sterilized-check">
+                <div>
+                  <div className="pm-toggle-title">{getSterilizationLabel(registerFormData.gender)}</div>
+                  <div className="pm-toggle-sub">Turn on if your pet is already {getSterilizationLabel(registerFormData.gender).toLowerCase()}.</div>
+                </div>
+                <Form.Check type="switch" id="sterilized-check" name="sterilized" checked={registerFormData.sterilized}
+                  onChange={handleRegisterFormChange} disabled={registerLoading} className="pm-switch" />
+              </label>
+              {registerFormData.sterilized && (
+                <Row className="g-3 mt-0">
+                  <Col md={6}>
+                    <Form.Label className="pm-label">{getSterilizedByLabel(registerFormData.gender)}</Form.Label>
+                    <Form.Control className="pm-input" type="text" name="sterilized_by" value={registerFormData.sterilized_by}
+                      onChange={handleRegisterFormChange} placeholder="Dr. Juan Dela Cruz" disabled={registerLoading} />
+                  </Col>
+                  <Col md={6}>
+                    <Form.Label className="pm-label">Sterilization date</Form.Label>
+                    <Form.Control className="pm-input" type="date" name="sterilization_date" value={registerFormData.sterilization_date}
+                      onChange={handleRegisterFormChange} max={new Date().toISOString().split('T')[0]} disabled={registerLoading} />
+                  </Col>
+                </Row>
+              )}
+            </div>
+
+            <div className="pm-section mb-0">
+              <div className="pm-section-title"><i className="fas fa-notes-medical" />Special notes</div>
+              <Form.Control className="pm-input" as="textarea" rows={3} name="special_notes" value={registerFormData.special_notes}
+                onChange={handleRegisterFormChange} disabled={registerLoading}
+                placeholder="Medical conditions, allergies, behavior, or anything the vet should know…" />
+            </div>
+          </Modal.Body>
+
+          <Modal.Footer className="pm-foot">
+            <button type="button" className="pt-btn ghost lg" onClick={() => setShowRegisterModal(false)} disabled={registerLoading}>Cancel</button>
+            <button type="submit" className="pt-btn primary lg" disabled={registerLoading}>
+              {registerLoading ? <WaveDots /> : <><i className="fas fa-plus-circle" />Register pet</>}
+            </button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
 
       {/* Pet Details Modal */}
-      <Modal show={showDetailsModal} onHide={() => { setShowDetailsModal(false); setQrDataURL(''); }} size="lg" className="pt-modal">
-        <Modal.Header 
-          closeButton
-          style={{
-            background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-            borderBottom: '2px solid #ffc107',
-            borderRadius: '20px 20px 0 0'
-          }}
-        >
-          <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-            <img 
-              src={getPetImage(petDetails?.species, petDetails?.photo_url)}
-              alt={petDetails?.species}
-              style={{
-                width: '40px',
-                height: '40px',
-                objectFit: 'cover',
-                borderRadius: '8px',
-                marginRight: '0.75rem'
-              }}
-            />
-            Pet Details: {petDetails?.name}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem'}}>
-          {petDetails && (
-            <Row>
-              <Col md={6}>
-                <Card 
-                  className="mb-3 border-0" 
-                  style={{ 
-                    borderRadius: '15px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-                  }}
-                >
-                  <Card.Header style={{ 
-                    background: 'rgba(255, 193, 7, 0.1)', 
-                    borderBottom: '2px solid rgba(255, 193, 7, 0.3)',
-                    borderRadius: '15px 15px 0 0'
-                  }}>
-                    <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                      <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }}></i>
-                      Basic Information
-                    </h6>
-                  </Card.Header>
-                  <Card.Body>
-                    <Table borderless size="sm">
-                      <tbody>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Name:</td>
-                          <td style={{ fontWeight: '600', color: '#333333' }}>{petDetails.name}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Registration:</td>
-                          <td style={{ fontWeight: '600', color: '#333333' }}>{petDetails.registration_number}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Species:</td>
-                          <td className="text-capitalize" style={{ fontWeight: '600', color: '#333333' }}>{petDetails.species}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Breed:</td>
-                          <td style={{ fontWeight: '600', color: '#333333' }}>{petDetails.breed || 'Mixed'}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Gender:</td>
-                          <td className="text-capitalize" style={{ fontWeight: '600', color: '#333333' }}>{petDetails.gender}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Birth Date:</td>
-                          <td style={{ fontWeight: '600', color: '#333333' }}>
-                            {petDetails.birth_date && petDetails.birth_date !== '0000-00-00'
-                              ? new Date(petDetails.birth_date).toLocaleDateString() 
-                              : 'Unknown'}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Age:</td>
-                          <td style={{ fontWeight: '600', color: '#333333' }}>{calculateAge(petDetails.birth_date)}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Weight:</td>
-                          <td style={{ fontWeight: '600', color: '#333333' }}>{petDetails.weight ? `${petDetails.weight} kg` : 'Not specified'}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>Microchip No.:</td>
-                          <td style={{ fontWeight: '600', color: '#333333', fontFamily: 'monospace' }}>
-                            {petDetails.microchip_number || 'Not microchipped'}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#666666' }}>{getSterilizationLabel(petDetails.gender)}:</td>
-                          <td>
-                            {petDetails.sterilized ? (
-                              <span className="text-success" style={{ fontWeight: '600' }}>
-                                <i className="fas fa-check-circle me-1"></i>
-                                Yes
-                                {petDetails.sterilization_date && (
-                                  <span className="text-muted d-block" style={{ fontSize: '0.85rem', fontWeight: '400' }}>
-                                    Date: {new Date(petDetails.sterilization_date).toLocaleDateString()}
-                                  </span>
-                                )}
-                                {petDetails.sterilized_by && (
-                                  <span className="text-muted d-block" style={{ fontSize: '0.85rem', fontWeight: '400' }}>
-                                    By: {petDetails.sterilized_by}
-                                  </span>
-                                )}
-                              </span>
-                            ) : (
-                              <span className="text-muted" style={{ fontWeight: '600' }}>
-                                <i className="fas fa-times-circle me-1"></i>
-                                No
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </Table>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col md={6}>
-                <Card 
-                  className="mb-3 border-0" 
-                  style={{ 
-                    borderRadius: '15px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-                  }}
-                >
-                  <Card.Header style={{ 
-                    background: 'rgba(255, 193, 7, 0.1)', 
-                    borderBottom: '2px solid rgba(255, 193, 7, 0.3)',
-                    borderRadius: '15px 15px 0 0'
-                  }}>
-                    <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                      <i className="fas fa-syringe me-2" style={{ color: '#ffc107' }}></i>
-                      Vaccination History
-                    </h6>
-                  </Card.Header>
-                  <Card.Body>
-                    {petDetails.vaccination_history && petDetails.vaccination_history.length > 0 ? (
-  <div>
-    {petDetails.vaccination_history.slice(0, 5).map(vaccination => (
-      <div key={vaccination.id} className="border-bottom pb-2 mb-2">
-        <div className="d-flex justify-content-between align-items-center">
-          <strong style={{ color: '#333333' }}>{vaccination.vaccination_name}</strong>
-          <Badge bg={vaccination.next_due_date && new Date(vaccination.next_due_date) < new Date() ? 'warning' : 'success'}>
-            {vaccination.next_due_date && new Date(vaccination.next_due_date) < new Date() ? 'Due' : 'Current'}
-          </Badge>
-        </div>
-        <small className="text-muted">
-          Date: {new Date(vaccination.vaccination_date).toLocaleDateString()}
-          {vaccination.next_due_date && (
+      <Modal show={showDetailsModal} onHide={() => { setShowDetailsModal(false); setQrDataURL(''); }} dialogClassName="pm-modal lg" className="pt-modal" scrollable>
+        {petDetails && (() => {
+          const p = petDetails;
+          const hasBirth = p.birth_date && p.birth_date !== '0000-00-00';
+          const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          const vax = p.vaccination_history || [];
+          const info = [
+            { icon: 'fa-dna', label: 'Breed', value: p.breed || 'Mixed' },
+            { icon: 'fa-birthday-cake', label: 'Birth date', value: hasBirth ? fmt(p.birth_date) : 'Unknown' },
+            { icon: 'fa-hourglass-half', label: 'Age', value: calculateAge(p.birth_date) },
+            { icon: 'fa-weight', label: 'Weight', value: p.weight ? `${p.weight} kg` : 'Not specified' },
+            { icon: 'fa-microchip', label: 'Microchip no.', value: p.microchip_number || 'Not microchipped', mono: !!p.microchip_number },
+          ];
+          return (
             <>
-              <br />
-              Next Due: {new Date(vaccination.next_due_date).toLocaleDateString()}
-            </>
-          )}
-          <br />
-          Veterinarian: {vaccination.veterinarian_name || `${vaccination.first_name} ${vaccination.last_name}`}
-        </small>
-      </div>
-    ))}
-    {petDetails.vaccination_history.length > 5 && (
-      <small className="text-muted">
-        ... and {petDetails.vaccination_history.length - 5} more
-      </small>
-    )}
-  </div>
-                    ) : (
-                      <div className="text-center text-muted py-3">
-                        <i className="fas fa-syringe mb-2" style={{ fontSize: '2rem', color: '#e0e0e0' }}></i>
-                        <p>No vaccination records yet</p>
-                        <small>Visit a barangay health center to get your pet vaccinated</small>
+              <Modal.Header closeButton className="pm-head hero">
+                <div className="pm-head-main">
+                  <img className="pm-hero-photo" src={getPetImage(p.species, p.photo_url)} alt={p.name}
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = getPetImage(p.species); }} />
+                  <div style={{ minWidth: 0 }}>
+                    <Modal.Title as="h5" className="pm-title">{p.name}</Modal.Title>
+                    <div className="pm-reg">{p.registration_number}</div>
+                    <div className="pm-chips">
+                      <span className="pm-chip"><i className={`fas ${p.species === 'cat' ? 'fa-cat' : 'fa-dog'}`} /><span className="text-capitalize">{p.species}</span></span>
+                      <span className="pm-chip"><i className={`fas ${p.gender === 'female' ? 'fa-venus' : 'fa-mars'}`} /><span className="text-capitalize">{p.gender}</span></span>
+                      {p.sterilized ? <span className="pm-chip ok"><i className="fas fa-check" />{getSterilizationLabel(p.gender)}</span> : null}
+                    </div>
+                  </div>
+                </div>
+              </Modal.Header>
+
+              <Modal.Body className="pm-body">
+                <Row className="g-4">
+                  <Col md={7}>
+                    <div className="pm-section-title"><i className="fas fa-info-circle" />Pet information</div>
+                    <div className="pm-info-grid">
+                      {info.map(it => (
+                        <div key={it.label} className="pm-info">
+                          <div className="pm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="pm-info-label">{it.label}</div>
+                            <div className="pm-info-value" style={it.mono ? { fontFamily: 'ui-monospace, Menlo, Consolas, monospace' } : undefined}>{it.value}</div>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="pm-info">
+                        <div className="pm-info-ic"><i className="fas fa-cut" /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="pm-info-label">{getSterilizationLabel(p.gender)}</div>
+                          <div className="pm-info-value" style={{ color: p.sterilized ? '#198754' : '#6b7280' }}>
+                            {p.sterilized ? 'Yes' : 'No'}
+                          </div>
+                          {p.sterilized && (p.sterilization_date || p.sterilized_by) ? (
+                            <div className="pm-info-extra">
+                              {p.sterilization_date && fmt(p.sterilization_date)}
+                              {p.sterilization_date && p.sterilized_by && ' · '}
+                              {p.sterilized_by}
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    {p.special_notes && (
+                      <div className="pm-notes">
+                        <div className="pm-section-title mb-1"><i className="fas fa-notes-medical" />Special notes</div>
+                        <p>{p.special_notes}</p>
                       </div>
                     )}
-                  </Card.Body>
-                </Card>
 
-                {(petDetails.qr_code || petDetails.microchip_number) && (
-                  <Card className="border-0 mb-3" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-                    <Card.Header style={{ background: 'rgba(67,97,238,0.08)', borderBottom: '2px solid rgba(67,97,238,0.2)', borderRadius: '15px 15px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-qrcode me-2" style={{ color: '#4361ee' }}></i>
-                        Pet QR Code
-                      </h6>
-                    </Card.Header>
-                    <Card.Body className="text-center">
+                    <div className="pm-section-title mt-4"><i className="fas fa-syringe" />Vaccination history</div>
+                    {vax.length === 0 ? (
+                      <div className="pm-empty">
+                        <i className="fas fa-syringe" />
+                        <div><strong>No vaccination records yet</strong><span>Join a vaccination event to get your pet vaccinated.</span></div>
+                      </div>
+                    ) : (
+                      <div className="pm-vax-list">
+                        {vax.slice(0, 5).map(v => {
+                          const due = v.next_due_date && new Date(v.next_due_date) < new Date();
+                          return (
+                            <div key={v.id} className="pm-vax">
+                              <div className={`pm-vax-dot${due ? ' due' : ''}`} />
+                              <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                                <div className="d-flex align-items-center justify-content-between gap-2">
+                                  <strong className="pm-vax-name">{v.vaccination_name}</strong>
+                                  <span className={`pm-pill ${due ? 'warn' : 'ok'}`}>{due ? 'Due' : 'Current'}</span>
+                                </div>
+                                <div className="pm-vax-meta">
+                                  Given {fmt(v.vaccination_date)}
+                                  {v.next_due_date && <> · Next {fmt(v.next_due_date)}</>}
+                                </div>
+                                <div className="pm-vax-meta">
+                                  <i className="fas fa-user-md" />{v.veterinarian_name || `${v.first_name || ''} ${v.last_name || ''}`.trim() || '—'}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {vax.length > 5 && <div className="pm-more">+{vax.length - 5} more in the vet card</div>}
+                      </div>
+                    )}
+                  </Col>
+
+                  <Col md={5}>
+                    <div className="pm-qr-card">
+                      <div className="pm-section-title justify-content-center"><i className="fas fa-qrcode" />Pet QR code</div>
                       {qrLoading ? (
-                        <div className="py-3">
-                          <Spinner animation="border" size="sm" style={{ color: '#4361ee' }} />
-                          <div style={{ fontSize: '0.78rem', color: '#888', marginTop: '0.5rem' }}>Generating QR code...</div>
-                        </div>
+                        <div className="pm-qr-skel" />
                       ) : qrDataURL ? (
                         <>
-                          <img
-                            src={qrDataURL}
-                            alt="Pet QR Code"
-                            style={{ width: '160px', height: '160px', borderRadius: '10px', border: '3px solid #4361ee', padding: '4px', background: '#fff', boxShadow: '0 4px 16px rgba(67,97,238,0.15)' }}
-                          />
-                          <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem', fontFamily: 'monospace' }}>{petDetails.registration_number}</div>
-                          {petDetails.microchip_number && (
-                            <div style={{ fontSize: '0.72rem', color: '#aaa', fontFamily: 'monospace' }}>Microchip: {petDetails.microchip_number}</div>
-                          )}
-                          <button
+                          <img src={qrDataURL} alt="Pet QR code" className="pm-qr-img" />
+                          <div className="pm-qr-code">{p.registration_number}</div>
+                          <p className="pm-qr-note">Anyone who scans this code can see your pet's basic profile and contact you.</p>
+                          <button type="button" className="pt-btn ghost w-100"
                             onClick={() => {
                               const link = document.createElement('a');
                               link.href = qrDataURL;
-                              link.download = `QR_${petDetails.name}_${petDetails.registration_number}.png`;
+                              link.download = `QR_${p.name}_${p.registration_number}.png`;
                               link.click();
-                            }}
-                            style={{ marginTop: '0.75rem', background: '#4361ee', border: 'none', color: '#fff', borderRadius: '8px', padding: '0.4rem 1rem', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
-                            onMouseOver={e => e.currentTarget.style.background = '#3451d1'}
-                            onMouseOut={e => e.currentTarget.style.background = '#4361ee'}
-                          >
-                            <i className="fas fa-download me-1"></i> Download
+                            }}>
+                            <i className="fas fa-download" /> Download QR code
                           </button>
                         </>
                       ) : (
-                        <div style={{ color: '#bbb', fontSize: '0.82rem', padding: '1rem' }}>
-                          <i className="fas fa-qrcode" style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem', color: '#ddd' }} />
-                          QR code not available
-                        </div>
+                        <div className="pm-qr-none"><i className="fas fa-qrcode" />QR code not available</div>
                       )}
-                    </Card.Body>
-                  </Card>
-                )}
+                    </div>
+                  </Col>
+                </Row>
+              </Modal.Body>
 
-                {petDetails.special_notes && (
-                  <Card 
-                    className="border-0" 
-                    style={{ 
-                      borderRadius: '15px',
-                      boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-                    }}
-                  >
-                    <Card.Header style={{ 
-                      background: 'rgba(255, 193, 7, 0.1)', 
-                      borderBottom: '2px solid rgba(255, 193, 7, 0.3)',
-                      borderRadius: '15px 15px 0 0'
-                    }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-notes-medical me-2" style={{ color: '#ffc107' }}></i>
-                        Special Notes
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <p className="mb-0" style={{ color: '#666666' }}>{petDetails.special_notes}</p>
-                    </Card.Body>
-                  </Card>
-                )}
-              </Col>
-            </Row>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0' }}>
-          <Button 
-            variant="secondary" 
-            onClick={() => setShowDetailsModal(false)}
-            style={{
-              borderRadius: '10px',
-              padding: '0.75rem 1.5rem',
-              fontWeight: '600'
-            }}
-          >
-            Close
-          </Button>
-        </Modal.Footer>
+              <Modal.Footer className="pm-foot">
+                <button type="button" className="pt-btn ghost lg" onClick={() => { setShowDetailsModal(false); setQrDataURL(''); }}>Close</button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
       </Modal>
 
       {/* Edit Pet Modal */}
-<Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" className="pt-modal">
-  <Modal.Header 
-  closeButton
-  style={{
-    background: '#f8f9fa',
-    borderBottom: '2px solid #ffc107',
-    borderRadius: '20px 20px 0 0'
-  }}
->
-  <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-    <i className="fas fa-edit me-2"></i>
-    Edit Pet Information: {selectedPet?.name}
-  </Modal.Title>
-</Modal.Header>
-  <Form onSubmit={handleUpdatePet}>
-    <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem'}}>
-      {updateError && (
-        <Alert variant="danger" className="mb-3">
-          <i className="fas fa-exclamation-triangle me-2"></i>
-          {updateError}
-        </Alert>
-      )}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} dialogClassName="pm-modal" className="pt-modal" scrollable>
+        <Form onSubmit={handleUpdatePet} style={{ display: 'contents' }}>
+          <Modal.Header closeButton className="pm-head">
+            <div className="pm-head-main">
+              <div className="pm-head-ic"><i className="fas fa-pen" /></div>
+              <div style={{ minWidth: 0 }}>
+                <div className="pm-kicker">Edit pet</div>
+                <Modal.Title as="h5" className="pm-title">{selectedPet?.name}</Modal.Title>
+                {selectedPet && (
+                  <div className="pm-head-sub">
+                    {selectedPet.registration_number} · <span className="text-capitalize">{selectedPet.species}</span> · <span className="text-capitalize">{selectedPet.gender}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Modal.Header>
 
-      {updateSuccess && (
-        <Alert variant="success" className="mb-3">
-          <i className="fas fa-check-circle me-2"></i>
-          {updateSuccess}
-        </Alert>
-      )}
+          <Modal.Body className="pm-body">
+            {updateError && <div className="pm-alert danger"><i className="fas fa-exclamation-triangle" />{updateError}</div>}
+            {updateSuccess && <div className="pm-alert success"><i className="fas fa-check-circle" />{updateSuccess}</div>}
 
-      {/* Basic Information */}
-      <Row>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Pet Name
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="name"
-              value={editFormData.name}
-              onChange={handleEditFormChange}
-              required
-              disabled={updateLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-          </Form.Group>
-        </Col>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Breed
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="breed"
-              value={editFormData.breed}
-              onChange={handleEditFormChange}
-              disabled={updateLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
+            <div className="pm-section">
+              <div className="pm-section-title"><i className="fas fa-id-card" />Basic information</div>
+              <Row className="g-3">
+                <Col md={6}>
+                  <Form.Label className="pm-label">Pet name <span className="pm-req">*</span></Form.Label>
+                  <Form.Control className="pm-input" type="text" name="name" value={editFormData.name}
+                    onChange={handleEditFormChange} required disabled={updateLoading} />
+                </Col>
+                <Col md={6}>
+                  <Form.Label className="pm-label">Breed</Form.Label>
+                  <Form.Control className="pm-input" type="text" name="breed" value={editFormData.breed}
+                    onChange={handleEditFormChange} disabled={updateLoading} />
+                </Col>
+                <Col md={6}>
+                  <Form.Label className="pm-label">Birth date</Form.Label>
+                  <Form.Control className="pm-input" type="date" name="birth_date" value={editFormData.birth_date}
+                    onChange={handleEditFormChange} max={new Date().toISOString().split('T')[0]} disabled={updateLoading} />
+                  {editFormData.birth_date && (
+                    <div className="pm-hint ok"><i className="fas fa-birthday-cake" />{calculateAgeForRegistration(editFormData.birth_date)} old</div>
+                  )}
+                </Col>
+                <Col md={6}>
+                  <Form.Label className="pm-label">Weight</Form.Label>
+                  <div className="pm-suffix">
+                    <Form.Control className="pm-input" type="number" name="weight" value={editFormData.weight}
+                      onChange={handleEditFormChange} step="0.01" min="0" disabled={updateLoading} />
+                    <span>kg</span>
+                  </div>
+                </Col>
+              </Row>
+            </div>
 
-      <Row>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Birth Date
-            </Form.Label>
-            <Form.Control
-              type="date"
-              name="birth_date"
-              value={editFormData.birth_date}
-              onChange={handleEditFormChange}
-              max={new Date().toISOString().split('T')[0]}
-              disabled={updateLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-            {editFormData.birth_date && (
-              <Form.Text style={{ color: '#198754', fontWeight: '500' }}>
-                <i className="fas fa-check-circle me-1"></i>
-                Age: {calculateAgeForRegistration(editFormData.birth_date)}
-              </Form.Text>
-            )}
-          </Form.Group>
-        </Col>
-        <Col md={6}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Weight (kg)
-            </Form.Label>
-            <Form.Control
-              type="number"
-              name="weight"
-              value={editFormData.weight}
-              onChange={handleEditFormChange}
-              step="0.01"
-              min="0"
-              disabled={updateLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
+            <div className="pm-section">
+              <div className="pm-section-title"><i className="fas fa-heartbeat" />Health</div>
+              <label className={`pm-toggle${editFormData.sterilized ? ' on' : ''}`} htmlFor="sterilized-check-edit">
+                <div>
+                  <div className="pm-toggle-title">{getSterilizationLabel(selectedPet?.gender)}</div>
+                  <div className="pm-toggle-sub">Turn on if your pet is already {getSterilizationLabel(selectedPet?.gender).toLowerCase()}.</div>
+                </div>
+                <Form.Check type="switch" id="sterilized-check-edit" name="sterilized" checked={editFormData.sterilized || false}
+                  onChange={handleEditFormChange} disabled={updateLoading} className="pm-switch" />
+              </label>
+              {editFormData.sterilized && (
+                <Row className="g-3 mt-0">
+                  <Col md={6}>
+                    <Form.Label className="pm-label">{getSterilizedByLabel(selectedPet?.gender)}</Form.Label>
+                    <Form.Control className="pm-input" type="text" name="sterilized_by" value={editFormData.sterilized_by}
+                      onChange={handleEditFormChange} placeholder="Dr. Juan Dela Cruz" disabled={updateLoading} />
+                  </Col>
+                  <Col md={6}>
+                    <Form.Label className="pm-label">Sterilization date</Form.Label>
+                    <Form.Control className="pm-input" type="date" name="sterilization_date" value={editFormData.sterilization_date}
+                      onChange={handleEditFormChange} max={new Date().toISOString().split('T')[0]} disabled={updateLoading} />
+                  </Col>
+                </Row>
+              )}
+            </div>
 
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Sterilization Status
-            </Form.Label>
-            <Form.Check
-              type="checkbox"
-              id="sterilized-check-edit"
-              name="sterilized"
-              checked={editFormData.sterilized || false}
-              onChange={handleEditFormChange}
-              disabled={updateLoading}
-              label={getSterilizationLabel(selectedPet?.gender)}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
+            <div className="pm-section mb-0">
+              <div className="pm-section-title"><i className="fas fa-notes-medical" />Special notes</div>
+              <Form.Control className="pm-input" as="textarea" rows={3} name="special_notes" value={editFormData.special_notes}
+                onChange={handleEditFormChange} disabled={updateLoading}
+                placeholder="Medical conditions, allergies, behavior, or anything the vet should know…" />
+            </div>
+          </Modal.Body>
 
-      {editFormData.sterilized && (
-        <>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                  {getSterilizedByLabel(selectedPet?.gender)}
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  name="sterilized_by"
-                  value={editFormData.sterilized_by}
-                  onChange={handleEditFormChange}
-                  placeholder="Dr. Juan Dela Cruz"
-                  disabled={updateLoading}
-                  style={{
-                    borderRadius: '8px',
-                    padding: '0.75rem',
-                    border: '2px solid #dee2e6'
-                  }}
-                />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                  Sterilization Date
-                </Form.Label>
-                <Form.Control
-                  type="date"
-                  name="sterilization_date"
-                  value={editFormData.sterilization_date}
-                  onChange={handleEditFormChange}
-                  max={new Date().toISOString().split('T')[0]}
-                  disabled={updateLoading}
-                  style={{
-                    borderRadius: '8px',
-                    padding: '0.75rem',
-                    border: '2px solid #dee2e6'
-                  }}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-        </>
-      )}
+          <Modal.Footer className="pm-foot">
+            <span className="pm-foot-note">{!hasEditChanges && !updateLoading ? 'No changes yet' : ''}</span>
+            <div className="pm-foot-btns">
+              <button type="button" className="pt-btn ghost lg" onClick={() => setShowEditModal(false)} disabled={updateLoading}>Cancel</button>
+              <button type="submit" className="pt-btn primary lg" disabled={updateLoading || !hasEditChanges}>
+                {updateLoading ? <WaveDots /> : <><i className="fas fa-save" />Save changes</>}
+              </button>
+            </div>
+          </Modal.Footer>
+        </Form>
+      </Modal>
 
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Special Notes
-            </Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              name="special_notes"
-              value={editFormData.special_notes}
-              onChange={handleEditFormChange}
-              placeholder="Any special medical conditions, behaviors, allergies, or notes about your pet..."
-              disabled={updateLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            />
-          </Form.Group>
-        </Col>
-      </Row>
-    </Modal.Body>
-    <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-      <Button 
-        variant="secondary" 
-        onClick={() => setShowEditModal(false)}
-        disabled={updateLoading}
-        style={{
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '600'
-        }}
-      >
-        Cancel
-      </Button>
-      <Button 
-        type="submit"
-        disabled={updateLoading || !hasEditChanges}
-        className="border-0"
-        style={{
-          background: updateLoading || !hasEditChanges ? '#6c757d' : '#ffc107',
-          color: '#000000',
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '700',
-          boxShadow: updateLoading || !hasEditChanges ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)',
-          transition: 'all 0.3s'
-        }}
-        onMouseOver={(e) => {
-          if (!updateLoading) {
-            e.target.style.background = '#ffb300';
-            e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-          }
-        }}
-        onMouseOut={(e) => {
-          if (!updateLoading) {
-            e.target.style.background = '#ffc107';
-            e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-          }
-        }}
-      >
-        {updateLoading ? (
-          <WaveDots />
-        ) : (
-          <>
-            <i className="fas fa-save me-2"></i>
-            Update Pet
-          </>
-        )}
-      </Button>
-    </Modal.Footer>
-  </Form>
-</Modal>
       {/* Delete Confirmation Modal */}
 <Modal 
   show={showDeleteModal} 
