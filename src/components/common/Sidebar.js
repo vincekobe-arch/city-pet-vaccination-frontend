@@ -1573,44 +1573,71 @@ const streamRef = useRef(null);
         </div>
       )}
 
-      {/* ── Logout Modal ── */}
+            {/* ── Logout Modal ── */}
+      <style>{`
+        .lo-dialog { max-width: 400px; }
+        .lo-content { border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'} !important; border-radius: 16px !important; overflow: hidden; background: ${darkMode ? '#141414' : '#ffffff'} !important; box-shadow: 0 24px 60px rgba(16,24,40,0.25) !important; }
+        .lo-body { padding: 1.75rem 1.75rem 1.5rem; text-align: center; }
+        .lo-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 1rem; background: rgba(220,53,69,0.1); color: #dc3545; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; position: relative; }
+        .lo-icon::after { content: ''; position: absolute; inset: -6px; border-radius: 20px; border: 1px solid rgba(220,53,69,0.15); }
+        .lo-title { font-weight: 700; font-size: 1.15rem; color: ${textColor}; margin: 0 0 0.35rem; }
+        .lo-text { font-size: 0.88rem; color: ${darkMode ? '#9a9a9a' : '#6b7280'}; margin: 0 0 1.25rem; line-height: 1.5; }
+        .lo-account { display: flex; align-items: center; gap: 0.65rem; padding: 0.6rem 0.75rem; border-radius: 12px; background: ${darkMode ? 'rgba(255,255,255,0.04)' : '#f6f7f9'}; border: 1px solid ${border}; text-align: left; margin-bottom: 1.35rem; }
+        .lo-avatar { width: 34px; height: 34px; border-radius: 50%; background: ${role?.color || '#ffc107'}26; color: ${textColor}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; flex-shrink: 0; }
+        .lo-name { font-weight: 600; font-size: 0.86rem; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lo-email { font-size: 0.75rem; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lo-actions { display: flex; gap: 0.6rem; }
+        .lo-btn { flex: 1; height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border: 1px solid transparent; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+        .lo-btn.cancel { background: ${darkMode ? '#1e1e1e' : '#ffffff'}; border-color: ${darkMode ? '#2e2e2e' : '#e5e7eb'}; color: ${textColor}; }
+        .lo-btn.cancel:hover { background: ${darkMode ? '#262626' : '#f3f4f6'}; }
+        .lo-btn.danger { background: #dc3545; color: #ffffff; }
+        .lo-btn.danger:hover { background: #bb2d3b; box-shadow: 0 6px 16px rgba(220,53,69,0.3); transform: translateY(-1px); }
+        .lo-btn:focus-visible { outline: 2px solid #dc3545; outline-offset: 2px; }
+        @media (max-width: 576px) {
+          .lo-dialog { margin: 1rem auto; max-width: calc(100% - 2rem); }
+          .lo-body { padding: 1.5rem 1.25rem 1.25rem; }
+        }
+      `}</style>
       <Modal
         show={showLogoutModal}
         onHide={() => setShowLogoutModal(false)}
-        backdrop="static"
-        keyboard={false}
         centered
-        style={{ zoom: '0.75', zIndex: 99999 }}
+        dialogClassName="lo-dialog"
+        contentClassName="lo-content"
+        style={{ zIndex: 99999 }}
+        aria-labelledby="logout-title"
       >
-        <Modal.Body className="logout-modal-body" style={{ padding: '2.5rem', background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)', borderRadius: '20px', border: '1px solid rgba(255,193,7,0.2)' }}>
-          <div className="text-center mb-4">
-            <div className="logout-modal-icon" style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,193,7,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', border: '3px solid rgba(255,193,7,0.3)', boxShadow: '0 8px 24px rgba(255,193,7,0.2)' }}>
-              <img
-                src="/logout.png"
-                alt="Logout"
-                style={{ width: '40px', height: '40px', objectFit: 'contain' }}
-                onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerHTML = '<i class="fas fa-sign-out-alt" style="font-size: 2.4rem; color: #ffc107;"></i>'; }}
-              />
+        <div className="lo-body">
+          <div className="lo-icon"><i className="fas fa-sign-out-alt" /></div>
+          <h5 id="logout-title" className="lo-title">Log out of PetUnity?</h5>
+          <p className="lo-text">You'll need to sign in again to access your account.</p>
+
+          {user && (
+            <div className="lo-account">
+              <div className="lo-avatar">
+                {user.role === 'super_admin'
+                  ? <i className="fas fa-crown" />
+                  : (user.role === 'private_clinic' ? (user.clinic_name || user.first_name || 'C') : `${user.first_name || ''} ${user.last_name || ''}`)
+                      .split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div className="lo-name">
+                  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'private_clinic' ? (user.clinic_name || `${user.first_name} ${user.last_name}`) : `${user.first_name} ${user.last_name}`}
+                </div>
+                <div className="lo-email">{user.email}</div>
+              </div>
             </div>
-            <h5 style={{ fontWeight: '700', color: '#212529', marginBottom: '0.75rem', fontSize: '1.3rem' }}>Confirm Logout</h5>
-            <p style={{ fontSize: '1rem', color: '#6c757d', lineHeight: '1.6', marginBottom: 0 }}>Are you sure you want to logout from your account?</p>
+          )}
+
+          <div className="lo-actions">
+            <button type="button" className="lo-btn cancel" onClick={() => setShowLogoutModal(false)}>
+              Cancel
+            </button>
+            <button type="button" className="lo-btn danger" onClick={() => { setShowLogoutModal(false); onLogout(); navigate('/login'); }}>
+              <i className="fas fa-sign-out-alt" />Log out
+            </button>
           </div>
-          <div className="d-flex gap-3 justify-content-center">
-            <Button
-              variant="secondary"
-              onClick={() => setShowLogoutModal(false)}
-              style={{ borderRadius: '12px', padding: '0.75rem 1.75rem', fontWeight: '700', minWidth: '120px' }}
-            >
-              <i className="fas fa-times me-2" />Cancel
-            </Button>
-            <Button
-              onClick={() => { setShowLogoutModal(false); onLogout(); navigate('/login'); }}
-              style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', border: 'none', color: '#1a1a1a', borderRadius: '12px', padding: '0.75rem 1.75rem', fontWeight: '700', minWidth: '120px' }}
-            >
-              <i className="fas fa-sign-out-alt me-2" />Yes, Logout
-            </Button>
-          </div>
-        </Modal.Body>
+        </div>
       </Modal>
 
       {/* ── Verify Account Modal ── */}
