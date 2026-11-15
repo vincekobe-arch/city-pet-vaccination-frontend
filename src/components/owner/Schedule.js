@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form } from 'react-bootstrap';
+import React, { useState, useEffect, useRef } from 'react';
+import { Container, Row, Col, Card, Button, Alert, Badge, Modal, Form } from 'react-bootstrap';
 import { scheduleAPI, petAPI, vaccinationAPI, inventoryAPI, handleAPIError } from '../../services/api';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
@@ -25,6 +25,46 @@ const WaveDots = ({ color = '#000000' }) => (
     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.15s' }} />
     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
   </span>
+);
+
+// Skeleton shown while the calendar and events are loading
+const EventsSkeleton = () => (
+  <Row className="g-4" aria-busy="true" aria-label="Loading events">
+    <Col lg={4} xl={3}>
+      <div className="ev-panel">
+        <div className="ev-skel" style={{ height: 20, width: '55%', margin: '0.25rem auto 1.1rem' }} />
+        <div className="ev-skel-cal">
+          {Array.from({ length: 35 }).map((_, i) => <div key={i} className="ev-skel" />)}
+        </div>
+        <div className="ev-skel" style={{ height: 12, width: '70%', marginTop: '1.1rem' }} />
+        <div className="d-flex flex-wrap gap-2 mt-3">
+          {[64, 80, 70, 90, 60].map((w, i) => <div key={i} className="ev-skel" style={{ height: 10, width: w }} />)}
+        </div>
+      </div>
+    </Col>
+    <Col lg={8} xl={9}>
+      <div className="ev-panel" style={{ padding: '1rem 1.25rem' }}>
+        <div className="d-flex flex-wrap gap-2 mb-3">
+          {[96, 118, 92, 124, 106, 88].map((w, i) => <div key={i} className="ev-skel" style={{ height: 34, width: w, borderRadius: 999 }} />)}
+        </div>
+        <div className="d-flex flex-wrap gap-2">
+          <div className="ev-skel" style={{ height: 34, flex: '1 1 220px' }} />
+          <div className="ev-skel" style={{ height: 34, flex: '1 1 220px' }} />
+        </div>
+      </div>
+      {[0, 1, 2].map(i => (
+        <div key={i} className="ev-panel mt-3 d-flex align-items-center gap-3">
+          <div className="ev-skel" style={{ width: 60, height: 64, borderRadius: 12, flexShrink: 0 }} />
+          <div className="flex-grow-1" style={{ minWidth: 0 }}>
+            <div className="ev-skel" style={{ height: 14, width: '32%', marginBottom: 10 }} />
+            <div className="ev-skel" style={{ height: 18, width: '68%', marginBottom: 10 }} />
+            <div className="ev-skel" style={{ height: 12, width: '46%' }} />
+          </div>
+          <div className="ev-skel d-none d-md-block" style={{ width: 96, height: 36, borderRadius: 9, flexShrink: 0 }} />
+        </div>
+      ))}
+    </Col>
+  </Row>
 );
 
 const OwnerSchedule = () => {
@@ -117,6 +157,24 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
     }
     @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
     @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+    @media (max-width: 768px)  { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
+
+    /* Modals: same zoom as the page, normal size on phones so they stay centered */
+    .ev-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .ev-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .ev-zoom-modal { zoom: 1; } }
+    @media (max-width: 768px) {
+      .ev-zoom-modal { zoom: 1; }
+      .ev-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); }
+      .ev-zoom-modal .modal-body { max-height: calc(100vh - 170px) !important; overflow-y: auto; }
+    }
+
+    /* Skeleton loading */
+    @keyframes evShimmer { 0% { background-position: -468px 0; } 100% { background-position: 468px 0; } }
+    .ev-skel { background: linear-gradient(90deg, #f0f1f3 25%, #e6e8eb 50%, #f0f1f3 75%); background-size: 936px 100%; animation: evShimmer 1.3s ease-in-out infinite; border-radius: 8px; }
+    .ev-skel-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .ev-skel-cal .ev-skel { aspect-ratio: 1; border-radius: 10px; }
+    @media (prefers-reduced-motion: reduce) { .ev-skel { animation: none; } }
 
     @keyframes ptToast { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
     .pt-toast { position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 99999; min-width: 320px; max-width: 480px; display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff; border: 1px solid #e9ecef; border-left: 4px solid #198754; border-radius: 12px; box-shadow: 0 16px 40px rgba(16,24,40,0.16); animation: ptToast 0.35s ease-out; }
@@ -349,9 +407,13 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [loading, vaccinationSchedules, dewormingSchedules, seminarSchedules, sterilizationSchedules, otherSchedules, microchipSchedules]);
 
+  // Only the first load shows the skeleton. Later reloads (after registering,
+  // cancelling, etc.) update the data in place, so the page keeps its scroll position.
+  const hasLoadedRef = useRef(false);
+
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (!hasLoadedRef.current) setLoading(true);
       setError('');
       
       const [
@@ -431,28 +493,23 @@ setMicrochipSchedules(upcomingMicrochips);
   ...upcomingMicrochips.map(s => ({ id: s.id, type: 'microchip' }))
 ];
       
-      const allRegistrations = [];
-      
-      for (const schedule of allScheduleIds) {
+      // Load registrations for all events at the same time (faster than one by one)
+      const registrationLists = await Promise.all(allScheduleIds.map(async (schedule) => {
         try {
           const response = await scheduleAPI.getRegisteredPets(schedule.id, schedule.type);
-          const registrations = response.data.registrations || [];
-          
-          // Add schedule_id and schedule_type to each registration
-          registrations.forEach(reg => {
-            allRegistrations.push({
-              ...reg,
-              schedule_id: schedule.id,
-              schedule_type: schedule.type
-            });
-          });
+          return (response.data.registrations || []).map(reg => ({
+            ...reg,
+            schedule_id: schedule.id,
+            schedule_type: schedule.type
+          }));
         } catch (err) {
           console.error(`Error loading registrations for ${schedule.type} ${schedule.id}:`, err);
+          return [];
         }
-      }
-      
+      }));
+      const allRegistrations = registrationLists.flat();
+
       setCurrentRegistrations(allRegistrations);
-      console.log('All registrations loaded:', allRegistrations);
       
       const uniqueBarangays = [...new Set(allSchedules.map(s => s.custom_place || s.barangay_name))].filter(Boolean);
       setBarangays(uniqueBarangays.sort());
@@ -461,6 +518,7 @@ setMicrochipSchedules(upcomingMicrochips);
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   };
@@ -1403,11 +1461,12 @@ const getVaccineDetails = (schedule) => {
     return (
       <>
         <style>{styles}</style>
-        <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffffff', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="text-center">
-            <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
-            <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Loading schedules...</p>
+        <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffff', minHeight: '100vh' }}>
+          <div className="mb-4">
+            <div className="ev-skel" style={{ height: 30, width: 240, maxWidth: '70%', marginBottom: 10 }} />
+            <div className="ev-skel" style={{ height: 14, width: 380, maxWidth: '90%' }} />
           </div>
+          <EventsSkeleton />
         </Container>
       </>
     );
@@ -1475,14 +1534,7 @@ const getVaccineDetails = (schedule) => {
       )}
 
       {verifLoading ? (
-        <Row>
-          <Col>
-            <div className="text-center py-5">
-              <Spinner animation="border" style={{ width: '3rem', height: '3rem', color: '#ffc107', borderWidth: '4px' }} />
-              <p style={{ marginTop: '1rem', fontWeight: '600', color: '#666666', fontSize: '1rem' }}>Checking verification...</p>
-            </div>
-          </Col>
-        </Row>
+        <EventsSkeleton />
       ) : !isVerified() && ownerProfile ? (
         <Row style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
           <Col>
@@ -1757,7 +1809,7 @@ const getVaccineDetails = (schedule) => {
       )}
 
       {/* Requirements Reminder Modal — opened by the header button, read-only */}
-      <Modal show={showRequirementsReminderModal} onHide={() => setShowRequirementsReminderModal(false)} centered scrollable dialogClassName="ev-modal" style={{ zoom: '0.75' }}>
+      <Modal show={showRequirementsReminderModal} onHide={() => setShowRequirementsReminderModal(false)} centered scrollable dialogClassName="ev-modal" className="ev-zoom-modal">
         <Modal.Header closeButton className="ev-modal-head">
           <div className="d-flex align-items-center gap-3">
             <div className="ev-modal-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-clipboard-check" /></div>
@@ -1822,7 +1874,7 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Pre-Submit Confirmation Modal — short summary shown before submitting */}
-      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} centered dialogClassName="ev-modal sm" style={{ zoom: '0.75' }}>
+      <Modal show={showVaccinationConfirmModal} onHide={() => { setShowVaccinationConfirmModal(false); setPendingVaccinationSubmit(null); }} centered dialogClassName="ev-modal sm" className="ev-zoom-modal">
         <Modal.Body style={{ padding: '1.75rem 1.75rem 1.25rem' }}>
           <div className="text-center">
             <div className="ev-modal-icon lg" style={{ '--c': '#e0a800', margin: '0 auto 1rem' }}><i className="fas fa-paw" /></div>
@@ -1866,7 +1918,7 @@ const getVaccineDetails = (schedule) => {
 
 
       {/* Registration Confirmation Modal */}
-      <Modal show={showConfirmRegistrationModal} onHide={() => setShowConfirmRegistrationModal(false)} size="md" centered style={{zoom: '0.75'}}>
+      <Modal show={showConfirmRegistrationModal} onHide={() => setShowConfirmRegistrationModal(false)} size="md" centered className="ev-zoom-modal">
         <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f0fff4, #e6f9ee)', borderBottom: '2px solid #198754', borderRadius: '20px 20px 0 0' }}>
           <Modal.Title style={{ fontWeight: '700', color: '#198754' }}>
             <i className="fas fa-check-circle me-2"></i>
@@ -1947,7 +1999,7 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
     {/* Details Modal */}
-      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" style={{zoom: '0.75'}} centered={window.innerWidth <= 768}>
+      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" centered className="ev-zoom-modal">
         <Modal.Header 
           closeButton
           style={{
@@ -2226,7 +2278,7 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Registration Modal */}
-      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" backdrop="static" style={{zoom: '0.75'}} centered={window.innerWidth <= 768}>
+      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" backdrop="static" centered className="ev-zoom-modal">
         <Modal.Header 
   closeButton
   style={{
@@ -3189,7 +3241,7 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
   show={showCancelConfirm} 
   onHide={() => setShowCancelConfirm(false)}
   centered
-  style={{ zoom: '0.75', ...(window.innerWidth <= 768 ? {} : { top: '0', alignItems: 'flex-start' }) }}
+  className="ev-zoom-modal"
 >
   <Modal.Header 
     closeButton
