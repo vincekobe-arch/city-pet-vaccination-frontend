@@ -54,6 +54,14 @@ const OwnerDashboard = () => {
     }
     @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
     @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
+    @media (max-width: 768px)  { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
+
+    /* tablets & small laptops: keep 4 boxes readable */
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+      .mobile-stat-number { font-size: 2.2rem !important; }
+      .mobile-card-padding { padding: 1.15rem !important; }
+      .mobile-stat-icon { width: 46px !important; height: 46px !important; }
+    }
 
     @keyframes dropDown {
       0% {
@@ -77,23 +85,24 @@ const OwnerDashboard = () => {
         font-size: 0.9rem !important;
       }
       .mobile-stat-number {
-        font-size: 1.2rem !important;
+        font-size: 1.9rem !important;
+        margin-bottom: 0.4rem !important;
       }
       .mobile-stat-label {
-        font-size: 0.6rem !important;
-        margin-bottom: 0.25rem !important;
+        font-size: 0.68rem !important;
+        margin-bottom: 0.35rem !important;
       }
       .mobile-stat-icon {
-        width: 30px !important;
-        height: 30px !important;
-        border-radius: 8px !important;
+        width: 42px !important;
+        height: 42px !important;
+        border-radius: 12px !important;
       }
       .mobile-stat-icon img {
-        width: 18px !important;
-        height: 18px !important;
+        width: 24px !important;
+        height: 24px !important;
       }
       .mobile-card-padding {
-        padding: 0.5rem 0.3rem !important;
+        padding: 1rem !important;
       }
       .mobile-card-header {
         padding: 1rem !important;
@@ -117,8 +126,8 @@ const OwnerDashboard = () => {
         padding: 0.25rem 0.5rem !important;
         font-size: 0.7rem !important;
       }
-      .mobile-stat-description {
-        display: none !important;
+      .mobile-stat-description span {
+        font-size: 0.68rem !important;
       }
       .mobile-stat-card {
         margin-bottom: 0.5rem !important;
@@ -218,6 +227,18 @@ const OwnerDashboard = () => {
       .od-title { font-size: 1.45rem; }
       .od-slots { display: none; }
       .od-banner { flex-wrap: wrap; }
+      .od-banner .od-btn { width: 100%; justify-content: center; }
+      .od-date { width: 100%; justify-content: center; }
+      .od-panel-head { padding: 0.9rem 1rem; }
+      .od-panel-body { padding: 0.5rem 1rem 1rem; }
+      .od-event { gap: 0.7rem; }
+      .od-date-block { width: 46px; }
+      .od-ev-title { font-size: 0.9rem; }
+    }
+    @media (max-width: 380px) {
+      .mobile-stat-number { font-size: 1.6rem !important; }
+      .mobile-stat-icon { width: 36px !important; height: 36px !important; }
+      .od-event .od-btn { padding: 0.35rem 0.6rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       .od-anim, .od-row-anim, .od-slots .bar > div { animation: none !important; }
@@ -444,8 +465,8 @@ const OwnerDashboard = () => {
         )}
 
       {/* Quick Stats */}
-      <Row className="mb-4">
-<Col xs={3} md={6} lg={3} className="mb-3 mb-lg-0 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
+      <Row className="g-3 mb-4">
+<Col xs={6} lg={3} className="mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
   <Card
     className="border-0 h-100"
     style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -472,7 +493,7 @@ const OwnerDashboard = () => {
   </Card>
 </Col>
 
-<Col xs={3} md={6} lg={3} className="mb-3 mb-lg-0 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
+<Col xs={6} lg={3} className="mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.2s backwards' }}>
   <Card
     className="border-0 h-100"
     style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -499,7 +520,7 @@ const OwnerDashboard = () => {
   </Card>
 </Col>
 
-<Col xs={3} md={6} lg={3} className="mb-3 mb-md-0 mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.3s backwards' }}>
+<Col xs={6} lg={3} className="mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.3s backwards' }}>
   <Card
     className="border-0 h-100"
     style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -526,7 +547,7 @@ const OwnerDashboard = () => {
   </Card>
 </Col>
 
-<Col xs={3} md={6} lg={3} className="mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
+<Col xs={6} lg={3} className="mobile-stat-card" style={{ animation: 'dropDown 0.4s ease-out 0.4s backwards' }}>
   <Card
     className="border-0 h-100"
     style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
