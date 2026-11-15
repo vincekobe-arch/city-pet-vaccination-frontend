@@ -420,6 +420,7 @@ const LandingPage = () => {
         .lp-hero { background:linear-gradient(135deg,#ffffff 0%,#f8f9fa 100%); min-height:100vh; display:flex; align-items:center; position:relative; overflow:hidden; padding:3rem 0; }
         .lp-blob { position:absolute; width:384px; height:384px; border-radius:50%; filter:blur(80px); pointer-events:none; }
         .lp-dot { position:absolute; border-radius:50%; background:#ffc107; opacity:0.5; pointer-events:none; }
+        .lp-hero-brand { display:inline-flex; flex-direction:column; align-items:center; text-align:center; }
         .lp-hero-logo { max-width:170px; height:auto; margin-bottom:1.25rem; filter:drop-shadow(0 0 20px rgba(255,193,7,0.3)); animation:lpDrop 0.8s ease-out, lpBounce 2.5s ease-in-out 0.8s infinite; }
         .lp-hero-title { font-size:3.5rem; font-weight:800; line-height:1.15; margin-bottom:1.25rem; animation:lpDrop 0.8s ease-out 0.15s backwards; }
         .lp-hero-sub { font-size:1.25rem; color:#555; line-height:1.65; margin-bottom:2rem; animation:lpDrop 0.8s ease-out 0.3s backwards; }
@@ -566,22 +567,16 @@ const LandingPage = () => {
           <Row className="align-items-center">
             <Col lg={6}>
               <div className="text-center text-lg-start">
-                <img src="/logo.png" alt="PetUnity Logo" className="lp-hero-logo" />
+                <div className="lp-hero-brand">
+                  <img src="/logo.png" alt="PetUnity Logo" className="lp-hero-logo" />
+                  <h1 className="lp-hero-title">
+                    Welcome to <span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
+                  </h1>
+                </div>
               </div>
-              <h1 className="lp-hero-title text-center text-lg-start">
-                Welcome to <span style={{ color:'#ffc107' }}>Pet</span><span style={{ color:'#1a1a1a' }}>Unity</span>
-              </h1>
               <p className="lp-hero-sub text-center text-lg-start">
                 Managing pet health and vaccination records across Muntinlupa City. Keep your pets healthy and compliant with ease.
               </p>
-              <div className="lp-hero-btns justify-content-lg-start">
-                <button className="lp-btn lp-btn-primary" onClick={() => navigate('/register')}>
-                  <i className="fas fa-user-plus" /> Create Account
-                </button>
-                <button className="lp-btn lp-btn-outline" onClick={() => navigate('/login')}>
-                  <i className="fas fa-sign-in-alt" /> Sign In
-                </button>
-              </div>
               <div className="lp-hero-chips justify-content-lg-start">
                 <span className="lp-chip"><i className="fas fa-syringe" /> Vaccination records</span>
                 <span className="lp-chip"><i className="fas fa-qrcode" /> Pet QR code</span>
