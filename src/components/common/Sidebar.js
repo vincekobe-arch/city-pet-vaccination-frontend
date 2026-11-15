@@ -168,11 +168,21 @@ const streamRef = useRef(null);
             if (scannerStateRef.current !== 'idle') return;
 
             let isValid = false;
-            try {
-              const parsed = JSON.parse(decodedText);
-              isValid = !!(parsed.microchip && parsed.name && parsed.reg_no);
-            } catch {
-              isValid = false;
+            let petCode = null;
+
+            // New QR codes hold a link like https://petunity-muntinlupacity.com/pet/8f3k2a9xq7c1
+            const linkMatch = decodedText.match(/\/pet\/([a-f0-9]{12})(?:[/?#]|$)/i);
+            if (linkMatch) {
+              petCode = linkMatch[1].toLowerCase();
+              isValid = true;
+            } else {
+              // Older QR codes hold the pet details as JSON
+              try {
+                const parsed = JSON.parse(decodedText);
+                isValid = !!(parsed.microchip && parsed.name && parsed.reg_no);
+              } catch {
+                isValid = false;
+              }
             }
 
             if (isValid) {
@@ -183,7 +193,12 @@ const streamRef = useRef(null);
                 if (cancelled) return;
                 setScanSucess(false);
                 scannerStateRef.current = 'idle';
-                setScanResult(decodedText);
+                if (petCode) {
+                  setShowScannerModal(false);
+                  navigate(`/pet/${petCode}`);
+                } else {
+                  setScanResult(decodedText);
+                }
               }, 1200);
             } else {
               scannerStateRef.current = 'error';
@@ -1061,8 +1076,8 @@ const streamRef = useRef(null);
 
           
 
-          {/* QR Scanner — mobile only, non-super_admin only */}
-          {user?.role !== 'super_admin' && (
+          {/* QR Scanner — mobile only, community only */}
+          {user?.role === 'pet_owner' && (
             <>
               <img
                 src="/scanner.png"
@@ -1161,7 +1176,7 @@ const streamRef = useRef(null);
                   ) : (
                     <div>
                       <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: '1rem', textAlign: 'center' }}>
-                        Point your camera at a pet's microchip QR code.
+                        Point your camera at a pet's QR code.
                       </p>
 
                       {/* Scanner + overlays — scanner div always stays mounted */}

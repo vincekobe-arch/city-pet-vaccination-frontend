@@ -399,6 +399,14 @@ const loadPage = async (page, force = false) => {
         ...(archivedRes.data.pets || [])
       ];
       setOwners(ownersRes.data.owners || []);
+    } else if (filterSpecies !== 'all') {
+      // active + species filter: load all active pets and filter client-side
+      const [activeRes, ownersRes] = await Promise.all([
+        petAPI.getAllUnpaginated(),
+        ownerAPI.getAllUnpaginated()
+      ]);
+      allPets = activeRes.data.pets || [];
+      setOwners(ownersRes.data.owners || []);
     } else {
       // active (default)
       const [petsRes, ownersRes] = await Promise.all([
@@ -443,20 +451,23 @@ const loadData = () => loadPage(1);
     setQrDataURL('');
     setShowViewModal(true);
 
-    if (pet.qr_code || pet.microchip_number) {
+    if (pet.public_code || pet.qr_code || pet.microchip_number) {
       setQrLoading(true);
       try {
         // Every pet gets a QR code on registration (pets.qr_code)
-        let qrCode = pet.qr_code;
-        if (!qrCode) {
-          const microchipRes = await microchipAPI.getByPetId(pet.id);
-          qrCode = microchipRes.data.microchip_record?.qr_code;
+        const PUBLIC_SITE = window.location.hostname === 'localhost' ? window.location.origin : 'https://petunity-muntinlupacity.com';
+        let qrText = pet.public_code ? `${PUBLIC_SITE}/pet/${pet.public_code}` : null;
+        if (!qrText) {
+          let qrCode = pet.qr_code;
+          if (!qrCode) {
+            const microchipRes = await microchipAPI.getByPetId(pet.id);
+            qrCode = microchipRes.data.microchip_record?.qr_code;
+          }
+          if (qrCode) qrText = JSON.stringify(JSON.parse(atob(qrCode)));
         }
-        if (qrCode) {
-          const jsonStr = atob(qrCode);
-          const parsed = JSON.parse(jsonStr);
+        if (qrText) {
           const QRCode = (await import('qrcode')).default;
-          const dataURL = await QRCode.toDataURL(JSON.stringify(parsed), {
+          const dataURL = await QRCode.toDataURL(qrText, {
             width: 200,
             margin: 2,
             color: { dark: '#000000', light: '#ffffff' },
@@ -940,7 +951,7 @@ const loadData = () => loadPage(1);
                     </Table>
                   </Card.Body>
                 </Card>
-              {(selectedPet?.qr_code || selectedPet?.microchip_number) && (
+              {(selectedPet?.public_code || selectedPet?.qr_code || selectedPet?.microchip_number) && (
                 <Card
                   className="mb-3 border-0"
                   style={{
@@ -980,13 +991,13 @@ const loadData = () => loadPage(1);
                           }}
                         />
                         <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem', fontFamily: 'monospace' }}>
-                          {selectedPet.microchip_number || selectedPet.registration_number}
+                          {selectedPet.registration_number || selectedPet.microchip_number}
                         </div>
                         <button
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = qrDataURL;
-                            link.download = `QR_${selectedPet.name}_${selectedPet.microchip_number || selectedPet.registration_number}.png`;
+                            link.download = `QR_${selectedPet.name}_${selectedPet.registration_number || selectedPet.microchip_number}.png`;
                             link.click();
                           }}
                           style={{

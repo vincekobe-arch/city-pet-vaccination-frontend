@@ -381,16 +381,24 @@ const SuperPetManagement = ({ darkMode }) => {
     setQrDataURL('');
     setShowViewModal(true);
 
-    if (pet.microchip_number) {
+    if (pet.public_code || pet.qr_code || pet.microchip_number) {
       setQrLoading(true);
       try {
-        const microchipRes = await microchipAPI.getByPetId(pet.id);
-        const microchipRecord = microchipRes.data.microchip_record;
-        if (microchipRecord && microchipRecord.qr_code) {
-          const jsonStr = atob(microchipRecord.qr_code);
-          const parsed = JSON.parse(jsonStr);
+        // The QR opens the public pet page when scanned with any phone camera
+        const PUBLIC_SITE = window.location.hostname === 'localhost' ? window.location.origin : 'https://petunity-muntinlupacity.com';
+        let qrText = pet.public_code ? `${PUBLIC_SITE}/pet/${pet.public_code}` : null;
+        if (!qrText) {
+          // Older pets without a public code fall back to the old QR data
+          let qrCode = pet.qr_code;
+          if (!qrCode) {
+            const microchipRes = await microchipAPI.getByPetId(pet.id);
+            qrCode = microchipRes.data.microchip_record?.qr_code;
+          }
+          if (qrCode) qrText = JSON.stringify(JSON.parse(atob(qrCode)));
+        }
+        if (qrText) {
           const QRCode = (await import('qrcode')).default;
-          const dataURL = await QRCode.toDataURL(JSON.stringify(parsed), {
+          const dataURL = await QRCode.toDataURL(qrText, {
             width: 200,
             margin: 2,
             color: { dark: '#000000', light: '#ffffff' },
@@ -984,7 +992,7 @@ const SuperPetManagement = ({ darkMode }) => {
                     </Table>
                   </Card.Body>
                 </Card>
-              {selectedPet?.microchip_number && (
+              {(selectedPet?.public_code || selectedPet?.qr_code || selectedPet?.microchip_number) && (
                 <Card
                   className="mb-3 border-0"
                   style={{
@@ -999,7 +1007,7 @@ const SuperPetManagement = ({ darkMode }) => {
                   }}>
                     <h6 className="mb-0" style={{ fontWeight: '600', color: darkMode ? '#f0f0f0' : '#333' }}>
                       <i className="fas fa-qrcode me-2" style={{ color: '#4361ee' }}></i>
-                      Microchip QR Code
+                      Pet QR Code
                     </h6>
                   </Card.Header>
                   <Card.Body className="text-center" style={{ background: darkMode ? '#1e1e1e' : '#ffffff' }}>
@@ -1024,13 +1032,13 @@ const SuperPetManagement = ({ darkMode }) => {
                           }}
                         />
                         <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem', fontFamily: 'monospace' }}>
-                          {selectedPet.microchip_number}
+                          {selectedPet.registration_number || selectedPet.microchip_number}
                         </div>
                         <button
                           onClick={() => {
                             const link = document.createElement('a');
                             link.href = qrDataURL;
-                            link.download = `QR_${selectedPet.name}_${selectedPet.microchip_number}.png`;
+                            link.download = `QR_${selectedPet.name}_${selectedPet.registration_number || selectedPet.id}.png`;
                             link.click();
                           }}
                           style={{

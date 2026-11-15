@@ -696,16 +696,20 @@ useEffect(() => {
       // Older pets without one fall back to their microchip record.
       setQrLoading(true);
       try {
-        let qrCode = pet.qr_code;
-        if (!qrCode && pet.microchip_number) {
-          const microchipRes = await microchipAPI.getByPetId(petId);
-          qrCode = microchipRes.data.microchip_record?.qr_code;
+        // The QR opens the public pet page when scanned with any phone camera
+        const PUBLIC_SITE = window.location.hostname === 'localhost' ? window.location.origin : 'https://petunity-muntinlupacity.com';
+        let qrText = pet.public_code ? `${PUBLIC_SITE}/pet/${pet.public_code}` : null;
+        if (!qrText) {
+          let qrCode = pet.qr_code;
+          if (!qrCode && pet.microchip_number) {
+            const microchipRes = await microchipAPI.getByPetId(petId);
+            qrCode = microchipRes.data.microchip_record?.qr_code;
+          }
+          if (qrCode) qrText = JSON.stringify(JSON.parse(atob(qrCode)));
         }
-        if (qrCode) {
-            const jsonStr = atob(qrCode);
-            const parsed = JSON.parse(jsonStr);
+        if (qrText) {
             const QRCode = (await import('qrcode')).default;
-            const dataURL = await QRCode.toDataURL(JSON.stringify(parsed), {
+            const dataURL = await QRCode.toDataURL(qrText, {
               width: 200,
               margin: 2,
               color: { dark: '#000000', light: '#ffffff' },

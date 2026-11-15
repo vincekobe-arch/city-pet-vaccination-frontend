@@ -58,6 +58,7 @@ import ClinicInventoryManagement from './components/clinic/ClinicInventoryManage
 
 
 import EditProfile from './components/common/EditProfile';
+import PublicPetProfile from './components/common/PublicPetProfile';
 import { getToken, getUser, removeAuth } from './utils/auth';
 import SessionInvalidatedModal from './components/common/SessionInvalidatedModal';
 import NotFound from './components/common/NotFound';
@@ -139,7 +140,7 @@ function AppLayout({ user, onLogout, darkMode, setDarkMode, handleLogin }) {
   );
 }
 // Pages that use full-width layout (no sidebar)
-const FULL_PAGE_PATHS = ['/login', '/register', '/vet-card-view/', '/edit-profile'];
+const FULL_PAGE_PATHS = ['/login', '/register', '/vet-card-view/', '/edit-profile', '/pet/'];
 
 function MainContent({ user, handleLogin, darkMode }) {
   const location = useLocation();
@@ -204,6 +205,9 @@ function MainContent({ user, handleLogin, darkMode }) {
 
         {/* Vet Card View (opens in a new tab from Vet Cards / My Pets) */}
         <Route path="/vet-card-view/:petId" element={user ? <VetCardView /> : <Navigate to="/login" replace />} />
+
+        {/* Public pet page (opened by scanning a pet QR code — no login) */}
+        <Route path="/pet/:code" element={<PublicPetProfile />} />
 
         {/* Edit Profile */}
         <Route path="/edit-profile" element={user ? <EditProfile darkMode={darkMode} /> : <Navigate to="/login" replace />} />

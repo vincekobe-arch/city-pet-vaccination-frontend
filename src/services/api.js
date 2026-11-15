@@ -107,6 +107,7 @@ export const petAPI = {
     return api.post(`/pets/upload-photo/${id}`, formData);
   },
   archived: () => api.get('/pets/archived'),
+  getPublic: (code) => api.get(`/pets/public/${code}`),
   archive: (id) => api.post(`/pets/archive/${id}`),
   unarchive: (id) => api.post(`/pets/unarchive/${id}`),
 };
