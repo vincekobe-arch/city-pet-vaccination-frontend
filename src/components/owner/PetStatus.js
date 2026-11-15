@@ -996,7 +996,6 @@ const handleRegisterPet = async (e) => {
     setRegisterLoading(true);
     setRegisterError('');
     setRegisterSuccess('');
-    setShowRegisterModal(false);
 
     if (!registerFormData.name.trim()) {
       setRegisterError('Pet name is required');
@@ -1030,8 +1029,9 @@ const handleRegisterPet = async (e) => {
       };
       
       const response = await petAPI.create(submitData);
-      setRegisterSuccess(`${registerFormData.name} has been successfully registered! Registration number: ${response.data.pet.registration_number}`);
-      setTimeout(() => setUpdateSuccess(''), 3000);
+      setShowRegisterModal(false);
+      setUpdateSuccess(`${registerFormData.name} has been registered. Registration no. ${response.data.pet.registration_number}`);
+      setTimeout(() => setUpdateSuccess(''), 4000);
       await loadPets();
     } catch (err) {
       const { message } = handleAPIError(err);
