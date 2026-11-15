@@ -49,6 +49,15 @@ const PublicPetProfile = () => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  // Keep the whole screen white on this public page (global CSS uses a dark body)
+  useEffect(() => {
+    const html = document.documentElement, body = document.body;
+    const prev = { html: html.style.background, body: body.style.background };
+    html.style.background = '#ffffff';
+    body.style.background = '#ffffff';
+    return () => { html.style.background = prev.html; body.style.background = prev.body; };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -66,7 +75,7 @@ const PublicPetProfile = () => {
   }, [code]);
 
   const styles = `
-    .pp-page { min-height: 100vh; background: #f6f7f9; padding: 1.25rem 1rem 2.5rem; display: flex; justify-content: center; }
+    .pp-page { min-height: 100vh; background: #ffffff; padding: 1.25rem 1rem 2.5rem; display: flex; justify-content: center; }
     .pp-wrap { width: 100%; max-width: 480px; }
     @keyframes ppIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes ppShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
@@ -108,15 +117,15 @@ const PublicPetProfile = () => {
     .pp-due.over { background: rgba(220,53,69,0.1); color: #dc3545; }
     .pp-none { font-size: 0.88rem; color: #9ca3af; }
 
-    .pp-contact { background: #1f2328; color: #fff; border-radius: 18px; padding: 1.15rem 1.25rem; margin-bottom: 0.9rem; }
-    .pp-contact h3 { font-size: 1rem; font-weight: 700; margin: 0 0 0.2rem; }
-    .pp-contact p { font-size: 0.84rem; color: rgba(255,255,255,0.7); margin: 0 0 0.9rem; }
+    .pp-contact { background: #fffdf5; color: #1f2328; border: 1px solid #ffe08a; border-radius: 18px; padding: 1.15rem 1.25rem; margin-bottom: 0.9rem; box-shadow: 0 10px 30px rgba(16,24,40,0.06); }
+    .pp-contact h3 { font-size: 1rem; font-weight: 700; margin: 0 0 0.2rem; color: #1f2328; }
+    .pp-contact p { font-size: 0.84rem; color: #6b7280; margin: 0 0 0.9rem; }
     .pp-call { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; height: 46px; border-radius: 12px; background: #ffc107; color: #1f2328; font-weight: 700; font-size: 0.95rem; text-decoration: none; transition: background 0.15s ease, transform 0.15s ease; }
     .pp-call:hover { background: #f0b400; color: #1f2328; transform: translateY(-1px); }
     .pp-owner { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.85rem; }
-    .pp-owner-ic { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; }
-    .pp-owner strong { display: block; font-size: 0.95rem; }
-    .pp-owner span { font-size: 0.8rem; color: rgba(255,255,255,0.65); }
+    .pp-owner-ic { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,193,7,0.18); color: #b88a00; display: flex; align-items: center; justify-content: center; }
+    .pp-owner strong { display: block; font-size: 0.95rem; color: #1f2328; }
+    .pp-owner span { font-size: 0.8rem; color: #6b7280; }
 
     .pp-foot { text-align: center; font-size: 0.78rem; color: #9ca3af; line-height: 1.6; }
     .pp-foot a { color: #b88a00; font-weight: 600; text-decoration: none; }
