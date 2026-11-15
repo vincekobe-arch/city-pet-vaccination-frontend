@@ -50,7 +50,7 @@ const EditProfile = ({ darkMode }) => {
   const from = location.state?.from || (
     isSuperAdmin ? '/super-admin/dashboard' :
     isAdmin ? '/admin/dashboard' :
-    isOwner ? '/owner/dashboard' :
+    isOwner ? '/community/dashboard' :
     '/clinic/dashboard'
   );
 

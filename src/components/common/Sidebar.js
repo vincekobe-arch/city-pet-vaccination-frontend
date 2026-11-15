@@ -301,7 +301,7 @@ const streamRef = useRef(null);
     if (location.pathname === '/admin/pets' || location.pathname === '/admin/vet-cards') {
       setPetsDropdownOpen(true);
       }
-      if (location.pathname === '/super-admin/officials' || location.pathname === '/super-admin/owners') {
+      if (location.pathname === '/super-admin/officials' || location.pathname === '/super-admin/community') {
         setUsersDropdownOpen(true);
       }
   }, [location.pathname]);
@@ -474,20 +474,21 @@ const streamRef = useRef(null);
         return [
           { label: 'Dashboard', icon: 'fa-home', to: '/super-admin/dashboard' },
           
-          { label: 'Users', icon: 'fa-users', dropdown: true, dropdownKey: 'users', children: [
+          { label: 'Users', icon: 'fa-user-friends', dropdown: true, dropdownKey: 'users', children: [
             { label: 'Admins', icon: 'fa-user-tie', to: '/super-admin/officials' },
-            { label: 'Community', icon: 'fa-users', to: '/super-admin/owners' },
+            { label: 'Community', icon: 'fa-users', to: '/super-admin/community' },
           ]},
           { label: 'Pets', icon: 'fa-paw', to: '/super-admin/pets' },
+          { label: 'Activity Logs', icon: 'fa-clipboard-list', to: '/super-admin/activity-logs' },
         ];
       case 'barangay_official':
         return [
           { label: 'Dashboard', icon: 'fa-home', to: '/admin/dashboard' },
           { label: 'Pets', icon: 'fa-paw', dropdown: true, dropdownKey: 'pets', children: [
             { label: 'Pets', icon: 'fa-dog', to: '/admin/pets' },
-            { label: 'Vet  Cards', icon: 'fa-id-card', to: '/admin/vet-cards' },
+            { label: 'Vet Cards', icon: 'fa-id-card', to: '/admin/vet-cards' },
           ]},
-          { label: 'Community', icon: 'fa-users', to: '/admin/owners', badge: pendingVerifCount },
+          { label: 'Community', icon: 'fa-users', to: '/admin/community', badge: pendingVerifCount },
           { label: 'Records', icon: 'fa-syringe', to: '/admin/vaccinations' },
           { label: 'Events', icon: 'fa-calendar-alt', to: '/admin/schedules' },
           { label: 'Reports', icon: 'fa-flag', to: '/admin/reports', badge: pendingReportCount },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Alert } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import { activityLogAPI, handleAPIError } from '../../services/api';
 
 const ROLE_LABELS = {
@@ -66,7 +66,7 @@ const getBaseType = (log) => (log.activity_type || '').replace('_event', '');
 const initialsOf = (name) =>
   (name || '?').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
-const ActivityLogsModal = ({ show, onHide }) => {
+const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -74,8 +74,8 @@ const ActivityLogsModal = ({ show, onHide }) => {
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   useEffect(() => {
-    if (show) loadLogs();
-  }, [show]);
+    loadLogs();
+  }, []);
 
   useEffect(() => {
     setPage(1);
@@ -195,15 +195,15 @@ const ActivityLogsModal = ({ show, onHide }) => {
   };
 
   const styles = `
-    .al-dialog { max-width: 1000px; }
-    .al-dialog .modal-content { border: none; border-radius: 16px; box-shadow: 0 24px 60px rgba(16,24,40,0.2); overflow: hidden; }
-
-    .al-head { display: flex; align-items: center; gap: 0.85rem; padding: 1rem 1.35rem; border-bottom: 1px solid #eef0f3; }
-    .al-head .ic { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,193,7,0.15); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; flex-shrink: 0; }
-    .al-head .t { font-weight: 700; font-size: 1.05rem; color: #1f2328; line-height: 1.2; }
-    .al-head .s { font-size: 0.8rem; color: #6b7280; }
-    .al-close { margin-left: auto; width: 34px; height: 34px; border-radius: 9px; border: none; background: transparent; color: #6b7280; display: flex; align-items: center; justify-content: center; }
-    .al-close:hover { background: #f3f4f6; color: #1f2328; }
+    .al-page-wrap { min-height: 100vh; background: #ffffff; padding: 1.5rem; zoom: 0.75; }
+    @media (min-width: 1600px) { .al-page-wrap { zoom: 0.9; } }
+    @media (min-width: 1920px) { .al-page-wrap { zoom: 1; } }
+    @media (max-width: 768px) { .al-page-wrap { zoom: 1; padding: 1rem 0.75rem 5rem; } }
+    .al-title { font-weight: 700; color: #1f2328; font-size: 1.75rem; margin: 0; }
+    .al-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 1.5rem; }
+    .al-anim { animation: alIn 0.45s ease-out backwards; animation-delay: var(--d, 0s); }
+    @keyframes alIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    .al-panel { background: #fff; border: 1px solid #e9ecef; border-radius: 14px; box-shadow: 0 1px 3px rgba(16,24,40,0.04); overflow: hidden; }
 
     .al-tools { padding: 0.9rem 1.35rem; border-bottom: 1px solid #eef0f3; background: #fafbfc; display: flex; flex-direction: column; gap: 0.6rem; }
     .al-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
@@ -244,7 +244,7 @@ const ActivityLogsModal = ({ show, onHide }) => {
     .al-strong { font-weight: 600; }
     .al-user { display: flex; align-items: center; gap: 0.6rem; min-width: 0; }
     .al-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 800; flex-shrink: 0; }
-    .al-ellipsis { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .al-ellipsis { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .al-tag { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 999px; white-space: nowrap; }
     .al-type { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
 
@@ -261,7 +261,7 @@ const ActivityLogsModal = ({ show, onHide }) => {
     .al-page:disabled { opacity: 0.4; cursor: not-allowed; }
     .al-gap { color: #9ca3af; padding: 0 0.2rem; font-size: 0.8rem; }
 
-    .al-seg button:focus-visible, .al-btn:focus-visible, .al-page:focus-visible, .al-link:focus-visible, .al-close:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+    .al-seg button:focus-visible, .al-btn:focus-visible, .al-page:focus-visible, .al-link:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
 
     @keyframes alRow { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes alShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
@@ -270,26 +270,21 @@ const ActivityLogsModal = ({ show, onHide }) => {
       .al-hide-sm { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .al-table tbody tr, .al-skel { animation: none !important; }
+      .al-table tbody tr, .al-skel, .al-anim { animation: none !important; }
     }
   `;
 
   return (
-    <Modal show={show} onHide={onHide} centered scrollable dialogClassName="al-dialog">
+    <div className="al-page-wrap">
       <style>{styles}</style>
 
       {/* Header */}
-      <div className="al-head">
-        <div className="ic"><i className="fas fa-clipboard-list" /></div>
-        <div>
-          <div className="t">Activity Logs</div>
-          <div className="s">Records and events added by City Vet admins and private clinics</div>
-        </div>
-        <button type="button" className="al-close" onClick={onHide} aria-label="Close">
-          <i className="fas fa-times" />
-        </button>
+      <div className="al-anim">
+        <h2 className="al-title">Activity Logs</h2>
+        <p className="al-sub">Records and events added by City Vet admins and private clinics.</p>
       </div>
 
+      <div className="al-panel al-anim" style={{ '--d': '0.08s' }}>
       {/* Filters */}
       <div className="al-tools">
         <div className="al-row">
@@ -335,7 +330,7 @@ const ActivityLogsModal = ({ show, onHide }) => {
         </div>
       </div>
 
-      <Modal.Body style={{ padding: 0 }}>
+      <div>
         {error && (
           <div style={{ padding: '0.75rem 1.35rem 0' }}>
             <Alert variant="danger" dismissible onClose={() => setError('')} className="py-2 small mb-0">
@@ -433,7 +428,7 @@ const ActivityLogsModal = ({ show, onHide }) => {
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div className="d-flex align-items-center gap-2">
-                              <span className="al-strong al-ellipsis" style={{ maxWidth: 220 }} title={log.item_name}>{log.item_name}</span>
+                              <span className="al-strong al-ellipsis" style={{ maxWidth: 360 }} title={log.item_name}>{log.item_name}</span>
                               <span
                                 className="al-tag"
                                 style={isEvent
@@ -443,7 +438,7 @@ const ActivityLogsModal = ({ show, onHide }) => {
                                 {isEvent ? 'Event' : 'Record'}
                               </span>
                             </div>
-                            <div className="al-muted al-ellipsis" style={{ maxWidth: 300 }} title={`${log.action}${details ? ` · ${details}` : ''}`}>
+                            <div className="al-muted al-ellipsis" style={{ maxWidth: 520 }} title={`${log.action}${details ? ` · ${details}` : ''}`}>
                               {log.action}{details ? ` · ${details}` : ''}
                             </div>
                           </div>
@@ -469,7 +464,7 @@ const ActivityLogsModal = ({ show, onHide }) => {
             </table>
           )}
         </div>
-      </Modal.Body>
+      </div>
 
       {!loading && filteredLogs.length > 0 && (
         <div className="al-foot">
@@ -495,8 +490,9 @@ const ActivityLogsModal = ({ show, onHide }) => {
           </div>
         </div>
       )}
-    </Modal>
+      </div>
+    </div>
   );
 };
 
-export default ActivityLogsModal;
+export default ActivityLogs;

@@ -26,6 +26,7 @@ import BarangayManagement from './components/superadmin/BarangayManagement';
 import OfficialManagement from './components/superadmin/OfficialManagement';
 import SuperAdminPetManagement from './components/superadmin/PetManagement';
 import SuperAdminOwnerManagement from './components/superadmin/OwnerManagement';
+import ActivityLogs from './components/superadmin/ActivityLogs';
 import ClinicManagement from './components/admin/ClinicManagement';
 
 // Admin Components
@@ -169,13 +170,16 @@ function MainContent({ user, handleLogin, darkMode }) {
         <Route path="/super-admin/barangays" element={user?.role === 'super_admin' ? <BarangayManagement /> : <Navigate to="/login" replace />} />
         <Route path="/super-admin/officials" element={user?.role === 'super_admin' ? <OfficialManagement /> : <Navigate to="/login" replace />} />
         <Route path="/super-admin/pets" element={user?.role === 'super_admin' ? <SuperAdminPetManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/super-admin/owners" element={user?.role === 'super_admin' ? <SuperAdminOwnerManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/super-admin/community" element={user?.role === 'super_admin' ? <SuperAdminOwnerManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/super-admin/owners" element={<Navigate to="/super-admin/community" replace />} />
+        <Route path="/super-admin/activity-logs" element={user?.role === 'super_admin' ? <ActivityLogs /> : <Navigate to="/login" replace />} />
         <Route path="/super-admin/clinics" element={user?.role === 'super_admin' ? <ClinicManagement /> : <Navigate to="/login" replace />} />
 
         {/* Barangay Official */}
         <Route path="/admin/dashboard" element={user?.role === 'barangay_official' ? <AdminDashboard darkMode={darkMode} /> : <Navigate to="/login" replace />} />
         <Route path="/admin/pets" element={user?.role === 'barangay_official' ? <PetManagement darkMode={darkMode} /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/owners" element={user?.role === 'barangay_official' ? <AdminOwnerManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/admin/community" element={user?.role === 'barangay_official' ? <AdminOwnerManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/admin/owners" element={<Navigate to="/admin/community" replace />} />
         <Route path="/admin/vaccinations" element={user?.role === 'barangay_official' ? <RecordManagement /> : <Navigate to="/login" replace />} />
         <Route path="/admin/schedules" element={user?.role === 'barangay_official' ? <Scheduling /> : <Navigate to="/login" replace />} />
         <Route path="/admin/vet-cards" element={user?.role === 'barangay_official' ? <VetCardManagement /> : <Navigate to="/login" replace />} />

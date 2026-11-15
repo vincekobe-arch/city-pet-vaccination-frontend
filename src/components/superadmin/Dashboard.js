@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Alert, Button } from 'react-bootstrap';
 import { officialAPI, ownerAPI, petAPI, activityLogAPI, handleAPIError } from '../../services/api';
-import ActivityLogsModal from './ActivityLogsModal';
 
 /* ------------------------------------------------------------------ */
 /* Stat value animation (unchanged)                                   */
@@ -279,7 +279,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
   const [data, setData] = useState({ officials: [], owners: [], pets: [], logs: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showLogs, setShowLogs] = useState(false);
+  const navigate = useNavigate();
   const t = theme(darkMode);
 
   useEffect(() => {
@@ -611,7 +611,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
               t={t} icon="fa-user-shield" iconColor="#ffc107"
               title="Recent admin/clinic activity"
               action={
-                <Button size="sm" variant="warning" onClick={() => setShowLogs(true)} style={{ fontWeight: 600, borderRadius: '8px', whiteSpace: 'nowrap' }}>
+                <Button size="sm" variant="warning" onClick={() => navigate('/super-admin/activity-logs')} style={{ fontWeight: 600, borderRadius: '8px', whiteSpace: 'nowrap' }}>
                   <i className="fas fa-list me-1" /> View logs
                 </Button>
               }
@@ -660,8 +660,6 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
           </Col>
         </Row>
       </Container>
-
-      <ActivityLogsModal show={showLogs} onHide={() => setShowLogs(false)} />
     </>
   );
 };
