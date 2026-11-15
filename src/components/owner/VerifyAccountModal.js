@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
+import { Modal, Form, Row, Col, Spinner } from 'react-bootstrap';
 import { getMunicipalitiesByProvince, getBarangaysByMunicipality, getAllProvinces, getAllRegions } from '@aivangogh/ph-address';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
@@ -164,6 +164,108 @@ const WaveDots = ({ color = '#000000' }) => (
     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
   </span>
 );
+
+// Styles for the verification modals (kept here so the component works on any page)
+const VA_STYLES = `
+  .va-zoom-modal { zoom: 0.75; }
+  @media (min-width: 1600px) { .va-zoom-modal { zoom: 0.9; } }
+  @media (min-width: 1920px) { .va-zoom-modal { zoom: 1; } }
+  .va-modal { max-width: 760px; }
+  .va-small { max-width: 430px; }
+  .va-modal .modal-content, .va-small .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+  .va-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: none !important; background: linear-gradient(180deg, #fffaeb 0%, #fff 100%); }
+  .va-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+  .va-head-ic { width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #b88a00; background: rgba(255,193,7,0.18); }
+  .va-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b88a00; }
+  .va-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; }
+  .va-steps { display: flex; align-items: center; gap: 0.6rem; padding: 0 1.5rem 1rem; border-bottom: 1px solid #eef0f3; background: #fff; }
+  .va-step { display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; font-weight: 600; color: #9ca3af; white-space: nowrap; }
+  .va-step span { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; background: #f3f4f6; color: #9ca3af; }
+  .va-step.on { color: #1f2328; }
+  .va-step.on span { background: #ffc107; color: #1f2328; box-shadow: 0 0 0 4px rgba(255,193,7,0.2); }
+  .va-step.done { color: #198754; }
+  .va-step.done span { background: #198754; color: #fff; }
+  .va-step-line { flex: 1; height: 2px; border-radius: 2px; background: #eef0f3; }
+  .va-step-line.done { background: #198754; }
+  .va-body { padding: 1.4rem 1.5rem !important; }
+  .va-body .form-control:focus, .va-body .form-select:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+  .va-body .form-control:disabled, .va-body .form-select:disabled { background-color: #f8f9fa !important; }
+  .va-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.85rem; line-height: 1.5; margin-bottom: 1rem; }
+  .va-alert > i { margin-top: 3px; flex-shrink: 0; }
+  .va-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #842029; }
+  .va-alert.danger > i { color: #dc3545; }
+  .va-alert.warn { background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.35); color: #6b5100; }
+  .va-alert.warn > i { color: #e0a800; }
+  .va-alert.info { background: rgba(13,110,253,0.06); border: 1px solid rgba(13,110,253,0.22); color: #0a58ca; align-items: center; }
+  .va-alert.success { background: rgba(25,135,84,0.07); border: 1px solid rgba(25,135,84,0.25); color: #146c43; }
+  .va-alert-sub { font-size: 0.76rem; opacity: 0.8; margin-top: 0.3rem; font-style: italic; }
+  .va-tip { display: flex; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 12px; background: #f8f9ff; border: 1px solid rgba(67,97,238,0.18); margin-bottom: 1.25rem; }
+  .va-tip-ic { width: 34px; height: 34px; border-radius: 10px; background: rgba(255,193,7,0.18); color: #b88a00; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .va-tip-title { font-weight: 700; color: #3a50c7; font-size: 0.86rem; margin-bottom: 0.15rem; }
+  .va-tip p { margin: 0; font-size: 0.82rem; color: #4b5563; line-height: 1.55; }
+  .va-readonly { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1.5px dashed #e5e7eb; background: #f8f9fa; font-size: 0.9rem; color: #9ca3af; }
+  .va-readonly.ok { border-style: solid; border-color: rgba(25,135,84,0.35); background: #f6fbf8; color: #1f2328; font-weight: 600; }
+  .va-readonly.ok i { color: #198754; }
+  .va-hint { font-size: 0.78rem; margin-top: 0.35rem; display: flex; gap: 0.35rem; align-items: flex-start; }
+  .va-hint.warn { color: #b26a00; }
+  .va-drop { position: relative; min-height: 150px; border: 1.5px dashed #d1d5db; border-radius: 14px; background: #fafbfc; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; padding: 0.85rem; text-align: center; transition: border-color 0.15s ease, background 0.15s ease; overflow: hidden; }
+  .va-drop:hover { border-color: #ffc107; background: #fffaeb; }
+  .va-drop.has { border-style: solid; border-color: #ffc107; background: #fff; }
+  .va-drop.disabled { opacity: 0.6; pointer-events: none; }
+  .va-drop img { width: 100%; max-height: 120px; object-fit: contain; border-radius: 8px; }
+  .va-drop-ic { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,193,7,0.16); color: #b88a00; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; margin-bottom: 0.25rem; }
+  .va-drop strong { font-size: 0.86rem; color: #1f2328; }
+  .va-drop small { font-size: 0.76rem; color: #6b7280; }
+  .va-drop-change { position: absolute; bottom: 8px; right: 8px; display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(17,24,39,0.7); padding: 0.2rem 0.55rem; border-radius: 999px; }
+  .va-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin: 0.75rem 0 0.75rem; padding-top: 1rem; border-top: 1px solid #eef0f3; }
+  .va-section-title i { color: #e0a800; }
+  .va-preview { display: flex; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; background: #fffaeb; border: 1px solid rgba(255,193,7,0.35); font-size: 0.86rem; color: #1f2328; font-weight: 600; }
+  .va-preview > i { color: #e0a800; margin-top: 3px; }
+  .va-preview-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+  .va-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: nowrap !important; }
+  .va-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 10px; border: 1px solid transparent; font-weight: 700; font-size: 0.9rem; padding: 0.65rem 1.2rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; margin: 0; }
+  .va-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .va-btn.primary { background: #ffc107; color: #1f2328; }
+  .va-btn.primary:hover:not(:disabled) { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+  .va-btn.ghost { background: #fff; color: #1f2328; border-color: #e5e7eb; font-weight: 600; }
+  .va-btn.ghost:hover:not(:disabled) { background: #f6f7f9; }
+  .va-btn.danger { background: #dc3545; color: #fff; }
+  .va-btn.danger:hover:not(:disabled) { background: #bb2d3b; }
+  @keyframes vaPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+  .va-small-body { padding: 1.9rem 1.6rem 1.4rem !important; text-align: center; }
+  .va-small-icon { width: 60px; height: 60px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #e0a800; background: rgba(255,193,7,0.14); animation: vaPop 0.4s ease-out; }
+  .va-small-icon.ok { color: #fff; background: #198754; }
+  .va-small-icon.danger { color: #dc3545; background: rgba(220,53,69,0.12); }
+  .va-small-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+  .va-small-text { font-size: 0.88rem; color: #6b7280; line-height: 1.55; margin-bottom: 1.25rem; }
+  .va-track { display: flex; align-items: flex-start; justify-content: center; }
+  .va-track-step { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; width: 76px; }
+  .va-track-step span { width: 30px; height: 30px; border-radius: 50%; background: #f3f4f6; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; transition: all 0.4s ease; }
+  .va-track-step small { font-size: 0.7rem; font-weight: 600; color: #9ca3af; }
+  .va-track-step.on span { background: #ffc107; color: #1f2328; box-shadow: 0 0 0 4px rgba(255,193,7,0.22); }
+  .va-track-step.on small { color: #b88a00; }
+  .va-track-step.done span { background: #198754; color: #fff; }
+  .va-track-step.done small { color: #198754; }
+  .va-track-line { flex: 0 0 40px; height: 2px; margin-top: 14px; background: #eef0f3; transition: background 0.6s ease; }
+  .va-track-line.done { background: #198754; }
+  @media (max-width: 768px) {
+    .va-zoom-modal { zoom: 1; }
+    .va-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+    .va-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+    .va-head { padding: 1rem !important; }
+    .va-head-ic { width: 42px; height: 42px; }
+    .va-title { font-size: 1.08rem; }
+    .va-steps { padding: 0 1rem 0.85rem; }
+    .va-body { padding: 1rem !important; }
+    .va-drop { min-height: 128px; padding: 0.6rem; }
+    .va-drop small { display: none; }
+    .va-drop strong { font-size: 0.8rem; }
+    .va-foot { padding: 0.75rem 1rem !important; }
+    .va-foot .va-btn { flex: 1; padding: 0.65rem 0.6rem; font-size: 0.86rem; }
+    .va-small-body { padding: 1.5rem 1.1rem 1.1rem !important; }
+  }
+  @media (prefers-reduced-motion: reduce) { .va-small-icon { animation: none; } }
+`;
 
 const VerifyAccountModal = ({ show, onHide, ownerProfile, profileForm: initialProfileForm, onVerified }) => {
   const [verifyStep, setVerifyStep]             = useState(1);
@@ -651,8 +753,8 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
     }
   };
 
-  const ls = { fontWeight:'600', color:'#1a1a1a', fontSize:'0.875rem', marginBottom:'0.4rem', display:'flex', alignItems:'center' };
-  const es = { borderRadius:'10px', padding:'0.65rem 0.9rem', border:'2px solid #dee2e6', background:'#f8f9fa', color:'#1a1a1a', fontWeight:'500', fontSize:'0.9rem', transition:'all 0.2s' };
+  const ls = { fontWeight:'600', color:'#374151', fontSize:'0.84rem', marginBottom:'0.35rem', display:'flex', alignItems:'center' };
+  const es = { borderRadius:'10px', padding:'0.62rem 0.8rem', border:'1.5px solid #e5e7eb', background:'#fff', color:'#1f2328', fontWeight:'500', fontSize:'0.92rem', transition:'border-color 0.15s ease, box-shadow 0.15s ease' };
   const Req = () => <span style={{ color:'#ef4444', marginLeft:'2px' }}>*</span>;
 
   const selectedCity  = cities.find(c => c.psgcCode === idForm.city);
@@ -662,111 +764,86 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
   return (
     <>
       {/* ── Verification Modal ── */}
-      <Modal show={show} onHide={requestClose} size="lg" backdrop="static" style={{ zoom: window.innerWidth >= 1920 ? 1 : window.innerWidth >= 1600 ? 0.9 : 0.75, zIndex: 99999 }}>        <Modal.Header closeButton={!verifySubmitting} style={{ background:'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
-          <Modal.Title style={{ fontWeight:'800', color:'#333' }}>
-            <i className="fas fa-id-card me-2" style={{ color:'#ffc107' }} />
-            {verifyStep === 1 ? 'Step 1 of 2 — Upload Valid ID' : 'Step 2 of 2 — Confirm Your Profile'}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding:'2rem', maxHeight:'72vh', overflowY:'auto' }}>
-          <div style={{ display:'flex', gap:'0.5rem', marginBottom:'1.75rem' }}>
-            {[1,2].map(s => (
-              <div key={s} style={{ flex:1, height:'6px', borderRadius:'999px', background: verifyStep >= s ? '#ffc107' : '#e9ecef', transition:'background 0.4s' }} />
-            ))}
+      <style>{VA_STYLES}</style>
+      <Modal show={show} onHide={requestClose} backdrop="static" dialogClassName="va-modal" className="va-zoom-modal" style={{ zIndex: 99999 }} scrollable>
+        <Modal.Header closeButton={!verifySubmitting} className="va-head">
+          <div className="va-head-main">
+            <div className="va-head-ic"><i className="fas fa-id-card" /></div>
+            <div style={{ minWidth: 0 }}>
+              <div className="va-kicker">Account verification · Step {verifyStep} of 2</div>
+              <Modal.Title as="h5" className="va-title">{verifyStep === 1 ? 'Upload a valid ID' : 'Confirm your details'}</Modal.Title>
+            </div>
           </div>
+        </Modal.Header>
+        <div className="va-steps">
+          {[{ n: 1, label: 'Upload ID' }, { n: 2, label: 'Confirm details' }].map((s, i) => (
+            <React.Fragment key={s.n}>
+              {i > 0 && <div className={`va-step-line${verifyStep > 1 ? ' done' : ''}`} />}
+              <div className={`va-step${verifyStep === s.n ? ' on' : verifyStep > s.n ? ' done' : ''}`}>
+                <span>{verifyStep > s.n ? <i className="fas fa-check" /> : s.n}</span>{s.label}
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+        <Modal.Body className="va-body">
 
           {verifyError && (
-            <Alert variant="danger" className="mb-3" style={{ borderRadius:'12px', border:'2px solid rgba(220,53,69,0.25)', background:'rgba(220,53,69,0.07)', color:'#1a1a1a', fontSize:'0.875rem' }}>
-              <i className="fas fa-exclamation-circle me-2" style={{ color:'#dc3545' }} />{verifyError}
-            </Alert>
+            <div className="va-alert danger"><i className="fas fa-exclamation-circle" /><span>{verifyError}</span></div>
           )}
 
           {/* ── Step 1 ── */}
           {verifyStep === 1 && (
             <>
               {nameMismatchWarning && (
-                <div style={{ background:'rgba(255,193,7,0.08)', border:'1.5px solid #ffc107', borderRadius:'10px', padding:'0.75rem 1rem', marginBottom:'1rem', fontSize:'0.82rem', color:'#7a5800', display:'flex', alignItems:'flex-start', gap:'0.5rem' }}>
-                  <i className="fas fa-exclamation-triangle" style={{ color:'#ffc107', marginTop:'0.1rem', flexShrink:0 }} />
-                  <span>{nameMismatchWarning}</span>
-                </div>
+                <div className="va-alert warn"><i className="fas fa-exclamation-triangle" /><span>{nameMismatchWarning}</span></div>
               )}
 
               {idSideError && (
-                <div style={{
-                  background: 'linear-gradient(135deg, rgba(220,53,69,0.07), rgba(255,193,7,0.09))',
-                  border: '1.5px solid rgba(220,53,69,0.3)',
-                  borderRadius: '14px',
-                  padding: '1rem 1.1rem',
-                  marginBottom: '1.25rem',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '0.85rem',
-                  boxShadow: '0 6px 18px rgba(220,53,69,0.12)',
-                }}>
-                  <div style={{
-                    width: '38px', height: '38px', borderRadius: '50%',
-                    background: 'rgba(220,53,69,0.12)', border: '2px solid rgba(220,53,69,0.25)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  }}>
-                    <i className="fas fa-arrows-rotate" style={{ color: '#dc3545', fontSize: '0.95rem' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: '800', color: '#b02a37', fontSize: '0.92rem', marginBottom: '0.25rem' }}>
-                      {idSideError.title}
-                    </div>
-                    <div style={{ fontSize: '0.83rem', color: '#6b2530', lineHeight: 1.55 }}>
-                      {idSideError.message}
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: '#9a4a54', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                      Both photos were cleared — please re-upload the correct front and back.
-                    </div>
+                <div className="va-alert danger">
+                  <i className="fas fa-arrows-rotate" />
+                  <div>
+                    <strong className="d-block">{idSideError.title}</strong>
+                    <span>{idSideError.message}</span>
+                    <div className="va-alert-sub">Both photos were cleared — please re-upload the correct front and back.</div>
                   </div>
                 </div>
               )}
               {ocrLoading && (
-                <div style={{ background:'rgba(13,110,253,0.07)', border:'1.5px solid rgba(13,110,253,0.3)', borderRadius:'10px', padding:'0.85rem 1rem', marginBottom:'1rem', fontSize:'0.85rem', color:'#0d6efd', display:'flex', alignItems:'center', gap:'0.6rem', minHeight:'3.2rem' }}>
+                <div className="va-alert info">
                   <Spinner animation="border" style={{ color:'#0d6efd', width:'1rem', height:'1rem', borderWidth:'0.15em', flexShrink:0 }} />
-                  <span><strong>Scanning your ID…</strong> Please wait while we extract your information.</span>
+                  <span><strong>Scanning your ID…</strong> Please wait while we read your information.</span>
                 </div>
               )}
               {duplicateError && !ocrLoading && (
-                <div style={{ background:'rgba(220,53,69,0.07)', border:'1.5px solid rgba(220,53,69,0.3)', borderRadius:'10px', padding:'0.85rem 1rem', marginBottom:'1rem', fontSize:'0.83rem', color:'#6b2530', display:'flex', alignItems:'flex-start', gap:'0.6rem', lineHeight:1.55 }}>
-                  <i className="fas fa-user-lock" style={{ color:'#dc3545', marginTop:'0.15rem', flexShrink:0 }} />
-                  <span><strong style={{ color:'#b02a37' }}>Account already verified.</strong> {duplicateError}</span>
+                <div className="va-alert danger">
+                  <i className="fas fa-user-lock" />
+                  <span><strong>Account already verified.</strong> {duplicateError}</span>
                 </div>
               )}
               {ocrDone && !ocrLoading && !duplicateError && (
-                <div style={{ background:'rgba(25,135,84,0.07)', border:'1.5px solid rgba(25,135,84,0.3)', borderRadius:'10px', padding:'0.75rem 1rem', marginBottom:'1rem', fontSize:'0.82rem', color:'#198754', display:'flex', alignItems:'center', gap:'0.5rem' }}>
+                <div className="va-alert success">
                   <i className="fas fa-check-circle" />
-                  <span><strong>ID scanned successfully.</strong> Your information has been auto-filled. Please review before proceeding.</span>
+                  <span><strong>ID scanned successfully.</strong> Your details were filled in automatically. Please review them on the next step.</span>
                 </div>
               )}
 
-              <div style={{ background:'rgba(67,97,238,0.06)', border:'1.5px solid rgba(67,97,238,0.25)', borderRadius:'12px', padding:'1rem 1.1rem', marginBottom:'1.25rem', fontSize:'0.82rem', color:'#444' }}>
-                <div style={{ fontWeight:'700', color:'#4361ee', marginBottom:'0.5rem', fontSize:'0.88rem' }}>
-                  <i className="fas fa-lightbulb me-2" style={{ color:'#ffc107' }} />Tip for Muntinlupa Residents
-                </div>
-                <p style={{ marginBottom:'0.4rem', lineHeight: 1.6 }}>
-                  If you are a <strong style={{ color:'#1a1a1a' }}>Muntinlupa City resident</strong> but your current valid ID does not show a Muntinlupa address, you can get a <strong style={{ color:'#4361ee' }}>Barangay ID</strong> from your local barangay hall — it's <strong style={{ color:'#1a1a1a' }}>free</strong> and will be accepted here.
-                </p>
-                <div style={{ display:'flex', alignItems:'flex-start', gap:'0.5rem', marginTop:'0.5rem', background:'rgba(255,193,7,0.08)', borderRadius:'8px', padding:'0.6rem 0.75rem' }}>
-                  <i className="fas fa-check-circle" style={{ color:'#28a745', marginTop:'0.15rem', flexShrink:0 }} />
-                  <span>A <strong>Barangay ID with your Muntinlupa address</strong> will qualify you for <strong style={{ color:'#28a745' }}>Full Verification</strong> status.</span>
+              <div className="va-tip">
+                <div className="va-tip-ic"><i className="fas fa-lightbulb" /></div>
+                <div>
+                  <div className="va-tip-title">Tip for Muntinlupa residents</div>
+                  <p>If your current ID doesn't show a Muntinlupa address, get a free <strong>Barangay ID</strong> from your barangay hall. A Barangay ID with your Muntinlupa address qualifies you for <strong className="text-success">Full Verification</strong>.</p>
                 </div>
               </div>
 
               <Form.Group className="mb-3">
-                <Form.Label style={ls}><i className="fas fa-id-badge me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />ID Type</Form.Label>
-                <div style={{ ...es, background:'#e9ecef', color: idForm.valid_id_type ? '#1a1a1a' : '#9ca3af', display:'flex', alignItems:'center', gap:'0.5rem', cursor:'not-allowed' }}>
+                <Form.Label style={ls}>ID type</Form.Label>
+                <div className={`va-readonly${idForm.valid_id_type ? ' ok' : ''}`}>
                   {idForm.valid_id_type
-                    ? <><i className="fas fa-check-circle" style={{ color:'#198754' }} />{idForm.valid_id_type}</>
-                    : <><i className="fas fa-magic" style={{ color:'#adb5bd' }} />Will be detected automatically after upload</>
-                  }
+                    ? <><i className="fas fa-check-circle" />{idForm.valid_id_type}</>
+                    : <><i className="fas fa-magic" />Detected automatically after you upload both sides</>}
                 </div>
                 {idForm.valid_id_type === 'Other' && (
-                  <small style={{ color:'#f59e0b', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}>
-                    <i className="fas fa-exclamation-triangle me-1" />Couldn't confidently match a known ID type — it'll be reviewed manually.
-                  </small>
+                  <div className="va-hint warn"><i className="fas fa-exclamation-triangle" />We couldn't confidently match a known ID type, so it will be checked manually.</div>
                 )}
               </Form.Group>
 
@@ -775,21 +852,17 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
                   { label: 'ID Front', file: idFrontFile, preview: idFrontPreview, setter: setIdFrontFile, previewSetter: setIdFrontPreview },
                   { label: 'ID Back',  file: idBackFile,  preview: idBackPreview,  setter: setIdBackFile,  previewSetter: setIdBackPreview },
                 ].map(({ label, preview, setter, previewSetter }) => (
-                  <Col md={6} key={label}>
+                  <Col xs={6} key={label}>
                     <Form.Group className="mb-3">
                       <Form.Label style={ls}>
                         <i className="fas fa-camera me-2" style={{ color:'#ffc107', fontSize:'0.8rem' }} />
                         {label} <Req />
                       </Form.Label>
                       <label style={{ display:'block', cursor: verifySubmitting ? 'not-allowed' : 'pointer' }}>
-                        <div
-                          style={{ border:`2px dashed ${preview ? '#ffc107' : '#dee2e6'}`, borderRadius:'12px', padding:'1rem', textAlign:'center', background:'#f8f9fa', minHeight:'140px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}
-                          onMouseOver={e => { if (!verifySubmitting) e.currentTarget.style.borderColor='#ffc107'; }}
-                          onMouseOut={e  => e.currentTarget.style.borderColor = preview ? '#ffc107' : '#dee2e6'}
-                        >
+                        <div className={`va-drop${preview ? ' has' : ''}${verifySubmitting ? ' disabled' : ''}`}>
                           {preview
-                            ? <img src={preview} alt={label} style={{ width:'100%', maxHeight:'110px', objectFit:'contain', borderRadius:'8px' }} />
-                            : <><i className="fas fa-upload" style={{ fontSize:'1.5rem', color:'#ccc', marginBottom:'0.5rem' }} /><small style={{ color:'#888', fontSize:'0.78rem' }}>Click to upload</small></>
+                            ? <><img src={preview} alt={label} /><span className="va-drop-change"><i className="fas fa-sync-alt" />Change</span></>
+                            : <><span className="va-drop-ic"><i className="fas fa-camera" /></span><strong>{label === 'ID Front' ? 'Front of your ID' : 'Back of your ID'}</strong><small>Tap to upload a clear photo</small></>
                           }
                         </div>
                         <input
@@ -830,9 +903,9 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
           {/* ── Step 2 ── */}
           {verifyStep === 2 && (
             <>
-              <div style={{ background:'rgba(255,193,7,0.06)', border:'1.5px dashed #ffc107', borderRadius:'12px', padding:'0.85rem 1rem', marginBottom:'1.5rem', fontSize:'0.85rem', color:'#666' }}>
-                <i className="fas fa-info-circle me-2" style={{ color:'#ffc107' }} />
-                Fill in your details exactly as they appear on your registration. Your <strong style={{ color:'#1a1a1a' }}>name must match your uploaded ID</strong>.
+              <div className="va-alert warn">
+                <i className="fas fa-info-circle" />
+                <span>Check that your details are correct. Your <strong>name must match your uploaded ID</strong>.</span>
               </div>
 
               <Form.Group className="mb-3">
@@ -922,11 +995,7 @@ style={{ ...es, colorScheme:'light', border: (profileFieldErrors.birthdate || pr
                 </Col>
               </Row>
 
-              <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', margin:'0.75rem 0 1rem' }}>
-                <i className="fas fa-map-marker-alt" style={{ color:'#ffc107', fontSize:'0.95rem' }} />
-                <span style={{ fontWeight:'700', fontSize:'0.95rem', color:'#1a1a1a' }}>Address</span>
-                <div style={{ flex:1, height:'1px', background:'rgba(0,0,0,0.08)', marginLeft:'0.5rem' }} />
-              </div>
+              <div className="va-section-title"><i className="fas fa-map-marker-alt" />Address</div>
 
               <Row>
                 <Col md={6}>
@@ -982,96 +1051,91 @@ style={{ ...es, colorScheme:'light', border: (profileFieldErrors.birthdate || pr
               </Row>
 
               {(idForm.province || idForm.city || idForm.barangay) && (
-                <div style={{ background:'rgba(255,193,7,0.06)', border:'1.5px solid rgba(255,193,7,0.3)', borderRadius:'10px', padding:'0.75rem 1rem', marginBottom:'0.5rem', fontSize:'0.82rem', color:'#555' }}>
-                  <i className="fas fa-map-marker-alt me-2" style={{ color:'#ffc107' }} />
-                  <strong style={{ color:'#1a1a1a' }}>Address preview: </strong>
-                  {[idForm.house_no, idForm.street, barangayList.find(b => b.psgcCode === idForm.barangay)?.name, cities.find(c => c.psgcCode === idForm.city)?.name, provinces.find(p => p.psgcCode === idForm.province)?.name].filter(Boolean).join(', ')}
+                <div className="va-preview">
+                  <i className="fas fa-map-marker-alt" />
+                  <div>
+                    <div className="va-preview-label">Address preview</div>
+                    {[idForm.house_no, idForm.street, barangayList.find(b => b.psgcCode === idForm.barangay)?.name, cities.find(c => c.psgcCode === idForm.city)?.name, provinces.find(p => p.psgcCode === idForm.province)?.name].filter(Boolean).join(', ')}
+                  </div>
                 </div>
               )}
             </>
           )}
         </Modal.Body>
-        <Modal.Footer style={{ padding:'1.25rem 2rem', borderTop:'1px solid #e9ecef' }}>
+        <Modal.Footer className="va-foot">
           {verifyStep === 1 ? (
             <>
-              <Button variant="secondary" onClick={requestClose} disabled={verifySubmitting} style={{ borderRadius:'10px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>Cancel</Button>              <Button onClick={handleVerifyStep1Next} disabled={verifySubmitting || ocrLoading || !ocrDone || !idFrontFile || !idBackFile || !!duplicateError} className="border-0"
-                style={{ background: duplicateError ? '#adb5bd' : 'linear-gradient(135deg,#ffc107,#ffb300)', color: duplicateError ? '#6c757d' : '#000', borderRadius:'10px', padding:'0.75rem 1.75rem', fontWeight:'700', boxShadow: duplicateError ? 'none' : '0 4px 14px rgba(255,193,7,0.4)', cursor: duplicateError ? 'not-allowed' : 'pointer', opacity:(!ocrDone || !idFrontFile || !idBackFile) ? 0.6 : 1 }}>
-                {ocrLoading ? <WaveDots /> : <>Next — Confirm Info <i className="fas fa-arrow-right ms-2" /></>}
-              </Button>
+              <button type="button" className="va-btn ghost" onClick={requestClose} disabled={verifySubmitting}>Cancel</button>
+              <button type="button" className="va-btn primary" onClick={handleVerifyStep1Next}
+                disabled={verifySubmitting || ocrLoading || !ocrDone || !idFrontFile || !idBackFile || !!duplicateError}>
+                {ocrLoading ? <WaveDots /> : <>Next: confirm details<i className="fas fa-arrow-right" /></>}
+              </button>
             </>
           ) : (
             <>
-              <Button variant="secondary" onClick={() => setVerifyStep(1)} disabled={verifySubmitting} style={{ borderRadius:'10px', padding:'0.75rem 1.5rem', fontWeight:'600' }}><i className="fas fa-arrow-left me-2" />Back</Button>
-              <Button onClick={handleVerifySubmit} disabled={verifySubmitting || !idForm.barangay || !idForm.street || !idForm.house_no} className="border-0"
-                style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', color:'#000', borderRadius:'10px', padding:'0.75rem 1.75rem', fontWeight:'700', boxShadow:'0 4px 14px rgba(255,193,7,0.4)' }}>
-                {verifySubmitting ? <WaveDots /> : <><i className="fas fa-paper-plane me-2" />Submit for Verification</>}
-              </Button>
+              <button type="button" className="va-btn ghost" onClick={() => setVerifyStep(1)} disabled={verifySubmitting}><i className="fas fa-arrow-left" />Back</button>
+              <button type="button" className="va-btn primary" onClick={handleVerifySubmit}
+                disabled={verifySubmitting || !idForm.barangay || !idForm.street || !idForm.house_no}>
+                {verifySubmitting ? <WaveDots /> : <><i className="fas fa-paper-plane" />Submit for verification</>}
+              </button>
             </>
           )}
         </Modal.Footer>
       </Modal>
 
       {/* ── Post-submission Reviewing Modal ── */}
-      <Modal show={showReviewingModal} onHide={() => {}} backdrop="static" keyboard={false} centered style={{ zoom: window.innerWidth >= 1920 ? 1 : window.innerWidth >= 1600 ? 0.9 : 0.75, zIndex:99999 }}>
-        <Modal.Body style={{ padding:'2.5rem', background:'linear-gradient(135deg,#ffffff,#f8f9fa)', borderRadius:'20px', border:'1px solid rgba(255,193,7,0.2)', textAlign:'center' }}>
-          <div style={{ width:'80px', height:'80px', borderRadius:'50%', background:'rgba(255,193,7,0.12)', border:'3px solid rgba(255,193,7,0.3)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.5rem', boxShadow:'0 8px 24px rgba(255,193,7,0.2)' }}>
+      <Modal show={showReviewingModal} onHide={() => {}} backdrop="static" keyboard={false} centered dialogClassName="va-small" className="va-zoom-modal" style={{ zIndex: 99999 }}>
+        <Modal.Body className="va-small-body">
+          <div className={`va-small-icon${reviewStep === 2 ? ' ok' : ''}`}>
             {reviewStep < 2
-              ? <Spinner animation="border" style={{ color:'#ffc107', width:'2.2rem', height:'2.2rem', borderWidth:'3px' }} />
-              : <i className="fas fa-check" style={{ fontSize:'2rem', color:'#198754' }} />
-            }
+              ? <Spinner animation="border" style={{ color:'#e0a800', width:'1.6rem', height:'1.6rem', borderWidth:'3px' }} />
+              : <i className="fas fa-check" />}
           </div>
-          <h5 style={{ fontWeight:'800', color:'#212529', marginBottom:'0.5rem', fontSize:'1.3rem' }}>
+          <h5 className="va-small-title">
             {reviewStep === 0 && 'Submitting your ID…'}
-            {reviewStep === 1 && 'Under Review'}
-            {reviewStep === 2 && 'Submission Complete!'}
+            {reviewStep === 1 && 'Checking your ID'}
+            {reviewStep === 2 && 'Submission complete!'}
           </h5>
-          <p style={{ fontSize:'0.9rem', color:'#6c757d', marginBottom:'2rem' }}>
+          <p className="va-small-text">
             {reviewStep === 0 && 'Uploading your documents, please wait.'}
-            {reviewStep === 1 && 'Our team is reviewing your documents. This usually takes 1–2 business days.'}
-            {reviewStep === 2 && <span>Your ID has been submitted. You will be notified once verification is complete.</span>}
+            {reviewStep === 1 && 'We are checking the details on your ID.'}
+            {reviewStep === 2 && 'Your ID has been submitted and your verification status has been updated.'}
           </p>
-          <div style={{ display:'flex', justifyContent:'center', gap:'0', marginBottom:'2rem', position:'relative' }}>
-            <div style={{ position:'absolute', top:'15px', left:'calc(50% - 80px)', width:'160px', height:'2px', background:'#e9ecef', zIndex:0 }} />
-            <div style={{ position:'absolute', top:'15px', left:'calc(50% - 80px)', width: reviewStep >= 1 ? (reviewStep >= 2 ? '160px' : '80px') : '0px', height:'2px', background:'#ffc107', transition:'width 0.8s ease', zIndex:1 }} />
-            {[{ label:'Submitted', icon:'fa-paper-plane' }, { label:'Under Review', icon:'fa-search' }, { label:'Verified', icon:'fa-check-circle' }].map((s, i) => {
-              const done = reviewStep > i, active = reviewStep === i;
+          <div className="va-track">
+            {[{ label:'Submitted', icon:'fa-paper-plane' }, { label:'Checking', icon:'fa-search' }, { label:'Done', icon:'fa-check' }].map((s, i) => {
+              const done = reviewStep > i || reviewStep === 2, active = reviewStep === i && reviewStep < 2;
               return (
-                <div key={s.label} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.4rem', width:'100px', zIndex:2 }}>
-                  <div style={{ width:'30px', height:'30px', borderRadius:'50%', background: done ? '#198754' : active ? '#ffc107' : '#e9ecef', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.5s', boxShadow: active ? '0 0 0 4px rgba(255,193,7,0.25)' : 'none' }}>
-                    <i className={`fas ${s.icon}`} style={{ fontSize:'0.72rem', color:(done||active) ? '#fff' : '#aaa' }} />
+                <React.Fragment key={s.label}>
+                  {i > 0 && <div className={`va-track-line${reviewStep >= i ? ' done' : ''}`} />}
+                  <div className={`va-track-step${done ? ' done' : active ? ' on' : ''}`}>
+                    <span><i className={`fas ${done ? 'fa-check' : s.icon}`} /></span>
+                    <small>{s.label}</small>
                   </div>
-                  <span style={{ fontSize:'0.68rem', fontWeight:'600', color: done ? '#198754' : active ? '#ffc107' : '#aaa', textAlign:'center', lineHeight:1.3 }}>{s.label}</span>
-                </div>
+                </React.Fragment>
               );
             })}
           </div>
-          {reviewStep === 2 && (
-            <Button onClick={() => { setShowReviewingModal(false); window.location.reload(); }}
-              style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', border:'none', color:'#000', borderRadius:'12px', padding:'0.75rem 2rem', fontWeight:'700', fontSize:'1rem' }}>
-              <i className="fas fa-check me-2" />Done
-            </Button>
-          )}
         </Modal.Body>
+        {reviewStep === 2 && (
+          <Modal.Footer className="va-foot">
+            <button type="button" className="va-btn primary w-100" onClick={() => { setShowReviewingModal(false); window.location.reload(); }}>
+              <i className="fas fa-check" />Done
+            </button>
+          </Modal.Footer>
+        )}
       </Modal>
-            {/* ── Exit Confirmation Modal ── */}
-      <Modal show={showExitConfirm} onHide={() => setShowExitConfirm(false)} centered style={{ zoom: window.innerWidth >= 1920 ? 1 : window.innerWidth >= 1600 ? 0.9 : 0.75, zIndex: 100000 }}>
-        <Modal.Body style={{ padding:'2rem', textAlign:'center', borderRadius:'20px' }}>
-          <div style={{ width:'64px', height:'64px', borderRadius:'50%', background:'rgba(220,53,69,0.1)', border:'2px solid rgba(220,53,69,0.25)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.25rem' }}>
-            <i className="fas fa-exclamation-triangle" style={{ fontSize:'1.5rem', color:'#dc3545' }} />
-          </div>
-          <h5 style={{ fontWeight:'800', color:'#212529', marginBottom:'0.5rem' }}>Discard your progress?</h5>
-          <p style={{ fontSize:'0.9rem', color:'#6c757d', marginBottom:'1.75rem' }}>
-            You have unsaved verification details. If you leave now, your uploaded ID and form entries will be lost.
-          </p>
-          <div style={{ display:'flex', gap:'0.75rem', justifyContent:'center' }}>
-            <Button variant="secondary" onClick={() => setShowExitConfirm(false)} style={{ borderRadius:'10px', padding:'0.65rem 1.5rem', fontWeight:'600' }}>
-              Keep Editing
-            </Button>
-            <Button onClick={confirmClose} className="border-0" style={{ background:'#dc3545', color:'#fff', borderRadius:'10px', padding:'0.65rem 1.5rem', fontWeight:'700' }}>
-              Discard & Exit
-            </Button>
-          </div>
+
+      {/* ── Exit Confirmation Modal ── */}
+      <Modal show={showExitConfirm} onHide={() => setShowExitConfirm(false)} centered dialogClassName="va-small" className="va-zoom-modal" style={{ zIndex: 100000 }}>
+        <Modal.Body className="va-small-body">
+          <div className="va-small-icon danger"><i className="fas fa-exclamation-triangle" /></div>
+          <h5 className="va-small-title">Discard your progress?</h5>
+          <p className="va-small-text mb-0">Your uploaded ID and the details you entered will be lost if you leave now.</p>
         </Modal.Body>
+        <Modal.Footer className="va-foot">
+          <button type="button" className="va-btn ghost" onClick={() => setShowExitConfirm(false)}>Keep editing</button>
+          <button type="button" className="va-btn danger" onClick={confirmClose}>Discard &amp; exit</button>
+        </Modal.Footer>
       </Modal>
     </>
   );

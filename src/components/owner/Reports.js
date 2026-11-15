@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table } from 'react-bootstrap';
+import { Container, Row, Col, Alert, Spinner, Modal, Form } from 'react-bootstrap';
 import { barangayAPI, handleAPIError } from '../../services/api';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
@@ -35,28 +35,6 @@ const REPORT_TYPES = [
   { value: 'animal_rescue', label: 'Animal Rescue', img: '/animal_rescue.png', color: '#0d6efd', bg: 'rgba(13,110,253,0.08)',   activeBg: '#eef3ff' },
   { value: 'others',        label: 'Others',        img: '/others.png',        color: '#6c757d', bg: 'rgba(108,117,125,0.08)',  activeBg: '#f5f5f5' },
 ];
-
-const getStatusBadge = (status) => {
-  const config = {
-    pending:          { label: 'Pending',          color: '#ffffff', bg: '#ffc107', border: '#e0a800' },
-    suspected_rabies: { label: 'Suspected Rabies', color: '#ffffff', bg: '#dc3545', border: '#b02a37' },
-    positive_rabies:  { label: 'Positive Rabies',  color: '#ffffff', bg: '#6f0000', border: '#4a0000' },
-    ongoing:          { label: 'Ongoing',           color: '#ffffff', bg: '#0dcaf0', border: '#0aaabf' },
-    resolved:         { label: 'Resolved',          color: '#ffffff', bg: '#198754', border: '#146c43' },
-    declined:         { label: 'Declined',          color: '#ffffff', bg: '#6c757d', border: '#565e64' },
-  };
-  const cfg = config[status] || { label: status || 'Unknown', color: '#fff', bg: '#6c757d', border: '#565e64' };
-  return (
-    <Badge style={{
-      background: cfg.bg, color: cfg.color,
-      border: `1px solid ${cfg.border}`,
-      fontWeight: '600', fontSize: '0.75rem',
-      padding: '0.35rem 0.65rem', borderRadius: '20px'
-    }}>
-      {cfg.label}
-    </Badge>
-  );
-};
 
 const getReportType = (value) => REPORT_TYPES.find(t => t.value === value) || REPORT_TYPES[3];
 // ─── Load Leaflet from CDN (no npm install needed) ───
@@ -658,6 +636,155 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
     .rp-filter.on { background: #1f2328; border-color: #1f2328; color: #fff; }
     .rp-filter.on .count { background: rgba(255,255,255,0.2); color: #fff; }
     .rp-filter:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    /* Page: normal size on phones */
+    @media (max-width: 768px) { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
+
+    /* Modals: same zoom as the page; normal size and centered on phones */
+    .rp-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .rp-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .rp-zoom-modal { zoom: 1; } }
+    @media (max-width: 768px) {
+      .rp-zoom-modal { zoom: 1; }
+      .rp-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .rp-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+    }
+
+    /* Big modals (submit / view) */
+    .rm-modal { max-width: 680px; }
+    .rm-modal.lg { max-width: 940px; }
+    .rm-modal .modal-content, .cm-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .rm-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%); }
+    .rm-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .rm-head-ic { width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #b88a00; background: rgba(255,193,7,0.18); }
+    .rm-head-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .rm-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b88a00; }
+    .rm-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; word-break: break-word; }
+    .rm-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .rm-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .rm-num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; font-weight: 600; color: #6b7280; margin-top: 0.15rem; }
+    .rm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .rm-req { color: #dc3545; }
+    .rm-body { padding: 1.4rem 1.5rem !important; }
+    .rm-section { margin-bottom: 1.4rem; }
+    .rm-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.75rem; }
+    .rm-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .rm-count { margin-left: auto; font-size: 0.7rem; background: #f3f4f6; color: #4b5563; padding: 0.1rem 0.55rem; border-radius: 999px; letter-spacing: 0; }
+    .rm-label { font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+    .rm-input { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .rm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .rm-input.good { border-color: #10b981 !important; }
+    .rm-input.bad { border-color: #ef4444 !important; }
+    .rm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+    .rm-hint.bad { color: #dc3545; }
+    .rm-readonly { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1.5px dashed #e5e7eb; background: #f8f9fa; font-size: 0.92rem; font-weight: 600; color: #1f2328; }
+    .rm-readonly i { color: #9ca3af; }
+    .rm-readonly.empty { font-weight: 500; font-style: italic; color: #9ca3af; }
+    .rm-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .rm-type { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.9rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 14px; background: #fff; transition: all 0.15s ease; }
+    .rm-type:hover:not(:disabled) { border-color: color-mix(in srgb, var(--c) 50%, #fff); }
+    .rm-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 6%, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 15%, transparent); }
+    .rm-type-ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .rm-type-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .rm-type-label { font-weight: 700; font-size: 0.86rem; color: #374151; text-align: center; line-height: 1.2; }
+    .rm-type.on .rm-type-label { color: var(--c); }
+    .rm-type-check { position: absolute; top: 7px; right: 8px; color: var(--c); font-size: 0.85rem; }
+    .rm-map { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .rm-pin { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; padding: 0.55rem 0.75rem; border-radius: 10px; background: #f8f9fa; color: #6b7280; font-size: 0.8rem; }
+    .rm-pin.ok { background: rgba(25,135,84,0.07); color: #146c43; border: 1px solid rgba(25,135,84,0.2); }
+    .rm-pin .rm-mono { margin-left: 0.3rem; opacity: 0.85; }
+    .rm-pin button { margin-left: auto; border: none; background: none; color: #dc3545; font-size: 0.78rem; font-weight: 600; padding: 0; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .rm-photos { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .rm-thumb { position: relative; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #f8f9fa; padding: 0; flex-shrink: 0; }
+    .rm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .rm-thumb > button { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(17,24,39,0.7); color: #fff; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; }
+    .rm-thumb.view { cursor: zoom-in; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .rm-thumb.view:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+    .rm-thumb-zoom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); color: transparent; transition: all 0.15s ease; }
+    .rm-thumb.view:hover .rm-thumb-zoom { background: rgba(0,0,0,0.3); color: #fff; }
+    .rm-thumb.broken::after { content: 'No preview'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #9ca3af; }
+    .rm-thumb.sm { width: 64px; height: 64px; border-radius: 10px; }
+    .rm-drop { width: 96px; height: 96px; border-radius: 12px; border: 1.5px dashed #d1d5db; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; color: #6b7280; font-size: 0.78rem; font-weight: 600; cursor: pointer; margin: 0; transition: all 0.15s ease; }
+    .rm-drop i { font-size: 1rem; color: #e0a800; }
+    .rm-drop:hover { border-color: #ffc107; background: #fffaeb; color: #1f2328; }
+    .rm-drop.disabled { opacity: 0.5; pointer-events: none; }
+    .rm-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .rm-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .rm-info.wide { grid-column: 1 / -1; }
+    .rm-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #fff; border: 1px solid #eef0f3; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .rm-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .rm-info-value { font-size: 0.9rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .rm-desc { font-size: 0.92rem; color: #374151; line-height: 1.6; margin: 0; white-space: pre-line; word-break: break-word; }
+    .rm-desc.sm { font-size: 0.86rem; padding: 0.65rem 0.8rem; border: 1px solid #eef0f3; border-radius: 10px; background: #fafbfc; }
+    .rm-desc.muted { color: #9ca3af; font-style: italic; }
+    .rm-admin { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 12px; background: rgba(13,110,253,0.05); border: 1px solid rgba(13,110,253,0.18); }
+    .rm-admin-head { font-size: 0.78rem; font-weight: 700; color: #0a58ca; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem; }
+    .rm-admin p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+    .rm-map.view { min-height: 260px; }
+    .rm-empty { padding: 1.25rem; border: 1px dashed #e5e7eb; border-radius: 12px; color: #9ca3af; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .rm-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .rm-alert i { margin-top: 3px; }
+    .rm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .rm-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; }
+    .rm-lightbox { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .rm-lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); transition: transform 0.1s ease; }
+    .rm-lb-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .rm-lb-btn.close { top: 1.25rem; right: 1.25rem; }
+    .rm-lb-btn.prev { left: 1rem; top: 50%; transform: translateY(-50%); }
+    .rm-lb-btn.next { right: 1rem; top: 50%; transform: translateY(-50%); }
+    .rm-lb-count { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.75); font-size: 0.8rem; font-weight: 600; }
+
+    /* Small confirmation modals (withdraw / verify / review) */
+    .cm-modal { max-width: 430px; }
+    .cm-modal.wide { max-width: 520px; }
+    @keyframes cmPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .cm-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; position: relative; }
+    .cm-x { position: absolute; top: 1rem; right: 1rem; }
+    .cm-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: cmPop 0.4s ease-out; }
+    .cm-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .cm-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .cm-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .cm-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-item-av img { width: 26px; height: 26px; object-fit: contain; }
+    .cm-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .cm-item-meta { font-size: 0.76rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cm-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 7%, #fff); border: 1px solid color-mix(in srgb, var(--c) 22%, #fff); }
+    .cm-note i { margin-top: 3px; }
+    .cm-steps { text-align: left; display: flex; flex-direction: column; gap: 0.45rem; }
+    .cm-step { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.75rem; border: 1px solid #eef0f3; border-radius: 10px; background: #fafbfc; font-size: 0.86rem; color: #374151; font-weight: 500; }
+    .cm-step span { width: 22px; height: 22px; border-radius: 50%; background: #ffc107; color: #1f2328; font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-step i { color: #b88a00; width: 16px; text-align: center; }
+    .cm-foot { border-top: 1px solid #eef0f3 !important; padding: 0.9rem 1.4rem !important; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .cm-foot .rp-btn { flex: 1; margin: 0; padding: 0.62rem; }
+    .cm-confirm { background: var(--c); color: #fff; }
+    .cm-confirm:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000); color: #fff; }
+
+    @media (max-width: 991.98px) {
+      .rm-types { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .rm-head { padding: 1rem !important; }
+      .rm-head-ic { width: 42px; height: 42px; }
+      .rm-title { font-size: 1.08rem; }
+      .rm-body { padding: 1rem !important; }
+      .rm-type { flex-direction: row; justify-content: flex-start; padding: 0.65rem 0.7rem; gap: 0.55rem; }
+      .rm-type-ic { width: 36px; height: 36px; border-radius: 10px; }
+      .rm-type-ic img { width: 22px; height: 22px; }
+      .rm-type-label { text-align: left; font-size: 0.82rem; }
+      .rm-thumb, .rm-drop { width: 84px; height: 84px; }
+      .rm-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .rm-info-ic { display: none; }
+      .rm-info-value { font-size: 0.86rem; }
+      .rm-foot { padding: 0.75rem 1rem !important; }
+      .rm-foot .rp-btn { flex: 1; }
+      .rm-foot .me-auto { margin-right: 0 !important; }
+      .cm-body { padding: 1.5rem 1.1rem 1rem !important; }
+      .cm-foot { padding: 0.8rem 1rem !important; }
+    }
+    @media (max-width: 380px) {
+      .rm-info-grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { .cm-icon { animation: none; } }
   `;
 
   useEffect(() => {
@@ -682,15 +809,19 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
     }
   };
 
+  // Only the first load shows the skeleton; later reloads (after submit / withdraw)
+  // update the list in place so the page keeps its scroll position.
+  const hasLoadedRef = useRef(false);
   const loadReports = async () => {
     try {
-      setLoading(true);
+      if (!hasLoadedRef.current) setLoading(true);
       const response = await reportsAPI.getMyReports();
       setReports(response.data.reports || []);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   };
@@ -825,6 +956,16 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
     } finally {
       setDeleteLoading(false);
     }
+  };
+
+  // Full URL for a report photo stored on the API server
+  const API_BASE = (window.location.hostname === 'localhost'
+    ? 'http://localhost/city-pet-vaccination-api'
+    : 'https://city-pet-vaccination-api.onrender.com').replace(/\/+$/, '');
+  const getImgUrl = (img) => {
+    if (!img) return '';
+    if (img.startsWith('http')) return img;
+    return `${API_BASE}/${img.replace(/^\/+/, '')}`;
   };
 
   const isVerified = () => ownerProfile?.verification_status === 'fully_verified';
@@ -1138,682 +1279,411 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
         )}
 
         {/* ======================== SUBMIT REPORT MODAL ======================== */}
-        <Modal show={showSubmitModal} onHide={() => setShowSubmitModal(false)} size="lg" backdrop="static" centered={window.innerWidth <= 768} style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
-          <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-            <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-              <i className="fas fa-flag me-2" style={{ color: '#ffc107' }}></i>
-              Submit a Report
-            </Modal.Title>
+        <Modal show={showSubmitModal} onHide={() => !submitLoading && setShowSubmitModal(false)} backdrop="static" dialogClassName="rm-modal" className="rp-zoom-modal" scrollable>
+          <Modal.Header closeButton className="rm-head">
+            <div className="rm-head-main">
+              <div className="rm-head-ic"><i className="fas fa-flag" /></div>
+              <div>
+                <div className="rm-kicker">New report</div>
+                <Modal.Title as="h5" className="rm-title">Submit a report</Modal.Title>
+                <div className="rm-head-sub">Fields marked <span className="rm-req">*</span> are required.</div>
+              </div>
+            </div>
           </Modal.Header>
-          <Form onSubmit={handleSubmitReport}>
-            <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
-              {submitError && (
-                <Alert variant="danger" className="mb-3">
-                  <i className="fas fa-exclamation-triangle me-2"></i>{submitError}
-                </Alert>
-              )}
+          <Modal.Body className="rm-body">
+            {submitError && <div className="rm-alert danger"><i className="fas fa-exclamation-triangle" />{submitError}</div>}
 
-              {/* Report Type */}
-              <Row className="mb-4">
-                <Col md={12}>
-                  <Form.Group>
-                    <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                      Report Type <span style={{ color: '#dc3545' }}>*</span>
-                    </Form.Label>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '1rem',
-                        overflowX: 'auto',
-                        paddingBottom: '1rem',
-                        scrollbarWidth: 'thin',
-                        scrollbarColor: '#dee2e6 #f8f9fa'
-                      }}
-                      className="event-type-scroll"
-                    >
-                      {REPORT_TYPES.map(type => (
-                        <div
-                          key={type.value}
-                          onClick={() => setFormData(prev => ({ ...prev, report_type: type.value }))}
-                          style={{
-                            minWidth: '200px',
-                            flex: '0 0 auto',
-                            padding: '1.5rem',
-                            border: formData.report_type === type.value ? `3px solid ${type.color}` : '2px solid #dee2e6',
-                            borderRadius: '12px',
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            background: formData.report_type === type.value ? type.activeBg : '#ffffff',
-                            transition: 'all 0.3s',
-                            userSelect: 'none',
-                          }}
-                        >
-                          <img
-                            src={type.img}
-                            alt={type.label}
-                            style={{ width: '50px', height: '50px', objectFit: 'contain', marginBottom: '0.5rem' }}
-                            onError={e => e.target.style.display = 'none'}
-                          />
-                          <div style={{ fontWeight: '600', fontSize: '1.1rem', color: formData.report_type === type.value ? type.color : '#333333' }}>
-                            {type.label}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <style>{`
-                      .event-type-scroll::-webkit-scrollbar { height: 8px; }
-                      .event-type-scroll::-webkit-scrollbar-track { background: #f8f9fa; border-radius: 10px; }
-                      .event-type-scroll::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 10px; }
-                      .event-type-scroll::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
-                    `}</style>
-                  </Form.Group>
-                </Col>
-              </Row>
-              {/* Barangay */}
-              <Row>
+            {/* Report type */}
+            <div className="rm-section">
+              <div className="rm-section-title"><i className="fas fa-tag" />What are you reporting? <span className="rm-req">*</span></div>
+              <div className="rm-types">
+                {REPORT_TYPES.map(type => {
+                  const on = formData.report_type === type.value;
+                  return (
+                    <button key={type.value} type="button" disabled={submitLoading}
+                      className={`rm-type${on ? ' on' : ''}`} style={{ '--c': type.color }}
+                      onClick={() => { setFormData(prev => ({ ...prev, report_type: type.value })); if (submitError) setSubmitError(''); }}
+                      aria-pressed={on}>
+                      {on && <i className="fas fa-check-circle rm-type-check" />}
+                      <span className="rm-type-ic" style={{ background: type.bg }}>
+                        <img src={type.img} alt="" onError={e => { e.target.style.display = 'none'; }} />
+                      </span>
+                      <span className="rm-type-label">{type.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Location */}
+            <div className="rm-section">
+              <div className="rm-section-title"><i className="fas fa-map-marker-alt" />Location</div>
+              <Form.Group className="mb-3">
+                <Form.Label className="rm-label">Pin the exact location <span className="rm-req">*</span></Form.Label>
+                <div className="rm-map">
+                  <LeafletMap
+                    lat={formLat}
+                    lng={formLng}
+                    onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
+                    onAddressResolve={(address) => { setFormData(prev => ({ ...prev, address })); }}
+                    onBarangayDetect={(addrStr) => {
+                      const match = barangays.find(b =>
+                        addrStr.includes(b.name.toLowerCase()) ||
+                        b.name.toLowerCase().split(' ').some(word => word.length > 3 && addrStr.includes(word))
+                      );
+                      if (match) setFormData(prev => ({ ...prev, barangay_id: String(match.id) }));
+                    }}
+                    onError={null}
+                  />
+                </div>
+                {formLat && formLng ? (
+                  <div className="rm-pin ok">
+                    <i className="fas fa-check-circle" />
+                    <span>Location pinned <span className="rm-mono">{formLat.toFixed(5)}, {formLng.toFixed(5)}</span></span>
+                    <button type="button" onClick={() => { setFormLat(null); setFormLng(null); }} disabled={submitLoading}>
+                      <i className="fas fa-times" />Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rm-pin"><i className="fas fa-hand-pointer" />Tap the map to drop a pin. The barangay and address fill in automatically.</div>
+                )}
+              </Form.Group>
+              <Row className="g-3">
                 <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                      Barangay <span style={{ color: '#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={formData.barangay_id ? (barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '') : 'Pin a location on the map to auto-detect'}
-                      readOnly
-                      style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6', background: '#f8f9fa', color: formData.barangay_id ? '#333' : '#aaa', fontStyle: formData.barangay_id ? 'normal' : 'italic' }}
-                    />
-                  </Form.Group>
+                  <Form.Label className="rm-label">Barangay <span className="rm-req">*</span></Form.Label>
+                  <div className={`rm-readonly${formData.barangay_id ? '' : ' empty'}`}>
+                    <i className="fas fa-map" />
+                    {formData.barangay_id ? (barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '') : 'Detected from the map pin'}
+                  </div>
                 </Col>
                 <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                      Contact Number <span style={{ color: '#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="phone_number"
-                      value={formData.phone_number}
-                      onChange={handleFormChange}
-                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-                      placeholder="09XXXXXXXXX"
-                      required
-                      disabled={submitLoading}
-                      style={{
-                        borderRadius: '8px', padding: '0.75rem',
-                        border: formFieldErrors.phone_number
-                          ? '2px solid #ef4444'
-                          : (formData.phone_number && /^09\d{9}$/.test(formData.phone_number))
-                            ? '2px solid #10b981'
-                            : '2px solid #dee2e6'
-                      }}
-                    />
-                    {formFieldErrors.phone_number && (
-                      <small style={{ color: '#ef4444', display: 'block', marginTop: '0.3rem', fontSize: '0.8rem' }}>
-                        <i className="fas fa-times-circle me-1" />{formFieldErrors.phone_number}
-                      </small>
-                    )}
-                  </Form.Group>
+                  <Form.Label className="rm-label">Contact number <span className="rm-req">*</span></Form.Label>
+                  <Form.Control
+                    className={`rm-input${formFieldErrors.phone_number ? ' bad' : (formData.phone_number && /^09\d{9}$/.test(formData.phone_number)) ? ' good' : ''}`}
+                    type="tel" inputMode="numeric" maxLength={11} name="phone_number" value={formData.phone_number}
+                    onChange={handleFormChange}
+                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                    placeholder="09XXXXXXXXX" required disabled={submitLoading}
+                  />
+                  {formFieldErrors.phone_number && <div className="rm-hint bad"><i className="fas fa-times-circle" />{formFieldErrors.phone_number}</div>}
                 </Col>
-              </Row>
-              {/* Description */}
-              <Row>
                 <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                      Description / Details
-                    </Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      name="description"
-                      value={formData.description}
-                      onChange={handleFormChange}
-                      placeholder="Describe the incident or situation in detail..."
-                      disabled={submitLoading}
-                      style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
-                    />
-                  </Form.Group>
+                  <Form.Label className="rm-label">Address <span className="rm-req">*</span></Form.Label>
+                  <Form.Control className="rm-input" type="text" name="address" value={formData.address}
+                    onChange={handleFormChange} placeholder="House no., street, purok / sitio…" required disabled={submitLoading} />
                 </Col>
               </Row>
+            </div>
 
-              {/* Address */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                      Address / Location <span style={{ color: '#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleFormChange}
-                      placeholder="House no., Street, Purok / Sitio..."
-                      required
-                      disabled={submitLoading}
-                      style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
+            {/* Details */}
+            <div className="rm-section">
+              <div className="rm-section-title"><i className="fas fa-align-left" />Details</div>
+              <Form.Control className="rm-input" as="textarea" rows={3} name="description" value={formData.description}
+                onChange={handleFormChange} placeholder="What happened? Describe the animal, the incident, and anything else that can help." disabled={submitLoading} />
+            </div>
 
-              
-              {/* Map */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333333' }}>
-                      <i className="fas fa-map-marker-alt me-2" style={{ color:'#ffc107' }}></i>
-                      Pin Location on Map
-                      <span style={{ fontWeight:'400', color:'#888', fontSize:'0.8rem', marginLeft:'0.5rem' }}>(optional)</span>
-                    </Form.Label>
-                    <LeafletMap
-                      lat={formLat}
-                      lng={formLng}
-                      onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
-                      onAddressResolve={(address) => {
-                        setFormData(prev => ({ ...prev, address }));
-                      }}
-                      onBarangayDetect={(addrStr) => {
-                        const match = barangays.find(b =>
-                          addrStr.includes(b.name.toLowerCase()) ||
-                          b.name.toLowerCase().split(' ').some(word => word.length > 3 && addrStr.includes(word))
-                        );
-                        if (match) {
-                          setFormData(prev => ({ ...prev, barangay_id: String(match.id) }));
-                        }
-                      }}
-                      onError={null}
-                    />
-                    {formLat && formLng && (
-                      <div style={{ marginTop:'0.5rem', padding:'0.5rem 0.75rem', background:'rgba(25,135,84,0.08)', borderRadius:'8px', border:'1px solid rgba(25,135,84,0.2)', fontSize:'0.82rem', color:'#198754' }}>
-                        <i className="fas fa-check-circle me-1"></i>
-                        Location pinned: {formLat.toFixed(6)}, {formLng.toFixed(6)}
-                        <button onClick={() => { setFormLat(null); setFormLng(null); }}
-                          style={{ background:'none', border:'none', color:'#dc3545', fontSize:'0.78rem', marginLeft:'0.75rem', cursor:'pointer', padding:0 }}>
-                          <i className="fas fa-times me-1"></i>Clear
-                        </button>
-                      </div>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Image Upload */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-2">
-                    <Form.Label style={{ fontWeight:'600', color:'#333333' }}>
-                      Attach Photos <span style={{ color: '#dc3545' }}>*</span>
-                      <span style={{ fontWeight:'400', color:'#888', fontSize:'0.8rem', marginLeft:'0.5rem' }}>(max 3)</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageChange}
-                      disabled={submitLoading || imageFiles.length >= 3}
-                      style={{ borderRadius:'8px', border:'2px solid #dee2e6', padding:'0.6rem' }}
-                    />
-                  </Form.Group>
-                  {imagePreviews.length > 0 && (
-                    <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap', marginTop:'0.75rem' }}>
-                      {imagePreviews.map((src, i) => (
-                        <div key={i} style={{ position:'relative' }}>
-                          <img src={src} alt={`preview-${i}`}
-                            style={{ width:'90px', height:'90px', objectFit:'cover', borderRadius:'10px', border:'2px solid #dee2e6' }} />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(i)}
-                            style={{ position:'absolute', top:'-8px', right:'-8px', background:'#dc3545', border:'none', borderRadius:'50%', width:'22px', height:'22px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'0.7rem', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
-                          >
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Col>
-              </Row>
-            </Modal.Body>
-            <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-              <Button variant="secondary" onClick={() => setShowSubmitModal(false)} disabled={submitLoading}
-                style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-                Cancel
-              </Button>
-<Button type="button" disabled={submitLoading} className="border-0"
-                onClick={(e) => {
-                  e.preventDefault();
-                  if (!formData.report_type)         { setSubmitError('Please select a report type.');    return; }
-                  if (!formData.barangay_id)         { setSubmitError('Please select a barangay.');        return; }
-                  if (!formData.address.trim())      { setSubmitError('Please enter your address.');       return; }
-                  if (!formData.phone_number.trim()) { setSubmitError('Please enter a contact number.');   return; }
-                  if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); return; }
-                  if (!formLat || !formLng)          { setSubmitError('Please pin a location on the map before submitting.'); return; }
-                  if (imageFiles.length === 0)        { setSubmitError('Please attach at least one photo.'); return; }
-                  setSubmitError('');
-                  setShowConfirmModal(true);
-                }}                style={{ background: submitLoading ? '#6c757d' : '#ffc107', color: '#000000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', boxShadow: submitLoading ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)', transition: 'all 0.3s' }}
-                onMouseOver={(e) => { if (!submitLoading) { e.target.style.background = '#ffb300'; e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)'; } }}
-                onMouseOut={(e) => { if (!submitLoading) { e.target.style.background = '#ffc107'; e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)'; } }}
-              >
-                {submitLoading ? (<WaveDots />) : (<><i className="fas fa-paper-plane me-2"></i>Submit Report</>)}
-              </Button>
-            </Modal.Footer>
-          </Form>
+            {/* Photos */}
+            <div className="rm-section mb-0">
+              <div className="rm-section-title"><i className="fas fa-camera" />Photos <span className="rm-req">*</span><span className="rm-count">{imageFiles.length}/3</span></div>
+              <div className="rm-photos">
+                {imagePreviews.map((src, i) => (
+                  <div key={i} className="rm-thumb">
+                    <img src={src} alt={`Attachment ${i + 1}`} />
+                    <button type="button" onClick={() => handleRemoveImage(i)} disabled={submitLoading} aria-label="Remove photo"><i className="fas fa-times" /></button>
+                  </div>
+                ))}
+                {imageFiles.length < 3 && (
+                  <label className={`rm-drop${submitLoading ? ' disabled' : ''}`}>
+                    <input type="file" accept="image/*" multiple onChange={handleImageChange} disabled={submitLoading} hidden />
+                    <i className="fas fa-plus" />
+                    <span>Add photo</span>
+                  </label>
+                )}
+              </div>
+              <div className="rm-hint">Up to 3 photos of the animal or the incident.</div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer className="rm-foot">
+            <button type="button" className="rp-btn ghost lg" onClick={() => setShowSubmitModal(false)} disabled={submitLoading}>Cancel</button>
+            <button type="button" className="rp-btn primary lg" disabled={submitLoading}
+              onClick={() => {
+                if (!formData.report_type)         { setSubmitError('Please select a report type.');    return; }
+                if (!formLat || !formLng)          { setSubmitError('Please pin a location on the map before submitting.'); return; }
+                if (!formData.barangay_id)         { setSubmitError('Please pin a location inside Muntinlupa so the barangay can be detected.'); return; }
+                if (!formData.phone_number.trim()) { setSubmitError('Please enter a contact number.');   return; }
+                if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); return; }
+                if (!formData.address.trim())      { setSubmitError('Please enter your address.');       return; }
+                if (imageFiles.length === 0)       { setSubmitError('Please attach at least one photo.'); return; }
+                setSubmitError('');
+                setShowConfirmModal(true);
+              }}>
+              {submitLoading ? <WaveDots /> : <><i className="fas fa-arrow-right" />Review report</>}
+            </button>
+          </Modal.Footer>
         </Modal>
-
-        
 
         {/* ======================== VIEW DETAILS MODAL ======================== */}
-        <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" centered={window.innerWidth <= 768} style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
-          <Modal.Header closeButton
-            style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-            <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-              {selectedReport && (
-                <span style={{ marginRight: '0.75rem' }}>
-                  <img src={getReportType(selectedReport.report_type).img} alt=""
-                    style={{ width: '28px', height: '28px', objectFit: 'contain' }}
-                    onError={e => e.target.style.display = 'none'} />
-                </span>
-              )}
-              Report Details
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem' }}>
-            {selectedReport && (
-              <Row>
-                <Col md={6}>
-                  <Card className="mb-3 border-0" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-                    <Card.Header style={{ background: 'rgba(255, 193, 7, 0.1)', borderBottom: '2px solid rgba(255, 193, 7, 0.3)', borderRadius: '15px 15px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }}></i>
-                        Report Information
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <Table borderless size="sm">
-                        <tbody>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Report No.:</td>
-                            <td style={{ fontWeight: '600', color: '#333333' }}>{selectedReport.report_number || `RPT-${String(selectedReport.id).padStart(6, '0')}`}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Type:</td>
-                            <td style={{ fontWeight: '600', color: '#333333' }}>{getReportType(selectedReport.report_type).label}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Status:</td>
-                            <td>{getStatusBadge(selectedReport.status)}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Barangay:</td>
-                            <td style={{ fontWeight: '600', color: '#333333' }}>{getBarangayName(selectedReport.barangay_id)}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Address:</td>
-                            <td style={{ fontWeight: '600', color: '#333333' }}>{selectedReport.address || 'N/A'}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Contact No.:</td>
-                            <td style={{ fontWeight: '600', color: '#333333' }}>{selectedReport.phone_number || 'N/A'}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Submitted:</td>
-                            <td style={{ fontWeight: '600', color: '#333333' }}>{formatDate(selectedReport.created_at)}</td>
-                          </tr>
-                          {selectedReport.updated_at && selectedReport.updated_at !== selectedReport.created_at && (
-                            <tr>
-                              <td style={{ fontWeight: '600', color: '#666666' }}>Last Updated:</td>
-                              <td style={{ fontWeight: '600', color: '#333333' }}>{formatDate(selectedReport.updated_at)}</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-                </Col>
+        <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} dialogClassName="rm-modal lg" className="rp-zoom-modal" scrollable>
+          {selectedReport && (() => {
+            const r = selectedReport;
+            const t = getReportType(r.report_type);
+            const st = statusMeta(r.status);
+            const images = r.images || [];
+            const info = [
+              { icon: 'fa-map', label: 'Barangay', value: getBarangayName(r.barangay_id) },
+              { icon: 'fa-phone-alt', label: 'Contact no.', value: r.phone_number || 'N/A' },
+              { icon: 'fa-home', label: 'Address', value: r.address || 'N/A', wide: true },
+              { icon: 'fa-calendar-plus', label: 'Submitted', value: formatDate(r.created_at) },
+              r.updated_at && r.updated_at !== r.created_at && { icon: 'fa-history', label: 'Last updated', value: formatDate(r.updated_at) },
+            ].filter(Boolean);
+            return (
+              <>
+                <Modal.Header closeButton className="rm-head" style={{ '--c': t.color }}>
+                  <div className="rm-head-main">
+                    <div className="rm-head-ic tinted" style={{ background: t.bg }}>
+                      <img src={t.img} alt="" onError={e => { e.target.style.display = 'none'; }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="rm-chips">
+                        <span className="rp-chip" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 12%, #fff)` }}>
+                          <i className={`fas ${st.icon}`} />{st.label}
+                        </span>
+                      </div>
+                      <Modal.Title as="h5" className="rm-title">{t.label}</Modal.Title>
+                      <div className="rm-num">#{r.report_number || `RPT-${String(r.id).padStart(6, '0')}`}</div>
+                    </div>
+                  </div>
+                </Modal.Header>
+                <Modal.Body className="rm-body">
+                  <Row className="g-4">
+                    <Col lg={7}>
+                      <div className="rm-section-title"><i className="fas fa-info-circle" />Report information</div>
+                      <div className="rm-info-grid">
+                        {info.map(it => (
+                          <div key={it.label} className={`rm-info${it.wide ? ' wide' : ''}`}>
+                            <div className="rm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="rm-info-label">{it.label}</div>
+                              <div className="rm-info-value">{it.value}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
 
-                <Col md={6}>
-                  <Card className="border-0" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-                    <Card.Header style={{ background: 'rgba(255, 193, 7, 0.1)', borderBottom: '2px solid rgba(255, 193, 7, 0.3)', borderRadius: '15px 15px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-align-left me-2" style={{ color: '#ffc107' }}></i>
-                        Description
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      {selectedReport.description ? (
-                        <p style={{ color: '#555555', lineHeight: '1.7', marginBottom: 0 }}>{selectedReport.description}</p>
-                      ) : (
-                        <div className="text-center text-muted py-3">
-                          <i className="fas fa-comment-slash mb-2" style={{ fontSize: '2rem', color: '#e0e0e0' }}></i>
-                          <p>No additional description provided.</p>
+                      <div className="rm-section-title mt-4"><i className="fas fa-align-left" />Description</div>
+                      <p className={`rm-desc${r.description ? '' : ' muted'}`}>{r.description || 'No additional description provided.'}</p>
+
+                      {r.admin_notes && (
+                        <div className="rm-admin">
+                          <div className="rm-admin-head"><i className="fas fa-user-shield" />Note from the City Vet</div>
+                          <p>{r.admin_notes}</p>
                         </div>
                       )}
-                    </Card.Body>
-                  </Card>
 
-                  {selectedReport.admin_notes && (
-                    <Card className="border-0 mt-3" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-                      <Card.Header style={{ background: 'rgba(13, 202, 240, 0.1)', borderBottom: '2px solid rgba(13, 202, 240, 0.3)', borderRadius: '15px 15px 0 0' }}>
-                        <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                          <i className="fas fa-user-shield me-2" style={{ color: '#0dcaf0' }}></i>
-                          Admin Notes
-                        </h6>
-                      </Card.Header>
-                      <Card.Body>
-                        <p style={{ color: '#555555', lineHeight: '1.7', marginBottom: 0 }}>{selectedReport.admin_notes}</p>
-                      </Card.Body>
-                    </Card>
-                  )}
-                  {/* Images */}
-                  {selectedReport.images && selectedReport.images.length > 0 && (() => {
-                    const API_BASE = (window.location.hostname === 'localhost'
-                      ? 'http://localhost/city-pet-vaccination-api'
-                      : 'https://city-pet-vaccination-api.onrender.com').replace(/\/+$/, '');
-                    const getImgUrl = (img) => {
-                      if (!img) return '';
-                      if (img.startsWith('http')) return img;
-                      return `${API_BASE}/${img.replace(/^\/+/, '')}`;
-                    };
-                    return (
-                      <>
-                        {/* Lightbox overlay — uses React state so it actually renders */}
-                        {lightboxImg && (
-  <div
-    onClick={() => setLightboxImg(null)}
-    onWheel={e => {
-      e.preventDefault();
-      setLightboxZoom(z => Math.min(Math.max(z - e.deltaY * 0.001, 0.5), 5));
-    }}
-    style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.92)', zIndex:99999, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem', cursor:'zoom-in' }}
-  >
-    <img
-      src={lightboxImg}
-      alt="Full view"
-      style={{ maxWidth:'90vw', maxHeight:'90vh', objectFit:'contain', borderRadius:'12px', boxShadow:'0 8px 40px rgba(0,0,0,0.6)', transform:`scale(${lightboxZoom})`, transformOrigin:'center center', transition:'transform 0.1s ease' }}
-      onClick={e => e.stopPropagation()}
-    />
-    <button
-      onClick={() => { setLightboxImg(null); setLightboxZoom(1); }}
-      style={{ position:'absolute', top:'1.5rem', right:'1.5rem', background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)', borderRadius:'50%', width:'44px', height:'44px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'1.2rem', backdropFilter:'blur(4px)' }}
-    >
-      <i className="fas fa-times" />
-    </button>
-    {/* Arrow navigation */}
-    {selectedReport.images.length > 1 && (() => {
-      const currentIdx = selectedReport.images.findIndex(img => getImgUrl(img) === lightboxImg);
-      const prev = selectedReport.images[(currentIdx - 1 + selectedReport.images.length) % selectedReport.images.length];
-      const next = selectedReport.images[(currentIdx + 1) % selectedReport.images.length];
-      return (
-        <>
-          <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(prev)); setLightboxZoom(1); }}
-            style={{ position:'absolute', left:'1rem', top:'50%', transform:'translateY(-50%)', background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)', borderRadius:'50%', width:'44px', height:'44px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'1rem', backdropFilter:'blur(4px)' }}>
-            <i className="fas fa-chevron-left" />
-          </button>
-          <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(next)); setLightboxZoom(1); }}
-            style={{ position:'absolute', right:'4rem', top:'50%', transform:'translateY(-50%)', background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)', borderRadius:'50%', width:'44px', height:'44px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'1rem', backdropFilter:'blur(4px)' }}>
-            <i className="fas fa-chevron-right" />
-          </button>
-          <div style={{ position:'absolute', bottom:'1.25rem', left:'50%', transform:'translateX(-50%)', color:'rgba(255,255,255,0.7)', fontSize:'0.8rem', fontWeight:'600' }}>
-            {currentIdx + 1} / {selectedReport.images.length}
-          </div>
-        </>
-      );
-    })()}
-  </div>
-)}
-                        <Card className="border-0 mt-3" style={{ borderRadius:'15px', boxShadow:'0 2px 10px rgba(0,0,0,0.08)' }}>
-                          <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'15px 15px 0 0' }}>
-                            <h6 className="mb-0" style={{ fontWeight:'700', color:'#333333' }}>
-                              <i className="fas fa-images me-2" style={{ color:'#ffc107' }}></i>
-                              Attached Photos ({selectedReport.images.length})
-                            </h6>
-                          </Card.Header>
-                          <Card.Body>
-                            <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap' }}>
-                              {selectedReport.images.map((img, i) => {
-                                const src = getImgUrl(img);
-                                return (
-                                  <div
-                                    key={i}
-                                    onClick={() => setLightboxImg(src)}
-                                    style={{ position:'relative', cursor:'pointer', borderRadius:'10px', overflow:'hidden', width:'90px', height:'90px', border:'2px solid #dee2e6', transition:'all 0.2s', flexShrink:0 }}
-                                    onMouseOver={e => { e.currentTarget.style.borderColor='#ffc107'; e.currentTarget.style.transform='scale(1.05)'; e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'; }}
-                                    onMouseOut={e  => { e.currentTarget.style.borderColor='#dee2e6'; e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.boxShadow='none'; }}
-                                  >
-                                    <img
-                                      src={src}
-                                      alt={`report-img-${i}`}
-                                      style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
-                                      onError={e => {
-                                        e.target.style.display = 'none';
-                                        e.target.parentElement.style.background = '#f8f9fa';
-                                        e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><i class="fas fa-image" style="color:#ccc;font-size:1.4rem"></i><small style="color:#aaa;font-size:0.6rem">No preview</small></div>';
-                                      }}
-                                    />
-                                    {/* Zoom overlay */}
-                                    <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0)', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}
-                                      onMouseOver={e => e.currentTarget.style.background='rgba(0,0,0,0.3)'}
-                                      onMouseOut={e  => e.currentTarget.style.background='rgba(0,0,0,0)'}>
-                                      <i className="fas fa-search-plus" style={{ color:'rgba(255,255,255,0)', fontSize:'1.2rem', transition:'color 0.2s', pointerEvents:'none' }} />
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </Card.Body>
-                        </Card>
-                      </>
-                    );
-                  })()}
-
-                  {/* Map pin in view mode */}
-                  {selectedReport.latitude && selectedReport.longitude && (
-                    <Card className="border-0 mt-3" style={{ borderRadius:'15px', boxShadow:'0 2px 10px rgba(0,0,0,0.08)' }}>
-                      <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'15px 15px 0 0' }}>
-                        <h6 className="mb-0" style={{ fontWeight:'700', color:'#333333' }}>
-                          <i className="fas fa-map-marker-alt me-2" style={{ color:'#ffc107' }}></i>
-                          Pinned Location
-                        </h6>
-                      </Card.Header>
-                      <Card.Body style={{ padding:'1rem' }}>
-                        <div style={{ position: 'relative' }}>
-                          {!window.L && (
-                            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8f9fa', borderRadius: '8px', zIndex: 1 }}>
-                              <Spinner animation="border" size="sm" style={{ color: '#ffc107' }} />
-                              <span className="ms-2" style={{ fontSize: '0.9rem', color: '#666' }}>Loading map...</span>
-                            </div>
-                          )}
-                          <LeafletMap
-                            lat={parseFloat(selectedReport.latitude)}
-                            lng={parseFloat(selectedReport.longitude)}
-                            readOnly={true}
-                          />
+                      {images.length > 0 && (
+                        <>
+                          <div className="rm-section-title mt-4"><i className="fas fa-images" />Attached photos <span className="rm-count">{images.length}</span></div>
+                          <div className="rm-photos">
+                            {images.map((img, i) => {
+                              const src = getImgUrl(img);
+                              return (
+                                <button key={i} type="button" className="rm-thumb view" onClick={() => { setLightboxImg(src); setLightboxZoom(1); }} aria-label={`Open photo ${i + 1}`}>
+                                  <img src={src} alt={`Report photo ${i + 1}`}
+                                    onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.classList.add('broken'); }} />
+                                  <span className="rm-thumb-zoom"><i className="fas fa-search-plus" /></span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </Col>
+                    <Col lg={5}>
+                      <div className="rm-section-title"><i className="fas fa-map-marker-alt" />Pinned location</div>
+                      {r.latitude && r.longitude ? (
+                        <div className="rm-map view">
+                          <LeafletMap lat={parseFloat(r.latitude)} lng={parseFloat(r.longitude)} readOnly={true} />
                         </div>
-                      </Card.Body>
-                    </Card>
+                      ) : (
+                        <div className="rm-empty"><i className="fas fa-map-marker-alt" />No location was pinned for this report.</div>
+                      )}
+                    </Col>
+                  </Row>
+                </Modal.Body>
+                <Modal.Footer className="rm-foot">
+                  {(r.status === 'pending' || r.status === 'declined') && (
+                    <button type="button" className="rp-btn danger-outline lg me-auto" onClick={() => { setShowDetailsModal(false); handleDeleteReport(r); }}>
+                      <i className="fas fa-undo-alt" />Withdraw
+                    </button>
                   )}
-                </Col>
-              </Row>
-            )}
-          </Modal.Body>
-          <Modal.Footer style={{ borderTop: '1px solid #e0e0e0' }}>
-            <Button variant="secondary" onClick={() => setShowDetailsModal(false)}
-              style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
-
-        {/* ======================== DELETE / WITHDRAW MODAL ======================== */}
-        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
-          <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-            <Modal.Title style={{ fontWeight: '700' }}>
-              <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-              Confirm Withdraw Report
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem' }}>
-            {selectedReport && (
-              <>
-                <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                  Are you sure you want to withdraw this <strong style={{ color: '#dc3545' }}>{getReportType(selectedReport.report_type).label}</strong> report?
-                </p>
-                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #dc3545' }}>
-                  <div className="mb-2">
-                    <span style={{ fontWeight: '500', color: '#555' }}>
-                      <i className="fas fa-flag me-1" style={{ color: '#ffc107' }}></i>Report Information
-                    </span>
-                  </div>
-                  <strong style={{ fontSize: '1.1rem' }}>{getReportType(selectedReport.report_type).label}</strong>
-                  <br />
-                  <small className="text-muted">
-                    <i className="fas fa-map-marker-alt me-1"></i>{selectedReport.address} &bull; Brgy. {getBarangayName(selectedReport.barangay_id)}
-                  </small>
-                </div>
-                <Alert variant="warning" className="mt-3 mb-0">
-                  <i className="fas fa-info-circle me-2"></i>
-                  <strong>Note:</strong> Only pending reports can be withdrawn. This action cannot be undone.
-                </Alert>
+                  <button type="button" className="rp-btn ghost lg" onClick={() => setShowDetailsModal(false)}>Close</button>
+                </Modal.Footer>
               </>
-            )}
-          </Modal.Body>
-          <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
-              style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={confirmDeleteReport} disabled={deleteLoading}
-              style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-              {deleteLoading ? (<WaveDots color="#ffffff" />) : (<><i className="fas fa-trash me-2"></i>Withdraw Report</>)}
-            </Button>
-          </Modal.Footer>
+            );
+          })()}
         </Modal>
 
-      {/* ══════════ VERIFICATION GATE MODAL ══════════ */}
-        <Modal show={showVerifyGate} onHide={() => setShowVerifyGate(false)} centered style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
-          <Modal.Header closeButton style={{ background:'linear-gradient(135deg,#fff9e6,#fff3cd)', borderBottom:'2px solid #ffc107' }}>
-            <Modal.Title style={{ fontWeight:'800', color:'#333', fontSize:'1.1rem' }}>
-              <i className="fas fa-shield-alt me-2" style={{ color:'#ffc107' }} />Account Verification Required
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding:'2rem', textAlign:'center' }}>
-            <div style={{ width:'80px', height:'80px', borderRadius:'50%', background:'rgba(255,193,7,0.12)', border:'2px solid #ffc107', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.25rem' }}>
-              <i className="fas fa-lock" style={{ fontSize:'2rem', color:'#ffc107' }} />
+        {/* Photo lightbox (outside the modal so it covers the whole screen) */}
+        {lightboxImg && selectedReport && (() => {
+          const imgs = (selectedReport.images || []).map(getImgUrl);
+          const idx = imgs.indexOf(lightboxImg);
+          const go = (d) => { setLightboxImg(imgs[(idx + d + imgs.length) % imgs.length]); setLightboxZoom(1); };
+          return (
+            <div className="rm-lightbox" onClick={() => { setLightboxImg(null); setLightboxZoom(1); }}
+              onWheel={e => setLightboxZoom(z => Math.min(Math.max(z - e.deltaY * 0.001, 0.5), 5))}>
+              <img src={lightboxImg} alt="Full view" onClick={e => e.stopPropagation()} style={{ transform: `scale(${lightboxZoom})` }} />
+              <button type="button" className="rm-lb-btn close" onClick={() => { setLightboxImg(null); setLightboxZoom(1); }} aria-label="Close"><i className="fas fa-times" /></button>
+              {imgs.length > 1 && (
+                <>
+                  <button type="button" className="rm-lb-btn prev" onClick={e => { e.stopPropagation(); go(-1); }} aria-label="Previous"><i className="fas fa-chevron-left" /></button>
+                  <button type="button" className="rm-lb-btn next" onClick={e => { e.stopPropagation(); go(1); }} aria-label="Next"><i className="fas fa-chevron-right" /></button>
+                  <div className="rm-lb-count">{idx + 1} / {imgs.length}</div>
+                </>
+              )}
             </div>
-            <h5 style={{ fontWeight:'800', color:'#1a1a1a', marginBottom:'0.5rem' }}>Verify Your Account First</h5>
-            <p style={{ color:'#666', fontSize:'0.9rem', lineHeight:'1.6', marginBottom:'1.5rem' }}>
-              To submit or view reports, you need to verify your identity by providing a valid government ID. This helps us ensure the safety and authenticity of all reports in the system.
-            </p>
-            <div style={{ background:'#f8f9fa', borderRadius:'12px', padding:'1rem', marginBottom:'1.5rem', textAlign:'left' }}>
-              {[
-                { icon:'fa-user-check', text:'Complete your profile information' },
-                { icon:'fa-id-card',    text:'Upload a valid government ID' },
-                { icon:'fa-map-marker-alt', text:'Provide your complete address' },
-              ].map((item, i) => (
-                <div key={i} style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom: i < 2 ? '0.75rem' : 0 }}>
-                  <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:'rgba(255,193,7,0.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <i className={`fas ${item.icon}`} style={{ fontSize:'0.8rem', color:'#ffc107' }} />
+          );
+        })()}
+
+        {/* ======================== WITHDRAW MODAL ======================== */}
+        <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered dialogClassName="cm-modal" className="rp-zoom-modal">
+          {selectedReport && (() => {
+            const t = getReportType(selectedReport.report_type);
+            return (
+              <>
+                <Modal.Body className="cm-body">
+                  <div className="cm-icon" style={{ '--c': '#dc3545' }}><i className="fas fa-undo-alt" /></div>
+                  <h5 className="cm-title">Withdraw this report?</h5>
+                  <p className="cm-text">The City Vet will no longer see or act on this report. This cannot be undone.</p>
+                  <div className="cm-item">
+                    <div className="cm-item-av" style={{ background: t.bg }}><img src={t.img} alt="" onError={e => { e.target.style.display = 'none'; }} /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="cm-item-name">{t.label}</div>
+                      <div className="cm-item-meta">
+                        #{selectedReport.report_number || `RPT-${String(selectedReport.id).padStart(6, '0')}`} · Brgy. {getBarangayName(selectedReport.barangay_id)}
+                      </div>
+                    </div>
                   </div>
-                  <span style={{ fontSize:'0.875rem', color:'#555', fontWeight:'500' }}>{item.text}</span>
-                </div>
+                  <div className="cm-note" style={{ '--c': '#dc3545' }}>
+                    <i className="fas fa-info-circle" /><span>Only pending or declined reports can be withdrawn.</span>
+                  </div>
+                </Modal.Body>
+                <Modal.Footer className="cm-foot">
+                  <button type="button" className="rp-btn ghost" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>Keep report</button>
+                  <button type="button" className="rp-btn cm-confirm" style={{ '--c': '#dc3545' }} onClick={confirmDeleteReport} disabled={deleteLoading}>
+                    {deleteLoading ? <WaveDots color="#ffffff" /> : <><i className="fas fa-undo-alt" />Withdraw</>}
+                  </button>
+                </Modal.Footer>
+              </>
+            );
+          })()}
+        </Modal>
+
+        {/* ══════════ VERIFICATION GATE MODAL ══════════ */}
+        <Modal show={showVerifyGate} onHide={() => setShowVerifyGate(false)} centered dialogClassName="cm-modal" className="rp-zoom-modal">
+          <Modal.Body className="cm-body">
+            <button type="button" className="btn-close cm-x" aria-label="Close" onClick={() => setShowVerifyGate(false)} />
+            <div className="cm-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-shield-alt" /></div>
+            <h5 className="cm-title">Verify your account first</h5>
+            <p className="cm-text">To submit or view reports, verify your identity with a valid government ID. This keeps every report reliable.</p>
+            <div className="cm-steps">
+              {[
+                { icon: 'fa-user-check', text: 'Complete your profile information' },
+                { icon: 'fa-id-card', text: 'Upload a valid government ID' },
+                { icon: 'fa-map-marker-alt', text: 'Provide your complete address' },
+              ].map((item, i) => (
+                <div key={i} className="cm-step"><span>{i + 1}</span><i className={`fas ${item.icon}`} />{item.text}</div>
               ))}
             </div>
-            <Button onClick={() => { setShowVerifyGate(false); handleOpenVerifyModal(); }} className="border-0 w-100"
-              style={{ background:'linear-gradient(135deg,#ffc107,#ffb300)', color:'#000', borderRadius:'12px', fontWeight:'700', padding:'0.875rem', fontSize:'1rem', boxShadow:'0 6px 20px rgba(255,193,7,0.4)', transition:'all 0.3s' }}
-              onMouseOver={e => e.currentTarget.style.boxShadow='0 8px 28px rgba(255,193,7,0.6)'}
-              onMouseOut={e  => e.currentTarget.style.boxShadow='0 6px 20px rgba(255,193,7,0.4)'}>
-              <i className="fas fa-id-card me-2" />Verify My Account Now
-            </Button>
           </Modal.Body>
+          <Modal.Footer className="cm-foot">
+            <button type="button" className="rp-btn ghost" onClick={() => setShowVerifyGate(false)}>Not now</button>
+            <button type="button" className="rp-btn primary" onClick={() => { setShowVerifyGate(false); handleOpenVerifyModal(); }}>
+              <i className="fas fa-id-card" />Verify now
+            </button>
+          </Modal.Footer>
         </Modal>
 
         <VerifyAccountModal
-        show={showVerifyModal}
-        onHide={() => setShowVerifyModal(false)}
-        ownerProfile={ownerProfile}
-        profileForm={{
-          first_name:  ownerProfile?.first_name  || '',
-          middle_name: ownerProfile?.middle_name || '',
-          last_name:   ownerProfile?.last_name   || '',
-          birthdate:   ownerProfile?.birthdate   || '',
-          gender:      ownerProfile?.gender      || '',
-          phone:       ownerProfile?.phone       || '',
-        }}
-        onVerified={(updatedOwner) => setOwnerProfile(updatedOwner)}
-      />
+          show={showVerifyModal}
+          onHide={() => setShowVerifyModal(false)}
+          ownerProfile={ownerProfile}
+          profileForm={{
+            first_name:  ownerProfile?.first_name  || '',
+            middle_name: ownerProfile?.middle_name || '',
+            last_name:   ownerProfile?.last_name   || '',
+            birthdate:   ownerProfile?.birthdate   || '',
+            gender:      ownerProfile?.gender      || '',
+            phone:       ownerProfile?.phone       || '',
+          }}
+          onVerified={(updatedOwner) => setOwnerProfile(updatedOwner)}
+        />
 
-{/* ======================== CONFIRM SUBMIT MODAL ======================== */}
-<Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered style={{ zoom: window.innerWidth <= 768 ? '1' : '0.75' }}>
-  <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
-    <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
-      <i className="fas fa-paper-plane me-2" style={{ color: '#ffc107' }} />
-      Confirm Report Submission
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '2rem' }}>
-    <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-      Please review your report details before submitting.
-    </p>
+        {/* ======================== REVIEW & CONFIRM MODAL ======================== */}
+        <Modal show={showConfirmModal} onHide={() => !submitLoading && setShowConfirmModal(false)} centered dialogClassName="cm-modal wide" className="rp-zoom-modal" scrollable>
+          {(() => {
+            const t = formData.report_type ? getReportType(formData.report_type) : null;
+            const rows = [
+              { icon: 'fa-map', label: 'Barangay', value: barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '—' },
+              { icon: 'fa-phone-alt', label: 'Contact no.', value: formData.phone_number || '—' },
+              { icon: 'fa-home', label: 'Address', value: formData.address || '—', wide: true },
+              { icon: 'fa-map-pin', label: 'Pinned location', value: formLat && formLng ? `${formLat.toFixed(5)}, ${formLng.toFixed(5)}` : 'Not pinned', mono: true, wide: true },
+            ];
+            return (
+              <>
+                <Modal.Body className="cm-body">
+                  <div className="cm-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-clipboard-check" /></div>
+                  <h5 className="cm-title">Review your report</h5>
+                  <p className="cm-text">Please check the details before sending them to the City Vet.</p>
 
-    {/* Report Type */}
-    {formData.report_type && (() => {
-      const t = getReportType(formData.report_type);
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: t.bg, border: `1.5px solid ${t.color}30`, borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
-          <img src={t.img} alt={t.label} style={{ width: '36px', height: '36px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
-          <div>
-            <div style={{ fontSize: '0.72rem', fontWeight: '700', color: t.color, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Report Type</div>
-            <div style={{ fontWeight: '700', color: '#333' }}>{t.label}</div>
-          </div>
-        </div>
-      );
-    })()}
+                  {t && (
+                    <div className="cm-item" style={{ borderColor: `${t.color}40`, background: t.bg }}>
+                      <div className="cm-item-av" style={{ background: '#fff' }}><img src={t.img} alt="" onError={e => { e.target.style.display = 'none'; }} /></div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="cm-item-meta" style={{ color: t.color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.68rem' }}>Report type</div>
+                        <div className="cm-item-name">{t.label}</div>
+                      </div>
+                    </div>
+                  )}
 
-    {/* Details */}
-    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', border: '1px solid #e9ecef' }}>
-      {[
-        { icon: 'fa-map-marker-alt', label: 'Barangay', value: barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '—' },
-        { icon: 'fa-home', label: 'Address', value: formData.address || '—' },
-        { icon: 'fa-phone', label: 'Contact No.', value: formData.phone_number || '—' },
-        { icon: 'fa-align-left', label: 'Description', value: formData.description || 'No description provided' },
-        { icon: 'fa-map-pin', label: 'Pinned Location', value: formLat && formLng ? `${formLat.toFixed(5)}, ${formLng.toFixed(5)}` : 'Not pinned' },
-        { icon: 'fa-camera', label: 'Attached Photos', value: imageFiles.length > 0 ? `${imageFiles.length} photo(s)` : 'None' },
-      ].map((item, i) => (
-        <div key={i} style={{ display: 'flex', gap: '0.75rem', paddingBottom: i < 5 ? '0.75rem' : 0, marginBottom: i < 5 ? '0.75rem' : 0, borderBottom: i < 5 ? '1px solid #e9ecef' : 'none' }}>
-          <div style={{ width: '28px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2px' }}>
-            <i className={`fas ${item.icon}`} style={{ color: '#ffc107', fontSize: '0.8rem' }} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>{item.label}</div>
-            <div style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem', wordBreak: 'break-word' }}>{item.value}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </Modal.Body>
-  <Modal.Footer style={{ padding: '1.25rem 2rem', gap: '0.75rem' }}>
-    <Button variant="secondary" onClick={() => setShowConfirmModal(false)} disabled={submitLoading}
-      style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-      <i className="fas fa-arrow-left me-2" />Edit
-    </Button>
-    <Button disabled={submitLoading} className="border-0"
-      onClick={async (e) => {
-        setShowConfirmModal(false);
-        await handleSubmitReport(e);
-      }}
-      style={{ background: submitLoading ? '#6c757d' : '#ffc107', color: '#000', borderRadius: '10px', padding: '0.75rem 1.75rem', fontWeight: '700', boxShadow: '0 4px 14px rgba(255,193,7,0.4)', transition: 'all 0.3s' }}
-      onMouseOver={e => { if (!submitLoading) e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,193,7,0.6)'; }}
-      onMouseOut={e => e.currentTarget.style.boxShadow = '0 4px 14px rgba(255,193,7,0.4)'}
-    >
-      {submitLoading
-        ? <WaveDots />
-        : <><i className="fas fa-paper-plane me-2" />Confirm & Submit</>}
-    </Button>
-  </Modal.Footer>
-</Modal>
+                  <div className="rm-info-grid mt-2 text-start">
+                    {rows.map(it => (
+                      <div key={it.label} className={`rm-info${it.wide ? ' wide' : ''}`}>
+                        <div className="rm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="rm-info-label">{it.label}</div>
+                          <div className={`rm-info-value${it.mono ? ' rm-mono' : ''}`}>{it.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-start mt-3">
+                    <div className="rm-info-label mb-1">Description</div>
+                    <p className={`rm-desc sm${formData.description ? '' : ' muted'}`}>{formData.description || 'No description provided.'}</p>
+                  </div>
+
+                  {imagePreviews.length > 0 && (
+                    <div className="text-start mt-3">
+                      <div className="rm-info-label mb-2">Photos ({imagePreviews.length})</div>
+                      <div className="rm-photos sm">
+                        {imagePreviews.map((src, i) => <div key={i} className="rm-thumb sm"><img src={src} alt={`Attachment ${i + 1}`} /></div>)}
+                      </div>
+                    </div>
+                  )}
+                </Modal.Body>
+                <Modal.Footer className="cm-foot">
+                  <button type="button" className="rp-btn ghost" onClick={() => setShowConfirmModal(false)} disabled={submitLoading}>
+                    <i className="fas fa-arrow-left" />Edit
+                  </button>
+                  <button type="button" className="rp-btn primary" disabled={submitLoading}
+                    onClick={async (e) => { setShowConfirmModal(false); await handleSubmitReport(e); }}>
+                    {submitLoading ? <WaveDots /> : <><i className="fas fa-paper-plane" />Submit report</>}
+                  </button>
+                </Modal.Footer>
+              </>
+            );
+          })()}
+        </Modal>
       </Container>
     </>
   );

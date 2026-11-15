@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Alert, Spinner, Modal, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert, Modal, Button } from 'react-bootstrap';
 import VerifyAccountModal from './VerifyAccountModal'; // adjust the path to where your VerifyAccountModal.jsx lives
 import { petAPI, vaccinationAPI, scheduleAPI, vetCardAPI, handleAPIError } from '../../services/api';
 
@@ -223,6 +223,15 @@ const OwnerDashboard = () => {
 
     .od-btn:focus-visible, .od-link:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
 
+    /* Skeleton loading */
+    @keyframes odShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+    .od-skel { border-radius: 8px; background: linear-gradient(90deg, #f0f1f3 25%, #e6e8eb 37%, #f0f1f3 63%); background-size: 400% 100%; animation: odShimmer 1.3s ease infinite; }
+    .od-skel-stat { background: #fff; border: 1px solid #f0f0f0; border-radius: 16px; padding: 1.5rem; height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .od-skel-row { display: flex; align-items: center; gap: 0.9rem; padding: 0.8rem 0; border-bottom: 1px solid #f1f3f5; }
+    .od-skel-row:last-child { border-bottom: none; }
+    @media (max-width: 768px) { .od-skel-stat { padding: 1rem; } }
+    @media (prefers-reduced-motion: reduce) { .od-skel { animation: none; } }
+
     @media (max-width: 768px) {
       .od-title { font-size: 1.45rem; }
       .od-slots { display: none; }
@@ -410,11 +419,60 @@ const OwnerDashboard = () => {
     return (
       <>
         <style>{styles}</style>
-        <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="text-center">
-            <Spinner animation="border" style={{ width: '2.75rem', height: '2.75rem', color: '#ffc107', borderWidth: '4px' }} />
-            <p style={{ marginTop: '1rem', fontWeight: '600', color: '#6b7280', fontSize: '0.95rem' }}>Loading your dashboard...</p>
+        <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: '#ffffff' }} aria-busy="true" aria-label="Loading dashboard">
+          {/* Header */}
+          <div className="mb-4">
+            <div className="od-skel" style={{ height: 30, width: 280, maxWidth: '75%', marginBottom: 10 }} />
+            <div className="od-skel" style={{ height: 14, width: 240, maxWidth: '60%' }} />
           </div>
+
+          {/* Stat boxes: 2 per row on phones, 4 on desktop */}
+          <Row className="g-3 mb-4">
+            {[0, 1, 2, 3].map(i => (
+              <Col key={i} xs={6} lg={3}>
+                <div className="od-skel-stat">
+                  <div className="flex-grow-1">
+                    <div className="od-skel" style={{ height: 10, width: '55%', marginBottom: 12 }} />
+                    <div className="od-skel" style={{ height: 32, width: 48, marginBottom: 10 }} />
+                    <div className="od-skel d-none d-md-block" style={{ height: 10, width: '70%' }} />
+                  </div>
+                  <div className="od-skel" style={{ width: 48, height: 48, borderRadius: 14, flexShrink: 0 }} />
+                </div>
+              </Col>
+            ))}
+          </Row>
+
+          {/* Panels */}
+          <Row className="g-3" style={{ flex: '1 1 auto' }}>
+            {[{ lg: 7, rows: 4 }, { lg: 5, rows: 3 }].map((p, pi) => (
+              <Col key={pi} lg={p.lg}>
+                <div className="od-panel">
+                  <div className="od-panel-head">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="od-skel" style={{ width: 36, height: 36, borderRadius: 10 }} />
+                      <div>
+                        <div className="od-skel" style={{ height: 14, width: 150, marginBottom: 6 }} />
+                        <div className="od-skel" style={{ height: 10, width: 110 }} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="od-panel-body">
+                    {Array.from({ length: p.rows }).map((_, i) => (
+                      <div key={i} className="od-skel-row">
+                        <div className="od-skel" style={{ width: pi === 0 ? 52 : 42, height: pi === 0 ? 52 : 42, borderRadius: 10, flexShrink: 0 }} />
+                        <div className="flex-grow-1" style={{ minWidth: 0 }}>
+                          <div className="od-skel" style={{ height: 12, width: '35%', marginBottom: 8 }} />
+                          <div className="od-skel" style={{ height: 14, width: '70%', marginBottom: 8 }} />
+                          <div className="od-skel" style={{ height: 10, width: '50%' }} />
+                        </div>
+                        <div className="od-skel" style={{ width: 56, height: 28, borderRadius: 9, flexShrink: 0 }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Col>
+            ))}
+          </Row>
         </Container>
       </>
     );
