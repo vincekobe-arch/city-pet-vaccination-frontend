@@ -28,6 +28,7 @@ const Sidebar = ({ user, onLogout, darkMode, setDarkMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
   const [scanResult, setScanResult] = useState('');
   const [scanSucess, setScanSucess] = useState(false);
@@ -1573,68 +1574,101 @@ const streamRef = useRef(null);
         </div>
       )}
 
-            {/* ── Logout Modal ── */}
+                  {/* ── Logout Modal ── */}
       <style>{`
-        .lo-dialog { max-width: 400px; }
-        .lo-content { border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'} !important; border-radius: 16px !important; overflow: hidden; background: ${darkMode ? '#141414' : '#ffffff'} !important; box-shadow: 0 24px 60px rgba(16,24,40,0.25) !important; }
-        .lo-body { padding: 1.75rem 1.75rem 1.5rem; text-align: center; }
-        .lo-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 1rem; background: rgba(220,53,69,0.1); color: #dc3545; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; position: relative; }
-        .lo-icon::after { content: ''; position: absolute; inset: -6px; border-radius: 20px; border: 1px solid rgba(220,53,69,0.15); }
-        .lo-title { font-weight: 700; font-size: 1.15rem; color: ${textColor}; margin: 0 0 0.35rem; }
-        .lo-text { font-size: 0.88rem; color: ${darkMode ? '#9a9a9a' : '#6b7280'}; margin: 0 0 1.25rem; line-height: 1.5; }
-        .lo-account { display: flex; align-items: center; gap: 0.65rem; padding: 0.6rem 0.75rem; border-radius: 12px; background: ${darkMode ? 'rgba(255,255,255,0.04)' : '#f6f7f9'}; border: 1px solid ${border}; text-align: left; margin-bottom: 1.35rem; }
-        .lo-avatar { width: 34px; height: 34px; border-radius: 50%; background: ${role?.color || '#ffc107'}26; color: ${textColor}; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; flex-shrink: 0; }
-        .lo-name { font-weight: 600; font-size: 0.86rem; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lo-email { font-size: 0.75rem; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .lo-actions { display: flex; gap: 0.6rem; }
-        .lo-btn { flex: 1; height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border: 1px solid transparent; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
-        .lo-btn.cancel { background: ${darkMode ? '#1e1e1e' : '#ffffff'}; border-color: ${darkMode ? '#2e2e2e' : '#e5e7eb'}; color: ${textColor}; }
-        .lo-btn.cancel:hover { background: ${darkMode ? '#262626' : '#f3f4f6'}; }
-        .lo-btn.danger { background: #dc3545; color: #ffffff; }
-        .lo-btn.danger:hover { background: #bb2d3b; box-shadow: 0 6px 16px rgba(220,53,69,0.3); transform: translateY(-1px); }
-        .lo-btn:focus-visible { outline: 2px solid #dc3545; outline-offset: 2px; }
+        .lo-backdrop.show { opacity: 1 !important; background: ${darkMode ? 'rgba(0,0,0,0.6)' : 'rgba(17,24,39,0.45)'}; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .lo-dialog { max-width: 410px; }
+        .modal.fade .lo-dialog { transform: scale(0.94) translateY(10px); opacity: 0; transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease; }
+        .modal.show .lo-dialog { transform: none; opacity: 1; }
+        .lo-content { border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'} !important; border-radius: 20px !important; overflow: hidden; background: ${darkMode ? '#141414' : '#ffffff'} !important; box-shadow: 0 30px 80px rgba(16,24,40,0.28), 0 2px 6px rgba(16,24,40,0.06) !important; }
+
+        .lo-hero { position: relative; padding: 2.1rem 1.75rem 1.25rem; text-align: center;
+          background: radial-gradient(120% 90% at 50% 0%, ${darkMode ? 'rgba(220,53,69,0.18)' : 'rgba(220,53,69,0.10)'} 0%, transparent 70%); }
+        .lo-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 9px; border: none; background: transparent; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, color 0.15s ease; }
+        .lo-close:hover { background: ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}; color: ${textColor}; }
+
+        .lo-icon-wrap { position: relative; width: 68px; height: 68px; margin: 0 auto 1.15rem; }
+        .lo-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(220,53,69,0.35); animation: loPulse 2.2s ease-out infinite; }
+        .lo-ring.r2 { animation-delay: 1.1s; }
+        .lo-icon { position: relative; width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(145deg, #ef4458 0%, #c82333 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 10px 24px rgba(220,53,69,0.35), inset 0 1px 0 rgba(255,255,255,0.25); animation: loPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s backwards; }
+        .lo-icon i { transform: translateX(2px); }
+
+        .lo-title { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; color: ${textColor}; margin: 0 0 0.4rem; }
+        .lo-text { font-size: 0.9rem; color: ${darkMode ? '#9a9a9a' : '#6b7280'}; margin: 0 auto; max-width: 300px; line-height: 1.55; }
+
+        .lo-foot { padding: 1.1rem 1.5rem 1.5rem; }
+        .lo-actions { display: flex; gap: 0.65rem; }
+        .lo-btn { position: relative; flex: 1; height: 46px; border-radius: 12px; font-weight: 700; font-size: 0.92rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid transparent; overflow: hidden; transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease; }
+        .lo-btn:active:not(:disabled) { transform: scale(0.98); }
+        .lo-btn.stay { background: ${darkMode ? '#1c1c1c' : '#f6f7f9'}; border-color: ${darkMode ? '#2a2a2a' : '#eceef1'}; color: ${textColor}; }
+        .lo-btn.stay:hover:not(:disabled) { background: ${darkMode ? '#242424' : '#eef0f3'}; }
+        .lo-btn.out { background: linear-gradient(135deg, #e5404f 0%, #c82333 100%); color: #fff; box-shadow: 0 6px 16px rgba(220,53,69,0.28); }
+        .lo-btn.out:hover:not(:disabled) { box-shadow: 0 10px 24px rgba(220,53,69,0.38); transform: translateY(-1px); }
+        .lo-btn.out::after { content: ''; position: absolute; top: 0; left: -60%; width: 50%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,0.28), transparent); transform: skewX(-20deg); transition: left 0.6s ease; }
+        .lo-btn.out:hover:not(:disabled)::after { left: 120%; }
+        .lo-btn.out .arrow { transition: transform 0.2s ease; }
+        .lo-btn.out:hover:not(:disabled) .arrow { transform: translateX(3px); }
+        .lo-btn:disabled { opacity: 0.85; cursor: default; }
+        .lo-btn:focus-visible, .lo-close:focus-visible { outline: 2px solid #dc3545; outline-offset: 2px; }
+        .lo-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; animation: loSpin 0.7s linear infinite; }
+
+
+        @keyframes loPulse { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.65); opacity: 0; } }
+        @keyframes loPop { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes loSpin { to { transform: rotate(360deg); } }
         @media (max-width: 576px) {
           .lo-dialog { margin: 1rem auto; max-width: calc(100% - 2rem); }
-          .lo-body { padding: 1.5rem 1.25rem 1.25rem; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .lo-ring, .lo-icon, .lo-spin { animation: none !important; }
+          .modal.fade .lo-dialog { transition: none; }
         }
       `}</style>
       <Modal
         show={showLogoutModal}
-        onHide={() => setShowLogoutModal(false)}
+        onHide={() => { if (!loggingOut) setShowLogoutModal(false); }}
         centered
         dialogClassName="lo-dialog"
         contentClassName="lo-content"
+        backdropClassName="lo-backdrop"
         style={{ zIndex: 99999 }}
         aria-labelledby="logout-title"
       >
-        <div className="lo-body">
-          <div className="lo-icon"><i className="fas fa-sign-out-alt" /></div>
+        <div className="lo-hero">
+          <button type="button" className="lo-close" onClick={() => setShowLogoutModal(false)} disabled={loggingOut} aria-label="Close">
+            <i className="fas fa-times" />
+          </button>
+          <div className="lo-icon-wrap">
+            <span className="lo-ring" />
+            <span className="lo-ring r2" />
+            <div className="lo-icon"><i className="fas fa-sign-out-alt" /></div>
+          </div>
           <h5 id="logout-title" className="lo-title">Log out of PetUnity?</h5>
-          <p className="lo-text">You'll need to sign in again to access your account.</p>
+          <p className="lo-text">You'll be signed out on this device and will need to log in again to continue.</p>
+        </div>
 
-          {user && (
-            <div className="lo-account">
-              <div className="lo-avatar">
-                {user.role === 'super_admin'
-                  ? <i className="fas fa-crown" />
-                  : (user.role === 'private_clinic' ? (user.clinic_name || user.first_name || 'C') : `${user.first_name || ''} ${user.last_name || ''}`)
-                      .split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div className="lo-name">
-                  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'private_clinic' ? (user.clinic_name || `${user.first_name} ${user.last_name}`) : `${user.first_name} ${user.last_name}`}
-                </div>
-                <div className="lo-email">{user.email}</div>
-              </div>
-            </div>
-          )}
-
+        <div className="lo-foot">
           <div className="lo-actions">
-            <button type="button" className="lo-btn cancel" onClick={() => setShowLogoutModal(false)}>
-              Cancel
+            <button type="button" className="lo-btn stay" onClick={() => setShowLogoutModal(false)} disabled={loggingOut}>
+              Stay signed in
             </button>
-            <button type="button" className="lo-btn danger" onClick={() => { setShowLogoutModal(false); onLogout(); navigate('/login'); }}>
-              <i className="fas fa-sign-out-alt" />Log out
+            <button
+              type="button"
+              className="lo-btn out"
+              disabled={loggingOut}
+              onClick={() => {
+                setLoggingOut(true);
+                setTimeout(() => {
+                  setShowLogoutModal(false);
+                  setLoggingOut(false);
+                  onLogout();
+                  navigate('/login');
+                }, 600);
+              }}
+            >
+              {loggingOut
+                ? <><span className="lo-spin" />Logging out…</>
+                : <>Log out<i className="fas fa-arrow-right arrow" style={{ fontSize: '0.8rem' }} /></>}
             </button>
           </div>
         </div>
