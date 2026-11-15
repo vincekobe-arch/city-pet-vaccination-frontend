@@ -1574,31 +1574,31 @@ const streamRef = useRef(null);
         </div>
       )}
 
-                  {/* ── Logout Modal ── */}
+             {/* ── Logout Modal ── */}
       <style>{`
         .lo-backdrop.show { opacity: 1 !important; background: ${darkMode ? 'rgba(0,0,0,0.6)' : 'rgba(17,24,39,0.45)'}; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-        .lo-dialog { max-width: 410px; }
+        .lo-dialog { max-width: 340px; }
         .modal.fade .lo-dialog { transform: scale(0.94) translateY(10px); opacity: 0; transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease; }
         .modal.show .lo-dialog { transform: none; opacity: 1; }
-        .lo-content { border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'} !important; border-radius: 20px !important; overflow: hidden; background: ${darkMode ? '#141414' : '#ffffff'} !important; box-shadow: 0 30px 80px rgba(16,24,40,0.28), 0 2px 6px rgba(16,24,40,0.06) !important; }
+        .lo-content { border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'} !important; border-radius: 16px !important; overflow: hidden; background: ${darkMode ? '#141414' : '#ffffff'} !important; box-shadow: 0 30px 80px rgba(16,24,40,0.28), 0 2px 6px rgba(16,24,40,0.06) !important; }
 
-        .lo-hero { position: relative; padding: 2.1rem 1.75rem 1.25rem; text-align: center;
+        .lo-hero { position: relative; padding: 1.6rem 1.35rem 0.9rem; text-align: center;
           background: radial-gradient(120% 90% at 50% 0%, ${darkMode ? 'rgba(220,53,69,0.18)' : 'rgba(220,53,69,0.10)'} 0%, transparent 70%); }
-        .lo-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 9px; border: none; background: transparent; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, color 0.15s ease; }
+        .lo-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border-radius: 9px; border: none; background: transparent; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, color 0.15s ease; }
         .lo-close:hover { background: ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}; color: ${textColor}; }
 
-        .lo-icon-wrap { position: relative; width: 68px; height: 68px; margin: 0 auto 1.15rem; }
+        .lo-icon-wrap { position: relative; width: 52px; height: 52px; margin: 0 auto 0.9rem; }
         .lo-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(220,53,69,0.35); animation: loPulse 2.2s ease-out infinite; }
         .lo-ring.r2 { animation-delay: 1.1s; }
-        .lo-icon { position: relative; width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(145deg, #ef4458 0%, #c82333 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 10px 24px rgba(220,53,69,0.35), inset 0 1px 0 rgba(255,255,255,0.25); animation: loPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s backwards; }
+        .lo-icon { position: relative; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(145deg, #ef4458 0%, #c82333 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; box-shadow: 0 8px 18px rgba(220,53,69,0.35), inset 0 1px 0 rgba(255,255,255,0.25); animation: loPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.08s backwards; }
         .lo-icon i { transform: translateX(2px); }
 
-        .lo-title { font-weight: 800; font-size: 1.25rem; letter-spacing: -0.01em; color: ${textColor}; margin: 0 0 0.4rem; }
-        .lo-text { font-size: 0.9rem; color: ${darkMode ? '#9a9a9a' : '#6b7280'}; margin: 0 auto; max-width: 300px; line-height: 1.55; }
+        .lo-title { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; color: ${textColor}; margin: 0 0 0.4rem; }
+        .lo-text { font-size: 0.82rem; color: ${darkMode ? '#9a9a9a' : '#6b7280'}; margin: 0 auto; max-width: 260px; line-height: 1.5; }
 
-        .lo-foot { padding: 1.1rem 1.5rem 1.5rem; }
-        .lo-actions { display: flex; gap: 0.65rem; }
-        .lo-btn { position: relative; flex: 1; height: 46px; border-radius: 12px; font-weight: 700; font-size: 0.92rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid transparent; overflow: hidden; transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease; }
+        .lo-foot { padding: 0.9rem 1.15rem 1.15rem; }
+        .lo-actions { display: flex; gap: 0.5rem; }
+        .lo-btn { position: relative; flex: 1; height: 40px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: 1px solid transparent; overflow: hidden; transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, border-color 0.18s ease; }
         .lo-btn:active:not(:disabled) { transform: scale(0.98); }
         .lo-btn.stay { background: ${darkMode ? '#1c1c1c' : '#f6f7f9'}; border-color: ${darkMode ? '#2a2a2a' : '#eceef1'}; color: ${textColor}; }
         .lo-btn.stay:hover:not(:disabled) { background: ${darkMode ? '#242424' : '#eef0f3'}; }
@@ -1611,7 +1611,6 @@ const streamRef = useRef(null);
         .lo-btn:disabled { opacity: 0.85; cursor: default; }
         .lo-btn:focus-visible, .lo-close:focus-visible { outline: 2px solid #dc3545; outline-offset: 2px; }
         .lo-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; animation: loSpin 0.7s linear infinite; }
-
 
         @keyframes loPulse { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.65); opacity: 0; } }
         @keyframes loPop { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
