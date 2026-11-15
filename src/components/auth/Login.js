@@ -403,7 +403,7 @@ if (onLogin) {
             className="d-none d-lg-block pe-5"
             style={{
               transition: 'opacity 0.55s cubic-bezier(0.4,0,0.2,1), transform 0.55s cubic-bezier(0.4,0,0.2,1), max-width 0.55s cubic-bezier(0.4,0,0.2,1), flex 0.55s cubic-bezier(0.4,0,0.2,1), padding 0.55s cubic-bezier(0.4,0,0.2,1)',
-              overflow: 'hidden',
+              overflow: isForgot ? 'hidden' : 'visible',
               maxWidth: isForgot ? '0%' : '50%',
               flex: isForgot ? '0 0 0%' : '0 0 50%',
               padding: isForgot ? '0' : undefined,
@@ -412,7 +412,7 @@ if (onLogin) {
               pointerEvents: isForgot ? 'none' : 'auto',
             }}
           >
-            <div style={{ animation: 'dropDown 0.8s ease-out' }}>
+            <div style={{ animation: 'dropDown 0.8s ease-out', paddingTop: '2.5rem' }}>
               <div className="text-center">
                 <img src="/logo.png" alt="Logo"
                   style={{ width:'120px', height:'120px', objectFit:'contain', marginBottom:'2rem', filter:'drop-shadow(0 0 30px rgba(255,193,7,0.5))', animation:'float 3s ease-in-out infinite' }}
