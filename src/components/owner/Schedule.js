@@ -165,7 +165,7 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
     @media (min-width: 1920px) { .ev-zoom-modal { zoom: 1; } }
     @media (max-width: 768px) {
       .ev-zoom-modal { zoom: 1; }
-      .ev-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); }
+      .ev-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
       .ev-zoom-modal .modal-body { max-height: calc(100vh - 170px) !important; overflow-y: auto; }
     }
 
@@ -1999,7 +1999,7 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
     {/* Details Modal */}
-      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" centered className="ev-zoom-modal">
+      <Modal show={showDetailsModal} onHide={() => setShowDetailsModal(false)} size="lg" className="ev-zoom-modal">
         <Modal.Header 
           closeButton
           style={{
@@ -2278,7 +2278,7 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Registration Modal */}
-      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" backdrop="static" centered className="ev-zoom-modal">
+      <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} size="lg" backdrop="static" className="ev-zoom-modal">
         <Modal.Header 
   closeButton
   style={{
@@ -3240,7 +3240,6 @@ const isSelected = (selectedVaccinesToCancel[pet.id] || []).includes(vaccineId);
       <Modal 
   show={showCancelConfirm} 
   onHide={() => setShowCancelConfirm(false)}
-  centered
   className="ev-zoom-modal"
 >
   <Modal.Header 
