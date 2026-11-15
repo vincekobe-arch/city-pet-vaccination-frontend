@@ -326,8 +326,6 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
     @media (max-width: 768px) {
       .cf-body { padding: 1.5rem 1rem 1rem !important; }
       .cf-grid { gap: 0.55rem 0.75rem; }
-      .cc-foot { flex-wrap: nowrap !important; gap: 0.5rem; padding: 0.9rem 1rem !important; }
-      .cc-foot .btn { flex: 1; margin: 0 !important; padding: 0.7rem 0.5rem !important; font-size: 0.88rem; }
     }
     @media (prefers-reduced-motion: reduce) { .cf-check { animation: none; } }
 
@@ -488,6 +486,15 @@ const [floatingSuccess, setFloatingSuccess] = useState('');
     .ev-btn.danger { background: #fff; color: #dc3545; border-color: rgba(220,53,69,0.35); }
     .ev-btn.danger:hover:not(:disabled) { background: rgba(220,53,69,0.06); }
     .ev-btn.ghost { background: #fff; color: #1f2328; border-color: #e5e7eb; }
+    .ev-btn.danger-solid { background: #dc3545; color: #fff; }
+    .ev-btn.danger-solid:hover:not(:disabled) { background: #bb2d3b; }
+    .cc-box { border: 1px solid #eef0f3; background: #fafbfc; border-radius: 12px; padding: 0.75rem 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .cc-row { display: flex; align-items: center; gap: 0.55rem; font-size: 0.88rem; font-weight: 600; color: #1f2328; min-width: 0; }
+    .cc-row i { width: 16px; text-align: center; color: #9ca3af; }
+    .cc-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cc-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; padding-left: 1.6rem; }
+    .cc-chips span { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.72rem; font-weight: 600; color: #dc3545; background: #fff; border: 1px solid rgba(220,53,69,0.35); border-radius: 999px; padding: 0.1rem 0.55rem; }
+    .cc-chips i { font-size: 0.62rem; }
     .ev-btn.ghost:hover:not(:disabled) { background: #f6f7f9; }
     .ev-empty-icon { width: 64px; height: 64px; margin: 0 auto; border-radius: 16px; background: #f3f4f6; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
 
@@ -979,7 +986,7 @@ const getFilteredSchedules = () => {
   // Use getRegisteredPets for all schedule types including vaccination
   registeredRes = await scheduleAPI.getRegisteredPets(schedule.id, schedule.type);
 
-      const registrations = registeredRes.data.registrations || [];
+      const registrations = (registeredRes.data.registrations || []).filter(r => r.status !== 'cancelled');
       const registeredPetIds = registrations.map(r => r.pet_id);
       
       // Check if user is already registered for seminar
@@ -1086,6 +1093,20 @@ const handleCancelSelectedOrAll = (petId, registrationId) => {
   setShowCancelConfirm(true);
 };
 
+  // Close the cancel modal and clear what was about to be cancelled
+  const closeCancelConfirm = () => {
+    setShowCancelConfirm(false);
+    setPetToCancel(null);
+    if (vaccineToCancel?.petId) {
+      setSelectedVaccinesToCancel(prev => {
+        const updated = { ...prev };
+        delete updated[vaccineToCancel.petId];
+        return updated;
+      });
+    }
+    setVaccineToCancel(null);
+  };
+
   const confirmCancelRegistration = async () => {
   // Check if canceling individual vaccine or entire registration
   if (vaccineToCancel) {
@@ -1178,19 +1199,21 @@ const confirmCancelVaccine = async () => {
         const registeredRes = await scheduleAPI.getRegisteredPets(selectedSchedule.id, selectedSchedule.type);
         const registrations = registeredRes.data.registrations || [];
         
-        // Update compatible pets with fresh registration data
+        // Update compatible pets with fresh registration data (ignore cancelled rows)
+        const active = registrations.filter(r => r.status !== 'cancelled');
         setCompatiblePets(prevPets => 
           prevPets.map(pet => {
-            const registration = registrations.find(r => r.pet_id === pet.id);
+            const registration = active.find(r => r.pet_id === pet.id);
             return {
               ...pet,
-              isRegistered: registrations.some(r => r.pet_id === pet.id),
+              isRegistered: !!registration,
               registration_id: registration ? registration.id : null
             };
           })
         );
-        
-        setCurrentRegistrations(registrations);
+        // Note: don't replace currentRegistrations here — loadData() above already refreshed
+        // the list for ALL events. Replacing it with this event's rows (which have no
+        // schedule_id/schedule_type) made other events lose their "Manage registration" button.
       } catch (err) {
         console.error('Error refreshing registrations:', err);
       }
@@ -1532,7 +1555,7 @@ const getVaccineDetails = (schedule) => {
       if (regs.length > 0) {
         return {
           label: 'Cancel registration', icon: 'fa-times', tone: 'danger',
-          onClick: () => { setPetToCancel({ petId: null, registrationId: regs[0].id }); setShowCancelConfirm(true); },
+          onClick: () => { setSelectedSchedule(schedule); setPetToCancel({ petId: null, registrationId: regs[0].id }); setShowCancelConfirm(true); },
         };
       }
     }
@@ -2353,7 +2376,8 @@ const getVaccineDetails = (schedule) => {
           // Vaccination pet row: pick the pet, then pick its vaccines
           const renderVaccinationPet = (pet) => {
             if (pet.isRegistered) {
-              const registration = currentRegistrations.find(r => r.pet_id === pet.id);
+              const registration = currentRegistrations.find(r => r.id === pet.registration_id)
+                || currentRegistrations.find(r => r.pet_id === pet.id && r.schedule_id === s?.id && r.schedule_type === 'vaccination' && r.status !== 'cancelled');
               const registeredVaccineIds = registration?.selected_vaccines || [];
               const toCancel = selectedVaccinesToCancel[pet.id] || [];
               return (
@@ -2592,54 +2616,66 @@ const getVaccineDetails = (schedule) => {
       </Modal>
 
       {/* Cancel Confirmation Modal */}
-      <Modal show={showCancelConfirm} onHide={() => setShowCancelConfirm(false)} centered className="ev-zoom-modal">
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dc3545' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-times-circle text-danger me-2"></i>
-            Cancel Registration
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-            {vaccineToCancel?.vaccineIds?.length > 0
-              ? `Are you sure you want to cancel ${vaccineToCancel.vaccineIds.length} selected vaccine${vaccineToCancel.vaccineIds.length > 1 ? 's' : ''}? The pet stays registered for its other vaccines.`
-              : vaccineToCancel
-                ? 'Are you sure you want to cancel this vaccine? The pet will remain registered for other vaccines.'
-                : petToCancel && !petToCancel.petId
-                  ? 'Are you sure you want to cancel your registration for this event?'
-                  : 'Are you sure you want to cancel the entire registration for this pet?'}
-          </p>
-          <Alert variant="danger" className="mb-0">
-            <i className="fas fa-exclamation-triangle me-2"></i>
-            <strong>Note:</strong> Your slot will be released. You will need to register again if you change your mind.
-          </Alert>
-        </Modal.Body>
-        <Modal.Footer className="cc-foot" style={{ padding: '1.25rem 2rem' }}>
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setShowCancelConfirm(false);
-              setPetToCancel(null);
-              setVaccineToCancel(null);
-              // Clear selections for the specific pet
-              if (vaccineToCancel?.petId) {
-                setSelectedVaccinesToCancel(prev => {
-                  const updated = { ...prev };
-                  delete updated[vaccineToCancel.petId];
-                  return updated;
-                });
-              }
-            }}
-            disabled={registerLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
-          >
-            Keep registration
-          </Button>
-          <Button variant="danger" onClick={confirmCancelRegistration} disabled={registerLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            {registerLoading ? <WaveDots color="#ffffff" /> : <><i className="fas fa-times me-2"></i>Cancel registration</>}
-          </Button>
-        </Modal.Footer>
+      <Modal show={showCancelConfirm} onHide={() => !registerLoading && closeCancelConfirm()} centered dialogClassName="ev-modal sm" className="ev-zoom-modal">
+        {(() => {
+          const target = vaccineToCancel || petToCancel;
+          const pet = target?.petId ? compatiblePets.find(p => p.id === target.petId) : null;
+          const vaccineNames = (vaccineToCancel?.vaccineIds || (vaccineToCancel?.vaccineId ? [vaccineToCancel.vaccineId] : []))
+            .map(id => { const v = inventoryItems.find(i => i.id === parseInt(id)); return v?.item_name || v?.name; })
+            .filter(Boolean);
+          const reg = vaccineToCancel ? currentRegistrations.find(r => r.id === vaccineToCancel.registrationId) : null;
+          const removesAll = vaccineToCancel && reg && (reg.selected_vaccines || []).length <= (vaccineToCancel.vaccineIds || [vaccineToCancel.vaccineId]).length;
+          const partial = vaccineNames.length > 0 && !removesAll;
+          const title = partial ? `Cancel ${vaccineNames.length > 1 ? 'these vaccines' : 'this vaccine'}?`
+            : pet ? 'Cancel registration?' : 'Cancel your registration?';
+          const text = partial
+            ? `${pet?.name || 'Your pet'} will stay registered for its other vaccines.`
+            : pet
+              ? `${pet.name} will be removed from this event and the slot will be released.`
+              : 'You will be removed from this event and your slot will be released.';
+          return (
+            <>
+              <Modal.Body style={{ padding: '1.75rem 1.75rem 1.25rem' }}>
+                <div className="text-center">
+                  <div className="ev-modal-icon lg" style={{ '--c': '#dc3545', margin: '0 auto 1rem' }}><i className="fas fa-calendar-times" /></div>
+                  <h5 style={{ fontWeight: 700, color: '#1f2328', marginBottom: '0.35rem' }}>{title}</h5>
+                  <p style={{ fontSize: '0.88rem', color: '#6b7280', marginBottom: '1.1rem' }}>{text}</p>
+                </div>
+
+                {(pet || selectedSchedule?.title) && (
+                  <div className="cc-box">
+                    {selectedSchedule?.title && (
+                      <div className="cc-row"><i className="fas fa-calendar-alt" /><span>{selectedSchedule.title}</span></div>
+                    )}
+                    {pet && (
+                      <div className="cc-row"><i className={`fas ${String(pet.species).toLowerCase() === 'cat' ? 'fa-cat' : 'fa-dog'}`} /><span>{pet.name}</span></div>
+                    )}
+                    {vaccineNames.length > 0 && (
+                      <div className="cc-chips">
+                        {vaccineNames.map(n => <span key={n}><i className="fas fa-syringe" />{n}</span>)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="ev-warning mt-3" style={{ marginBottom: 0 }}>
+                  <i className="fas fa-info-circle" />
+                  <span>You will need to register again if you change your mind.</span>
+                </div>
+              </Modal.Body>
+              <Modal.Footer style={{ borderTop: '1px solid #eef0f3', padding: '0.9rem 1.5rem', gap: '0.6rem', flexWrap: 'nowrap' }}>
+                <button type="button" className="ev-btn ghost flex-fill justify-content-center" style={{ padding: '0.6rem' }}
+                  onClick={closeCancelConfirm} disabled={registerLoading}>
+                  Keep it
+                </button>
+                <button type="button" className="ev-btn danger-solid flex-fill justify-content-center" style={{ padding: '0.6rem' }}
+                  onClick={confirmCancelRegistration} disabled={registerLoading}>
+                  {registerLoading ? <WaveDots color="#ffffff" /> : <><i className="fas fa-times" /> Yes, cancel</>}
+                </button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
       </Modal>
     <VerifyAccountModal
         show={showVerifyModal}

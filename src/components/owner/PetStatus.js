@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Button, Alert, Spinner, Badge, Modal, Form } from 'react-bootstrap';
+import { Container, Row, Col, Alert, Spinner, Badge, Modal, Form } from 'react-bootstrap';
 import { petAPI, ownerAPI, microchipAPI, vetCardAPI, handleAPIError } from '../../services/api';
 
 const WaveDots = ({ color = '#000000' }) => (
@@ -8,6 +8,40 @@ const WaveDots = ({ color = '#000000' }) => (
     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.15s' }} />
     <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: color, display: 'inline-block', animation: 'waveDots 1.2s ease-in-out infinite', animationDelay: '0.3s' }} />
   </span>
+);
+
+// Small centered confirmation modal used for archive / unarchive / restore / remove / delete
+const ConfirmModal = ({ show, onHide, color, icon, title, text, pet, note, confirmLabel, confirmIcon, onConfirm, loading }) => (
+  <Modal show={show} onHide={() => !loading && onHide()} centered dialogClassName="cm-modal" className="pt-modal">
+    <Modal.Body className="cm-body">
+      <div className="cm-icon" style={{ '--c': color }}><i className={`fas ${icon}`} /></div>
+      <h5 className="cm-title">{title}</h5>
+      <p className="cm-text">{text}</p>
+      {pet && (
+        <div className="cm-pet">
+          <div className="cm-pet-av"><i className={`fas ${String(pet.species).toLowerCase() === 'cat' ? 'fa-cat' : 'fa-dog'}`} /></div>
+          <div style={{ minWidth: 0 }}>
+            <div className="cm-pet-name">{pet.name}</div>
+            <div className="cm-pet-meta">
+              {pet.registration_number} · <span className="text-capitalize">{pet.species}</span> · {pet.breed || 'Mixed'}
+            </div>
+          </div>
+        </div>
+      )}
+      {note && (
+        <div className="cm-note" style={{ '--c': color }}>
+          <i className="fas fa-info-circle" />
+          <span>{note}</span>
+        </div>
+      )}
+    </Modal.Body>
+    <Modal.Footer className="cm-foot">
+      <button type="button" className="pt-btn ghost" onClick={onHide} disabled={loading}>Cancel</button>
+      <button type="button" className="pt-btn cm-confirm" style={{ '--c': color }} onClick={onConfirm} disabled={loading}>
+        {loading ? <WaveDots color="#fff" /> : <><i className={`fas ${confirmIcon}`} />{confirmLabel}</>}
+      </button>
+    </Modal.Footer>
+  </Modal>
 );
 
 const PetStatus = () => {
@@ -399,6 +433,26 @@ useEffect(() => {
     @media (min-width: 1600px) { .dashboard-page { zoom: 0.9; } }
     @media (min-width: 1920px) { .dashboard-page { zoom: 1; } }
     @media (max-width: 768px)  { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
+
+    /* Small confirmation modals (archive, restore, remove, delete) */
+    .cm-modal { max-width: 420px; }
+    .cm-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    @keyframes cmPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .cm-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; }
+    .cm-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: cmPop 0.4s ease-out; }
+    .cm-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; word-break: break-word; }
+    .cm-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .cm-pet { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .cm-pet-av { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,193,7,0.16); color: #b88a00; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-pet-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .cm-pet-meta { font-size: 0.76rem; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cm-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 7%, #fff); border: 1px solid color-mix(in srgb, var(--c) 22%, #fff); }
+    .cm-note i { margin-top: 3px; }
+    .cm-foot { border-top: 1px solid #eef0f3 !important; padding: 0.9rem 1.4rem !important; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .cm-foot .pt-btn { flex: 1; margin: 0; padding: 0.62rem; }
+    .cm-confirm { background: var(--c); color: #fff; }
+    .cm-confirm:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000); color: #fff; }
+    @media (prefers-reduced-motion: reduce) { .cm-icon { animation: none; } }
 
     /* Register / View / Edit pet modals */
     .pm-modal { max-width: 640px; }
@@ -1573,146 +1627,48 @@ const handleRegisterPet = async (e) => {
         )}
 
       {/* ===== ARCHIVE MODAL ===== */}
-      <Modal show={showArchiveModal} onHide={() => setShowArchiveModal(false)} centered className="pt-modal">
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-archive me-2" style={{ color: '#856404' }}></i>Archive Pet
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedPet && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to archive <strong style={{ color: '#856404' }}>{selectedPet.name}</strong>? The pet will become inactive.
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #856404' }}>
-                <strong style={{ fontSize: '1.1rem' }}>{selectedPet.name}</strong><br />
-                <small className="text-muted">
-                  <i className="fas fa-id-card me-1"></i>
-                  {selectedPet.registration_number} • <span className="text-capitalize">{selectedPet.species}</span> • {selectedPet.breed || 'Mixed'}
-                </small>
-              </div>
-              <Alert variant="warning" className="mt-3 mb-0">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Note:</strong> All existing records are preserved. The pet will not appear in active listings. You can unarchive anytime.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowArchiveModal(false)} disabled={archiveActionLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
-          <Button onClick={confirmArchivePet} disabled={archiveActionLoading} style={{ background: '#856404', border: 'none', borderRadius: '8px', fontWeight: '600', padding: '0.75rem 1.5rem' }}>
-            {archiveActionLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-archive me-2"></i>Archive Pet</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ConfirmModal
+        show={showArchiveModal} onHide={() => setShowArchiveModal(false)}
+        color="#b07d05" icon="fa-archive" title={`Archive ${selectedPet?.name || 'this pet'}?`}
+        text="The pet will be moved to your archived list and will no longer appear in your active pets."
+        pet={selectedPet}
+        note="All records are kept. You can unarchive this pet anytime."
+        confirmLabel="Archive pet" confirmIcon="fa-archive"
+        onConfirm={confirmArchivePet} loading={archiveActionLoading}
+      />
 
       {/* ===== UNARCHIVE MODAL ===== */}
-      <Modal show={showUnarchiveModal} onHide={() => setShowUnarchiveModal(false)} centered className="pt-modal">
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #856404' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-box-open me-2" style={{ color: '#856404' }}></i>Unarchive Pet
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedPet && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Restore <strong style={{ color: '#856404' }}>{selectedPet.name}</strong> back to your active pets?
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #856404' }}>
-                <strong style={{ fontSize: '1.1rem' }}>{selectedPet.name}</strong><br />
-                <small className="text-muted">
-                  <i className="fas fa-id-card me-1"></i>
-                  {selectedPet.registration_number} • <span className="text-capitalize">{selectedPet.species}</span> • {selectedPet.breed || 'Mixed'}
-                </small>
-              </div>
-              <Alert variant="success" className="mt-3 mb-0">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Note:</strong> This pet and all its records will become visible again in your active list.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowUnarchiveModal(false)} disabled={archiveActionLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
-          <Button onClick={confirmUnarchivePet} disabled={archiveActionLoading} style={{ background: '#856404', border: 'none', borderRadius: '8px', fontWeight: '600', padding: '0.75rem 1.5rem' }}>
-            {archiveActionLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-box-open me-2"></i>Unarchive Pet</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ConfirmModal
+        show={showUnarchiveModal} onHide={() => setShowUnarchiveModal(false)}
+        color="#198754" icon="fa-box-open" title={`Unarchive ${selectedPet?.name || 'this pet'}?`}
+        text="The pet will be moved back to your active pets."
+        pet={selectedPet}
+        note="This pet and all its records will be visible again in your active list."
+        confirmLabel="Unarchive pet" confirmIcon="fa-box-open"
+        onConfirm={confirmUnarchivePet} loading={archiveActionLoading}
+      />
 
       {/* ===== RESTORE MODAL ===== */}
-      <Modal show={showRestoreModal} onHide={() => setShowRestoreModal(false)} centered className="pt-modal">
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #198754' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-undo text-success me-2"></i>Restore Pet
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedPet && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to restore this pet back to your active list?
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #198754' }}>
-                <div className="mb-2">
-                  <span style={{ fontWeight: '500', color: '#555' }}>
-                    <i className="fas fa-paw me-1" style={{ color: '#ffc107' }}></i>
-                    Pet Information
-                  </span>
-                </div>
-                <strong style={{ fontSize: '1.1rem' }}>{selectedPet.name}</strong>
-                <br />
-                <small className="text-muted">
-                  <i className="fas fa-id-card me-1"></i>
-                  {selectedPet.registration_number} • <span className="text-capitalize">{selectedPet.species}</span> • {selectedPet.breed || 'Mixed'}
-                </small>
-              </div>
-              <Alert variant="success" className="mt-3 mb-0">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Note:</strong> This pet and all its associated records will be fully restored and visible again.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            Cancel
-          </Button>
-          <Button variant="success" onClick={confirmRestorePet} disabled={restoreLoading} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            {restoreLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-undo me-2"></i>Restore Pet</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ConfirmModal
+        show={showRestoreModal} onHide={() => setShowRestoreModal(false)}
+        color="#198754" icon="fa-undo" title={`Restore ${selectedPet?.name || 'this pet'}?`}
+        text="The pet will be restored back to your active list."
+        pet={selectedPet}
+        note="This pet and all its records will be fully restored and visible again."
+        confirmLabel="Restore pet" confirmIcon="fa-undo"
+        onConfirm={confirmRestorePet} loading={restoreLoading}
+      />
 
       {/* ===== FORCE DELETE MODAL ===== */}
-      <Modal show={showForceDeleteModal} onHide={() => setShowForceDeleteModal(false)} centered className="pt-modal">
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dc3545' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-exclamation-triangle text-danger me-2"></i>Permanently Delete
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedPet && (
-            <>
-              <p style={{ fontSize: '1rem' }}>
-                Permanently delete <strong style={{ color: '#dc3545' }}>{selectedPet.name}</strong>? This cannot be undone.
-              </p>
-              <Alert variant="danger" className="mb-0">
-                <i className="fas fa-skull-crossbones me-2"></i>
-                <strong>Warning:</strong> All records associated with this pet will be permanently erased from the system.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowForceDeleteModal(false)} disabled={forceDeleteLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
-          <Button variant="danger" onClick={confirmForceDeletePet} disabled={forceDeleteLoading} style={{ borderRadius: '8px', fontWeight: '600' }}>
-            {forceDeleteLoading ? <WaveDots color="#fff" /> : <><i className="fas fa-times me-1"></i>Delete Forever</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ConfirmModal
+        show={showForceDeleteModal} onHide={() => setShowForceDeleteModal(false)}
+        color="#dc3545" icon="fa-trash-alt" title="Delete permanently?"
+        text="This cannot be undone. The pet will be removed from the system for good."
+        pet={selectedPet}
+        note="All records of this pet will be permanently erased."
+        confirmLabel="Delete forever" confirmIcon="fa-trash-alt"
+        onConfirm={confirmForceDeletePet} loading={forceDeleteLoading}
+      />
 
       {/* Register Pet Modal */}
       <Modal show={showRegisterModal} onHide={() => setShowRegisterModal(false)} backdrop="static" dialogClassName="pm-modal" className="pt-modal" scrollable>
@@ -2093,92 +2049,15 @@ const handleRegisterPet = async (e) => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-<Modal 
-  show={showDeleteModal} 
-  onHide={() => setShowDeleteModal(false)}
-  centered
-  className="pt-modal"
->
-  <Modal.Header 
-    closeButton
-    style={{
-      background: '#f8f9fa',
-      borderBottom: '2px solid #dee2e6'
-    }}
-  >
-    <Modal.Title style={{ fontWeight: '700' }}>
-      <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-      Confirm Remove Pet
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '2rem'}}>
-    {selectedPet && (
-      <>
-        <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-          Are you sure you want to remove <strong style={{ color: '#dc3545' }}>{selectedPet.name}</strong> from your registered pets?
-        </p>
-        <div 
-          style={{
-            background: '#f8f9fa',
-            padding: '1.25rem',
-            borderRadius: '8px',
-            borderLeft: '4px solid #dc3545'
-          }}
-        >
-          <div className="mb-2">
-            <span style={{ fontWeight: '500', color: '#555' }}>
-              <i className="fas fa-paw me-1" style={{ color: '#ffc107' }}></i>
-              Pet Information
-            </span>
-          </div>
-          <strong style={{ fontSize: '1.1rem' }}>{selectedPet.name}</strong>
-          <br />
-          <small className="text-muted">
-            <i className="fas fa-id-card me-1"></i>
-            {selectedPet.registration_number} • <span className="text-capitalize">{selectedPet.species}</span> • {selectedPet.breed || 'Mixed'}
-          </small>
-        </div>
-        <Alert variant="warning" className="mt-3 mb-0">
-          <i className="fas fa-info-circle me-2"></i>
-          <strong>Warning:</strong> This action will deactivate the pet but records will remain in the system for historical purposes.
-        </Alert>
-      </>
-    )}
-  </Modal.Body>
-  <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-    <Button 
-      variant="secondary" 
-      onClick={() => setShowDeleteModal(false)}
-      disabled={deleteLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      Cancel
-    </Button>
-    <Button 
-      variant="danger"
-      onClick={confirmDeletePet}
-      disabled={deleteLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      {deleteLoading ? (
-        <WaveDots color="#ffffff" />
-      ) : (
-        <>
-          <i className="fas fa-trash me-2"></i>
-          Remove Pet
-        </>
-      )}
-    </Button>
-  </Modal.Footer>
-</Modal>
+      <ConfirmModal
+        show={showDeleteModal} onHide={() => setShowDeleteModal(false)}
+        color="#dc3545" icon="fa-trash" title={`Remove ${selectedPet?.name || 'this pet'}?`}
+        text="The pet will be removed from your registered pets."
+        pet={selectedPet}
+        note="The pet will be deactivated, but its records stay in the system for history."
+        confirmLabel="Remove pet" confirmIcon="fa-trash"
+        onConfirm={confirmDeletePet} loading={deleteLoading}
+      />
     </Container>
 
       {/* Crop Modal */}
