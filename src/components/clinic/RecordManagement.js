@@ -251,15 +251,53 @@ const [pendingSubmitEvent, setPendingSubmitEvent] = useState(null);
     }
     .rm-chip.other { background: #f3f4f6; color: #6b7280; }
 
-    /* Phones: keep the page inside the screen (no sideways scrolling) */
+    /* ---------------- Responsive: every screen size ---------------- */
+    /* Small laptops (992–1199px): keep 4 stat boxes readable */
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+      .clinic-records-page .rec-stat-number { font-size: 2.2rem !important; }
+      .clinic-records-page .rec-stat-icon { width: 46px !important; height: 46px !important; }
+      .clinic-records-page .rec-stat-icon img { width: 26px !important; height: 26px !important; }
+    }
+    /* Tablets & below (< 992px): tabs get their own full-width row */
+    @media (max-width: 991.98px) {
+      .clinic-records-page .rm-toolbar { flex-wrap: wrap; }
+      .clinic-records-page .rm-toolbar .rm-tabs { order: 2; flex: 1 1 100%; min-width: 0; }
+      .clinic-records-page .rm-toolbar .rec-add-btn { order: 1; margin-left: auto; }
+      .clinic-records-page .rm-toolbar::before { content: 'Records'; order: 0; font-weight: 700; font-size: 1rem; color: #1f2328; align-self: center; }
+    }
+    /* Phones & small tablets (≤ 768px) */
     @media (max-width: 768px) {
+      .clinic-records-page { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
       .clinic-records-page .mobile-hide { display: none !important; }
       .clinic-records-page .rm-table { table-layout: fixed !important; }
       .clinic-records-page .rm-table th { width: auto !important; }
-      .clinic-records-page .rm-table th:last-child { width: 46px !important; }
+      .clinic-records-page .rm-table th:nth-child(2) { width: 40% !important; }
+      .clinic-records-page .rm-table th:last-child { width: 44px !important; }
+      .clinic-records-page .rm-table td, .clinic-records-page .rm-table th { padding-left: 0.4rem !important; padding-right: 0.4rem !important; }
       .clinic-records-page .rm-ellipsis { max-width: 100%; }
-      .clinic-records-page .rm-toolbar .rm-tabs { flex: 1 1 0; min-width: 0; }
-      .clinic-records-page .rm-toolbar { flex-wrap: nowrap; }
+      .clinic-records-page .rm-toolbar .rm-btn span { display: inline !important; }
+      .clinic-records-page .rm-filters { padding: 0.85rem 1rem !important; }
+      .clinic-records-page .rm-filters .rm-search { flex: 1 1 100%; }
+      .clinic-records-page .rm-filters .rm-select { flex: 1 1 0; min-width: 0; }
+      .clinic-records-page .rm-toolbar { padding: 0.85rem 1rem !important; }
+      .clinic-records-page .mobile-card-body { padding: 0 0.6rem 0.4rem !important; }
+      .clinic-records-page .rm-foot { justify-content: center; }
+      .clinic-records-page .rm-foot > :first-child { width: 100%; text-align: center; }
+      .clinic-records-page .rec-stat-desc { display: none !important; }
+      .clinic-records-page .card-body { padding: 1rem !important; }
+    }
+    /* Small phones (≤ 400px) */
+    @media (max-width: 400px) {
+      .clinic-records-page .rec-stat-number { font-size: 1.5rem !important; }
+      .clinic-records-page .rec-stat-label { font-size: 0.58rem !important; }
+      .clinic-records-page .rec-stat-icon { width: 32px !important; height: 32px !important; }
+      .clinic-records-page .rec-stat-icon img { width: 18px !important; height: 18px !important; }
+      .clinic-records-page .card-body { padding: 0.85rem !important; }
+      .clinic-records-page .rm-tab { padding: 0.4rem 0.6rem; font-size: 0.8rem; }
+      .clinic-records-page .rm-page { min-width: 32px; height: 32px; }
+      .clinic-records-page .rm-filters .rm-select { flex: 1 1 100%; }
+      .clinic-records-page .rm-filters .rm-seg { width: 100%; }
+      .clinic-records-page .rm-filters .rm-seg button { flex: 1; }
     }
 
     /* ---------------- Modals ---------------- */
@@ -1350,7 +1388,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
             </Alert>
           )}
         {/* Stats Cards */}
-        <Row className="mb-4">
+        <Row className="g-3 mb-4">
           {[
             { label: 'Vaccination', count: vaccinations.filter(r => r.is_mine == 1 && !isInactive(r)).length, icon: '/vaccine.png', faIcon: 'fas fa-syringe', accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)', description: 'Vaccination Records', delay: '0.1s' },
             { label: 'Deworming', count: dewormings.filter(r => r.is_mine == 1 && !isInactive(r)).length, icon: '/deworm.png', faIcon: 'fas fa-pills', accent: '#17a2b8', accentAlpha: 'rgba(23,162,184,0.12)', description: 'Deworming Records', delay: '0.2s' },
@@ -1374,7 +1412,7 @@ const getRecordTypeLabel = (type) => ({ vaccination: 'Vaccination', deworming: '
             }, [loading, count]);
 
             return (
-            <Col xs={12} sm={6} lg={3} className="mb-3" key={i} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+            <Col xs={6} lg={3} key={i} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
               <Card
                 className="border-0 h-100"
                 style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
