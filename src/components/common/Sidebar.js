@@ -541,6 +541,24 @@ const streamRef = useRef(null);
   };
   const role = user ? roleConfig[user.role] : null;
 
+  // Signed-in user's avatar (same light style as the Activity Logs user icons)
+  const me = (() => {
+    if (!user) return null;
+    const AVATAR = {
+      super_admin:       { bg: 'rgba(239,68,68,0.12)', fg: '#b91c1c', label: 'Super Admin' },
+      barangay_official: { bg: 'rgba(255,193,7,0.18)', fg: '#8a6700', label: user.office_role || 'City Vet Admin' },
+      private_clinic:    { bg: 'rgba(34,197,94,0.12)', fg: '#15803d', label: 'Private Clinic' },
+      pet_owner:         { bg: 'rgba(255,193,7,0.18)', fg: '#8a6700', label: 'Pet Owner' },
+    };
+    const a = AVATAR[user.role] || AVATAR.pet_owner;
+    const personName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const name = user.role === 'super_admin' ? (personName || 'Super Admin')
+      : user.role === 'private_clinic' ? (user.clinic_name || personName || 'Clinic')
+      : (personName || user.username || 'User');
+    const initials = name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+    return { name, initials, bg: a.bg, fg: darkMode ? (user.role === 'private_clinic' ? '#4ade80' : user.role === 'super_admin' ? '#f87171' : '#ffd24d') : a.fg, roleLabel: a.label };
+  })();
+
   // ─── Verification handlers ───────────────────────────────────────────────
 
   // ─── Shared link renderer ────────────────────────────────────────────────
@@ -560,7 +578,7 @@ const streamRef = useRef(null);
       cursor: 'pointer',
       transition: 'all 0.25s ease',
       background: 'transparent',
-      color: anyChildActive ? activeText : (darkMode ? '#bbbbbb' : '#333333'),
+      color: anyChildActive ? activeText : (darkMode ? '#bbbbbb' : '#4b5563'),
       fontWeight: anyChildActive ? '700' : '500',
       fontSize: '0.875rem',
       justifyContent: collapsed ? 'center' : 'flex-start',
@@ -581,14 +599,14 @@ const streamRef = useRef(null);
           }}
           onMouseOver={(e) => {
             if (!anyChildActive) {
-              e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.12)';
+              e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.05)' : '#f6f7f9';
               e.currentTarget.style.color = darkMode ? '#ffffff' : '#1a1a1a';
             }
           }}
           onMouseOut={(e) => {
             if (!anyChildActive) {
-              e.currentTarget.style.background = anyChildActive ? 'linear-gradient(135deg, rgba(255,193,7,0.15) 0%, rgba(255,179,0,0.15) 100%)' : 'transparent';
-              e.currentTarget.style.color = anyChildActive ? '#ffc107' : (darkMode ? '#bbbbbb' : '#333333');
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#4b5563';
             }
           }}
           title={collapsed ? link.label : undefined}
@@ -598,18 +616,18 @@ const streamRef = useRef(null);
             width: '18px',
             textAlign: 'center',
             flexShrink: 0,
-            color: anyChildActive ? '#e0a800' : (darkMode ? '#888888' : '#666666'),
+            color: anyChildActive ? '#e0a800' : (darkMode ? '#7a7a7a' : '#9ca3af'),
           }} />
           {!collapsed && (
             <>
               <span style={{ flex: 1, letterSpacing: '0.01em' }}>{link.label}</span>
               <i
-                className={`fas fa-chevron-${isOpen ? 'up' : 'down'}`}
+                className="fas fa-chevron-down"
                 style={{
                   fontSize: '0.65rem',
                   color: darkMode ? '#666' : '#aaa',
                   transition: 'transform 0.25s',
-                  transform: isOpen ? 'rotate(0deg)' : 'rotate(0deg)',
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                 }}
               />
             </>
@@ -641,7 +659,7 @@ const streamRef = useRef(null);
                     marginBottom: '2px',
                     textDecoration: 'none',
                     background: childActive ? activeBg : 'transparent',
-                    color: childActive ? activeText : (darkMode ? '#bbbbbb' : '#444444'),
+                    color: childActive ? activeText : (darkMode ? '#bbbbbb' : '#4b5563'),
                     fontWeight: childActive ? '700' : '500',
                     fontSize: '0.85rem',
                     transition: 'all 0.2s',
@@ -649,14 +667,14 @@ const streamRef = useRef(null);
                   onClick={() => setMobileOpen(false)}
                   onMouseOver={(e) => {
                     if (!childActive) {
-                      e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.1)';
+                      e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.05)' : '#f6f7f9';
                       e.currentTarget.style.color = darkMode ? '#fff' : '#1a1a1a';
                     }
                   }}
                   onMouseOut={(e) => {
                     if (!childActive) {
                       e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#444444';
+                      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#4b5563';
                     }
                   }}
                 >
@@ -664,7 +682,7 @@ const streamRef = useRef(null);
                     fontSize: '0.82rem',
                     width: '16px',
                     textAlign: 'center',
-                    color: childActive ? '#e0a800' : (darkMode ? '#888' : '#777'),
+                    color: childActive ? '#e0a800' : (darkMode ? '#7a7a7a' : '#9ca3af'),
                   }} />
                   <span>{child.label}</span>
                 </Link>
@@ -687,7 +705,7 @@ const streamRef = useRef(null);
     cursor: 'pointer',
     transition: 'all 0.25s ease',
     background: active ? activeBg : 'transparent',
-    color: active ? activeText : (darkMode ? '#bbbbbb' : '#333333'),
+    color: active ? activeText : (darkMode ? '#bbbbbb' : '#4b5563'),
     fontWeight: active ? '700' : '500',
     fontSize: '0.875rem',
     textDecoration: 'none',
@@ -702,20 +720,20 @@ const streamRef = useRef(null);
     width: '18px',
     textAlign: 'center',
     flexShrink: 0,
-    color: active ? '#e0a800' : (darkMode ? '#888888' : '#666666'),
+    color: active ? '#e0a800' : (darkMode ? '#7a7a7a' : '#9ca3af'),
     transition: 'color 0.2s',
   };
 
   const handleMouseOver = (e) => {
     if (!active) {
-      e.currentTarget.style.background = darkMode ? 'rgba(255,193,7,0.1)' : 'rgba(255,193,7,0.12)';
+      e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.05)' : '#f6f7f9';
       e.currentTarget.style.color = darkMode ? '#ffffff' : '#1a1a1a';
     }
   };
   const handleMouseOut = (e) => {
     if (!active) {
       e.currentTarget.style.background = 'transparent';
-      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#333333';
+      e.currentTarget.style.color = darkMode ? '#bbbbbb' : '#4b5563';
     }
   };
 
@@ -726,6 +744,7 @@ const streamRef = useRef(null);
       {active && <span className="sb-active-bar" />}
       {icon}
       {!collapsed && <span style={{ flex: 1, letterSpacing: '0.01em' }}>{link.label}</span>}
+      {collapsed && link.badge > 0 && <span className="sb-dot" />}
       {!collapsed && link.badge > 0 && (
         <span style={{
           background: '#ef4444',
@@ -863,14 +882,14 @@ const streamRef = useRef(null);
   scrollbarWidth: 'none',
   minHeight: 0
 }}>
-  {!collapsed && role && (
+  {!collapsed && user && (
     <div style={{ padding: '0 0.6rem', marginBottom: '0.5rem' }}>
       <span style={{
         fontSize: '0.62rem',
         fontWeight: '700',
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
-        color: darkMode ? '#333333' : '#cccccc',
+        color: darkMode ? '#555555' : '#9ca3af',
       }}>
         Menu
       </span>
@@ -879,8 +898,18 @@ const streamRef = useRef(null);
   {links.map((link, idx) => renderLink(link, idx))}
 </nav>
 
-      {/* ── Bottom section — empty, no profile/dark mode here anymore ── */}
-      <div style={{ flexShrink: 0 }} />
+      {/* ── Bottom section — who is signed in ── */}
+      {user && me && (
+        <div className={`sb-me${collapsed && !isMobile ? ' mini' : ''}`} title={collapsed && !isMobile ? `${me.name} · ${me.roleLabel}` : undefined}>
+          <div className="sb-av" style={{ background: me.bg, color: me.fg }}>{me.initials}</div>
+          {(!collapsed || isMobile) && (
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="sb-me-name">{me.name}</div>
+              <div className="sb-me-role" style={{ color: me.fg }}>{me.roleLabel}</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -893,6 +922,12 @@ const streamRef = useRef(null);
         @keyframes sbFade { from { opacity: 0; } to { opacity: 1; } }
         @media (prefers-reduced-motion: reduce) { .sb-active-bar, .sb-tab.active::before { animation: none !important; } }
         nav::-webkit-scrollbar { display: none; }
+        .sb-me { flex-shrink: 0; display: flex; align-items: center; gap: 0.65rem; margin: 0.5rem; padding: 0.65rem 0.7rem; border-radius: 12px; border: 1px solid ${border}; background: ${darkMode ? 'rgba(255,255,255,0.03)' : '#fafbfc'}; }
+        .sb-me.mini { justify-content: center; padding: 0.55rem 0; }
+        .sb-av { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 800; }
+        .sb-me-name { font-size: 0.8rem; font-weight: 700; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sb-me-role { font-size: 0.66rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sb-dot { position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; border: 2px solid ${darkMode ? '#0d0d0d' : '#fff'}; }
         @media (max-width: 991px) {
           .sidebar-desktop { display: none !important; }
           .sidebar-spacer  { display: none !important; }
@@ -903,8 +938,8 @@ const streamRef = useRef(null);
           .navbar-toggler { display: none !important; }
           .modal { zoom: 0.75 !important; }
           .profile-pill { padding: 0.25rem 0.5rem !important; gap: 0.3rem !important; }
-          .profile-pill > div:first-child { width: 22px !important; height: 22px !important; }
-          .profile-pill > div:first-child i { font-size: 0.55rem !important; }
+          .profile-pill > div:first-child { width: 26px !important; height: 26px !important; }
+          .profile-pill > div:first-child { font-size: 0.6rem !important; letter-spacing: -0.02em; }
           .profile-pill > div:first-child > div:last-child { width: 6px !important; height: 6px !important; }
           .profile-pill > div:nth-child(2) > div:first-child { font-size: 0.7rem !important; }
           .profile-pill > div:nth-child(2) > div:last-child { font-size: 0.55rem !important; }
@@ -1274,14 +1309,14 @@ const streamRef = useRef(null);
               onMouseOut={e => e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}
             >
               {/* Avatar */}
-              <div style={{
-                width: '30px', height: '30px', borderRadius: '50%',
-                background: darkMode ? '#222' : '#f0f0f0',
-                border: `1.5px solid ${border}`,
+              <div className="sb-pill-av" style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: me?.bg, color: me?.fg,
+                fontSize: '0.68rem', fontWeight: 800,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 position: 'relative', flexShrink: 0,
               }}>
-                <i className="fas fa-user" style={{ fontSize: '0.75rem', color: darkMode ? '#bbb' : '#555' }} />
+                {me?.initials}
                 <div style={{
                   position: 'absolute', bottom: 0, right: 0,
                   width: '8px', height: '8px', background: '#22c55e',
@@ -1339,16 +1374,20 @@ const streamRef = useRef(null);
                 }}>
                   {/* User info header */}
                   <div style={{ padding: '0.6rem 0.75rem 0.75rem', borderBottom: `1px solid ${border}`, marginBottom: '0.4rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '700', color: textColor, whiteSpace: 'nowrap' }}>
-  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'private_clinic' ? (user.clinic_name || `${user.first_name} ${user.last_name}`) : `${user.first_name} ${user.last_name}`}
-
-</div>
-                    <div style={{ fontSize: '0.7rem', color: subTextColor, marginTop: '0.15rem' }}>{user.email}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: me?.bg, color: me?.fg, fontSize: '0.8rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{me?.initials}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: '700', color: textColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '170px' }}>
+                          {user.role === 'super_admin' ? 'Super Admin' : user.role === 'private_clinic' ? (user.clinic_name || `${user.first_name} ${user.last_name}`) : `${user.first_name} ${user.last_name}`}
+                        </div>
+                        {user.email && <div style={{ fontSize: '0.7rem', color: darkMode ? '#8b8b94' : '#6b7280', marginTop: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '170px' }} title={user.email}>{user.email}</div>}
+                      </div>
+                    </div>
 {(() => {
   const rc = { super_admin: { name: 'Super Admin', color: '#ef4444' }, barangay_official: { name: user.office_role || 'Barangay Admin', color: '#ffc107' }, private_clinic: { name: 'Private Clinic', color: '#22c55e' } };
   const r = rc[user.role];
   return r ? (
-    <div style={{ marginTop: '0.3rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: r.color + '18', border: `1px solid ${r.color}44`, borderRadius: '50px', padding: '0.15rem 0.6rem' }}>
+    <div style={{ marginTop: '0.55rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: r.color + '18', border: `1px solid ${r.color}44`, borderRadius: '50px', padding: '0.15rem 0.6rem' }}>
       <i className="fas fa-shield-alt" style={{ fontSize: '0.55rem', color: r.color }} />
       <span style={{ fontSize: '0.62rem', fontWeight: '700', color: r.color, textTransform: 'uppercase' }}>{r.name}</span>
     </div>
@@ -1359,15 +1398,13 @@ const streamRef = useRef(null);
                     {user.role === 'pet_owner' && ownerProfile && (() => {
                       const cfg = VERIFICATION_CONFIG[ownerProfile.verification_status] || VERIFICATION_CONFIG.not_verified;
                       return (
-                        <div style={{ marginTop: '0.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: cfg.color + '18', border: `1px solid ${cfg.color}44`, borderRadius: '50px', padding: '0.15rem 0.6rem' }}>
+                        <div style={{ marginTop: '0.55rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', background: cfg.color + '18', border: `1px solid ${cfg.color}44`, borderRadius: '50px', padding: '0.15rem 0.6rem' }}>
                           <i className={`fas ${cfg.icon}`} style={{ fontSize: '0.55rem', color: cfg.color }} />
                           <span style={{ fontSize: '0.62rem', fontWeight: '700', color: cfg.color, textTransform: 'uppercase' }}>{cfg.label}</span>
                         </div>
                       );
                     })()}
                   </div>
-
-                  <div style={{ height: '1px', background: border, margin: '0.2rem 0' }} />
 
                   {/* Verify Account button for pet_owner */}
                   {user.role === 'pet_owner' && ownerProfile && (() => {
@@ -1379,8 +1416,8 @@ const streamRef = useRef(null);
                         onMouseOver={e => e.currentTarget.style.background = 'rgba(255,193,7,0.08)'}
                         onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                       >
-                        <i className="fas fa-id-card" style={{ fontSize: '0.75rem' }} />
-                        Verify Account
+                        <i className="fas fa-id-card" style={{ fontSize: '0.75rem', width: '16px', textAlign: 'center' }} />
+                        Verify account
                       </button>
                     ) : null;
                   })()}
@@ -1402,7 +1439,7 @@ const streamRef = useRef(null);
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <i className="fas fa-key" style={{ fontSize: '0.75rem', width: '16px', textAlign: 'center' }} />
-                      Update Password
+                      Update password
                     </button>
                   )}
 
@@ -1423,7 +1460,7 @@ const streamRef = useRef(null);
                       onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <i className="fas fa-user-edit" style={{ fontSize: '0.75rem', width: '16px', textAlign: 'center' }} />
-                      Edit Profile
+                      Edit profile
                     </button>
                   )}
 
@@ -1434,8 +1471,8 @@ const streamRef = useRef(null);
                     onMouseOver={e => e.currentTarget.style.background = 'rgba(239,68,68,0.07)'}
                     onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <i className="fas fa-sign-out-alt" style={{ fontSize: '0.75rem' }} />
-                    Sign Out
+                    <i className="fas fa-sign-out-alt" style={{ fontSize: '0.75rem', width: '16px', textAlign: 'center' }} />
+                    Sign out
                   </button>
                 </div>
               </>
