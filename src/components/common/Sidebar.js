@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navbar as BootstrapNavbar, Nav, Container, Modal, Button, Form, Row, Col, Alert, Spinner } from 'react-bootstrap';
+import { Navbar as BootstrapNavbar, Nav, Container, Modal, Button } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api, { dashboardAPI } from '../../services/api';
-import { getUser } from '../../utils/auth';
 import VerifyAccountModal from '../owner/VerifyAccountModal';
 
 
@@ -1094,16 +1093,22 @@ const streamRef = useRef(null);
                 show={showScannerModal}
                 onHide={() => setShowScannerModal(false)}
                 centered
-                size="sm"
+                dialogClassName="qs-dialog"
+                contentClassName="qs-content"
                 style={{ zIndex: 99999 }}
+                aria-labelledby="qs-title"
               >
-                <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107' }}>
-                  <Modal.Title style={{ fontWeight: '700', fontSize: '1rem' }}>
-                    <i className="fas fa-qrcode me-2" style={{ color: '#ffc107' }} />
-                    Scan Pet QR Code
-                  </Modal.Title>
-                </Modal.Header>
-                <Modal.Body style={{ padding: '1.5rem', maxHeight: '75vh', overflowY: 'auto' }}>
+                <div className="qs-head">
+                  <div className="qs-head-ic"><i className="fas fa-qrcode" /></div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="qs-kicker">QR scanner</div>
+                    <h5 id="qs-title" className="qs-title">{scanResult ? 'Pet found' : 'Scan a pet QR code'}</h5>
+                  </div>
+                  <button type="button" className="qs-close" onClick={() => setShowScannerModal(false)} aria-label="Close">
+                    <i className="fas fa-times" />
+                  </button>
+                </div>
+                <Modal.Body className="qs-body">
                   {scanResult ? (
                     (() => {
                       try {
@@ -1127,57 +1132,46 @@ const streamRef = useRef(null);
                         return (
                           <div>
                             {/* Pet header */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.85rem 1rem', background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderRadius: '12px', marginBottom: '1rem', borderBottom: '2px solid #ffc107' }}>
-                              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', flexShrink: 0 }}>
-                                <img src={speciesIcon} alt={data.species} style={{ width: '32px', height: '32px', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+                            <div className="qs-pet">
+                              <div className="qs-pet-av">
+                                <img src={speciesIcon} alt={data.species} onError={e => e.target.style.display = 'none'} />
                               </div>
-                              <div>
-                                <div style={{ fontWeight: '800', fontSize: '1.05rem', color: '#333' }}>{data.name}</div>
-                                <div style={{ fontSize: '0.72rem', color: '#888', fontWeight: '600', textTransform: 'capitalize' }}>{data.species}</div>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div className="qs-pet-name">{data.name}</div>
+                                <div className="qs-pet-meta">{[data.species, data.reg_no].filter(Boolean).join(' · ')}</div>
                               </div>
-                              <div style={{ marginLeft: 'auto' }}>
-                                <span style={{ background: 'rgba(25,135,84,0.1)', border: '1px solid rgba(25,135,84,0.3)', color: '#198754', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700', padding: '0.2rem 0.6rem' }}>
-                                  <i className="fas fa-check-circle me-1" />Verified
-                                </span>
-                              </div>
+                              <span className="qs-chip"><i className="fas fa-check-circle" />Verified</span>
                             </div>
 
-                            {/* Details table */}
-                            <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #f0f0f0', overflow: 'hidden', marginBottom: '1rem' }}>
-                              {rows.map((row, i) => (
-                                <div key={row.label} style={{ display: 'flex', borderBottom: i < rows.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
-                                  <div style={{ width: '130px', flexShrink: 0, padding: '0.55rem 0.75rem', fontWeight: '600', color: '#888', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.03em', background: '#fafafa' }}>{row.label}</div>
-                                  <div style={{ flex: 1, padding: '0.55rem 0.75rem', fontWeight: '600', color: '#333', fontSize: '0.82rem', textTransform: ['Species','Gender','Sterilized'].includes(row.label) ? 'capitalize' : 'none' }}>{row.value}</div>
+                            {/* Details */}
+                            <div className="qs-grid">
+                              {rows.filter(r => r.label !== 'Registration No.').map((row) => (
+                                <div key={row.label} className={`qs-info${['Owner', 'Barangay', 'Issued By', 'Microchip No.'].includes(row.label) ? ' wide' : ''}`}>
+                                  <div className="qs-info-label">{row.label}</div>
+                                  <div className="qs-info-value" style={{ textTransform: ['Species','Gender','Sterilized'].includes(row.label) ? 'capitalize' : 'none' }}>{row.value}</div>
                                 </div>
                               ))}
                             </div>
 
-                            <Button
-                              onClick={() => setScanResult('')}
-                              style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', width: '100%' }}
-                            >
-                              <i className="fas fa-redo me-2" />Scan Again
-                            </Button>
+                            <button type="button" className="qs-btn" onClick={() => setScanResult('')}>
+                              <i className="fas fa-redo" />Scan again
+                            </button>
                           </div>
                         );
                       } catch {
                         return (
                           <div>
-                            <div style={{ background: 'rgba(220,53,69,0.07)', border: '1.5px solid rgba(220,53,69,0.3)', borderRadius: '10px', padding: '1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#dc3545' }}>
-                              <i className="fas fa-exclamation-triangle me-2" />Could not read QR code data.
-                            </div>
-                            <Button onClick={() => setScanResult('')} style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', width: '100%' }}>
-                              <i className="fas fa-redo me-2" />Scan Again
-                            </Button>
+                            <div className="qs-alert"><i className="fas fa-exclamation-circle" /><span>Could not read the QR code data.</span></div>
+                            <button type="button" className="qs-btn" onClick={() => setScanResult('')}>
+                              <i className="fas fa-redo" />Scan again
+                            </button>
                           </div>
                         );
                       }
                     })()
                   ) : (
                     <div>
-                      <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: '1rem', textAlign: 'center' }}>
-                        Point your camera at a pet's QR code.
-                      </p>
+                      <p className="qs-hint">Point your camera at a pet's QR code.</p>
 
                       {/* Scanner + overlays — scanner div always stays mounted */}
                       <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', minHeight: '260px' }}>
@@ -1207,9 +1201,9 @@ const streamRef = useRef(null);
                             }}>
                               <i className="fas fa-check" style={{ fontSize: '2rem', color: '#fff' }} />
                             </div>
-                            <div style={{ fontWeight: '800', fontSize: '1rem', color: '#333' }}>Scan Complete!</div>
+                            <div style={{ fontWeight: '800', fontSize: '1rem', color: '#333' }}>Scan complete!</div>
                             <div style={{ fontSize: '0.75rem', color: '#888' }}>Loading pet information...</div>
-                            <Spinner animation="border" size="sm" style={{ color: '#ffc107' }} />
+                            <div className="qs-dots"><span /><span /><span /></div>
                           </div>
                         )}
 
@@ -1241,9 +1235,9 @@ const streamRef = useRef(null);
                         )}
                       </div>
 
-                      <p style={{ fontSize: '0.72rem', color: '#bbb', marginTop: '0.75rem', textAlign: 'center' }}>
-                        <i className="fas fa-lightbulb me-1" style={{ color: '#ffc107' }} />
-                        Make sure the QR code is well lit and in frame
+                      <p className="qs-tip">
+                        <i className="fas fa-lightbulb" />
+                        Make sure the QR code is well lit and in frame.
                       </p>
                     </div>
                   )}
@@ -1523,18 +1517,12 @@ const streamRef = useRef(null);
             .sb-tab.active::before { content: ''; position: absolute; top: 0; left: 50%; width: 26px; height: 3px; margin-left: -13px; border-radius: 0 0 3px 3px; background: #ffc107; animation: sbFade 0.25s ease; }
             .sb-tab .sb-tab-badge { position: absolute; top: 6px; right: 12px; background: #ef4444; color: #fff; border-radius: 999px; font-size: 0.5rem; font-weight: 700; min-width: 15px; padding: 0.05rem 0.3rem; text-align: center; line-height: 1.5; }
             .sb-tab:focus-visible { outline: 2px solid #ffc107; outline-offset: -2px; }
+            .sb-tabs.fit .sb-tab { flex: 1 1 0; min-width: 0; padding: 0 0.2rem; }
+            .sb-tabs.fit .sb-tab span:not(.sb-tab-badge) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+            .sb-tabs.fit .sb-tab .sb-tab-badge { right: auto; left: calc(50% + 6px); }
           `}</style>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0',
-            width: '100%',
-            padding: '0 0.25rem',
-            height: '100%',
-            justifyContent: user?.role === 'pet_owner' ? 'space-around' : 'flex-start',
-            minWidth: user?.role === 'pet_owner' ? 'unset' : 'max-content',
-          }}>
-            {links.flatMap((link, idx) => {
+          {(() => {
+            const tabs = links.flatMap((link, idx) => {
               if (link.dropdown) {
                 return (link.children || []).map((child, cIdx) => ({
                   ...child,
@@ -1542,7 +1530,21 @@ const streamRef = useRef(null);
                 }));
               }
               return [{ ...link, _key: String(idx) }];
-            }).map((link) => {
+            });
+            // 5 tabs or fewer fit on any phone: share the width evenly. More than 5 (City Vet admin): scroll sideways.
+            const fits = tabs.length <= 5;
+            return (
+          <div className={`sb-tabs${fits ? ' fit' : ''}`} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0',
+            width: '100%',
+            padding: '0 0.25rem',
+            height: '100%',
+            justifyContent: fits ? 'stretch' : 'flex-start',
+            minWidth: fits ? 'unset' : 'max-content',
+          }}>
+            {tabs.map((link) => {
               const active = link.to ? isActive(link.to) : false;
               const inner = (
                 <>
@@ -1558,6 +1560,8 @@ const streamRef = useRef(null);
               );
             })}
           </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1627,6 +1631,45 @@ const streamRef = useRef(null);
         .lo-btn:focus-visible, .lo-close:focus-visible { outline: 2px solid #dc3545; outline-offset: 2px; }
         .lo-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; animation: loSpin 0.7s linear infinite; }
 
+        /* QR scanner modal */
+        .qs-dialog { max-width: 420px; }
+        .qs-content { border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)'} !important; border-radius: 16px !important; overflow: hidden; background: ${darkMode ? '#141414' : '#ffffff'} !important; box-shadow: 0 30px 80px rgba(16,24,40,0.28) !important; }
+        .qs-head { display: flex; align-items: center; gap: 0.8rem; padding: 1.1rem 1.25rem; border-bottom: 1px solid ${darkMode ? 'rgba(255,255,255,0.07)' : '#eef0f3'}; background: linear-gradient(180deg, ${darkMode ? 'rgba(255,193,7,0.08)' : '#fffbeb'} 0%, ${darkMode ? '#141414' : '#fff'} 100%); }
+        .qs-head-ic { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; color: #e0a800; background: rgba(255,193,7,0.16); }
+        .qs-kicker { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b88a00; }
+        .qs-title { font-size: 1.08rem; font-weight: 700; color: ${textColor}; margin: 0; }
+        .qs-close { width: 30px; height: 30px; border-radius: 9px; border: none; background: transparent; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .qs-close:hover { background: ${darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)'}; color: ${textColor}; }
+        .qs-body { padding: 1.15rem 1.25rem 1.25rem !important; max-height: 75vh; overflow-y: auto; }
+        .qs-hint { font-size: 0.84rem; color: ${darkMode ? '#9a9a9a' : '#6b7280'}; margin: 0 0 0.9rem; text-align: center; }
+        .qs-tip { display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.74rem; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; margin: 0.8rem 0 0; text-align: center; }
+        .qs-tip i { color: #ffc107; }
+        .qs-pet { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 0.9rem; border-radius: 12px; border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : '#eef0f3'}; background: ${darkMode ? '#1b1b1b' : '#fafbfc'}; margin-bottom: 0.75rem; }
+        .qs-pet-av { width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,193,7,0.16); }
+        .qs-pet-av img { width: 30px; height: 30px; object-fit: contain; }
+        .qs-pet-name { font-weight: 700; font-size: 1rem; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .qs-pet-meta { font-size: 0.76rem; color: ${darkMode ? '#9a9a9a' : '#6b7280'}; text-transform: capitalize; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .qs-chip { display: inline-flex; align-items: center; gap: 0.3rem; flex-shrink: 0; font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 999px; background: rgba(25,135,84,0.12); color: #198754; }
+        .qs-grid { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: row dense; gap: 0.45rem; margin-bottom: 1rem; }
+        .qs-info { padding: 0.55rem 0.7rem; border-radius: 10px; border: 1px solid ${darkMode ? 'rgba(255,255,255,0.08)' : '#eef0f3'}; min-width: 0; }
+        .qs-info.wide { grid-column: 1 / -1; }
+        .qs-info-label { font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: ${darkMode ? '#7a7a7a' : '#9ca3af'}; }
+        .qs-info-value { font-size: 0.86rem; font-weight: 600; color: ${textColor}; word-break: break-word; }
+        .qs-btn { width: 100%; height: 42px; border: none; border-radius: 10px; background: #ffc107; color: #1f2328; font-weight: 700; font-size: 0.88rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.15s ease, box-shadow 0.15s ease; }
+        .qs-btn:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); }
+        .qs-btn:focus-visible, .qs-close:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+        .qs-alert { display: flex; align-items: flex-start; gap: 0.55rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #dc3545; }
+        .qs-alert i { margin-top: 3px; }
+        .qs-dots { display: flex; gap: 5px; }
+        .qs-dots span { width: 7px; height: 7px; border-radius: 50%; background: #ffc107; animation: qsDot 1s ease-in-out infinite; }
+        .qs-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .qs-dots span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes qsDot { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; } 40% { transform: scale(1); opacity: 1; } }
+        @media (max-width: 576px) {
+          .qs-dialog { margin: 1rem auto; max-width: calc(100% - 2rem); }
+          .qs-head { padding: 0.95rem 1rem; }
+          .qs-body { padding: 1rem !important; }
+        }
         @keyframes loPulse { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.65); opacity: 0; } }
         @keyframes loPop { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         @keyframes loSpin { to { transform: rotate(360deg); } }
