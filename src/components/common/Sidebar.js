@@ -898,18 +898,7 @@ const streamRef = useRef(null);
   {links.map((link, idx) => renderLink(link, idx))}
 </nav>
 
-      {/* ── Bottom section — who is signed in ── */}
-      {user && me && (
-        <div className={`sb-me${collapsed && !isMobile ? ' mini' : ''}`} title={collapsed && !isMobile ? `${me.name} · ${me.roleLabel}` : undefined}>
-          <div className="sb-av" style={{ background: me.bg, color: me.fg }}>{me.initials}</div>
-          {(!collapsed || isMobile) && (
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="sb-me-name">{me.name}</div>
-              <div className="sb-me-role" style={{ color: me.fg }}>{me.roleLabel}</div>
-            </div>
-          )}
-        </div>
-      )}
+
     </div>
   );
 
@@ -922,11 +911,6 @@ const streamRef = useRef(null);
         @keyframes sbFade { from { opacity: 0; } to { opacity: 1; } }
         @media (prefers-reduced-motion: reduce) { .sb-active-bar, .sb-tab.active::before { animation: none !important; } }
         nav::-webkit-scrollbar { display: none; }
-        .sb-me { flex-shrink: 0; display: flex; align-items: center; gap: 0.65rem; margin: 0.5rem; padding: 0.65rem 0.7rem; border-radius: 12px; border: 1px solid ${border}; background: ${darkMode ? 'rgba(255,255,255,0.03)' : '#fafbfc'}; }
-        .sb-me.mini { justify-content: center; padding: 0.55rem 0; }
-        .sb-av { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 800; }
-        .sb-me-name { font-size: 0.8rem; font-weight: 700; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sb-me-role { font-size: 0.66rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .sb-dot { position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; border: 2px solid ${darkMode ? '#0d0d0d' : '#fff'}; }
         @media (max-width: 991px) {
           .sidebar-desktop { display: none !important; }
