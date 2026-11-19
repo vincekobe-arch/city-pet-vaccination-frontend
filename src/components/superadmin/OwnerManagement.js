@@ -367,7 +367,7 @@ const SuperAdminOwnerManagement = () => {
     .om-modal .modal-content, .omc-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
     .om-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, #fffaeb 0%, #fff 100%); }
     .om-head-main { display: flex; gap: 0.95rem; align-items: center; min-width: 0; flex: 1; }
-    .om-avatar { width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0; background: linear-gradient(135deg, #ffc107, #ffb000); color: #1f2328; font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,193,7,0.3); }
+    .om-avatar { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; background: rgba(255,193,7,0.18); color: #8a6700; font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; justify-content: center; }
     .om-head-ic { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; background: rgba(255,193,7,0.18); color: #b88a00; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
     .om-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
     .om-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 999px; white-space: nowrap; }
@@ -448,7 +448,7 @@ const SuperAdminOwnerManagement = () => {
 
     @media (max-width: 768px) {
       .om-head { padding: 1rem !important; }
-      .om-avatar { width: 46px; height: 46px; font-size: 1rem; border-radius: 13px; }
+      .om-avatar { width: 46px; height: 46px; font-size: 1rem; }
       .om-body { padding: 1rem !important; }
       .om-info-grid { grid-template-columns: 1fr; }
       .om-info-ic { display: none; }
@@ -987,7 +987,6 @@ const SuperAdminOwnerManagement = () => {
           const first = o.po_first_name || o.first_name || '';
           const last = o.po_last_name || o.last_name || '';
           const initials = `${first[0] || ''}${last[0] || ''}`.toUpperCase() || '?';
-          const verif = VERIF_CONFIG[o.verification_status] || VERIF_CONFIG.not_verified;
           const login = lastLoginInfo(o.last_login);
           const info = [
             { icon: 'fa-at', label: 'Username', value: o.username || '—' },
@@ -1002,10 +1001,6 @@ const SuperAdminOwnerManagement = () => {
                 <div className="om-head-main">
                   <div className="om-avatar">{initials}</div>
                   <div style={{ minWidth: 0 }}>
-                    <div className="om-chips">
-                      <span className={`om-chip ${o.is_active ? 'green' : 'grey'}`}><i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />{o.is_active ? 'Active' : 'Inactive'}</span>
-                      <span className="om-chip" style={{ color: verif.color, background: `color-mix(in srgb, ${verif.color} 12%, #fff)` }}><i className={`fas ${verif.icon}`} />{verif.label}</span>
-                    </div>
                     <Modal.Title as="h5" className="om-title">{first} {last}</Modal.Title>
                     <div className="om-sub" style={{ color: login.color }}><i className="fas fa-clock me-1" />{login.label}</div>
                   </div>

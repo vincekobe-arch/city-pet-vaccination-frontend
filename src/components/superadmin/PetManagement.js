@@ -311,8 +311,8 @@ const SuperPetManagement = ({ darkMode }) => {
   .pv-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid var(--pm-line) !important; background: ${darkMode ? 'linear-gradient(180deg, rgba(255,193,7,0.08) 0%, #141414 100%)' : 'linear-gradient(180deg, #fffaeb 0%, #fff 100%)'}; }
   ${darkMode ? '.pv-head .btn-close { filter: invert(1) grayscale(1) brightness(2); }' : ''}
   .pv-head-main { display: flex; gap: 1rem; align-items: center; min-width: 0; flex: 1; }
-  .pv-face { width: 68px; height: 68px; border-radius: 18px; flex-shrink: 0; background: rgba(255,193,7,0.14); border: 3px solid var(--pm-panel); box-shadow: 0 6px 18px rgba(16,24,40,0.12); display: flex; align-items: center; justify-content: center; }
-  .pv-face img { width: 44px; height: 44px; object-fit: contain; }
+  .pv-face { width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0; background: rgba(255,193,7,0.18); display: flex; align-items: center; justify-content: center; }
+  .pv-face img { width: 40px; height: 40px; object-fit: contain; }
   .pv-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
   .pv-title { font-size: 1.3rem; font-weight: 700; color: var(--pm-text); margin: 0; line-height: 1.25; word-break: break-word; }
   .pv-num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem; font-weight: 600; color: var(--pm-muted); margin-top: 0.15rem; }
@@ -907,11 +907,6 @@ const SuperPetManagement = ({ darkMode }) => {
                     <img src={getPetFaceImage(p.species)} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div className="pv-chips">
-                      <span className={`pm-pill ${p.is_active ? 'on' : 'inactive'}`}>
-                        <i className="fas fa-circle" />{p.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
                     <Modal.Title as="h5" className="pv-title">{p.name}</Modal.Title>
                     <div className="pv-num"><i className="fas fa-hashtag" />{p.registration_number || 'No registration number'}</div>
                   </div>
