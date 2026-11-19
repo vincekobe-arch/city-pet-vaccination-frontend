@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Form, Row, Col, Spinner } from 'react-bootstrap';
 import { getMunicipalitiesByProvince, getBarangaysByMunicipality, getAllProvinces, getAllRegions } from '@aivangogh/ph-address';
 import api from '../../services/api';
@@ -13,6 +13,40 @@ const ownerAPI = {
   scanId: (formData) => api.post('/owners/scan-id', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Draft saving — keeps the modal open and the filled-in data (including the
+//  uploaded ID photos) when the page is reloaded. Photos are stored in IndexedDB
+//  (sessionStorage is too small for images). Drafts expire after 24 hours.
+// ─────────────────────────────────────────────────────────────────────────────
+const DRAFT_TTL = 24 * 60 * 60 * 1000;
+const openKey  = () => `va_open_${getUser()?.id || 'me'}`;
+const draftKey = () => `va_draft_${getUser()?.id || 'me'}`;
+
+const idbRun = (mode, fn) => new Promise((resolve, reject) => {
+  if (typeof indexedDB === 'undefined') { reject(new Error('no indexedDB')); return; }
+  const open = indexedDB.open('petunity-verify', 1);
+  open.onupgradeneeded = () => open.result.createObjectStore('drafts');
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    const db = open.result;
+    const tx = db.transaction('drafts', mode);
+    const req = fn(tx.objectStore('drafts'));
+    tx.oncomplete = () => { db.close(); resolve(req ? req.result : undefined); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  };
+});
+const draftGet = () => idbRun('readonly', st => st.get(draftKey())).catch(() => null);
+const draftSet = (value) => idbRun('readwrite', st => st.put(value, draftKey())).catch(() => {});
+const draftDel = () => idbRun('readwrite', st => st.delete(draftKey())).catch(() => {});
+
+/** True when the verify modal was open before the page was reloaded (used by the Sidebar to reopen it). */
+export const isVerifyModalPending = () => {
+  try { return sessionStorage.getItem(openKey()) === '1'; } catch { return false; }
+};
+const setPending = (on) => {
+  try { if (on) sessionStorage.setItem(openKey(), '1'); else sessionStorage.removeItem(openKey()); } catch { /* storage blocked */ }
 };
 
 // ID scanning now happens server-side (see ownerAPI.scanId) — no client-side API key needed.
@@ -167,10 +201,16 @@ const WaveDots = ({ color = '#000000' }) => (
 
 // Styles for the verification modals (kept here so the component works on any page)
 const VA_STYLES = `
-  /* a bit larger than other modals: owners read and fill in a lot here */
-  .va-zoom-modal { zoom: 0.85; }
-  @media (min-width: 1600px) { .va-zoom-modal { zoom: 0.95; } }
-  @media (min-width: 1920px) { .va-zoom-modal { zoom: 1; } }
+  /* The verification modal fills almost the whole screen */
+  .va-zoom-modal { zoom: 1; }
+  .va-zoom-modal.va-big .modal-dialog.va-modal { max-width: min(1180px, calc(100vw - 3rem)); width: 100%; height: calc(100vh - 3rem); margin: 1.5rem auto; }
+  .va-zoom-modal.va-big .va-modal .modal-content { height: 100%; max-height: 100%; }
+  .va-zoom-modal.va-big .va-body { padding: 1.75rem 2rem !important; }
+  .va-zoom-modal.va-big .va-head { padding: 1.4rem 2rem !important; }
+  .va-zoom-modal.va-big .va-steps { padding: 0 2rem 1.1rem; }
+  .va-zoom-modal.va-big .va-foot { padding: 1rem 2rem !important; }
+  .va-zoom-modal.va-big .va-drop { min-height: 260px; }
+  .va-zoom-modal.va-big .va-drop img { max-height: 230px; }
   .va-modal { max-width: 760px; }
   .va-small { max-width: 430px; }
   .va-modal .modal-content, .va-small .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
@@ -251,6 +291,13 @@ const VA_STYLES = `
   .va-track-line.done { background: #198754; }
   @media (max-width: 768px) {
     .va-zoom-modal { zoom: 1; }
+    .va-zoom-modal.va-big .modal-dialog.va-modal { max-width: calc(100% - 1.5rem); height: calc(100% - 1.5rem); margin: 0.75rem auto; }
+    .va-zoom-modal.va-big .va-head { padding: 1rem !important; }
+    .va-zoom-modal.va-big .va-steps { padding: 0 1rem 0.85rem; }
+    .va-zoom-modal.va-big .va-body { padding: 1rem !important; }
+    .va-zoom-modal.va-big .va-foot { padding: 0.75rem 1rem !important; }
+    .va-zoom-modal.va-big .va-drop { min-height: 150px; }
+    .va-zoom-modal.va-big .va-drop img { max-height: 130px; }
     .va-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
     .va-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
     .va-head { padding: 1rem !important; }
@@ -300,6 +347,8 @@ const VerifyAccountModal = ({ show, onHide, ownerProfile, profileForm: initialPr
   const [reviewStep, setReviewStep]                 = useState(0);
 
   const registeredNameRef = React.useRef({ first: '', last: '' });
+  const profileRestoredRef = useRef(false);     // a saved draft already filled profileForm
+  const [draftReady, setDraftReady] = useState(false);
 
   // Exit confirmation state
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -322,7 +371,7 @@ const VerifyAccountModal = ({ show, onHide, ownerProfile, profileForm: initialPr
       const localPhone = digitsOnly.startsWith('63') ? digitsOnly.slice(2)
         : digitsOnly.startsWith('0') ? digitsOnly.slice(1)
         : digitsOnly;
-      setProfileForm({ ...initialProfileForm, phone: localPhone.slice(-10) });
+      if (!profileRestoredRef.current) setProfileForm({ ...initialProfileForm, phone: localPhone.slice(-10) });
       // Capture the name on file BEFORE any OCR auto-fill
       registeredNameRef.current = {
         first:  (initialProfileForm.first_name  || '').trim().toLowerCase(),
@@ -352,8 +401,63 @@ const VerifyAccountModal = ({ show, onHide, ownerProfile, profileForm: initialPr
       setIdBirthdate('');
       setDuplicateError('');
       setShowExitConfirm(false);
+
+      // Remember that the modal is open, then bring back any saved draft
+      setPending(true);
+      setDraftReady(false);
+      profileRestoredRef.current = false;
+      let cancelled = false;
+      draftGet().then(d => {
+        if (cancelled) return;
+        if (d && Date.now() - (d.savedAt || 0) < DRAFT_TTL) {
+          if (d.profileForm) { setProfileForm(d.profileForm); profileRestoredRef.current = true; }
+          if (d.idForm) {
+            setIdForm(d.idForm);
+            if (d.idForm.province) setCities(getMunicipalitiesByProvince(d.idForm.province));
+            if (d.idForm.city) setBarangayList(getBarangaysByMunicipality(d.idForm.city));
+          }
+          if (d.front) { setIdFrontFile(d.front); setIdFrontPreview(URL.createObjectURL(d.front)); }
+          if (d.back)  { setIdBackFile(d.back);   setIdBackPreview(URL.createObjectURL(d.back)); }
+          setIdOcrText(d.idOcrText || '');
+          setIdBirthdate(d.idBirthdate || '');
+          setDuplicateError(d.duplicateError || '');
+          setNameMismatchWarning(d.nameMismatchWarning || '');
+          setOcrDone(!!d.ocrDone);
+          setVerifyStep(d.step === 2 && d.ocrDone && d.front && d.back ? 2 : 1);
+          // Reloaded in the middle of a scan: scan the saved photos again
+          if (d.front && d.back && !d.ocrDone) handleOCRScan(d.front, d.back);
+        } else if (d) {
+          draftDel();
+        }
+        setDraftReady(true);
+      });
+      return () => { cancelled = true; };
     }
-  }, [show]);
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Save the draft while the modal is open (photos included)
+  useEffect(() => {
+    if (!show || !draftReady || verifySubmitting) return;
+    const t = setTimeout(() => {
+      const hasProgress = idFrontFile || idBackFile || verifyStep === 2;
+      if (!hasProgress) { draftDel(); return; }
+      draftSet({
+        savedAt: Date.now(),
+        step: verifyStep,
+        profileForm, idForm,
+        front: idFrontFile, back: idBackFile,
+        idOcrText, idBirthdate, ocrDone, duplicateError, nameMismatchWarning,
+      });
+    }, 400);
+    return () => clearTimeout(t);
+  }, [show, draftReady, verifySubmitting, verifyStep, profileForm, idForm, idFrontFile, idBackFile, idOcrText, idBirthdate, ocrDone, duplicateError, nameMismatchWarning]);
+
+  // Closing on purpose (cancel / discard / submitted) forgets the draft
+  const closeAndForget = () => {
+    setPending(false);
+    draftDel();
+    onHide();
+  };
 
     // ── Live name + city vs OCR check ────────────────────────────────────────
   useEffect(() => {
@@ -695,13 +799,13 @@ const VerifyAccountModal = ({ show, onHide, ownerProfile, profileForm: initialPr
     if (hasProgress) {
       setShowExitConfirm(true);
     } else {
-      onHide();
+      closeAndForget();
     }
   };
 
   const confirmClose = () => {
     setShowExitConfirm(false);
-    onHide();
+    closeAndForget();
   };
 
   const handleVerifySubmit = async () => {
@@ -741,7 +845,7 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
       const fullAddress = [idForm.house_no, idForm.street, barangayList.find(b => b.psgcCode === idForm.barangay)?.name || idForm.barangay, cities.find(c => c.psgcCode === idForm.city)?.name || idForm.city, provinces.find(p => p.psgcCode === idForm.province)?.name || idForm.province].filter(Boolean).join(', ');
       await ownerAPI.submitId(u.id, { valid_id_type: idForm.valid_id_type, valid_id_front: frontB64, valid_id_back: backB64, selfie_with_id: null, address: fullAddress, is_muntinlupa: idForm.isMuntinlupa === true });
       const res = await ownerAPI.getByUserId(u.id);
-      onHide();
+      closeAndForget();
       if (onVerified) onVerified(res.data.owner);
       setReviewStep(0);
       setShowReviewingModal(true);
@@ -766,7 +870,7 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
     <>
       {/* ── Verification Modal ── */}
       <style>{VA_STYLES}</style>
-      <Modal show={show} onHide={requestClose} backdrop="static" dialogClassName="va-modal" className="va-zoom-modal" style={{ zIndex: 99999 }} scrollable>
+      <Modal show={show} onHide={requestClose} backdrop="static" dialogClassName="va-modal" className="va-zoom-modal va-big" style={{ zIndex: 99999 }} scrollable>
         <Modal.Header closeButton={!verifySubmitting} className="va-head">
           <div className="va-head-main">
             <div className="va-head-ic"><i className="fas fa-id-card" /></div>

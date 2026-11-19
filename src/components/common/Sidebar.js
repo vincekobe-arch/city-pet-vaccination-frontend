@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Navbar as BootstrapNavbar, Nav, Container, Modal, Button } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api, { dashboardAPI } from '../../services/api';
-import VerifyAccountModal from '../owner/VerifyAccountModal';
+import VerifyAccountModal, { isVerifyModalPending } from '../owner/VerifyAccountModal';
 
 
 
@@ -97,7 +97,11 @@ const streamRef = useRef(null);
 
   // Verification
   const [ownerProfile, setOwnerProfile]           = useState(null);
-  const [showVerifyModal, setShowVerifyModal]     = useState(false);
+  // Reopen the verify modal after a page reload if it was open before
+  const [showVerifyModal, setShowVerifyModal]     = useState(() => user?.role === 'pet_owner' && isVerifyModalPending());
+  useEffect(() => {
+    if (user?.role === 'pet_owner' && isVerifyModalPending()) setShowVerifyModal(true);
+  }, [user?.id, user?.role]);
   const [pendingVerifCount, setPendingVerifCount] = useState(0);
   const [expiredBatchCount, setExpiredBatchCount] = useState(0);
   const [pendingReportCount, setPendingReportCount] = useState(0);
