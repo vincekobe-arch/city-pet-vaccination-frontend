@@ -26,6 +26,14 @@ const VERIFICATION_CONFIG = {
 const Sidebar = ({ user, onLogout, darkMode, setDarkMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  // Bigger screens: scale the desktop sidebar (hooks must stay above any early return)
+  const getSbScale = () => (typeof window === 'undefined' ? 1 : window.innerWidth >= 1920 ? 1.2 : window.innerWidth >= 1600 ? 1.1 : 1);
+  const [sbScale, setSbScale] = useState(getSbScale);
+  useEffect(() => {
+    const onResize = () => setSbScale(getSbScale());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
@@ -469,13 +477,6 @@ const streamRef = useRef(null);
   const subTextColor = darkMode ? '#666' : '#aaa';
 
   // Bigger screens: scale the desktop sidebar the same way the pages zoom (0.75 → 0.9 → 1)
-  const getSbScale = () => (typeof window === 'undefined' ? 1 : window.innerWidth >= 1920 ? 1.2 : window.innerWidth >= 1600 ? 1.1 : 1);
-  const [sbScale, setSbScale] = useState(getSbScale);
-  useEffect(() => {
-    const onResize = () => setSbScale(getSbScale());
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
   const baseWidth = collapsed ? 72 : 240;
   const sidebarWidth = `${baseWidth}px`;                 // width inside the zoomed sidebar
   const sidebarOuterWidth = `${baseWidth * sbScale}px`;  // width it takes on screen
