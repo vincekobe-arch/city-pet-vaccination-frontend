@@ -468,7 +468,17 @@ const streamRef = useRef(null);
   const textColor = darkMode ? '#e0e0e0' : '#1a1a1a';
   const subTextColor = darkMode ? '#666' : '#aaa';
 
-  const sidebarWidth = collapsed ? '72px' : '240px';
+  // Bigger screens: scale the desktop sidebar the same way the pages zoom (0.75 → 0.9 → 1)
+  const getSbScale = () => (typeof window === 'undefined' ? 1 : window.innerWidth >= 1920 ? 1.2 : window.innerWidth >= 1600 ? 1.1 : 1);
+  const [sbScale, setSbScale] = useState(getSbScale);
+  useEffect(() => {
+    const onResize = () => setSbScale(getSbScale());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const baseWidth = collapsed ? 72 : 240;
+  const sidebarWidth = `${baseWidth}px`;                 // width inside the zoomed sidebar
+  const sidebarOuterWidth = `${baseWidth * sbScale}px`;  // width it takes on screen
 
   // Active link: light yellow tint instead of a solid yellow button
   const activeBg = 'rgba(255,193,7,0.14)';
@@ -800,7 +810,7 @@ const streamRef = useRef(null);
       style={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100vh',
+        height: isMobile ? '100vh' : `${100 / sbScale}vh`,
         overflow: 'hidden',
         padding: '0',
       }}
@@ -811,7 +821,9 @@ const streamRef = useRef(null);
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed && !isMobile ? 'center' : 'space-between',
-          padding: '1.1rem 1rem 1rem',
+          padding: '0 1rem',
+          height: isMobile ? '64px' : `${64 / sbScale}px`,
+          boxSizing: 'border-box',
           borderBottom: `1px solid ${border}`,
           flexShrink: 0,
         }}
@@ -920,7 +932,6 @@ const streamRef = useRef(null);
           .flex-grow-1 main, main.flex-grow-1 { padding-bottom: 64px !important; }
           .sidebar-mobile-toggle { display: none !important; }
           .navbar-toggler { display: none !important; }
-          .modal { zoom: 0.75 !important; }
           .profile-pill { padding: 0.25rem 0.5rem !important; gap: 0.3rem !important; }
           .profile-pill > div:first-child { width: 26px !important; height: 26px !important; }
           .profile-pill > div:first-child { font-size: 0.6rem !important; letter-spacing: -0.02em; }
@@ -1068,7 +1079,7 @@ const streamRef = useRef(null);
         <div className={`top-navbar-bar ${mobileTopAnim}`} style={{
           position: 'fixed',
           top: 0,
-          left: sidebarWidth,
+          left: sidebarOuterWidth,
           right: 0,
           height: '64px',
           background: darkMode ? '#0d0d0d' : '#ffffff',
@@ -1266,7 +1277,7 @@ const streamRef = useRef(null);
           )}
 
           {/* Profile pill */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', zoom: sbScale }}>
             <div
               onClick={() => {
                 if (dropdownOpenRef.current) {
@@ -1470,7 +1481,7 @@ const streamRef = useRef(null);
         <div
           className="sidebar-spacer"
           style={{
-            width: sidebarWidth,
+            width: sidebarOuterWidth,
             flexShrink: 0,
             transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
           }}
@@ -1483,7 +1494,8 @@ const streamRef = useRef(null);
         className={`sidebar-desktop ${sidebarAnim}`}
         style={{
           width: sidebarWidth,
-          height: '100vh',
+          height: `${100 / sbScale}vh`,
+          zoom: sbScale,
           background: darkMode ? '#0d0d0d' : '#ffffff',
           borderRight: `1px solid ${border}`,
           position: 'fixed',

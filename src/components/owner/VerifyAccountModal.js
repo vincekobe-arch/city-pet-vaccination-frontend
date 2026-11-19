@@ -167,8 +167,9 @@ const WaveDots = ({ color = '#000000' }) => (
 
 // Styles for the verification modals (kept here so the component works on any page)
 const VA_STYLES = `
-  .va-zoom-modal { zoom: 0.75; }
-  @media (min-width: 1600px) { .va-zoom-modal { zoom: 0.9; } }
+  /* a bit larger than other modals: owners read and fill in a lot here */
+  .va-zoom-modal { zoom: 0.85; }
+  @media (min-width: 1600px) { .va-zoom-modal { zoom: 0.95; } }
   @media (min-width: 1920px) { .va-zoom-modal { zoom: 1; } }
   .va-modal { max-width: 760px; }
   .va-small { max-width: 430px; }
