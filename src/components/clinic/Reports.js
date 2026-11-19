@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table } from 'react-bootstrap';
+import { Container, Row, Col, Modal, Form } from 'react-bootstrap';
 import { barangayAPI, handleAPIError } from '../../services/api';
 import api from '../../services/api';
 
@@ -9,32 +9,6 @@ const clinicReportsAPI = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   delete: (id) => api.delete(`/reports/delete/${id}`),
-};
-
-const getStatusConfig = (status) => {
-  const map = {
-    pending:          { label: 'Pending',          bg: '#fff3cd', color: '#ffffff', border: '#ffc107' },
-    suspected_rabies: { label: 'Suspected Rabies', bg: '#f8d7da', color: '#ffffff', border: '#dc3545' },
-    positive_rabies:  { label: 'Positive Rabies',  bg: '#dc3545', color: '#ffffff', border: '#b02a37' },
-    ongoing:          { label: 'Ongoing',           bg: '#cff4fc', color: '#ffffff', border: '#0dcaf0' },
-    resolved:         { label: 'Resolved',          bg: '#d1e7dd', color: '#ffffff', border: '#198754' },
-    declined:         { label: 'Declined',          color: '#ffffff', bg: '#6c757d', border: '#565e64' },
-  };
-  return map[status] || { label: status, bg: '#e9ecef', color: '#333', border: '#adb5bd' };
-};
-
-const StatusBadge = ({ status }) => {
-  const cfg = getStatusConfig(status);
-  return (
-    <Badge style={{
-      background: cfg.bg, color: cfg.color,
-      border: `1px solid ${cfg.border}`,
-      fontWeight: '600', fontSize: '0.75rem',
-      padding: '0.35rem 0.65rem', borderRadius: '20px'
-    }}>
-      {cfg.label}
-    </Badge>
-  );
 };
 
 // ── Leaflet map (read-only + pin mode) ──────────────────────────
@@ -134,8 +108,8 @@ const poly = [
   return (
     <div style={{ position: isFullscreen ? 'fixed' : 'relative', inset: isFullscreen ? 0 : 'auto', zIndex: isFullscreen ? 9999 : 'auto', background: isFullscreen ? '#fff' : 'transparent', padding: isFullscreen ? '1rem' : 0, display: 'flex', flexDirection: 'column' }}>
       {!ready && (
-        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f8f9fa', borderRadius:'8px', zIndex:1 }}>
-          <Spinner animation="border" size="sm" style={{ color:'#dc3545' }} /><span className="ms-2" style={{ fontSize:'0.9rem', color:'#666' }}>Loading map...</span>
+        <div className="rp-skel" style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'8px', zIndex:1 }}>
+          <span style={{ fontSize:'0.85rem', color:'#9ca3af', fontWeight:600 }}><i className="fas fa-map-marked-alt me-2" />Loading map…</span>
         </div>
       )}
       <button type="button" onClick={() => { setIsFullscreen(p => !p); setTimeout(() => mapObj.current?.invalidateSize(), 300); }}
@@ -248,11 +222,7 @@ const ClinicReports = () => {
   const styles = `
     @keyframes dropDown { 0%{opacity:0;transform:translateY(-30px)} 100%{opacity:1;transform:translateY(0)} }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    .clinic-reports-page { zoom: 0.75; }
-    @media (min-width: 1600px) { .clinic-reports-page { zoom: 0.9; } }
-    @media (min-width: 1920px) { .clinic-reports-page { zoom: 1; } }
     @media (max-width: 768px) {
-      .clinic-reports-page { zoom: 1; }
       .rep-title { font-size: 1.3rem !important; }
       .rep-subtitle { font-size: 0.78rem !important; }
       .rep-header-btn { padding: 0.5rem 0.9rem !important; font-size: 0.8rem !important; border-radius: 8px !important; }
@@ -423,13 +393,205 @@ const ClinicReports = () => {
     .rp-filter.on { background: #1f2328; border-color: #1f2328; color: #fff; }
     .rp-filter.on .count { background: rgba(255,255,255,0.2); color: #fff; }
     .rp-filter:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    /* ---------------- Responsive: every screen size ---------------- */
+    /* Small laptops (992–1199px): 3 cards per row */
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+      .rp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    /* Tablets (577–991px): 2 cards per row */
+    @media (min-width: 577px) and (max-width: 991.98px) {
+      .rp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    /* Phones (≤ 576px): 1 card per row, full-width button, compact cards */
+    @media (max-width: 576px) {
+      .rp-grid { grid-template-columns: minmax(0, 1fr); }
+      .dashboard-page .rep-header-btn { width: 100%; justify-content: center; }
+      .dashboard-page .rp-filters { margin-left: -0.75rem; margin-right: -0.75rem; padding-left: 0.75rem; padding-right: 0.75rem; scrollbar-width: none; }
+      .dashboard-page .rp-filters::-webkit-scrollbar { display: none; }
+      .rp-type-ic { width: 46px !important; height: 46px !important; }
+      .rp-info { padding: 0.7rem 0.8rem !important; }
+      .rp-foot { gap: 0.5rem; }
+    }
+    /* Small phones (≤ 400px) */
+    @media (max-width: 400px) {
+      .rp-title { font-size: 1.3rem !important; }
+      .rp-card { padding: 0.85rem !important; }
+      .rp-foot { flex-wrap: wrap; }
+      .rp-foot .rp-btn { flex: 1 1 auto; justify-content: center; }
+      .rp-desc { font-size: 0.85rem; }
+    }
+
+    /* Page: normal size on phones */
+    @media (max-width: 768px) { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
+
+    /* Modals: same zoom as the page; normal size and centered on phones */
+    .rp-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .rp-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .rp-zoom-modal { zoom: 1; } }
+    @media (max-width: 768px) {
+      .rp-zoom-modal { zoom: 1; }
+      .rp-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .rp-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+    }
+
+    /* Big modals (submit / view) */
+    .rm-modal { max-width: 680px; }
+    .rm-modal.lg { max-width: 940px; }
+    .rm-modal .modal-content, .cm-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .rm-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%); }
+    .rm-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .rm-head-ic { width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #b88a00; background: rgba(255,193,7,0.18); }
+    .rm-head-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .rm-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b88a00; }
+    .rm-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; word-break: break-word; }
+    .rm-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .rm-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .rm-num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; font-weight: 600; color: #6b7280; margin-top: 0.15rem; }
+    .rm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .rm-req { color: #dc3545; }
+    .rm-body { padding: 1.4rem 1.5rem !important; }
+    .rm-section { margin-bottom: 1.4rem; }
+    .rm-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.75rem; }
+    .rm-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .rm-count { margin-left: auto; font-size: 0.7rem; background: #f3f4f6; color: #4b5563; padding: 0.1rem 0.55rem; border-radius: 999px; letter-spacing: 0; }
+    .rm-label { font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+    .rm-input { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .rm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .rm-input.good { border-color: #10b981 !important; }
+    .rm-input.bad { border-color: #ef4444 !important; }
+    .rm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+    .rm-hint.bad { color: #dc3545; }
+    .rm-readonly { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1.5px dashed #e5e7eb; background: #f8f9fa; font-size: 0.92rem; font-weight: 600; color: #1f2328; }
+    .rm-readonly i { color: #9ca3af; }
+    .rm-readonly.empty { font-weight: 500; font-style: italic; color: #9ca3af; }
+    .rm-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .rm-type { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.9rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 14px; background: #fff; transition: all 0.15s ease; }
+    .rm-type:hover:not(:disabled) { border-color: color-mix(in srgb, var(--c) 50%, #fff); }
+    .rm-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 6%, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 15%, transparent); }
+    .rm-type-ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .rm-type-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .rm-type-label { font-weight: 700; font-size: 0.86rem; color: #374151; text-align: center; line-height: 1.2; }
+    .rm-type.on .rm-type-label { color: var(--c); }
+    .rm-type-check { position: absolute; top: 7px; right: 8px; color: var(--c); font-size: 0.85rem; }
+    .rm-map { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .rm-pin { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; padding: 0.55rem 0.75rem; border-radius: 10px; background: #f8f9fa; color: #6b7280; font-size: 0.8rem; }
+    .rm-pin.ok { background: rgba(25,135,84,0.07); color: #146c43; border: 1px solid rgba(25,135,84,0.2); }
+    .rm-pin .rm-mono { margin-left: 0.3rem; opacity: 0.85; }
+    .rm-pin button { margin-left: auto; border: none; background: none; color: #dc3545; font-size: 0.78rem; font-weight: 600; padding: 0; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .rm-photos { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .rm-thumb { position: relative; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #f8f9fa; padding: 0; flex-shrink: 0; }
+    .rm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .rm-thumb > button { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(17,24,39,0.7); color: #fff; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; }
+    .rm-thumb.view { cursor: zoom-in; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .rm-thumb.view:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+    .rm-thumb-zoom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); color: transparent; transition: all 0.15s ease; }
+    .rm-thumb.view:hover .rm-thumb-zoom { background: rgba(0,0,0,0.3); color: #fff; }
+    .rm-thumb.broken::after { content: 'No preview'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #9ca3af; }
+    .rm-thumb.sm { width: 64px; height: 64px; border-radius: 10px; }
+    .rm-drop { width: 96px; height: 96px; border-radius: 12px; border: 1.5px dashed #d1d5db; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; color: #6b7280; font-size: 0.78rem; font-weight: 600; cursor: pointer; margin: 0; transition: all 0.15s ease; }
+    .rm-drop i { font-size: 1rem; color: #e0a800; }
+    .rm-drop:hover { border-color: #ffc107; background: #fffaeb; color: #1f2328; }
+    .rm-drop.disabled { opacity: 0.5; pointer-events: none; }
+    .rm-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .rm-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .rm-info.wide { grid-column: 1 / -1; }
+    .rm-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #fff; border: 1px solid #eef0f3; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .rm-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .rm-info-value { font-size: 0.9rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .rm-desc { font-size: 0.92rem; color: #374151; line-height: 1.6; margin: 0; white-space: pre-line; word-break: break-word; }
+    .rm-desc.sm { font-size: 0.86rem; padding: 0.65rem 0.8rem; border: 1px solid #eef0f3; border-radius: 10px; background: #fafbfc; }
+    .rm-desc.muted { color: #9ca3af; font-style: italic; }
+    .rm-admin { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 12px; background: rgba(13,110,253,0.05); border: 1px solid rgba(13,110,253,0.18); }
+    .rm-admin-head { font-size: 0.78rem; font-weight: 700; color: #0a58ca; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem; }
+    .rm-admin p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+    .rm-map.view { min-height: 260px; }
+    .rm-empty { padding: 1.25rem; border: 1px dashed #e5e7eb; border-radius: 12px; color: #9ca3af; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .rm-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .rm-alert i { margin-top: 3px; }
+    .rm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .rm-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; }
+    .rm-lightbox { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .rm-lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); transition: transform 0.1s ease; }
+    .rm-lb-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .rm-lb-btn.close { top: 1.25rem; right: 1.25rem; }
+    .rm-lb-btn.prev { left: 1rem; top: 50%; transform: translateY(-50%); }
+    .rm-lb-btn.next { right: 1rem; top: 50%; transform: translateY(-50%); }
+    .rm-lb-count { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.75); font-size: 0.8rem; font-weight: 600; }
+
+    /* Small confirmation modals (withdraw / verify / review) */
+    .cm-modal { max-width: 430px; }
+    .cm-modal.wide { max-width: 520px; }
+    @keyframes cmPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .cm-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; position: relative; }
+    .cm-x { position: absolute; top: 1rem; right: 1rem; }
+    .cm-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: cmPop 0.4s ease-out; }
+    .cm-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .cm-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .cm-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .cm-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-item-av img { width: 26px; height: 26px; object-fit: contain; }
+    .cm-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .cm-item-meta { font-size: 0.76rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cm-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 7%, #fff); border: 1px solid color-mix(in srgb, var(--c) 22%, #fff); }
+    .cm-note i { margin-top: 3px; }
+    .cm-steps { text-align: left; display: flex; flex-direction: column; gap: 0.45rem; }
+    .cm-step { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.75rem; border: 1px solid #eef0f3; border-radius: 10px; background: #fafbfc; font-size: 0.86rem; color: #374151; font-weight: 500; }
+    .cm-step span { width: 22px; height: 22px; border-radius: 50%; background: #ffc107; color: #1f2328; font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-step i { color: #b88a00; width: 16px; text-align: center; }
+    .cm-foot { border-top: 1px solid #eef0f3 !important; padding: 0.9rem 1.4rem !important; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .cm-foot .rp-btn { flex: 1; margin: 0; padding: 0.62rem; }
+    .cm-confirm { background: var(--c); color: #fff; }
+    .cm-confirm:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000); color: #fff; }
+
+    @media (max-width: 991.98px) {
+      .rm-types { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .rm-head { padding: 1rem !important; }
+      .rm-head-ic { width: 42px; height: 42px; }
+      .rm-title { font-size: 1.08rem; }
+      .rm-body { padding: 1rem !important; }
+      .rm-type { flex-direction: row; justify-content: flex-start; padding: 0.65rem 0.7rem; gap: 0.55rem; }
+      .rm-type-ic { width: 36px; height: 36px; border-radius: 10px; }
+      .rm-type-ic img { width: 22px; height: 22px; }
+      .rm-type-label { text-align: left; font-size: 0.82rem; }
+      .rm-thumb, .rm-drop { width: 84px; height: 84px; }
+      .rm-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .rm-info-ic { display: none; }
+      .rm-info-value { font-size: 0.86rem; }
+      .rm-foot { padding: 0.75rem 1rem !important; }
+      .rm-foot .rp-btn { flex: 1; }
+      .rm-foot .me-auto { margin-right: 0 !important; }
+      .cm-body { padding: 1.5rem 1.1rem 1rem !important; }
+      .cm-foot { padding: 0.8rem 1rem !important; }
+    }
+    @media (max-width: 380px) {
+      .rm-info-grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { .cm-icon { animation: none; } }
+
+    /* Clinic extras */
+    .rp-backdrop-top { z-index: 1060 !important; }
+    .rm-head-ic.danger { background: rgba(220,53,69,0.1); color: #dc3545; }
+    .rm-kicker.danger { color: #dc3545; }
+    .rm-opt { font-size: 0.7rem; font-weight: 600; text-transform: none; letter-spacing: 0; color: #9ca3af; }
+    .rm-alert.warn { background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.35); color: #8a6700; }
+    .rm-map > div > div:last-of-type { border: none !important; border-radius: 0 !important; }
+    .rm-map small { padding: 0 0.75rem 0.5rem; }
+    .cm-item-av { font-size: 1rem; }
+    .cm-foot .rp-btn.primary:only-child { flex: 1; }
+    @media (max-width: 576px) { .dashboard-page .rep-header-btn { width: 100%; } }
   `;
 
   useEffect(() => { loadData(); }, []);
 
+  const hasLoadedRef = useRef(false);
+
+  // First load shows the skeleton; reloads after an action are silent (no jump to the top)
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (!hasLoadedRef.current) setLoading(true);
       const [rRes, bRes] = await Promise.all([
         clinicReportsAPI.getMyReports(),
         barangayAPI.getAll(),
@@ -442,6 +604,7 @@ const ClinicReports = () => {
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   };
@@ -573,9 +736,10 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
       imageFiles.forEach(f => fd.append('images[]', f));
 
       await clinicReportsAPI.create(fd);
-      setSuccessMsg('Rabies case reported successfully and marked as Positive Rabies.');
+      setShowModal(false);
+      setSuccessMsg('Rabies case submitted. The City Vet will verify it shortly.');
       await loadData();
-      setTimeout(() => { setShowModal(false); setSuccessMsg(''); }, 2500);
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setSubmitError(message);
@@ -584,13 +748,7 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
     }
   };
 
-  const paginatedReports = reports.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(reports.length / itemsPerPage);
 
-  // Stats
-  const positiveCount  = reports.filter(r => r.status === 'positive_rabies').length;
-  const suspectedCount = reports.filter(r => r.status === 'suspected_rabies').length;
-  const resolvedCount  = reports.filter(r => r.status === 'resolved').length;
 
   const STATUS_META = {
     pending:          { label: 'Pending',          color: '#b88a00', icon: 'fa-clock' },
@@ -667,9 +825,10 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2"></i>{error}
-          </Alert>
+          <div className="rm-alert danger" role="alert">
+            <i className="fas fa-exclamation-circle" /><span className="flex-grow-1">{error}</span>
+            <button type="button" className="rp-toast-close" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
         {successMsg && (
@@ -836,448 +995,394 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
           </>
         )}
 
-        {/* ── SUBMIT MODAL ── */}
-        <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" backdrop="static" style={{ zoom:'0.75' }}>
-          <Modal.Header closeButton style={{ background:'linear-gradient(135deg,#fffdf0,#fff3cd)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
-    <Modal.Title style={{ fontWeight:'700', color:'#856404' }}>
-      <i className="fas fa-biohazard me-2"></i>Report Rabies Case
-            </Modal.Title>
+        {/* ======================== SUBMIT MODAL ======================== */}
+        <Modal show={showModal} onHide={() => !submitLoading && setShowModal(false)} backdrop="static" dialogClassName="rm-modal" className="rp-zoom-modal" scrollable>
+          <Modal.Header closeButton className="rm-head" style={{ '--c': '#dc3545' }}>
+            <div className="rm-head-main">
+              <div className="rm-head-ic danger"><i className="fas fa-biohazard" /></div>
+              <div style={{ minWidth: 0 }}>
+                <div className="rm-kicker danger">Clinic report</div>
+                <Modal.Title as="h5" className="rm-title">Report a rabies case</Modal.Title>
+                <div className="rm-head-sub">The City Vet verifies it before it alerts the community.</div>
+              </div>
+            </div>
           </Modal.Header>
-          <Form onSubmit={handleSubmit}>
-            <Modal.Body className="rep-modal-body" style={{ maxHeight:'70vh', overflowY:'auto', padding:'2rem' }}>
-              {submitError && <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{submitError}</Alert>}
+          <Modal.Body className="rm-body">
+            {submitError && <div className="rm-alert danger"><i className="fas fa-exclamation-circle" /><span>{submitError}</span></div>}
 
-              <Alert variant="danger" className="mb-4" style={{ borderRadius:'12px', background:'rgba(255,193,7,0.08)', border:'2px solid rgba(255,193,7,0.3)', color:'#856404' }}>
-  <i className="fas fa-biohazard me-2"></i>
-                <i className="fas fa-biohazard me-2"></i>
-                <strong>Clinic Report:</strong> This report will be submitted for <strong>admin verification</strong>. Once reviewed and confirmed, it will be marked as Positive Rabies and alert the community.
-              </Alert>
-
-              {/* Barangay (auto from map) */}
-              <Row>
+            {/* Location */}
+            <div className="rm-section">
+              <div className="rm-section-title"><i className="fas fa-map-marker-alt" />Case location</div>
+              <Form.Group className="mb-3">
+                <Form.Label className="rm-label">Pin the exact location <span className="rm-req">*</span></Form.Label>
+                <div className="rm-map">
+                  <LeafletMap
+                    lat={formLat} lng={formLng}
+                    onLocationSelect={(lt, ln) => { setFormLat(lt); setFormLng(ln); }}
+                    onAddressResolve={(addr) => setFormData(prev => ({ ...prev, address: addr }))}
+                    onBarangayDetect={(addrStr) => {
+                      const match = barangays.find(b =>
+                        addrStr.includes(b.name.toLowerCase()) ||
+                        b.name.toLowerCase().split(' ').some(w => w.length > 3 && addrStr.includes(w))
+                      );
+                      if (match) setFormData(prev => ({ ...prev, barangay_id: String(match.id) }));
+                    }}
+                    onError={msg => setLocationError(msg)}
+                  />
+                </div>
+                {formLat && formLng ? (
+                  <div className="rm-pin ok">
+                    <i className="fas fa-check-circle" />
+                    <span>Location pinned <span className="rm-mono">{formLat.toFixed(5)}, {formLng.toFixed(5)}</span></span>
+                    <button type="button" onClick={() => { setFormLat(null); setFormLng(null); setFormData(prev => ({ ...prev, barangay_id: '' })); }} disabled={submitLoading}>
+                      <i className="fas fa-times" />Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div className="rm-pin"><i className="fas fa-hand-pointer" />Tap the map to drop a pin. The barangay and address fill in automatically.</div>
+                )}
+              </Form.Group>
+              <Row className="g-3">
                 <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                      Barangay <span style={{ color:'#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={formData.barangay_id ? (barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '') : 'Pin location on map to auto-detect'}
-                      readOnly
-                      style={{ borderRadius:'8px', padding:'0.75rem', border:'2px solid #dee2e6', background:'#f8f9fa', color: formData.barangay_id ? '#333' : '#aaa', fontStyle: formData.barangay_id ? 'normal' : 'italic' }}
-                    />
-                  </Form.Group>
+                  <Form.Label className="rm-label">Barangay <span className="rm-req">*</span></Form.Label>
+                  <div className={`rm-readonly${formData.barangay_id ? '' : ' empty'}`}>
+                    <i className="fas fa-map" />
+                    {formData.barangay_id ? (barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '') : 'Detected from the map pin'}
+                  </div>
                 </Col>
                 <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                      Contact Number <span style={{ color:'#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control type="text" name="phone_number" value={formData.phone_number} onChange={handleFormChange}
-  onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-  placeholder="09XXXXXXXXX" required disabled={submitLoading}
-  style={{ borderRadius:'8px', padding:'0.75rem', border: submitError && !formData.phone_number.trim() ? '2px solid #ef4444' : (formData.phone_number && /^09\d{9}$/.test(formData.phone_number)) ? '2px solid #10b981' : '2px solid #dee2e6' }} />
-{formData.phone_number && !/^09\d{9}$/.test(formData.phone_number) && (
-  <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}>
-    <i className="fas fa-times-circle me-1"></i>Phone must be 11 digits starting with 09
-  </small>
-)}
-                  </Form.Group>
+                  <Form.Label className="rm-label">Contact number <span className="rm-req">*</span></Form.Label>
+                  <Form.Control
+                    className={`rm-input${formData.phone_number && !/^09\d{9}$/.test(formData.phone_number) ? ' bad' : formData.phone_number ? ' good' : ''}`}
+                    type="tel" inputMode="numeric" maxLength={11} name="phone_number" value={formData.phone_number}
+                    onChange={handleFormChange}
+                    onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                    placeholder="09XXXXXXXXX" required disabled={submitLoading}
+                  />
+                  {formData.phone_number && !/^09\d{9}$/.test(formData.phone_number) && (
+                    <div className="rm-hint bad"><i className="fas fa-times-circle" />Must be 11 digits starting with 09</div>
+                  )}
+                </Col>
+                <Col md={12}>
+                  <Form.Label className="rm-label">Address <span className="rm-req">*</span></Form.Label>
+                  <Form.Control className="rm-input" type="text" name="address" value={formData.address}
+                    onChange={handleFormChange} placeholder="House no., street, purok / sitio…" required disabled={submitLoading} />
                 </Col>
               </Row>
+            </div>
 
-              {/* Address */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                      Address / Location <span style={{ color:'#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control type="text" name="address" value={formData.address} onChange={handleFormChange}
-                      placeholder="House no., Street, Purok / Sitio..." required disabled={submitLoading}
-                      style={{ borderRadius:'8px', padding:'0.75rem', border:'2px solid #dee2e6' }} />
-                  </Form.Group>
-                </Col>
-              </Row>
+            {/* Details */}
+            <div className="rm-section">
+              <div className="rm-section-title"><i className="fas fa-align-left" />Case details</div>
+              <Form.Control className="rm-input" as="textarea" rows={3} name="description" value={formData.description}
+                onChange={handleFormChange} placeholder="Describe the animal, symptoms observed, date of exposure, patient info (if any)…" disabled={submitLoading} />
+            </div>
 
-              {/* Description */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>Case Details / Description</Form.Label>
-                    <Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleFormChange}
-                      placeholder="Describe the animal, symptoms observed, date of exposure, patient info (if any)..."
-                      disabled={submitLoading} style={{ borderRadius:'8px', padding:'0.75rem', border:'2px solid #dee2e6' }} />
-                  </Form.Group>
-                </Col>
-              </Row>
+            {/* Photos */}
+            <div className="rm-section mb-0">
+              <div className="rm-section-title"><i className="fas fa-camera" />Photos <span className="rm-opt">optional</span><span className="rm-count">{imageFiles.length}/3</span></div>
+              <div className="rm-photos">
+                {imagePreviews.map((src, i) => (
+                  <div key={i} className="rm-thumb">
+                    <img src={src} alt={`Attachment ${i + 1}`} />
+                    <button type="button" onClick={() => handleRemoveImage(i)} disabled={submitLoading} aria-label="Remove photo"><i className="fas fa-times" /></button>
+                  </div>
+                ))}
+                {imageFiles.length < 3 && (
+                  <label className={`rm-drop${submitLoading ? ' disabled' : ''}`}>
+                    <input type="file" accept="image/*" multiple onChange={handleImageChange} disabled={submitLoading} hidden />
+                    <i className="fas fa-plus" />
+                    <span>Add photo</span>
+                  </label>
+                )}
+              </div>
+            </div>
+          </Modal.Body>
+          <Modal.Footer className="rm-foot">
+            <button type="button" className="rp-btn ghost lg" onClick={() => setShowModal(false)} disabled={submitLoading}>Cancel</button>
+            <button type="button" className="rp-btn primary lg" disabled={submitLoading}
+              onClick={() => {
+                if (!formLat || !formLng)          { setSubmitError('Please pin a location on the map.'); return; }
+                if (!formData.barangay_id)         { setSubmitError('Barangay is required. Pin a location inside Muntinlupa.'); return; }
+                if (!formData.phone_number.trim()) { setSubmitError('Contact number is required.'); return; }
+                if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); return; }
+                if (!formData.address.trim())      { setSubmitError('Address is required.'); return; }
+                setSubmitError('');
+                setShowConfirmModal(true);
+              }}>
+              {submitLoading ? <><i className="fas fa-circle-notch fa-spin" />Submitting…</> : <><i className="fas fa-arrow-right" />Review report</>}
+            </button>
+          </Modal.Footer>
+        </Modal>
 
-              {/* Map */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                      <i className="fas fa-map-marker-alt me-2" style={{ color:'#ffc107' }}></i>
-                      Pin Case Location on Map <span style={{ color:'#dc3545' }}>*</span>
-                    </Form.Label>
-                    <LeafletMap
-                      lat={formLat} lng={formLng}
-                      onLocationSelect={(lt, ln) => { setFormLat(lt); setFormLng(ln); }}
-                      onAddressResolve={(addr) => setFormData(prev => ({ ...prev, address: addr }))}
-                      onBarangayDetect={(addrStr) => {
-                        const match = barangays.find(b =>
-                          addrStr.includes(b.name.toLowerCase()) ||
-                          b.name.toLowerCase().split(' ').some(w => w.length > 3 && addrStr.includes(w))
-                        );
-                        if (match) setFormData(prev => ({ ...prev, barangay_id: String(match.id) }));
-                      }}
-                      onError={msg => setLocationError(msg)}
-                    />
-                    {formLat && formLng && (
-                      <div style={{ marginTop:'0.5rem', padding:'0.5rem 0.75rem', background:'rgba(255,193,7,0.06)', borderRadius:'8px', border:'1px solid rgba(255,193,7,0.3)', fontSize:'0.82rem', color:'#856404' }}>
-                        <i className="fas fa-map-pin me-1"></i>
-                        Pinned: {formLat.toFixed(6)}, {formLng.toFixed(6)}
-                        <button onClick={() => { setFormLat(null); setFormLng(null); setFormData(prev => ({ ...prev, barangay_id:'' })); }}
-                          style={{ background:'none', border:'none', color:'#856404', fontSize:'0.78rem', marginLeft:'0.75rem', cursor:'pointer', padding:0 }}>
-                        </button>
+        {/* ======================== LOCATION ERROR MODAL ======================== */}
+        <Modal show={!!locationError} onHide={() => setLocationError('')} centered dialogClassName="cm-modal" className="rp-zoom-modal" style={{ zIndex: 1065 }} backdropClassName="rp-backdrop-top">
+          <Modal.Body className="cm-body">
+            <div className="cm-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-map-marker-alt" /></div>
+            <h5 className="cm-title">Can't pin this location</h5>
+            <p className="cm-text mb-0">{locationError}</p>
+            <div className="cm-note" style={{ '--c': '#b88a00' }}>
+              <i className="fas fa-info-circle" /><span>Only locations inside Muntinlupa City can be reported.</span>
+            </div>
+          </Modal.Body>
+          <Modal.Footer className="cm-foot">
+            <button type="button" className="rp-btn primary" onClick={() => setLocationError('')}>Got it</button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* ======================== VIEW DETAILS MODAL ======================== */}
+        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="rm-modal lg" className="rp-zoom-modal" scrollable>
+          {selectedReport && (() => {
+            const r = selectedReport;
+            const st = statusMeta(r.status);
+            const canWithdraw = r.status === 'pending' || r.status === 'positive_rabies';
+            const info = [
+              { icon: 'fa-map', label: 'Barangay', value: getBarangayName(r.barangay_id) },
+              { icon: 'fa-phone-alt', label: 'Contact no.', value: r.phone_number || 'N/A' },
+              { icon: 'fa-home', label: 'Address', value: r.address || 'N/A', wide: true },
+              { icon: 'fa-calendar-plus', label: 'Submitted', value: formatDate(r.created_at) },
+              r.updated_at && r.updated_at !== r.created_at && { icon: 'fa-history', label: 'Last updated', value: formatDate(r.updated_at) },
+            ].filter(Boolean);
+            return (
+              <>
+                <Modal.Header closeButton className="rm-head" style={{ '--c': '#dc3545' }}>
+                  <div className="rm-head-main">
+                    <div className="rm-head-ic danger"><i className="fas fa-biohazard" /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="rm-chips">
+                        <span className="rp-chip" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 12%, #fff)` }}>
+                          <i className={`fas ${st.icon}`} />{st.label}
+                        </span>
                       </div>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Images */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-2">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                      <i className="fas fa-camera me-2" style={{ color:'#ffc107' }}></i>
-                      Attach Photos <span style={{ fontWeight:'400', color:'#888', fontSize:'0.8rem' }}>(optional, max 3)</span>
-                    </Form.Label>
-                    <Form.Control type="file" accept="image/*" multiple onChange={handleImageChange}
-                      disabled={submitLoading || imageFiles.length >= 3}
-                      style={{ borderRadius:'8px', border:'2px solid #dee2e6', padding:'0.6rem' }} />
-                  </Form.Group>
-                  {imagePreviews.length > 0 && (
-                    <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap', marginTop:'0.75rem' }}>
-                      {imagePreviews.map((src, i) => (
-                        <div key={i} style={{ position:'relative' }}>
-                          <img src={src} alt={`prev-${i}`} style={{ width:'90px', height:'90px', objectFit:'cover', borderRadius:'10px', border:'2px solid #dee2e6' }} />
-                          <button type="button" onClick={() => handleRemoveImage(i)}
-                            style={{ position:'absolute', top:'-8px', right:'-8px', background:'#dc3545', border:'none', borderRadius:'50%', width:'22px', height:'22px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#fff', fontSize:'0.7rem' }}>
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </div>
-                      ))}
+                      <Modal.Title as="h5" className="rm-title">Rabies case</Modal.Title>
+                      <div className="rm-num">#{r.report_number || `RPT-${String(r.id).padStart(6, '0')}`}</div>
                     </div>
+                  </div>
+                </Modal.Header>
+                <Modal.Body className="rm-body">
+                  <Row className="g-4">
+                    <Col lg={7}>
+                      <div className="rm-section-title"><i className="fas fa-info-circle" />Report information</div>
+                      <div className="rm-info-grid">
+                        {info.map(it => (
+                          <div key={it.label} className={`rm-info${it.wide ? ' wide' : ''}`}>
+                            <div className="rm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="rm-info-label">{it.label}</div>
+                              <div className="rm-info-value">{it.value}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="rm-section-title mt-4"><i className="fas fa-align-left" />Case details</div>
+                      <p className={`rm-desc${r.description ? '' : ' muted'}`}>{r.description || 'No case details provided.'}</p>
+
+                      {r.admin_notes && (
+                        <div className="rm-admin">
+                          <div className="rm-admin-head"><i className="fas fa-user-shield" />Note from the City Vet</div>
+                          <p>{r.admin_notes}</p>
+                        </div>
+                      )}
+                    </Col>
+                    <Col lg={5}>
+                      <div className="rm-section-title"><i className="fas fa-map-marker-alt" />Pinned location</div>
+                      {r.latitude && r.longitude ? (
+                        <div className="rm-map view">
+                          <LeafletMap lat={parseFloat(r.latitude)} lng={parseFloat(r.longitude)} readOnly={true} />
+                        </div>
+                      ) : (
+                        <div className="rm-empty"><i className="fas fa-map-marker-alt" />No location was pinned for this report.</div>
+                      )}
+                    </Col>
+                  </Row>
+                </Modal.Body>
+                <Modal.Footer className="rm-foot">
+                  {canWithdraw && (
+                    <button type="button" className="rp-btn danger-outline lg me-auto" onClick={() => { setShowViewModal(false); handleDeleteReport(r); }}>
+                      <i className="fas fa-undo-alt" />Withdraw
+                    </button>
                   )}
-                </Col>
-              </Row>
-            </Modal.Body>
-            <Modal.Footer style={{ padding:'1.25rem 2rem' }}>
-              <Button variant="secondary" onClick={() => setShowModal(false)} disabled={submitLoading}
-                style={{ borderRadius:'8px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>Cancel</Button>
-              <Button type="button" disabled={submitLoading} className="border-0"
-  onClick={(e) => {
-    e.preventDefault();
-    if (!formData.barangay_id)         { setSubmitError('Barangay is required. Pin a location on the map.'); return; }
-    if (!formData.address.trim())      { setSubmitError('Address is required.');        return; }
-    if (!formData.phone_number.trim()) { setSubmitError('Contact number is required.'); return; }
-    if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); return; }
-    if (!formLat || !formLng)          { setSubmitError('Please pin a location on the map.'); return; }
-    setSubmitError('');
-    setShowConfirmModal(true);
-  }}
-  style={{ background: submitLoading?'#6c757d':'#ffc107', color: submitLoading?'#fff':'#000', borderRadius:'8px', padding:'0.75rem 1.5rem', fontWeight:'700', boxShadow: submitLoading?'none':'0 4px 15px rgba(255,193,7,0.4)' }}>
-  {submitLoading ? (<><Spinner size="sm" animation="border" className="me-2" />Submitting...</>) : (<><i className="fas fa-biohazard me-2"></i>Submit Rabies Report</>)}
-</Button>
-            </Modal.Footer>
-          </Form>
+                  {canWithdraw && (
+                    <button type="button" className="rp-btn ghost lg" onClick={() => { setShowViewModal(false); handleEditReport(r); }}>
+                      <i className="fas fa-pen" />Edit
+                    </button>
+                  )}
+                  <button type="button" className="rp-btn primary lg" onClick={() => setShowViewModal(false)}>Close</button>
+                </Modal.Footer>
+              </>
+            );
+          })()}
         </Modal>
 
-        {/* ── LOCATION ERROR MODAL ── */}
-        <Modal show={!!locationError} onHide={() => setLocationError('')} centered style={{ zoom:'0.75' }}>
-          <Modal.Header closeButton style={{ background:'#fffdf0', borderBottom:'2px solid #ffc107' }}>
-    <Modal.Title style={{ fontWeight:'700', color:'#856404', fontSize:'1rem' }}><i className="fas fa-map-marker-alt me-2"></i>Location Outside Muntinlupa</Modal.Title>
+        {/* ======================== EDIT MODAL ======================== */}
+        <Modal show={showEditModal} onHide={() => !editLoading && setShowEditModal(false)} backdrop="static" dialogClassName="rm-modal" className="rp-zoom-modal" scrollable>
+          <Modal.Header closeButton className="rm-head">
+            <div className="rm-head-main">
+              <div className="rm-head-ic"><i className="fas fa-pen" /></div>
+              <div style={{ minWidth: 0 }}>
+                <div className="rm-kicker">Edit report</div>
+                <Modal.Title as="h5" className="rm-title">Update rabies case</Modal.Title>
+                {reportToEdit && (
+                  <div className="rm-num">#{reportToEdit.report_number || `RPT-${String(reportToEdit.id).padStart(6, '0')}`}</div>
+                )}
+              </div>
+            </div>
           </Modal.Header>
-          <Modal.Body style={{ padding:'2rem', textAlign:'center' }}>
-            <div style={{ fontSize:'3rem', marginBottom:'1rem' }}>📍</div>
-            <p style={{ color:'#333', fontWeight:'600' }}>Cannot Pin Location</p>
-            <p style={{ color:'#666', fontSize:'0.9rem' }}>{locationError}</p>
-          </Modal.Body>
-          <Modal.Footer style={{ justifyContent:'center' }}>
-            <Button onClick={() => setLocationError('')} className="border-0"
-              style={{ background:'#ffc107', color:'#000', borderRadius:'8px', padding:'0.65rem 2rem', fontWeight:'700' }}>Got it</Button>
-          </Modal.Footer>
-        </Modal>
+          <Form onSubmit={confirmEdit} style={{ display: 'contents' }}>
+            <Modal.Body className="rm-body">
+              {editError && <div className="rm-alert danger"><i className="fas fa-exclamation-circle" /><span>{editError}</span></div>}
+              <div className="rm-alert warn">
+                <i className="fas fa-info-circle" />
+                <span>This report is waiting for City Vet verification. You can update the address, contact number and case details.</span>
+              </div>
 
-        {/* ── VIEW DETAILS MODAL ── */}
-        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" style={{ zoom:'0.75' }}>
-          <Modal.Header closeButton style={{ background:'linear-gradient(135deg,#fffdf0,#fff3cd)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
-    <Modal.Title style={{ fontWeight:'700', color:'#856404' }}>🦠 Rabies Case Details</Modal.Title>
-          </Modal.Header>
-          <Modal.Body className="rep-modal-body" style={{ padding:'2rem' }}>
-            {selectedReport && (
-              <Row>
-                <Col xs={12} md={6}>
-                  <Card className="border-0 mb-3" style={{ borderRadius:'14px', boxShadow:'0 2px 10px rgba(0,0,0,0.07)' }}>
-                    <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'14px 14px 0 0' }}>
-      <h6 className="mb-0" style={{ fontWeight:'700', color:'#333' }}><i className="fas fa-info-circle me-2" style={{ color:'#ffc107' }}></i>Report Information</h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <Table borderless size="sm">
-                        <tbody>
-                          {[
-                            ['Report No.',  <code style={{ background:'#f8f9fa', padding:'0.1rem 0.4rem', borderRadius:'4px' }}>{selectedReport.report_number}</code>],
-                            ['Status',      <StatusBadge status={selectedReport.status} />],
-                            ['Barangay',    getBarangayName(selectedReport.barangay_id)],
-                            ['Address',     selectedReport.address || 'N/A'],
-                            ['Contact',     selectedReport.phone_number || 'N/A'],
-                            ['Submitted',   formatDate(selectedReport.created_at)],
-                          ].map(([label, val]) => (
-                            <tr key={label}>
-                              <td style={{ fontWeight:'600', color:'#666', width:'110px', paddingBottom:'0.5rem' }}>{label}:</td>
-                              <td style={{ fontWeight:'500', color:'#333' }}>{val}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col xs={12} md={6}>
-                  {selectedReport.description && (
-                    <Card className="border-0 mb-3" style={{ borderRadius:'14px', boxShadow:'0 2px 10px rgba(0,0,0,0.07)' }}>
-                      <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'14px 14px 0 0' }}>
-      <h6 className="mb-0" style={{ fontWeight:'700', color:'#333' }}><i className="fas fa-align-left me-2" style={{ color:'#ffc107' }}></i>Case Details</h6>
-                      </Card.Header>
-                      <Card.Body><p style={{ color:'#555', lineHeight:'1.7', marginBottom:0 }}>{selectedReport.description}</p></Card.Body>
-                    </Card>
-                  )}
-                  {selectedReport.admin_notes && (
-                    <Card className="border-0 mb-3" style={{ borderRadius:'14px', boxShadow:'0 2px 10px rgba(0,0,0,0.07)' }}>
-                      <Card.Header style={{ background:'rgba(13,202,240,0.08)', borderBottom:'2px solid rgba(13,202,240,0.3)', borderRadius:'14px 14px 0 0' }}>
-                        <h6 className="mb-0" style={{ fontWeight:'700', color:'#333' }}><i className="fas fa-user-shield me-2" style={{ color:'#0dcaf0' }}></i>Admin Notes</h6>
-                      </Card.Header>
-                      <Card.Body><p style={{ color:'#555', lineHeight:'1.7', marginBottom:0 }}>{selectedReport.admin_notes}</p></Card.Body>
-                    </Card>
-                  )}
-                  {selectedReport.latitude && selectedReport.longitude && (
-                    <Card className="border-0" style={{ borderRadius:'14px', boxShadow:'0 2px 10px rgba(0,0,0,0.07)' }}>
-                      <Card.Header style={{ background:'rgba(255,193,7,0.1)', borderBottom:'2px solid rgba(255,193,7,0.3)', borderRadius:'14px 14px 0 0' }}>
-      <h6 className="mb-0" style={{ fontWeight:'700', color:'#333' }}><i className="fas fa-map-marker-alt me-2" style={{ color:'#ffc107' }}></i>Pinned Location</h6>
-                      </Card.Header>
-                      <Card.Body style={{ padding:'1rem' }}>
-                        <LeafletMap lat={parseFloat(selectedReport.latitude)} lng={parseFloat(selectedReport.longitude)} readOnly={true} />
-                      </Card.Body>
-                    </Card>
-                  )}
-                </Col>
-              </Row>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowViewModal(false)}
-              style={{ borderRadius:'10px', padding:'0.65rem 1.5rem', fontWeight:'600' }}>Close</Button>
-          </Modal.Footer>
-        </Modal>
-
-      {/* ── EDIT MODAL ── */}
-        <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" backdrop="static" style={{ zoom:'0.75' }}>
-          <Modal.Header closeButton style={{ background:'linear-gradient(135deg,#fffdf0,#fff3cd)', borderBottom:'2px solid #ffc107', borderRadius:'20px 20px 0 0' }}>
-    <Modal.Title style={{ fontWeight:'700', color:'#856404' }}>
-      <i className="fas fa-edit me-2"></i>Edit Rabies Report
-            </Modal.Title>
-          </Modal.Header>
-          <Form onSubmit={confirmEdit}>
-            <Modal.Body className="rep-modal-body" style={{ maxHeight:'70vh', overflowY:'auto', padding:'2rem' }}>
-              {editError && <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{editError}</Alert>}
-
-              <Alert variant="danger" className="mb-4" style={{ borderRadius:'12px', background:'rgba(255,193,7,0.08)', border:'2px solid rgba(255,193,7,0.3)', color:'#856404' }}>
-  <i className="fas fa-biohazard me-2"></i>
-  <strong>Editing Clinic Report:</strong> This report is pending admin verification. Only address, contact, and description can be updated.
-              </Alert>
-
-              {/* Barangay (read-only) */}
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>Barangay</Form.Label>
+              <div className="rm-section">
+                <div className="rm-section-title"><i className="fas fa-map-marker-alt" />Case location</div>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Label className="rm-label">Barangay</Form.Label>
+                    <div className="rm-readonly">
+                      <i className="fas fa-lock" />
+                      {reportToEdit ? (barangays.find(b => b.id === parseInt(reportToEdit.barangay_id))?.name || 'Unknown') : ''}
+                    </div>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Label className="rm-label">Contact number <span className="rm-req">*</span></Form.Label>
                     <Form.Control
-                      type="text"
-                      value={reportToEdit ? (barangays.find(b => b.id === parseInt(reportToEdit.barangay_id))?.name || 'Unknown') : ''}
-                      readOnly
-                      style={{ borderRadius:'8px', padding:'0.75rem', border:'2px solid #dee2e6', background:'#f8f9fa', color:'#666' }}
+                      className={`rm-input${editData.phone_number && !/^09\d{9}$/.test(editData.phone_number) ? ' bad' : editData.phone_number ? ' good' : ''}`}
+                      type="tel" inputMode="numeric" maxLength={11} value={editData.phone_number}
+                      onChange={e => setEditData(prev => ({ ...prev, phone_number: e.target.value }))}
+                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                      placeholder="09XXXXXXXXX" required disabled={editLoading}
                     />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                      Contact Number <span style={{ color:'#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control type="text" value={editData.phone_number}
-  onChange={e => setEditData(prev => ({ ...prev, phone_number: e.target.value }))}
-  onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-  placeholder="09XXXXXXXXX" required disabled={editLoading}
-  style={{ borderRadius:'8px', padding:'0.75rem', border: editData.phone_number && !/^09\d{9}$/.test(editData.phone_number) ? '2px solid #ef4444' : (editData.phone_number && /^09\d{9}$/.test(editData.phone_number)) ? '2px solid #10b981' : '2px solid #dee2e6' }} />
-{editData.phone_number && !/^09\d{9}$/.test(editData.phone_number) && (
-  <small style={{ color:'#ef4444', display:'block', marginTop:'0.3rem', fontSize:'0.78rem' }}>
-    <i className="fas fa-times-circle me-1"></i>Phone must be 11 digits starting with 09
-  </small>
-)}
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Address */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                      Address / Location <span style={{ color:'#dc3545' }}>*</span>
-                    </Form.Label>
-                    <Form.Control type="text" value={editData.address}
-                      onChange={e => setEditData(prev => ({ ...prev, address: e.target.value }))}
-                      placeholder="House no., Street, Purok / Sitio..." required disabled={editLoading}
-                      style={{ borderRadius:'8px', padding:'0.75rem', border:'2px solid #dee2e6' }} />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Description */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={{ fontWeight:'600', color:'#333' }}>Case Details / Description</Form.Label>
-                    <Form.Control as="textarea" rows={3} value={editData.description}
-                      onChange={e => setEditData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Describe the animal, symptoms observed, date of exposure, patient info (if any)..."
-                      disabled={editLoading}
-                      style={{ borderRadius:'8px', padding:'0.75rem', border:'2px solid #dee2e6' }} />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Pinned location (read-only map) */}
-              {reportToEdit?.latitude && reportToEdit?.longitude && (
-                <Row>
+                    {editData.phone_number && !/^09\d{9}$/.test(editData.phone_number) && (
+                      <div className="rm-hint bad"><i className="fas fa-times-circle" />Must be 11 digits starting with 09</div>
+                    )}
+                  </Col>
                   <Col md={12}>
-                    <Form.Group className="mb-3">
-                      <Form.Label style={{ fontWeight:'600', color:'#333' }}>
-                        <i className="fas fa-map-marker-alt me-2" style={{ color:'#ffc107' }}></i>
-        Pinned Location
-                      </Form.Label>
-                      <LeafletMap
-                        lat={parseFloat(reportToEdit.latitude)}
-                        lng={parseFloat(reportToEdit.longitude)}
-                        readOnly={true}
-                      />
-                      <small style={{ color:'#888', fontSize:'0.78rem', marginTop:'0.4rem', display:'block' }}>
-                        <i className="fas fa-info-circle me-1"></i>Location cannot be changed after submission.
-                      </small>
-                    </Form.Group>
+                    <Form.Label className="rm-label">Address <span className="rm-req">*</span></Form.Label>
+                    <Form.Control className="rm-input" type="text" value={editData.address}
+                      onChange={e => setEditData(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder="House no., street, purok / sitio…" required disabled={editLoading} />
                   </Col>
                 </Row>
+              </div>
+
+              <div className="rm-section">
+                <div className="rm-section-title"><i className="fas fa-align-left" />Case details</div>
+                <Form.Control className="rm-input" as="textarea" rows={3} value={editData.description}
+                  onChange={e => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe the animal, symptoms observed, date of exposure, patient info (if any)…"
+                  disabled={editLoading} />
+              </div>
+
+              {reportToEdit?.latitude && reportToEdit?.longitude && (
+                <div className="rm-section mb-0">
+                  <div className="rm-section-title"><i className="fas fa-map-pin" />Pinned location</div>
+                  <div className="rm-map">
+                    <LeafletMap lat={parseFloat(reportToEdit.latitude)} lng={parseFloat(reportToEdit.longitude)} readOnly={true} />
+                  </div>
+                  <div className="rm-hint"><i className="fas fa-lock" />The location can't be changed after submission.</div>
+                </div>
               )}
             </Modal.Body>
-            <Modal.Footer style={{ padding:'1.25rem 2rem' }}>
-              <Button variant="secondary" onClick={() => setShowEditModal(false)} disabled={editLoading}
-                style={{ borderRadius:'8px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>Cancel</Button>
-              <Button type="submit" disabled={editLoading} className="border-0"
-                style={{ background: editLoading?'#6c757d':'#ffc107', color: editLoading?'#fff':'#000', borderRadius:'8px', padding:'0.75rem 1.5rem', fontWeight:'700', boxShadow: editLoading?'none':'0 4px 15px rgba(255,193,7,0.4)' }}>
-                {editLoading ? (<><Spinner size="sm" animation="border" className="me-2" />Saving...</>) : (<><i className="fas fa-save me-2"></i>Save Changes</>)}
-              </Button>
+            <Modal.Footer className="rm-foot">
+              <button type="button" className="rp-btn ghost lg" onClick={() => setShowEditModal(false)} disabled={editLoading}>Cancel</button>
+              <button type="submit" className="rp-btn primary lg" disabled={editLoading}>
+                {editLoading ? <><i className="fas fa-circle-notch fa-spin" />Saving…</> : <><i className="fas fa-save" />Save changes</>}
+              </button>
             </Modal.Footer>
           </Form>
         </Modal>
 
-        {/* ── DELETE/WITHDRAW MODAL ── */}
-        <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom:'0.75' }}>
-          <Modal.Header closeButton style={{ background:'#fffdf0', borderBottom:'2px solid #ffc107' }}>
-    <Modal.Title style={{ fontWeight:'700', color:'#856404' }}><i className="fas fa-exclamation-triangle me-2"></i>Withdraw Report</Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding:'2rem' }}>
-            {reportToDelete && (
-              <>
-                <p style={{ fontSize:'1rem', marginBottom:'1.25rem' }}>Are you sure you want to withdraw this rabies case report?</p>
-                <div style={{ background:'#f8f9fa', padding:'1.25rem', borderRadius:'8px', borderLeft:'4px solid #ffc107', marginBottom:'1rem' }}>
-                  <strong>Barangay:</strong> {getBarangayName(reportToDelete.barangay_id)}<br />
-                  <small className="text-muted"><i className="fas fa-map-marker-alt me-1"></i>{reportToDelete.address}</small>
+        {/* ======================== WITHDRAW MODAL ======================== */}
+        <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered dialogClassName="cm-modal" className="rp-zoom-modal">
+          {reportToDelete && (
+            <>
+              <Modal.Body className="cm-body">
+                <div className="cm-icon" style={{ '--c': '#dc3545' }}><i className="fas fa-undo-alt" /></div>
+                <h5 className="cm-title">Withdraw this report?</h5>
+                <p className="cm-text">The rabies case will be removed and its danger zone taken off the map. This cannot be undone.</p>
+                <div className="cm-item">
+                  <div className="cm-item-av" style={{ background: 'rgba(220,53,69,0.1)', color: '#dc3545' }}><i className="fas fa-biohazard" /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="cm-item-name">Rabies case</div>
+                    <div className="cm-item-meta">
+                      #{reportToDelete.report_number || `RPT-${String(reportToDelete.id).padStart(6, '0')}`} · Brgy. {getBarangayName(reportToDelete.barangay_id)}
+                    </div>
+                  </div>
                 </div>
-                <Alert variant="warning" className="mb-0">
-                  <i className="fas fa-info-circle me-2"></i>
-                  <strong>Note:</strong> This action cannot be undone and will remove the danger zone from the map.
-                </Alert>
-              </>
-            )}
-          </Modal.Body>
-          <Modal.Footer style={{ padding:'1.25rem 2rem' }}>
-            <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
-              style={{ borderRadius:'8px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>Cancel</Button>
-            <Button variant="danger" onClick={confirmDelete} disabled={deleteLoading}
-              style={{ borderRadius:'8px', padding:'0.75rem 1.5rem', fontWeight:'700' }}>
-              {deleteLoading ? (<><Spinner size="sm" animation="border" className="me-2" />Withdrawing...</>) : (<><i className="fas fa-trash me-2"></i>Withdraw Report</>)}
-            </Button>
-          </Modal.Footer>
+              </Modal.Body>
+              <Modal.Footer className="cm-foot">
+                <button type="button" className="rp-btn ghost" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>Keep report</button>
+                <button type="button" className="rp-btn cm-confirm" style={{ '--c': '#dc3545' }} onClick={confirmDelete} disabled={deleteLoading}>
+                  {deleteLoading ? <><i className="fas fa-circle-notch fa-spin" />Withdrawing…</> : <><i className="fas fa-undo-alt" />Withdraw</>}
+                </button>
+              </Modal.Footer>
+            </>
+          )}
         </Modal>
-{/* ── CONFIRM SUBMIT MODAL ── */}
-<Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered style={{ zoom:'0.75' }}>
-  <Modal.Header closeButton style={{ background:'linear-gradient(135deg,#fffdf0,#fff3cd)', borderBottom:'2px solid #ffc107' }}>
-    <Modal.Title style={{ fontWeight:'700', color:'#856404' }}>
-      <i className="fas fa-biohazard me-2"></i>Confirm Rabies Case Submission
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding:'2rem' }}>
-    <p style={{ color:'#555', fontSize:'0.9rem', marginBottom:'1.25rem' }}>
-      Please review the details before submitting this rabies case report.
-    </p>
 
-    <Alert variant="warning" className="mb-3" style={{ borderRadius:'10px', background:'rgba(255,193,7,0.08)', border:'2px solid rgba(255,193,7,0.3)', color:'#856404', fontSize:'0.85rem' }}>
-      <i className="fas fa-biohazard me-2"></i>
-      <strong>Clinic Report:</strong> This will be submitted for admin verification before being marked as Positive Rabies.
-    </Alert>
+        {/* ======================== REVIEW & CONFIRM MODAL ======================== */}
+        <Modal show={showConfirmModal} onHide={() => !submitLoading && setShowConfirmModal(false)} centered dialogClassName="cm-modal wide" className="rp-zoom-modal" scrollable style={{ zIndex: 1065 }} backdropClassName="rp-backdrop-top">
+          {(() => {
+            const rows = [
+              { icon: 'fa-map', label: 'Barangay', value: barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '—' },
+              { icon: 'fa-phone-alt', label: 'Contact no.', value: formData.phone_number || '—' },
+              { icon: 'fa-home', label: 'Address', value: formData.address || '—', wide: true },
+              { icon: 'fa-map-pin', label: 'Pinned location', value: formLat && formLng ? `${formLat.toFixed(5)}, ${formLng.toFixed(5)}` : 'Not pinned', mono: true, wide: true },
+            ];
+            return (
+              <>
+                <Modal.Body className="cm-body">
+                  <div className="cm-icon" style={{ '--c': '#dc3545' }}><i className="fas fa-clipboard-check" /></div>
+                  <h5 className="cm-title">Review rabies report</h5>
+                  <p className="cm-text">Check the details before sending them to the City Vet for verification.</p>
 
-    <div style={{ background:'#f8f9fa', borderRadius:'12px', padding:'1rem', border:'1px solid #e9ecef' }}>
-      {[
-        { icon:'fa-map-marker-alt', label:'Barangay',       value: barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '—' },
-        { icon:'fa-home',           label:'Address',         value: formData.address || '—' },
-        { icon:'fa-phone',          label:'Contact No.',     value: formData.phone_number || '—' },
-        { icon:'fa-align-left',     label:'Description',     value: formData.description || 'No description provided' },
-        { icon:'fa-map-pin',        label:'Pinned Location', value: formLat && formLng ? `${formLat.toFixed(5)}, ${formLng.toFixed(5)}` : 'Not pinned' },
-        { icon:'fa-camera',         label:'Attached Photos', value: imageFiles.length > 0 ? `${imageFiles.length} photo(s)` : 'None' },
-      ].map((item, i, arr) => (
-        <div key={i} style={{ display:'flex', gap:'0.75rem', paddingBottom: i < arr.length-1 ? '0.75rem' : 0, marginBottom: i < arr.length-1 ? '0.75rem' : 0, borderBottom: i < arr.length-1 ? '1px solid #e9ecef' : 'none' }}>
-          <div style={{ width:'28px', flexShrink:0, display:'flex', alignItems:'flex-start', justifyContent:'center', paddingTop:'2px' }}>
-            <i className={`fas ${item.icon}`} style={{ color:'#ffc107', fontSize:'0.8rem' }} />
-          </div>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:'0.72rem', fontWeight:'700', color:'#999', textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:'2px' }}>{item.label}</div>
-            <div style={{ fontWeight:'600', color:'#333', fontSize:'0.88rem', wordBreak:'break-word' }}>{item.value}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </Modal.Body>
-  <Modal.Footer style={{ padding:'1.25rem 2rem', gap:'0.75rem' }}>
-    <Button variant="secondary" onClick={() => setShowConfirmModal(false)} disabled={submitLoading}
-      style={{ borderRadius:'10px', padding:'0.75rem 1.5rem', fontWeight:'600' }}>
-      <i className="fas fa-arrow-left me-2" />Edit
-    </Button>
-    <Button disabled={submitLoading} className="border-0"
-      onClick={async (e) => {
-        setShowConfirmModal(false);
-        await handleSubmit(e);
-      }}
-      style={{ background: submitLoading?'#6c757d':'#ffc107', color: submitLoading?'#fff':'#000', borderRadius:'10px', padding:'0.75rem 1.75rem', fontWeight:'700', boxShadow:'0 4px 14px rgba(255,193,7,0.4)', transition:'all 0.3s' }}
-      onMouseOver={e => { if(!submitLoading) e.currentTarget.style.boxShadow='0 6px 20px rgba(255,193,7,0.6)'; }}
-      onMouseOut={e  => e.currentTarget.style.boxShadow='0 4px 14px rgba(255,193,7,0.4)'}>
-      {submitLoading
-        ? <><Spinner size="sm" animation="border" className="me-2" />Submitting...</>
-        : <><i className="fas fa-biohazard me-2" />Confirm & Submit</>}
-    </Button>
-  </Modal.Footer>
-</Modal>
+                  <div className="rm-info-grid text-start">
+                    {rows.map(it => (
+                      <div key={it.label} className={`rm-info${it.wide ? ' wide' : ''}`}>
+                        <div className="rm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="rm-info-label">{it.label}</div>
+                          <div className={`rm-info-value${it.mono ? ' rm-mono' : ''}`}>{it.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="text-start mt-3">
+                    <div className="rm-info-label mb-1">Case details</div>
+                    <p className={`rm-desc sm${formData.description ? '' : ' muted'}`}>{formData.description || 'No description provided.'}</p>
+                  </div>
+
+                  {imagePreviews.length > 0 && (
+                    <div className="text-start mt-3">
+                      <div className="rm-info-label mb-2">Photos ({imagePreviews.length})</div>
+                      <div className="rm-photos">
+                        {imagePreviews.map((src, i) => <div key={i} className="rm-thumb sm"><img src={src} alt={`Attachment ${i + 1}`} /></div>)}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="cm-note" style={{ '--c': '#b88a00' }}>
+                    <i className="fas fa-shield-alt" /><span>Once verified, the case is marked Positive Rabies and the community is alerted.</span>
+                  </div>
+                </Modal.Body>
+                <Modal.Footer className="cm-foot">
+                  <button type="button" className="rp-btn ghost" onClick={() => setShowConfirmModal(false)} disabled={submitLoading}>
+                    <i className="fas fa-arrow-left" />Edit
+                  </button>
+                  <button type="button" className="rp-btn primary" disabled={submitLoading}
+                    onClick={async (e) => { setShowConfirmModal(false); await handleSubmit(e); }}>
+                    {submitLoading ? <><i className="fas fa-circle-notch fa-spin" />Submitting…</> : <><i className="fas fa-paper-plane" />Submit report</>}
+                  </button>
+                </Modal.Footer>
+              </>
+            );
+          })()}
+        </Modal>
       </Container>
     </>
   );

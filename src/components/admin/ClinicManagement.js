@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Modal, Form } from 'react-bootstrap';
 import { clinicAPI, handleAPIError } from '../../services/api';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SPECIALIZATIONS = ['General Veterinary', 'Small Animals', 'Large Animals', 'Exotic Animals', 'Surgery', 'Dermatology', 'Dentistry', 'Cardiology'];
 
 // ─── Leaflet Map (reused from Reports) ───────────────────────────────────────
 const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, readOnly = false, onError }) => {
@@ -149,9 +152,8 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, readOnly = f
   return (
     <div style={{ position: isFullscreen ? 'fixed' : 'relative', inset: isFullscreen ? 0 : 'auto', zIndex: isFullscreen ? 9999 : 'auto', background: isFullscreen ? '#fff' : 'transparent', padding: isFullscreen ? '1rem' : 0, display: 'flex', flexDirection: 'column' }}>
       {!ready && (
-        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f8f9fa', borderRadius:'8px', zIndex:1 }}>
-          <Spinner animation="border" size="sm" style={{ color:'#ffc107' }} />
-          <span className="ms-2" style={{ fontSize:'0.9rem', color:'#666' }}>Loading map...</span>
+        <div className="skeleton" style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'8px', zIndex:1 }}>
+          <span style={{ fontSize:'0.85rem', color:'#9ca3af', fontWeight:600 }}><i className="fas fa-map-marked-alt me-2" />Loading map…</span>
         </div>
       )}
       <button type="button" onClick={toggleFullscreen}
@@ -248,9 +250,6 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [filterSpecialization, setFilterSpecialization] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(null);
-  const dropdownButtonRef = useRef(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-  const ZOOM = 0.75;
 
     // Floating notification helper (resets timer so older timeouts don't hide newer messages)
   const successTimerRef = useRef(null);
@@ -307,15 +306,18 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     return () => clearInterval(timer);
   }, [loading, activeClinics.length, inactiveClinics.length, uniqueSpecs.length]);
 
+  // First load shows the skeleton; reloads after an action are silent (no jump to the top)
+  const hasLoadedRef = useRef(false);
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (!hasLoadedRef.current) setLoading(true);
       const res = await clinicAPI.getAll();
       setClinics(res.data.clinics || []);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   };
@@ -738,7 +740,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     .ck-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
     .ck-filters { padding-top: 1rem; }
     .ck-table { table-layout: fixed; }
-    .ck-logo { width: 38px; height: 38px; border-radius: 10px; background: rgba(25,135,84,0.12); color: #198754; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
+    .ck-logo { width: 32px; height: 32px; border-radius: 50%; background: rgba(34,197,94,0.12); color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 800; flex-shrink: 0; }
     .ck-logo.off { background: #f3f4f6; color: #9ca3af; }
     .ck-ic { width: 14px; margin-right: 0.4rem; color: #9ca3af; font-size: 0.72rem; }
     .ck-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 6px; background: #f3f4f6; color: #4b5563; }
@@ -751,11 +753,199 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
       .ck-table { table-layout: auto; }
       .ck-table th { width: auto !important; }
     }
+    /* ---------------- Modals ---------------- */
+    .mm-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .mm-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .mm-zoom-modal { zoom: 1; } }
+    .mm-backdrop-top { z-index: 1060 !important; }
+    .mm-modal { max-width: 720px; }
+    .mm-small { max-width: 440px; }
+    .mm-small.wide { max-width: 540px; }
+    .mm-modal .modal-content, .mm-small .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .mm-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%) !important; }
+    .mm-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .mm-head-ic { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--c, #e0a800); background: color-mix(in srgb, var(--c, #ffc107) 14%, #fff); }
+    .mm-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in srgb, var(--c, #e0a800) 80%, #000); }
+    .mm-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; }
+    .mm-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .mm-body { padding: 1.4rem 1.5rem !important; }
+    .mm-section { margin-bottom: 1.25rem; }
+    .mm-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.7rem; }
+    .mm-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .mm-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .mm-type { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.9rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 14px; background: #fff; transition: all 0.15s ease; }
+    .mm-type:hover { border-color: color-mix(in srgb, var(--c) 50%, #fff); }
+    .mm-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 7%, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
+    .mm-type-ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); font-size: 1.1rem; }
+    .mm-type-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .mm-type-label { font-weight: 700; font-size: 0.86rem; color: #374151; }
+    .mm-type.on .mm-type-label { color: color-mix(in srgb, var(--c) 80%, #000); }
+    .mm-type-check { position: absolute; top: 7px; right: 8px; color: var(--c); font-size: 0.85rem; }
+
+    /* fields inside the modals */
+    .mm-zoom-modal .form-label { font-size: 0.84rem !important; font-weight: 600 !important; color: #374151 !important; margin-bottom: 0.35rem; }
+    .mm-zoom-modal .form-control, .mm-zoom-modal .form-select { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; box-shadow: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .mm-zoom-modal .form-control:focus, .mm-zoom-modal .form-select:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .mm-zoom-modal .form-control.is-invalid { border-color: #dc3545 !important; }
+    .mm-zoom-modal .form-control:disabled, .mm-zoom-modal .form-select:disabled { background-color: #f8f9fa !important; }
+    .mm-zoom-modal .input-group > .form-control { border-radius: 0 !important; }
+    .mm-zoom-modal .input-group-text { border: 1.5px solid #e5e7eb !important; border-right: none !important; background: #f8f9fa !important; border-radius: 10px 0 0 10px !important; font-size: 0.95rem !important; }
+    .mm-zoom-modal .input-group > .btn:last-child { border-radius: 0 10px 10px 0 !important; }
+    .mm-zoom-modal .form-text { font-size: 0.76rem; }
+    .mm-zoom-modal .alert { border-radius: 10px; font-size: 0.86rem; border-width: 1px; }
+    .mm-zoom-modal .form-check-input:checked { background-color: #ffc107; border-color: #ffc107; }
+
+    .mm-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .mm-alert i { margin-top: 3px; }
+    .mm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #842029; }
+    .mm-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .mm-foot > * { margin: 0 !important; }
+    .mm-foot.even > * { flex: 1; }
+    .mm-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 10px !important; border: 1px solid transparent !important; font-weight: 700 !important; font-size: 0.9rem !important; padding: 0.65rem 1.2rem !important; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .mm-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .mm-btn.primary { background: #ffc107 !important; color: #1f2328 !important; }
+    .mm-btn.primary:hover:not(:disabled) { background: #f0b400 !important; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .mm-btn.ghost { background: #fff !important; color: #1f2328 !important; border-color: #e5e7eb !important; font-weight: 600 !important; }
+    .mm-btn.ghost:hover:not(:disabled) { background: #f6f7f9 !important; }
+    .mm-btn.solid { background: var(--c) !important; color: #fff !important; }
+    .mm-btn.solid:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000) !important; }
+
+    /* view details */
+    .mm-pet { display: flex; align-items: center; gap: 0.8rem; padding: 0.85rem 1rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .mm-pet-av { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,193,7,0.16); color: #b88a00; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mm-pet-name { font-weight: 700; color: #1f2328; font-size: 1rem; }
+    .mm-pet-meta { font-size: 0.8rem; color: #6b7280; }
+    .mm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .mm-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fff; }
+    .mm-info.wide { grid-column: 1 / -1; }
+    .mm-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #f6f7f9; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .mm-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .mm-info-value { font-size: 0.92rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .mm-none { color: #b8bdc6; font-weight: 500; }
+    .mm-notes { margin-top: 0.9rem; padding: 0.8rem 0.95rem; border-radius: 12px; background: #fffaeb; border: 1px solid rgba(255,193,7,0.3); }
+    .mm-notes p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+
+    /* small centered modals */
+    @keyframes rxPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .mm-small-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; }
+    .mm-small-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: rxPop 0.4s ease-out; }
+    .mm-small-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .mm-small-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .mm-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .mm-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .mm-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .mm-item-meta { font-size: 0.78rem; color: #6b7280; }
+    .mm-item-flag { font-size: 0.76rem; font-weight: 600; color: #c2410c; margin-top: 0.2rem; }
+    .mm-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 20%, #fff); }
+    .mm-note i { margin-top: 3px; }
+    .mm-review { background: #fafbfc; border: 1px solid #eef0f3; border-radius: 12px; padding: 0.9rem 1rem; }
+
+    @media (max-width: 768px) {
+      .mm-zoom-modal { zoom: 1; }
+      .mm-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .mm-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+      .mm-head { padding: 1rem !important; }
+      .mm-head-ic { width: 40px; height: 40px; }
+      .mm-title { font-size: 1.05rem; }
+      .mm-body { padding: 1rem !important; }
+      .mm-types { grid-template-columns: repeat(2, 1fr); }
+      .mm-zoom-modal .input-group .form-control { font-size: 0.92rem !important; letter-spacing: 0 !important; min-width: 0; }
+      .mm-zoom-modal .input-group > .btn { padding: 0 0.75rem !important; font-size: 0.82rem !important; }
+      .mm-zoom-modal .input-group-text { padding: 0 0.6rem !important; font-size: 0.85rem !important; }
+      .mm-type { flex-direction: row; justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
+      .mm-type-ic { width: 36px; height: 36px; border-radius: 10px; }
+      .mm-type-ic img { width: 22px; height: 22px; }
+      .mm-type-label { font-size: 0.82rem; }
+      .mm-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .mm-info-ic { display: none; }
+      .mm-foot { padding: 0.75rem 1rem !important; }
+      .mm-foot > * { flex: 1; }
+      .mm-small-body { padding: 1.5rem 1.1rem 1rem !important; }
+    }
+    @media (max-width: 380px) { .mm-grid { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .mm-small-icon { animation: none; } }
+
+    /* Report management extras */
+    .mm-modal.lg { max-width: 940px; }
+    .mm-head-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .mm-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .mm-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .mm-chip i { font-size: 0.66rem; }
+    .mm-chip.grey { background: #f3f4f6; color: #4b5563; }
+    .mm-num, .mm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mm-num { font-size: 0.8rem; font-weight: 600; color: #6b7280; margin-top: 0.15rem; }
+    .mm-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .mm-count { margin-left: auto; font-size: 0.7rem; background: #f3f4f6; color: #4b5563; padding: 0.1rem 0.55rem; border-radius: 999px; letter-spacing: 0; }
+    .mm-req { color: #dc3545; }
+    .mm-opt { font-size: 0.72rem; font-weight: 600; color: #9ca3af; text-transform: none; letter-spacing: 0; }
+    .mm-label { font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+    .mm-input { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .mm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .mm-input.good { border-color: #10b981 !important; }
+    .mm-input.bad { border-color: #ef4444 !important; }
+    .mm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+    .mm-hint.bad { color: #dc3545; }
+    .mm-readonly { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1.5px dashed #e5e7eb; background: #f8f9fa; font-size: 0.92rem; font-weight: 600; color: #1f2328; }
+    .mm-readonly i { color: #9ca3af; }
+    .mm-readonly.empty { font-weight: 500; font-style: italic; color: #9ca3af; }
+    .mm-map { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .mm-map-loading { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.85rem; font-weight: 600; border-radius: 0; }
+    .mm-pin { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; padding: 0.55rem 0.75rem; border-radius: 10px; background: #f8f9fa; color: #6b7280; font-size: 0.8rem; }
+    .mm-pin.ok { background: rgba(25,135,84,0.07); color: #146c43; border: 1px solid rgba(25,135,84,0.2); }
+    .mm-pin .mm-mono { margin-left: 0.3rem; opacity: 0.85; }
+    .mm-pin button { margin-left: auto; border: none; background: none; color: #dc3545; font-size: 0.78rem; font-weight: 600; padding: 0; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .mm-desc { font-size: 0.92rem; color: #374151; line-height: 1.6; margin: 0; white-space: pre-line; word-break: break-word; }
+    .mm-desc.muted { color: #9ca3af; font-style: italic; }
+    .mm-admin { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 12px; background: rgba(13,110,253,0.05); border: 1px solid rgba(13,110,253,0.18); }
+    .mm-admin-head { font-size: 0.78rem; font-weight: 700; color: #0a58ca; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem; }
+    .mm-admin p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+    .mm-empty { padding: 1.1rem; border: 1px dashed #e5e7eb; border-radius: 12px; color: #9ca3af; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .mm-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; }
+    .mm-thumb { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #f8f9fa; padding: 0; cursor: zoom-in; }
+    .mm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
+    .mm-thumb:hover img { transform: scale(1.05); }
+    .mm-thumb-zoom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); color: transparent; transition: all 0.15s ease; }
+    .mm-thumb:hover .mm-thumb-zoom, .mm-thumb:focus-visible .mm-thumb-zoom { background: rgba(0,0,0,0.3); color: #fff; }
+    .mm-thumb.broken::after { content: 'No preview'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #9ca3af; }
+    .mm-actions { display: flex; flex-direction: column; gap: 0.45rem; }
+    .mm-action { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.6rem 0.75rem; border-radius: 11px; border: 1px solid color-mix(in srgb, var(--c) 25%, #fff); background: color-mix(in srgb, var(--c) 5%, #fff); color: #1f2328; font-weight: 600; font-size: 0.88rem; transition: all 0.15s ease; }
+    .mm-action:hover { background: color-mix(in srgb, var(--c) 10%, #fff); border-color: var(--c); transform: translateX(2px); }
+    .mm-action-ic { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 14%, #fff); color: var(--c); font-size: 0.8rem; flex-shrink: 0; }
+    .mm-action-arrow { color: #c4c9d0; font-size: 0.72rem; }
+    .mm-flow { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin: 0.9rem 0 1rem; color: #9ca3af; font-size: 0.8rem; }
+    .mm-item-av img { width: 26px; height: 26px; object-fit: contain; }
+    .mm-types { grid-template-columns: repeat(2, 1fr); }
+    .mm-lightbox { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .mm-lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); transition: transform 0.1s ease; }
+    .mm-lb-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; }
+    .mm-lb-btn:hover { background: rgba(255,255,255,0.3); }
+    .mm-lb-btn.close { top: 1.25rem; right: 1.25rem; }
+    .mm-lb-btn.prev { left: 1rem; top: 50%; transform: translateY(-50%); }
+    .mm-lb-btn.next { right: 1rem; top: 50%; transform: translateY(-50%); }
+    .mm-lb-count { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.75); font-size: 0.8rem; font-weight: 600; }
+    .mm-alert.page { margin-bottom: 1.25rem; align-items: center; }
+    .mm-alert.page span { flex: 1; }
+    .mm-alert.page button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+
+    /* Clinic management extras */
+    .mm-backdrop-top { z-index: 1060 !important; }
+    .mm-avatar { width: 54px; height: 54px; border-radius: 15px; flex-shrink: 0; background: linear-gradient(135deg, #ffc107, #ffb000); color: #1f2328; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,193,7,0.3); }
+    .mm-chip.green { background: rgba(25,135,84,0.12); color: #198754; }
+    .mm-note-box { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.8rem 0.95rem; margin-bottom: 1.25rem; border-radius: 12px; background: rgba(13,202,240,0.07); border: 1px solid rgba(13,202,240,0.3); font-size: 0.86rem; color: #055160; line-height: 1.5; }
+    .mm-note-box > i { margin-top: 3px; color: #0aa2c0; }
+    .mm-note-box code { background: #fff; padding: 0.05rem 0.4rem; border-radius: 6px; color: #b02a37; }
+    .mm-map > div { border-radius: 0 !important; }
+    .mm-map small { display: none !important; }
+    .mm-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .mm-kpi { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 12px; border: 1px solid #eef0f3; background: #fafbfc; }
+    .mm-kpi .ic { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); flex-shrink: 0; }
+    .mm-kpi .v { font-size: 1.5rem; font-weight: 800; color: #1f2328; line-height: 1.1; }
+    .mm-kpi .v.sm { font-size: 0.98rem; }
+    .mm-kpi .k { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .mm-item-av { color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); }
   `;
 
   // ── Shared input style ─────────────────────────────────────────────────────
-  const inputStyle = { borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' };
-  const labelStyle = { fontWeight: '600', color: '#333333' };
 
   const ckPagerNumbers = (() => {
     const pages = [];
@@ -780,9 +970,10 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2"></i>{error}
-          </Alert>
+          <div role="alert" className="mm-alert danger page">
+            <i className="fas fa-exclamation-triangle" /><span>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
         {success && (
           <div className="ck-toast" role="status">
@@ -1126,689 +1317,263 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
         </div>
 
         {/* ════════════════════════════════════════════════════════════════
-            ADD CLINIC MODAL
+            ADD / EDIT CLINIC MODALS (same form, different header and button)
         ════════════════════════════════════════════════════════════════ */}
-        <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg" backdrop="static" style={{zoom: '0.75'}}>
-          <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-            <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-              <i className="fas fa-plus-circle me-2"></i>Add New Private Clinic
-            </Modal.Title>
-          </Modal.Header>
-          <Form onSubmit={handleSubmitAdd}>
-            <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
-              {formError && (
-                <Alert variant="danger" className="mb-3">
-                  <i className="fas fa-exclamation-triangle me-2"></i>{formError}
-                </Alert>
-              )}
+        {[
+          { mode: 'add',  show: showAddModal,  close: () => setShowAddModal(false),  submit: handleSubmitAdd },
+          { mode: 'edit', show: showEditModal, close: () => setShowEditModal(false), submit: handleSubmitEdit },
+        ].map(({ mode, show, close, submit }) => {
+          const isAdd = mode === 'add';
+          const emailBad = formData.email && !EMAIL_RE.test(formData.email);
+          const emailOk  = formData.email && EMAIL_RE.test(formData.email);
+          const phoneBad = formData.phone && !/^\d{11}$/.test(formData.phone);
+          const phoneOk  = formData.phone && /^\d{11}$/.test(formData.phone);
+          const invalid = formLoading || !formData.clinic_name.trim() || !formData.owner_name.trim() || emailBad || phoneBad ||
+            (isAdd && (!formData.email.trim() || !formData.username.trim()));
+          return (
+            <Modal key={mode} show={show} onHide={() => !formLoading && close()} backdrop="static" dialogClassName="mm-modal" className="mm-zoom-modal" scrollable>
+              <Modal.Header closeButton className="mm-head" style={{ '--c': '#e0a800' }}>
+                <div className="mm-head-main">
+                  <div className="mm-head-ic"><i className={`fas ${isAdd ? 'fa-clinic-medical' : 'fa-pen'}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="mm-kicker">{isAdd ? 'New private clinic' : 'Edit clinic'}</div>
+                    <Modal.Title as="h5" className="mm-title">{isAdd ? 'Add private clinic' : (selectedClinic?.clinic_name || 'Edit clinic')}</Modal.Title>
+                    <div className="mm-sub">Fields marked <span className="mm-req">*</span> are required.</div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Form onSubmit={submit} style={{ display: 'contents' }}>
+                <Modal.Body className="mm-body">
+                  {formError && <div className="mm-alert danger"><i className="fas fa-exclamation-circle" /><span>{formError}</span></div>}
 
-              <Alert variant="info" style={{ borderRadius: '12px', border: '2px solid #0dcaf0', background: 'rgba(13,202,240,0.1)' }}>
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Auto-generated credentials:</strong>
-                <ul className="mb-0 mt-2">
-                  <li>Username: auto-filled from clinic name (editable)</li>
-                  <li>Default password: <code>clinic123</code></li>
-                </ul>
-              </Alert>
-
-              {/* Row 1 – Clinic name + Owner */}
-              <Row>
-                <Col md={7}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Clinic Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-                    <Form.Control type="text" name="clinic_name" value={formData.clinic_name}
-                      onChange={handleClinicNameChange} required disabled={formLoading}
-                      placeholder="e.g. Pawsome Veterinary Clinic" style={inputStyle} />
-                  </Form.Group>
-                </Col>
-                <Col md={5}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Owner / Veterinarian Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-                    <Form.Control type="text" name="owner_name" value={formData.owner_name}
-                      onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onChange={handleFormChange} required disabled={formLoading}
-                      placeholder="Full name" style={inputStyle} />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Row 2 – Email + Phone */}
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Email Address <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-                    <Form.Control type="email" name="email" value={formData.email}
-                      onChange={handleFormChange} required disabled={formLoading}
-                      placeholder="clinic@example.com"
-                      style={{ ...inputStyle, border: formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? '2px solid #dc3545' : formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? '2px solid #198754' : inputStyle.border }} />
-                    {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
-                      <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}><i className="fas fa-times-circle me-1" />Enter a valid email (e.g. clinic@example.com)</small>
-                    )}
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Phone Number</Form.Label>
-                    <Form.Control type="tel" name="phone" value={formData.phone}
-                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-                      onChange={handleFormChange} disabled={formLoading}
-                      placeholder="09XXXXXXXXX"
-                      style={{ ...inputStyle, border: formData.phone && !/^\d{11}$/.test(formData.phone) ? '2px solid #dc3545' : formData.phone && /^\d{11}$/.test(formData.phone) ? '2px solid #198754' : inputStyle.border }} />
-                    {formData.phone && !/^\d{11}$/.test(formData.phone) && (
-                      <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}><i className="fas fa-times-circle me-1" />Must be exactly 11 digits</small>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Row 3 – Address */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Address</Form.Label>
-                    <Form.Control type="text" name="address" value={formData.address}
-                      onChange={handleFormChange} disabled={formLoading}
-                      placeholder="Street, Barangay, City" style={inputStyle} />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {/* Map */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>
-                      <i className="fas fa-map-marker-alt me-2" style={{ color: '#ffc107' }}></i>
-                      Pin Location on Map
-                      <span style={{ fontWeight: '400', color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>(optional)</span>
-                    </Form.Label>
-                    <LeafletMap
-                      lat={formLat}
-                      lng={formLng}
-                      onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
-                      onAddressResolve={(addr) => setFormData(prev => ({ ...prev, address: addr }))}
-                      onError={(msg) => setLocationError(msg)}
-                    />
-                    {formLat && formLng && (
-                      <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(25,135,84,0.08)', borderRadius: '8px', border: '1px solid rgba(25,135,84,0.2)', fontSize: '0.82rem', color: '#198754' }}>
-                        <i className="fas fa-check-circle me-1"></i>
-                        Location pinned: {formLat.toFixed(6)}, {formLng.toFixed(6)}
-                        <button type="button" onClick={() => { setFormLat(null); setFormLng(null); }}
-                          style={{ background: 'none', border: 'none', color: '#dc3545', fontSize: '0.78rem', marginLeft: '0.75rem', cursor: 'pointer', padding: 0 }}>
-                          <i className="fas fa-times me-1"></i>Clear
-                        </button>
+                  {isAdd && (
+                    <div className="mm-note-box">
+                      <i className="fas fa-key" />
+                      <div>
+                        <strong>Login is created automatically.</strong> The username fills in from the clinic name (you can edit it). Default password: <code>clinic123</code>
                       </div>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
+                    </div>
+                  )}
 
-              {/* Row 4 – License + Specialization */}
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>License Number</Form.Label>
-                    <Form.Control type="text" name="license_number" value={formData.license_number}
-                      onChange={handleFormChange} disabled={formLoading}
-                      placeholder="e.g. PRC-VET-12345" style={inputStyle} />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Specialization</Form.Label>
-                    <Form.Select name="specialization" value={formData.specialization}
-                      onChange={handleFormChange} disabled={formLoading} style={inputStyle}>
-                      <option value="">General / None</option>
-                      <option value="General Veterinary">General Veterinary</option>
-                      <option value="Small Animals">Small Animals</option>
-                      <option value="Large Animals">Large Animals</option>
-                      <option value="Exotic Animals">Exotic Animals</option>
-                      <option value="Surgery">Surgery</option>
-                      <option value="Dermatology">Dermatology</option>
-                      <option value="Dentistry">Dentistry</option>
-                      <option value="Cardiology">Cardiology</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
+                  <div className="mm-section">
+                    <div className="mm-section-title"><i className="fas fa-hospital" />Clinic details</div>
+                    <Row className="g-3">
+                      <Col md={7}>
+                        <Form.Label className="mm-label">Clinic name <span className="mm-req">*</span></Form.Label>
+                        <Form.Control className="mm-input" type="text" name="clinic_name" value={formData.clinic_name}
+                          onChange={isAdd ? handleClinicNameChange : handleFormChange} required disabled={formLoading}
+                          placeholder="e.g. Pawsome Veterinary Clinic" />
+                      </Col>
+                      <Col md={5}>
+                        <Form.Label className="mm-label">Owner / veterinarian <span className="mm-req">*</span></Form.Label>
+                        <Form.Control className="mm-input" type="text" name="owner_name" value={formData.owner_name}
+                          onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onChange={handleFormChange} required disabled={formLoading}
+                          placeholder="Full name" />
+                      </Col>
+                      <Col md={6}>
+                        <Form.Label className="mm-label">License number</Form.Label>
+                        <Form.Control className="mm-input" type="text" name="license_number" value={formData.license_number}
+                          onChange={handleFormChange} disabled={formLoading} placeholder="e.g. PRC-VET-12345" />
+                      </Col>
+                      <Col md={6}>
+                        <Form.Label className="mm-label">Specialization</Form.Label>
+                        <Form.Select className="mm-input" name="specialization" value={formData.specialization} onChange={handleFormChange} disabled={formLoading}>
+                          <option value="">General / None</option>
+                          {SPECIALIZATIONS.map(sp => <option key={sp} value={sp}>{sp}</option>)}
+                        </Form.Select>
+                      </Col>
+                    </Row>
+                  </div>
 
-              {/* Row 5 – Username (auto-filled) */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Username <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-                    <Form.Control type="text" name="username" value={formData.username}
-                      onChange={handleFormChange} required disabled={formLoading}
-                      placeholder="Auto-generated from clinic name" style={inputStyle} />
-                    <Form.Text className="text-muted">Auto-generated — you may edit it if needed.</Form.Text>
-                  </Form.Group>
-                </Col>
-              </Row>
-            </Modal.Body>
-            <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-              <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={formLoading}
-                style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-              <Button type="submit" disabled={
-                formLoading ||
-                !formData.clinic_name.trim() ||
-                !formData.owner_name.trim() ||
-                !formData.email.trim() ||
-                (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) ||
-                (formData.phone && !/^\d{11}$/.test(formData.phone)) ||
-                !formData.username.trim()
-              } className="border-0"
-                style={{ background: formLoading ? '#6c757d' : '#ffc107', color: '#000000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', boxShadow: '0 4px 15px rgba(255,193,7,0.4)' }}>
-                {formLoading ? <><Spinner size="sm" animation="border" className="me-2" />Adding Clinic...</> : <><i className="fas fa-plus-circle me-2"></i>Add Clinic</>}
-              </Button>
-            </Modal.Footer>
-          </Form>
-        </Modal>
+                  <div className="mm-section">
+                    <div className="mm-section-title"><i className="fas fa-address-book" />Contact</div>
+                    <Row className="g-3">
+                      <Col md={6}>
+                        <Form.Label className="mm-label">Email address {isAdd && <span className="mm-req">*</span>}</Form.Label>
+                        <Form.Control className={`mm-input${emailBad ? ' bad' : emailOk ? ' good' : ''}`} type="email" name="email" value={formData.email}
+                          onChange={handleFormChange} required={isAdd} disabled={formLoading} placeholder="clinic@example.com" />
+                        {emailBad && <div className="mm-hint bad"><i className="fas fa-times-circle" />Enter a valid email (e.g. clinic@example.com)</div>}
+                      </Col>
+                      <Col md={6}>
+                        <Form.Label className="mm-label">Phone number</Form.Label>
+                        <Form.Control className={`mm-input${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`} type="tel" inputMode="numeric" maxLength={11} name="phone" value={formData.phone}
+                          onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                          onChange={handleFormChange} disabled={formLoading} placeholder="09XXXXXXXXX" />
+                        {phoneBad && <div className="mm-hint bad"><i className="fas fa-times-circle" />Must be exactly 11 digits</div>}
+                      </Col>
+                    </Row>
+                  </div>
 
-
-        {/* ════════════════════════════════════════════════════════════════
-            EDIT CLINIC MODAL
-        ════════════════════════════════════════════════════════════════ */}
-        <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg" backdrop="static" style={{zoom: '0.75'}}>
-          <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-            <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-              <i className="fas fa-edit me-2"></i>Edit Clinic: {selectedClinic?.clinic_name}
-            </Modal.Title>
-          </Modal.Header>
-          <Form onSubmit={handleSubmitEdit}>
-            <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
-              {formError && (
-                <Alert variant="danger" className="mb-3">
-                  <i className="fas fa-exclamation-triangle me-2"></i>{formError}
-                </Alert>
-              )}
-              <Row>
-                <Col md={7}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Clinic Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-                    <Form.Control type="text" name="clinic_name" value={formData.clinic_name}
-                      onChange={handleFormChange} required disabled={formLoading} style={inputStyle} />
-                  </Form.Group>
-                </Col>
-                <Col md={5}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Owner / Veterinarian Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-                    <Form.Control type="text" name="owner_name" value={formData.owner_name}
-                      onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }} onChange={handleFormChange} required disabled={formLoading} style={inputStyle} />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Email Address</Form.Label>
-                    <Form.Control type="email" name="email" value={formData.email}
-                      onChange={handleFormChange} disabled={formLoading}
-                      style={{ ...inputStyle, border: formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? '2px solid #dc3545' : formData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) ? '2px solid #198754' : inputStyle.border }} />
-                    {formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email) && (
-                      <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}><i className="fas fa-times-circle me-1" />Enter a valid email (e.g. clinic@example.com)</small>
-                    )}
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Phone Number</Form.Label>
-                    <Form.Control type="tel" name="phone" value={formData.phone}
-                      onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-                      onChange={handleFormChange} disabled={formLoading}
-                      style={{ ...inputStyle, border: formData.phone && !/^\d{11}$/.test(formData.phone) ? '2px solid #dc3545' : formData.phone && /^\d{11}$/.test(formData.phone) ? '2px solid #198754' : inputStyle.border }} />
-                    {formData.phone && !/^\d{11}$/.test(formData.phone) && (
-                      <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}><i className="fas fa-times-circle me-1" />Must be exactly 11 digits</small>
-                    )}
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Address</Form.Label>
-                    <Form.Control type="text" name="address" value={formData.address}
-                      onChange={handleFormChange} disabled={formLoading} style={inputStyle} />
-                  </Form.Group>
-                </Col>
-              </Row>
-              {/* Map */}
-              <Row>
-                <Col md={12}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>
-                      <i className="fas fa-map-marker-alt me-2" style={{ color: '#ffc107' }}></i>
-                      Pin Location on Map
-                      <span style={{ fontWeight: '400', color: '#888', fontSize: '0.8rem', marginLeft: '0.5rem' }}>(optional)</span>
-                    </Form.Label>
-                    <LeafletMap
-                      lat={formLat}
-                      lng={formLng}
-                      onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
-                      onAddressResolve={(addr) => setFormData(prev => ({ ...prev, address: addr }))}
-                      onError={(msg) => setLocationError(msg)}
-                    />
-                    {formLat && formLng && (
-                      <div style={{ marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'rgba(25,135,84,0.08)', borderRadius: '8px', border: '1px solid rgba(25,135,84,0.2)', fontSize: '0.82rem', color: '#198754' }}>
-                        <i className="fas fa-check-circle me-1"></i>
-                        Location pinned: {formLat.toFixed(6)}, {formLng.toFixed(6)}
-                        <button type="button" onClick={() => { setFormLat(null); setFormLng(null); }}
-                          style={{ background: 'none', border: 'none', color: '#dc3545', fontSize: '0.78rem', marginLeft: '0.75rem', cursor: 'pointer', padding: 0 }}>
-                          <i className="fas fa-times me-1"></i>Clear
-                        </button>
+                  <div className="mm-section">
+                    <div className="mm-section-title"><i className="fas fa-map-marker-alt" />Location <span className="mm-opt">optional</span></div>
+                    <div className="mm-map">
+                      <LeafletMap
+                        lat={formLat}
+                        lng={formLng}
+                        onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
+                        onAddressResolve={(addr) => setFormData(prev => ({ ...prev, address: addr }))}
+                        onError={(msg) => setLocationError(msg)}
+                      />
+                    </div>
+                    {formLat && formLng ? (
+                      <div className="mm-pin ok">
+                        <i className="fas fa-check-circle" />
+                        <span>Location pinned <span className="mm-mono">{formLat.toFixed(5)}, {formLng.toFixed(5)}</span></span>
+                        <button type="button" onClick={() => { setFormLat(null); setFormLng(null); }} disabled={formLoading}><i className="fas fa-times" />Clear</button>
                       </div>
+                    ) : (
+                      <div className="mm-pin"><i className="fas fa-hand-pointer" />Click the map to pin the clinic. The address fills in automatically.</div>
                     )}
-                  </Form.Group>
-                </Col>
-              </Row>
+                    <Form.Label className="mm-label mt-3">Address</Form.Label>
+                    <Form.Control className="mm-input" type="text" name="address" value={formData.address}
+                      onChange={handleFormChange} disabled={formLoading} placeholder="Street, barangay, city" />
+                  </div>
 
-              <Row>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>License Number</Form.Label>
-                    <Form.Control type="text" name="license_number" value={formData.license_number}
-                      onChange={handleFormChange} disabled={formLoading} style={inputStyle} />
-                  </Form.Group>
-                </Col>
-                <Col md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label style={labelStyle}>Specialization</Form.Label>
-                    <Form.Select name="specialization" value={formData.specialization}
-                      onChange={handleFormChange} disabled={formLoading} style={inputStyle}>
-                      <option value="">General / None</option>
-                      <option value="General Veterinary">General Veterinary</option>
-                      <option value="Small Animals">Small Animals</option>
-                      <option value="Large Animals">Large Animals</option>
-                      <option value="Exotic Animals">Exotic Animals</option>
-                      <option value="Surgery">Surgery</option>
-                      <option value="Dermatology">Dermatology</option>
-                      <option value="Dentistry">Dentistry</option>
-                      <option value="Cardiology">Cardiology</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
-            </Modal.Body>
-            <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-              <Button variant="secondary" onClick={() => setShowEditModal(false)} disabled={formLoading}
-                style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-              <Button type="submit" disabled={
-                formLoading ||
-                !formData.clinic_name.trim() ||
-                !formData.owner_name.trim() ||
-                (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) ||
-                (formData.phone && !/^\d{11}$/.test(formData.phone))
-              } className="border-0"
-                style={{ background: formLoading ? '#6c757d' : '#0d6efd', color: '#ffffff', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700', boxShadow: '0 4px 15px rgba(13,110,253,0.4)' }}>
-                {formLoading ? <><Spinner size="sm" animation="border" className="me-2" />Updating...</> : <><i className="fas fa-save me-2"></i>Update Clinic</>}
-              </Button>
-            </Modal.Footer>
-          </Form>
-        </Modal>
-
+                  {isAdd && (
+                    <div className="mm-section mb-0">
+                      <div className="mm-section-title"><i className="fas fa-user-lock" />Account</div>
+                      <Form.Label className="mm-label">Username <span className="mm-req">*</span></Form.Label>
+                      <Form.Control className="mm-input mm-mono" type="text" name="username" value={formData.username}
+                        onChange={handleFormChange} required disabled={formLoading} placeholder="Auto-generated from clinic name" />
+                      <div className="mm-hint"><i className="fas fa-magic" />Auto-generated — you may edit it if needed.</div>
+                    </div>
+                  )}
+                </Modal.Body>
+                <Modal.Footer className="mm-foot">
+                  <button type="button" className="mm-btn ghost" onClick={close} disabled={formLoading}>Cancel</button>
+                  <button type="submit" className="mm-btn primary" disabled={invalid}>
+                    {formLoading
+                      ? <><i className="fas fa-circle-notch fa-spin" />{isAdd ? 'Adding…' : 'Saving…'}</>
+                      : isAdd ? <><i className="fas fa-plus" />Add clinic</> : <><i className="fas fa-save" />Save changes</>}
+                  </button>
+                </Modal.Footer>
+              </Form>
+            </Modal>
+          );
+        })}
 
         {/* ════════════════════════════════════════════════════════════════
             VIEW CLINIC MODAL
         ════════════════════════════════════════════════════════════════ */}
-        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" style={{zoom: '0.75'}}>
-          <Modal.Header closeButton style={{ background: 'linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-            <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-              <i className="fas fa-hospital me-2" style={{ color: '#ffc107' }}></i>
-              {selectedClinic?.clinic_name}
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem' }}>
-            {selectedClinic && (
-              <Row>
-                <Col md={6}>
-                  <Card className="mb-3 border-0" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-                    <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '15px 15px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }}></i>Clinic Information
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <Table borderless size="sm">
-                        <tbody>
-                          {[
-                            ['Clinic Name', selectedClinic.clinic_name],
-                            ['Clinic Code', selectedClinic.clinic_code || '—'],
-                            ['Owner', selectedClinic.owner_name],
-                            ['Username', selectedClinic.username],
-                            ['Email', selectedClinic.email],
-                            ['Phone', selectedClinic.phone || 'Not provided'],
-                            ['Address', selectedClinic.address || 'Not provided'],
-                          ].map(([label, value]) => (
-                            <tr key={label}>
-                              <td style={{ fontWeight: '600', color: '#666666', width: '120px', whiteSpace: 'nowrap' }}>{label}:</td>
-                              <td style={{ fontWeight: '500', color: '#333333', wordBreak: 'break-all' }}>{value}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={6}>
-                  <Card className="mb-3 border-0" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-                    <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '15px 15px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-stethoscope me-2" style={{ color: '#ffc107' }}></i>Professional Details
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <Table borderless size="sm">
-                        <tbody>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666', width: '130px' }}>License:</td>
-                            <td style={{ fontWeight: '500', color: '#333333' }}>{selectedClinic.license_number || 'Not provided'}</td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Specialization:</td>
-                            <td>
-                              {selectedClinic.specialization
-                                ? <Badge bg="info" style={{ fontSize: '0.82rem', padding: '0.35rem 0.7rem', borderRadius: '6px' }}>{selectedClinic.specialization}</Badge>
-                                : <span className="text-muted">General / None</span>}
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Status:</td>
-                            <td>
-                              <Badge bg={selectedClinic.is_active == 1 ? 'success' : 'secondary'}
-                                style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>
-                                {selectedClinic.is_active == 1 ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
+        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="mm-modal" className="mm-zoom-modal" scrollable>
+          {selectedClinic && (() => {
+            const c = selectedClinic;
+            const active = c.is_active == 1; // eslint-disable-line eqeqeq
+            const initials = (c.clinic_name || '?').split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+            const info = [
+              { icon: 'fa-user-md', label: 'Owner', value: c.owner_name || '—' },
+              { icon: 'fa-at', label: 'Username', value: <span className="mm-mono">{c.username || '—'}</span> },
+              { icon: 'fa-envelope', label: 'Email', value: c.email || '—' },
+              { icon: 'fa-phone-alt', label: 'Phone', value: c.phone || 'Not provided' },
+              { icon: 'fa-home', label: 'Address', value: c.address || 'Not provided', wide: true },
+              { icon: 'fa-id-badge', label: 'License', value: c.license_number || 'Not provided' },
+              { icon: 'fa-stethoscope', label: 'Specialization', value: c.specialization || 'General / None' },
+            ];
+            return (
+              <>
+                <Modal.Header closeButton className="mm-head" style={{ '--c': '#e0a800' }}>
+                  <div className="mm-head-main">
+                    <div className="mm-avatar">{initials}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="mm-chips">
+                        <span className={`mm-chip ${active ? 'green' : 'grey'}`}><i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />{active ? 'Active' : 'Inactive'}</span>
+                        {c.clinic_code && <span className="mm-chip grey mm-mono">{c.clinic_code}</span>}
+                      </div>
+                      <Modal.Title as="h5" className="mm-title">{c.clinic_name}</Modal.Title>
+                      <div className="mm-sub">Private clinic</div>
+                    </div>
+                  </div>
+                </Modal.Header>
+                <Modal.Body className="mm-body">
+                  <div className="mm-kpis">
+                    <div className="mm-kpi">
+                      <div className="ic" style={{ '--c': '#e0a800' }}><i className="fas fa-syringe" /></div>
+                      <div>
+                        <div className="v">{c.vaccinations_administered || 0}</div>
+                        <div className="k">Vaccinations given</div>
+                      </div>
+                    </div>
+                    <div className="mm-kpi">
+                      <div className="ic" style={{ '--c': '#0d6efd' }}><i className="fas fa-calendar-check" /></div>
+                      <div>
+                        <div className="v sm">{c.created_at ? new Date(String(c.created_at).replace(' ', 'T')).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</div>
+                        <div className="k">Member since</div>
+                      </div>
+                    </div>
+                  </div>
 
-                  <Card className="border-0" style={{ borderRadius: '15px', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }}>
-                    <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '15px 15px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                        <i className="fas fa-chart-line me-2" style={{ color: '#ffc107' }}></i>Activity Summary
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <Table borderless size="sm">
-                        <tbody>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Vaccinations:</td>
-                            <td>
-                              <Badge bg="info" style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}>
-                                {selectedClinic.vaccinations_administered || 0}
-                              </Badge>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td style={{ fontWeight: '600', color: '#666666' }}>Member Since:</td>
-                            <td style={{ fontWeight: '500', color: '#333333' }}>
-                              {selectedClinic.created_at ? new Date(selectedClinic.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-            )}
-          </Modal.Body>
-          <Modal.Footer style={{ borderTop: '1px solid #e0e0e0' }}>
-            <Button variant="secondary" onClick={() => setShowViewModal(false)}
-              style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Close</Button>
-          </Modal.Footer>
+                  <div className="mm-section-title mt-4"><i className="fas fa-info-circle" />Clinic information</div>
+                  <div className="mm-grid">
+                    {info.map(it => (
+                      <div key={it.label} className={`mm-info${it.wide ? ' wide' : ''}`}>
+                        <div className="mm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="mm-info-label">{it.label}</div>
+                          <div className="mm-info-value">{it.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Modal.Body>
+                <Modal.Footer className="mm-foot">
+                  {active && (
+                    <button type="button" className="mm-btn ghost me-auto" onClick={() => { setShowViewModal(false); handleEditClinic(c); }}>
+                      <i className="fas fa-pen" />Edit
+                    </button>
+                  )}
+                  <button type="button" className="mm-btn primary" onClick={() => setShowViewModal(false)}>Close</button>
+                </Modal.Footer>
+              </>
+            );
+          })()}
         </Modal>
 
-
         {/* ════════════════════════════════════════════════════════════════
-    DEACTIVATE CONFIRMATION MODAL
-════════════════════════════════════════════════════════════════ */}
-<Modal
-  show={showDeleteModal}
-  onHide={() => setShowDeleteModal(false)}
-  centered
-  style={{ zoom: '0.75' }}
->
-  <Modal.Header
-    closeButton
-    style={{
-      background: '#f8f9fa',
-      borderBottom: '2px solid #dee2e6'
-    }}
-  >
-    <Modal.Title style={{ fontWeight: '700' }}>
-      <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-      Confirm Deactivation
-    </Modal.Title>
-  </Modal.Header>
+            DEACTIVATE / RESTORE CONFIRMATION (small, always centered)
+        ════════════════════════════════════════════════════════════════ */}
+        {[
+          { key: 'deactivate', show: showDeleteModal, close: () => setShowDeleteModal(false), color: '#dc3545', icon: 'fa-ban',
+            title: 'Deactivate this clinic?', text: 'The clinic will no longer be able to sign in. Its vaccination records and activity are kept.',
+            label: 'Deactivate', busy: 'Deactivating…', onConfirm: handleConfirmDelete },
+          { key: 'restore', show: showRestoreModal, close: () => setShowRestoreModal(false), color: '#198754', icon: 'fa-undo',
+            title: 'Restore this clinic?', text: 'The clinic account will be reactivated and can sign in again.',
+            label: 'Restore', busy: 'Restoring…', onConfirm: () => handleRestoreClinic(selectedClinic) },
+        ].map(m => (
+          <Modal key={m.key} show={m.show} onHide={() => !formLoading && m.close()} centered dialogClassName="mm-small" className="mm-zoom-modal">
+            {selectedClinic && (
+              <>
+                <Modal.Body className="mm-small-body">
+                  <div className="mm-small-icon" style={{ '--c': m.color }}><i className={`fas ${m.icon}`} /></div>
+                  <h5 className="mm-small-title">{m.title}</h5>
+                  <p className="mm-small-text">{m.text}</p>
+                  <div className="mm-item">
+                    <div className="mm-item-av" style={{ '--c': '#e0a800' }}><i className="fas fa-clinic-medical" /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="mm-item-name">{selectedClinic.clinic_name}</div>
+                      <div className="mm-item-meta">{[selectedClinic.clinic_code, selectedClinic.owner_name, selectedClinic.email].filter(Boolean).join(' · ')}</div>
+                    </div>
+                  </div>
+                </Modal.Body>
+                <Modal.Footer className="mm-foot even">
+                  <button type="button" className="mm-btn ghost" onClick={m.close} disabled={formLoading}>Cancel</button>
+                  <button type="button" className="mm-btn solid" style={{ '--c': m.color }} onClick={m.onConfirm} disabled={formLoading}>
+                    {formLoading ? <><i className="fas fa-circle-notch fa-spin" />{m.busy}</> : <><i className={`fas ${m.icon}`} />{m.label}</>}
+                  </button>
+                </Modal.Footer>
+              </>
+            )}
+          </Modal>
+        ))}
 
-  <Modal.Body style={{ padding: '2rem' }}>
-    {selectedClinic && (
-      <>
-        <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-          Are you sure you want to deactivate this private clinic?
-        </p>
-
-        <div
-          style={{
-            background: '#f8f9fa',
-            padding: '1.25rem',
-            borderRadius: '8px',
-            borderLeft: '4px solid #dc3545'
-          }}
-        >
-          <div className="mb-2">
-            <span style={{ fontWeight: '500', color: '#555' }}>
-              <i
-                className="fas fa-hospital me-1"
-                style={{ color: '#ffc107' }}
-              ></i>
-              Private Clinic
-            </span>
-          </div>
-
-          <strong style={{ fontSize: '1.1rem' }}>
-            {selectedClinic.clinic_name}
-          </strong>
-
-          <br />
-
-          <small className="text-muted">
-            <i className="fas fa-envelope me-1"></i>
-            {selectedClinic.email}
-          </small>
-
-          <div className="mt-2" style={{ fontSize: '0.9rem' }}>
-            <div>
-              <strong>Code:</strong> {selectedClinic.clinic_code}
-            </div>
-            <div>
-              <strong>Owner:</strong> {selectedClinic.owner_name}
-            </div>
-          </div>
-        </div>
-
-        <Alert variant="warning" className="mt-3 mb-0">
-          <i className="fas fa-info-circle me-2"></i>
-          <strong>Warning:</strong> All vaccination records and clinic
-          activities will be preserved for historical purposes.
-        </Alert>
-      </>
-    )}
-  </Modal.Body>
-
-  <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-    <Button
-      variant="secondary"
-      onClick={() => setShowDeleteModal(false)}
-      disabled={formLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      Cancel
-    </Button>
-
-    <Button
-      variant="danger"
-      onClick={handleConfirmDelete}
-      disabled={formLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      {formLoading ? (
-        <>
-          <Spinner size="sm" animation="border" className="me-2" />
-          Deactivating...
-        </>
-      ) : (
-        <>
-          <i className="fas fa-ban me-2"></i>
-          Deactivate Clinic
-        </>
-      )}
-    </Button>
-  </Modal.Footer>
-</Modal>
-
-{/* ════════════════════════════════════════════════════════════════
-    RESTORE CONFIRMATION MODAL
-════════════════════════════════════════════════════════════════ */}
-<Modal
-  show={showRestoreModal}
-  onHide={() => setShowRestoreModal(false)}
-  centered
-  style={{ zoom: '0.75' }}
->
-  <Modal.Header
-    closeButton
-    style={{
-      background: '#f8f9fa',
-      borderBottom: '2px solid #dee2e6'
-    }}
-  >
-    <Modal.Title style={{ fontWeight: '700' }}>
-      <i className="fas fa-undo text-success me-2"></i>
-      Confirm Restoration
-    </Modal.Title>
-  </Modal.Header>
-
-  <Modal.Body style={{ padding: '2rem' }}>
-    {selectedClinic && (
-      <>
-        <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-          Are you sure you want to restore this private clinic?
-        </p>
-
-        <div
-          style={{
-            background: '#f8f9fa',
-            padding: '1.25rem',
-            borderRadius: '8px',
-            borderLeft: '4px solid #198754'
-          }}
-        >
-          <div className="mb-2">
-            <span style={{ fontWeight: '500', color: '#555' }}>
-              <i
-                className="fas fa-hospital me-1"
-                style={{ color: '#ffc107' }}
-              ></i>
-              Private Clinic
-            </span>
-          </div>
-
-          <strong style={{ fontSize: '1.1rem' }}>
-            {selectedClinic.clinic_name}
-          </strong>
-
-          <br />
-
-          <small className="text-muted">
-            <i className="fas fa-envelope me-1"></i>
-            {selectedClinic.email}
-          </small>
-
-          <div className="mt-2" style={{ fontSize: '0.9rem' }}>
-            <div>
-              <strong>Code:</strong> {selectedClinic.clinic_code}
-            </div>
-            <div>
-              <strong>Owner:</strong> {selectedClinic.owner_name}
-            </div>
-          </div>
-        </div>
-
-        <Alert variant="success" className="mt-3 mb-0">
-          <i className="fas fa-info-circle me-2"></i>
-          <strong>Notice:</strong> The clinic account will be reactivated and can access the system again.
-        </Alert>
-      </>
-    )}
-  </Modal.Body>
-
-  <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-    <Button
-      variant="secondary"
-      onClick={() => setShowRestoreModal(false)}
-      disabled={formLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      Cancel
-    </Button>
-
-    <Button
-      variant="success"
-      onClick={() => handleRestoreClinic(selectedClinic)}
-      disabled={formLoading}
-      style={{
-        borderRadius: '8px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      {formLoading ? (
-        <>
-          <Spinner size="sm" animation="border" className="me-2" />
-          Restoring...
-        </>
-      ) : (
-        <>
-          <i className="fas fa-undo me-2"></i>
-          Restore Clinic
-        </>
-      )}
-    </Button>
-  </Modal.Footer>
-</Modal>
-
-      {/* ── Location Error Modal ── */}
-        <Modal show={!!locationError} onHide={() => setLocationError('')} centered style={{ zoom: '0.75' }}>
-          <Modal.Header closeButton style={{ background: '#fff3f3', borderBottom: '2px solid #dc3545' }}>
-            <Modal.Title style={{ fontWeight: '700', color: '#dc3545', fontSize: '1rem' }}>
-              <i className="fas fa-map-marker-alt me-2"></i>Location Outside Muntinlupa
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📍</div>
-            <p style={{ color: '#333', fontWeight: '600', fontSize: '1rem', marginBottom: '0.5rem' }}>Cannot Pin Location</p>
-            <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: 0 }}>{locationError}</p>
+        {/* ── Location Error Modal (small, centered, above the form) ── */}
+        <Modal show={!!locationError} onHide={() => setLocationError('')} centered dialogClassName="mm-small" className="mm-zoom-modal" style={{ zIndex: 1065 }} backdropClassName="mm-backdrop-top">
+          <Modal.Body className="mm-small-body">
+            <div className="mm-small-icon" style={{ '--c': '#dc3545' }}><i className="fas fa-map-marker-alt" /></div>
+            <h5 className="mm-small-title">Can't pin this location</h5>
+            <p className="mm-small-text mb-0">{locationError}</p>
           </Modal.Body>
-          <Modal.Footer style={{ justifyContent: 'center' }}>
-            <Button onClick={() => setLocationError('')} className="border-0"
-              style={{ background: '#dc3545', color: '#fff', borderRadius: '8px', padding: '0.65rem 2rem', fontWeight: '700' }}>
-              Got it
-            </Button>
+          <Modal.Footer className="mm-foot even">
+            <button type="button" className="mm-btn primary" onClick={() => setLocationError('')}>Got it</button>
           </Modal.Footer>
         </Modal>
 

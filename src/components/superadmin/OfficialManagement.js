@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table, InputGroup } from 'react-bootstrap';
-import { officialAPI, barangayAPI, handleAPIError } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Modal, Form } from 'react-bootstrap';
+import { officialAPI, handleAPIError } from '../../services/api';
 
 const AnimatedStatValue = ({ value, loading }) => {
   const [displayValue, setDisplayValue] = React.useState(0);
@@ -39,7 +39,6 @@ const AnimatedStatValue = ({ value, loading }) => {
 
 const OfficialManagement = () => {
   const [officials, setOfficials] = useState([]);
-  const [barangays, setBarangays] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -57,17 +56,17 @@ const OfficialManagement = () => {
     first_name: '',
     middle_name: '',
     last_name: '',
-    age: '',
+    birthdate: '',
     gender: '',
     phone: '',
-    assigned_barangay_id: ''
+    office_role: '',
+    office_role_custom: ''
   });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState('');
   
   // Selected official
   const [selectedOfficial, setSelectedOfficial] = useState(null);
-  const [filterBarangay, setFilterBarangay] = useState('');
   const [filterStatus, setFilterStatus] = useState('active');
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(null);
@@ -82,7 +81,7 @@ const itemsPerPage = 10;
   }, []);
   useEffect(() => {
   setCurrentPage(1);
-}, [filterBarangay, filterStatus, searchTerm]);
+}, [filterStatus, searchTerm]);
 
   useEffect(() => {
     if (showDropdown === null) return;
@@ -91,16 +90,12 @@ const itemsPerPage = 10;
     return () => window.removeEventListener('scroll', closeOnScroll, true);
   }, [showDropdown]);
 
-  const loadData = async () => {
+  // silent = refresh after an action without showing the skeleton again
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
-      const [officialsRes, barangaysRes] = await Promise.all([
-        officialAPI.getAll(),
-        barangayAPI.getAll()
-      ]);
-      
+      if (!silent) setLoading(true);
+      const officialsRes = await officialAPI.getAll();
       setOfficials(officialsRes.data.officials || []);
-      setBarangays(barangaysRes.data.barangays || []);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -135,6 +130,7 @@ const itemsPerPage = 10;
       office_role_custom: ''
     });
     setFormError('');
+    setFieldErrors({});
   };
 
   const [fieldErrors, setFieldErrors] = useState({});
@@ -253,6 +249,7 @@ const itemsPerPage = 10;
       office_role_custom: isCustomRole ? official.office_role : ''
     });
     setFormError('');
+    setFieldErrors({});
     setShowEditModal(true);
   };
 
@@ -293,7 +290,7 @@ const itemsPerPage = 10;
       setSuccess(`Barangay official added successfully! Email: ${email}`);
       setShowAddModal(false);
       resetForm();
-      loadData();
+      loadData(true);
       
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
@@ -327,7 +324,7 @@ const itemsPerPage = 10;
       setShowEditModal(false);
       resetForm();
       setSelectedOfficial(null);
-      loadData();
+      loadData(true);
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -345,7 +342,7 @@ const itemsPerPage = 10;
       await officialAPI.delete(selectedOfficial.id);
       setSuccess('Official deactivated successfully!');
       setShowDeleteModal(false);
-      loadData();
+      loadData(true);
       
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -366,7 +363,7 @@ const itemsPerPage = 10;
       await officialAPI.restore(selectedOfficial.id);
       setSuccess('Official restored successfully!');
       setShowRestoreModal(false);
-      loadData();
+      loadData(true);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -399,10 +396,6 @@ const itemsPerPage = 10;
 
   // Filtering logic
   const filteredOfficials = officials.filter(official => {
-    const matchesBarangay = filterBarangay 
-      ? official.assigned_barangay_id === parseInt(filterBarangay)
-      : true;
-    
     const matchesStatus = filterStatus === 'all' 
       ? true 
       : filterStatus === 'active' 
@@ -418,7 +411,7 @@ const itemsPerPage = 10;
       (official.username || '').toLowerCase().includes(searchLower) ||
       (official.barangay_name || '').toLowerCase().includes(searchLower);
     
-    return matchesBarangay && matchesStatus && matchesSearch;
+    return matchesStatus && matchesSearch;
   });
 
   // Pagination calculations
@@ -428,6 +421,7 @@ const endIdx = startIdx + itemsPerPage;
 const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
 
 // Statistics
+  const maxBirthdate = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().split('T')[0]; })();
   const activeOfficials = officials.filter(o => o.is_active === 1);
   const inactiveOfficials = officials.filter(o => o.is_active === 0);
   const uniqueBarangays = [...new Set(activeOfficials.map(o => o.assigned_barangay_id))].filter(Boolean);
@@ -545,7 +539,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
     .ad-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
     .ad-filters { padding-top: 1rem; }
     .ad-table { table-layout: fixed; }
-    .ad-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #ffe08a, #ffc107); color: #1f2328; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
+    .ad-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,193,7,0.18); color: #8a6700; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 800; flex-shrink: 0; }
     .ad-ic { width: 14px; margin-right: 0.4rem; color: #9ca3af; font-size: 0.72rem; }
     .ad-pets { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #9ca3af; }
     .ad-pets i { font-size: 0.72rem; }
@@ -574,6 +568,132 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
       .ad-table .m-hide { display: none !important; }
     }
 
+    /* laptops: hide birthdate so name, contact and role have room */
+    @media (min-width: 769px) and (max-width: 1199px) {
+      .ad-table .lt-hide { display: none !important; }
+      .ad-ellipsis { max-width: 100%; }
+    }
+    /* ---------------- Modals ---------------- */
+    /* ---------------- Modals ---------------- */
+    .mm-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .mm-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .mm-zoom-modal { zoom: 1; } }
+    .mm-backdrop-top { z-index: 1060 !important; }
+    .mm-modal { max-width: 720px; }
+    .mm-small { max-width: 440px; }
+    .mm-small.wide { max-width: 540px; }
+    .mm-modal .modal-content, .mm-small .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .mm-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%) !important; }
+    .mm-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .mm-head-ic { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--c, #e0a800); background: color-mix(in srgb, var(--c, #ffc107) 14%, #fff); }
+    .mm-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in srgb, var(--c, #e0a800) 80%, #000); }
+    .mm-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; }
+    .mm-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .mm-body { padding: 1.4rem 1.5rem !important; }
+    .mm-section { margin-bottom: 1.25rem; }
+    .mm-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.7rem; }
+    .mm-section-title > i { color: #e0a800; font-size: 0.8rem; }
+
+    /* fields inside the modals */
+    .mm-zoom-modal .form-label { font-size: 0.84rem !important; font-weight: 600 !important; color: #374151 !important; margin-bottom: 0.35rem; }
+    .mm-zoom-modal .form-control, .mm-zoom-modal .form-select { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; box-shadow: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .mm-zoom-modal .form-control:focus, .mm-zoom-modal .form-select:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .mm-zoom-modal .form-control.is-invalid { border-color: #dc3545 !important; }
+    .mm-zoom-modal .form-control:disabled, .mm-zoom-modal .form-select:disabled { background-color: #f8f9fa !important; }
+    .mm-zoom-modal .form-text { font-size: 0.76rem; }
+    .mm-zoom-modal .alert { border-radius: 10px; font-size: 0.86rem; border-width: 1px; }
+    .mm-zoom-modal .form-check-input:checked { background-color: #ffc107; border-color: #ffc107; }
+
+    .mm-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .mm-alert i { margin-top: 3px; }
+    .mm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #842029; }
+    .mm-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .mm-foot > * { margin: 0 !important; }
+    .mm-foot.even > * { flex: 1; }
+    .mm-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 10px !important; border: 1px solid transparent !important; font-weight: 700 !important; font-size: 0.9rem !important; padding: 0.65rem 1.2rem !important; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .mm-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .mm-btn.primary { background: #ffc107 !important; color: #1f2328 !important; }
+    .mm-btn.primary:hover:not(:disabled) { background: #f0b400 !important; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .mm-btn.ghost { background: #fff !important; color: #1f2328 !important; border-color: #e5e7eb !important; font-weight: 600 !important; }
+    .mm-btn.ghost:hover:not(:disabled) { background: #f6f7f9 !important; }
+    .mm-btn.solid { background: var(--c) !important; color: #fff !important; }
+    .mm-btn.solid:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000) !important; }
+
+    /* view details */
+    .mm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .mm-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fff; }
+    .mm-info.wide { grid-column: 1 / -1; }
+    .mm-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #f6f7f9; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .mm-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .mm-info-value { font-size: 0.92rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .mm-none { color: #b8bdc6; font-weight: 500; }
+
+    /* small centered modals */
+    @keyframes rxPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .mm-small-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; }
+    .mm-small-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: rxPop 0.4s ease-out; }
+    .mm-small-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .mm-small-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .mm-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .mm-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .mm-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .mm-item-meta { font-size: 0.78rem; color: #6b7280; }
+    .mm-item-flag { font-size: 0.76rem; font-weight: 600; color: #c2410c; margin-top: 0.2rem; }
+    .mm-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 20%, #fff); }
+    .mm-note i { margin-top: 3px; }
+
+    @media (max-width: 768px) {
+      .mm-zoom-modal { zoom: 1; }
+      .mm-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .mm-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+      .mm-head { padding: 1rem !important; }
+      .mm-head-ic { width: 40px; height: 40px; }
+      .mm-title { font-size: 1.05rem; }
+      .mm-body { padding: 1rem !important; }
+      .mm-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .mm-info-ic { display: none; }
+      .mm-foot { padding: 0.75rem 1rem !important; }
+      .mm-foot > * { flex: 1; }
+      .mm-small-body { padding: 1.5rem 1.1rem 1rem !important; }
+    }
+    @media (max-width: 380px) { .mm-grid { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .mm-small-icon { animation: none; } }
+    /* extras */
+    .mm-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .mm-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .mm-chip i { font-size: 0.66rem; }
+    .mm-chip.grey { background: #f3f4f6; color: #4b5563; }
+    .mm-num, .mm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mm-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .mm-req { color: #dc3545; }
+    .mm-opt { font-size: 0.72rem; font-weight: 600; color: #9ca3af; text-transform: none; letter-spacing: 0; }
+    .mm-label { font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+    .mm-input { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .mm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .mm-input.good { border-color: #10b981 !important; }
+    .mm-input.bad { border-color: #ef4444 !important; }
+    .mm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+    .mm-hint.bad { color: #dc3545; }
+    .mm-alert.page { margin-bottom: 1.25rem; align-items: center; }
+    .mm-alert.page span { flex: 1; }
+    .mm-alert.page button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+    .mm-avatar { width: 54px; height: 54px; border-radius: 15px; flex-shrink: 0; background: linear-gradient(135deg, #ffc107, #ffb000); color: #1f2328; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,193,7,0.3); }
+    .mm-chip.green { background: rgba(25,135,84,0.12); color: #198754; }
+    .mm-note-box { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.8rem 0.95rem; margin-bottom: 1.25rem; border-radius: 12px; background: rgba(13,202,240,0.07); border: 1px solid rgba(13,202,240,0.3); font-size: 0.86rem; color: #055160; line-height: 1.5; }
+    .mm-note-box > i { margin-top: 3px; color: #0aa2c0; }
+    .mm-note-box code { background: #fff; padding: 0.05rem 0.4rem; border-radius: 6px; color: #b02a37; }
+    .mm-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+    .mm-kpi { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 12px; border: 1px solid #eef0f3; background: #fafbfc; }
+    .mm-kpi .ic { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); flex-shrink: 0; }
+    .mm-kpi .v { font-size: 1.5rem; font-weight: 800; color: #1f2328; line-height: 1.1; }
+    .mm-kpi .v.sm { font-size: 0.98rem; }
+    .mm-kpi .k { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .mm-item-av { color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); }
+    .mm-cred { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-top: 0.55rem; padding-top: 0.55rem; border-top: 1px dashed rgba(13,202,240,0.35); }
+    .mm-cred > span { display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; color: #1f2328; word-break: break-all; }
+    .mm-cred i { color: #0aa2c0; font-size: 0.78rem; }
+    .mm-kpi .v.sm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   `;
 
   return (
@@ -600,9 +720,11 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2" />{error}
-          </Alert>
+          <div className="mm-alert danger page" role="alert">
+            <i className="fas fa-exclamation-circle" />
+            <span>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
       {/* Statistics */}
@@ -694,9 +816,9 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
           ) : filteredOfficials.length === 0 ? (
             <div className="ad-empty">
               <div className="ic"><i className="fas fa-user-shield" /></div>
-              <h6>{searchTerm || filterBarangay || filterStatus !== 'active' ? 'No admins found' : 'No admins added yet'}</h6>
-              <p>{searchTerm || filterBarangay || filterStatus !== 'active' ? 'Try changing or clearing the search and filters.' : 'Add an admin account to start managing the system.'}</p>
-              {!searchTerm && !filterBarangay && filterStatus === 'active' && (
+              <h6>{searchTerm || filterStatus !== 'active' ? 'No admins found' : 'No admins added yet'}</h6>
+              <p>{searchTerm || filterStatus !== 'active' ? 'Try changing or clearing the search and filters.' : 'Add an admin account to start managing the system.'}</p>
+              {!searchTerm && filterStatus === 'active' && (
                 <button type="button" className="ad-btn primary" onClick={handleAddOfficial}><i className="fas fa-plus" />Add first admin</button>
               )}
             </div>
@@ -708,7 +830,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
                     <th style={{ width: '27%' }}>Admin</th>
                     <th className="m-hide" style={{ width: '28%' }}>Contact</th>
                     <th style={{ width: '20%' }}>Office role</th>
-                    <th className="m-hide" style={{ width: '12%' }}>Birthdate</th>
+                    <th className="m-hide lt-hide" style={{ width: '12%' }}>Birthdate</th>
                     <th style={{ width: '9%' }}>Status</th>
                     <th style={{ width: '4%' }} aria-label="Actions" />
                   </tr>
@@ -723,7 +845,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
                       <tr key={official.id} className={menuOpen ? 'raised' : ''} style={{ animationDelay: `${i * 0.04}s` }}>
                         <td>
                           <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
-                            <div className="ad-avatar" style={isActive ? undefined : { background: '#e5e7eb', color: '#6b7280' }}>{initials}</div>
+                            <div className="ad-avatar" style={isActive ? undefined : { background: '#f3f4f6', color: '#6b7280' }}>{initials}</div>
                             <div style={{ minWidth: 0 }}>
                               <div className="ad-strong ad-ellipsis" title={fullName}>{fullName}</div>
                               <div className="ad-muted" style={{ textTransform: 'capitalize' }}>{official.gender || '—'}</div>
@@ -737,7 +859,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
                         <td>
                           {official.office_role ? <span className="ad-role" title={official.office_role}>{official.office_role}</span> : <span className="ad-muted">—</span>}
                         </td>
-                        <td className="m-hide">
+                        <td className="m-hide lt-hide">
                           {official.birthdate
                             ? <span style={{ fontSize: '0.85rem' }}>{new Date(official.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                             : <span className="ad-muted">—</span>}
@@ -821,1053 +943,244 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
       </div>
 
 
-      {/* Add Official Modal */}
-<Modal 
-  show={showAddModal} 
-  onHide={() => setShowAddModal(false)} 
-  size="lg"
-  backdrop="static"
-  style={{zoom: '0.75'}}
->
-  <Modal.Header 
-    closeButton
-    style={{
-      background: '#f8f9fa',
-      borderBottom: '2px solid #ffc107',
-      borderRadius: '20px 20px 0 0'
-    }}
-  >
-    <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-      <i className="fas fa-plus-circle me-2"></i>
-      Add Admin
-    </Modal.Title>
-  </Modal.Header>
-  <Form onSubmit={handleSubmitAdd}>
-    <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
-      {formError && (
-        <Alert variant="danger" className="mb-3">
-          <i className="fas fa-exclamation-triangle me-2"></i>
-          {formError}
-        </Alert>
-      )}
-
-      <Alert 
-        variant="info"
-        style={{
-          borderRadius: '12px',
-          border: '2px solid #0dcaf0',
-          background: 'rgba(13, 202, 240, 0.1)'
-        }}
-      >
-        <i className="fas fa-info-circle me-2"></i>
-        <strong>Auto-generated credentials:</strong>
-        <ul className="mb-0 mt-2">
-          <li>Email format: <code>lastname.YYYY###@muntinlupa.gov.ph</code></li>
-          <li>Username format: <code>lastname.YYYY###</code></li>
-          <li>Default password: <code>admin123</code></li>
-        </ul>
-      </Alert>
-
-      {/* Basic Information */}
-      <Row>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              First Name <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleFormChange}
-              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); }}
-              required
-              disabled={formLoading}
-              placeholder="Enter first name"
-              maxLength={30}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.first_name ? '2px solid #dc3545' : '2px solid #dee2e6'
-              }}
-            />
-            {fieldErrors.first_name && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.first_name}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Middle Name
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="middle_name"
-              value={formData.middle_name}
-              onChange={handleFormChange}
-              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); }}
-              disabled={formLoading}
-              placeholder="Enter middle name"
-              maxLength={30}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.middle_name ? '2px solid #dc3545' : '2px solid #dee2e6'
-              }}
-            />
-            {fieldErrors.middle_name && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.middle_name}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Last Name <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleFormChange}
-              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); }}
-              required
-              disabled={formLoading}
-              placeholder="Enter last name"
-              maxLength={30}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.last_name ? '2px solid #dc3545' : '2px solid #dee2e6'
-              }}
-            />
-            {fieldErrors.last_name && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.last_name}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-      </Row>
-
-      <Row>
-       <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Birthdate <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="date"
-              name="birthdate"
-              value={formData.birthdate}
-              onChange={handleFormChange}
-              required
-              disabled={formLoading}
-              max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().split('T')[0]; })()}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.birthdate ? '2px solid #dc3545' : '2px solid #dee2e6',
-                colorScheme: 'light'
-              }}
-            />
-            {fieldErrors.birthdate && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.birthdate}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Gender <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Select
-              name="gender"
-              value={formData.gender}
-              onChange={handleFormChange}
-              required
-              disabled={formLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            >
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Phone Number
-            </Form.Label>
-            <Form.Control
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleFormChange}
-              disabled={formLoading}
-              placeholder="09XXXXXXXXX"
-              onKeyDown={(e) => {
-                if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault();
-              }}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.phone && formData.phone
-                  ? '2px solid #dc3545'
-                  : formData.phone && /^09\d{9}$/.test(formData.phone)
-                    ? '2px solid #198754'
-                    : '2px solid #dee2e6'
-              }}
-            />
-            {fieldErrors.phone && formData.phone && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.phone}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              City Vet Office Role <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Select
-              name="office_role"
-              value={formData.office_role}
-              onChange={handleFormChange}
-              disabled={formLoading}
-              style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
-            >
-              <option value="">Select role...</option>
-              {OFFICE_ROLES.map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-        </Col>
-      </Row>
-      {formData.office_role === 'Other' && (
-        <Row>
-          <Col md={12}>
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                Specify Role <span style={{ color: '#dc3545' }}>*</span>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="office_role_custom"
-                value={formData.office_role_custom || ''}
+        {/* ════════════════════════════════════════════════════════════════
+            ADD / EDIT ADMIN MODALS (same form, different header and button)
+        ════════════════════════════════════════════════════════════════ */}
+        {[
+          { mode: 'add',  show: showAddModal,  close: () => setShowAddModal(false),  submit: handleSubmitAdd },
+          { mode: 'edit', show: showEditModal, close: () => setShowEditModal(false), submit: handleSubmitEdit },
+        ].map(({ mode, show, close, submit }) => {
+          const isAdd = mode === 'add';
+          const phoneBad = formData.phone && !/^09\d{9}$/.test(formData.phone);
+          const phoneOk = formData.phone && /^09\d{9}$/.test(formData.phone);
+          const invalid = formLoading || !formData.first_name.trim() || !formData.last_name.trim() || !formData.birthdate ||
+            !formData.gender || !formData.office_role || (formData.office_role === 'Other' && !formData.office_role_custom?.trim()) ||
+            phoneBad || Object.values(fieldErrors).some(e => !!e);
+          const preview = isAdd && formData.last_name.trim() ? generateCredentials(formData.last_name.trim()) : null;
+          const nameField = (name, label, required, placeholder) => (
+            <>
+              <Form.Label className="mm-label">{label} {required && <span className="mm-req">*</span>}</Form.Label>
+              <Form.Control className={`mm-input${fieldErrors[name] ? ' bad' : ''}`} type="text" name={name} value={formData[name] || ''}
                 onChange={handleFormChange}
-                placeholder="Enter specific role title..."
-                disabled={formLoading}
-                style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
-              />
-            </Form.Group>
-          </Col>
-        </Row>
-      )}
-    </Modal.Body>
-    <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-      <Button 
-        variant="secondary" 
-        onClick={() => setShowAddModal(false)}
-        disabled={formLoading}
-        style={{
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '600'
-        }}
-      >
-        Cancel
-      </Button>
-      <Button 
-        type="submit"
-        disabled={
-          formLoading ||
-          !formData.first_name.trim() ||
-          !formData.last_name.trim() ||
-          !formData.birthdate ||
-          !formData.gender ||
-          !formData.office_role ||
-          (formData.office_role === 'Other' && !formData.office_role_custom?.trim()) ||
-          (formData.phone && !/^09\d{9}$/.test(formData.phone)) ||
-          Object.values(fieldErrors).some(e => !!e)
-        }
-        className="border-0"
-        style={{
-          background: formLoading ? '#6c757d' : '#ffc107',
-          color: '#000000',
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '700',
-          boxShadow: formLoading ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)',
-          transition: 'all 0.3s'
-        }}
-        onMouseOver={(e) => {
-          if (!formLoading) {
-            e.target.style.background = '#ffb300';
-            e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-          }
-        }}
-        onMouseOut={(e) => {
-          if (!formLoading) {
-            e.target.style.background = '#ffc107';
-            e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-          }
-        }}
-      >
-        {formLoading ? (
-          <>
-            <Spinner size="sm" animation="border" className="me-2" />
-            Adding Admin...
-          </>
-        ) : (
-          <>
-            <i className="fas fa-plus-circle me-2"></i>
-            Add Admin
-          </>
-        )}
-      </Button>
-    </Modal.Footer>
-  </Form>
-</Modal>
+                onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
+                onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, [name]: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, [name]: 'Cannot end with a space' })); }}
+                required={required} disabled={formLoading} placeholder={placeholder} maxLength={30} />
+              {fieldErrors[name] && <div className="mm-hint bad"><i className="fas fa-times-circle" />{fieldErrors[name]}</div>}
+            </>
+          );
+          return (
+            <Modal key={mode} show={show} onHide={() => !formLoading && close()} backdrop="static" dialogClassName="mm-modal" className="mm-zoom-modal" scrollable>
+              <Modal.Header closeButton className="mm-head" style={{ '--c': '#e0a800' }}>
+                <div className="mm-head-main">
+                  <div className="mm-head-ic"><i className={`fas ${isAdd ? 'fa-user-plus' : 'fa-user-edit'}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="mm-kicker">{isAdd ? 'New admin account' : 'Edit admin'}</div>
+                    <Modal.Title as="h5" className="mm-title">
+                      {isAdd ? 'Add admin' : `${selectedOfficial?.first_name || ''} ${selectedOfficial?.last_name || ''}`.trim() || 'Edit admin'}
+                    </Modal.Title>
+                    <div className="mm-sub">Fields marked <span className="mm-req">*</span> are required.</div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Form onSubmit={submit} style={{ display: 'contents' }}>
+                <Modal.Body className="mm-body">
+                  {formError && <div className="mm-alert danger"><i className="fas fa-exclamation-circle" /><span>{formError}</span></div>}
 
-      {/* Edit Official Modal */}
-<Modal 
-  show={showEditModal} 
-  onHide={() => setShowEditModal(false)} 
-  size="lg"
-  backdrop="static"
-  style={{zoom: '0.75'}}
->
-  <Modal.Header 
-    closeButton
-    style={{
-      background: '#f8f9fa',
-      borderBottom: '2px solid #ffc107',
-      borderRadius: '20px 20px 0 0'
-    }}
-  >
-    <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-      {selectedOfficial?.gender && (
-        <img 
-          src={selectedOfficial.gender === 'Female' ? '/female.png' : '/male.png'}
-          alt={selectedOfficial.gender}
-          style={{
-            width: '40px',
-            height: '40px',
-            objectFit: 'contain',
-            marginRight: '0.75rem'
-          }}
-          onError={(e) => {
-            e.target.style.display = 'none';
-          }}
-        />
-      )}
-      <i className="fas fa-edit me-2"></i>
-      Edit Admin: {selectedOfficial?.first_name}
-    </Modal.Title>
-  </Modal.Header>
-  <Form onSubmit={handleSubmitEdit}>
-    <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
-      {formError && (
-        <Alert variant="danger" className="mb-3">
-          <i className="fas fa-exclamation-triangle me-2"></i>
-          {formError}
-        </Alert>
-      )}
-
-      {/* Basic Information */}
-      <Row>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              First Name <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleFormChange}
-              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, first_name: 'Cannot end with a space' })); }}
-              required
-              disabled={formLoading}
-              placeholder="Enter first name"
-              maxLength={30}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.first_name ? '2px solid #dc3545' : '2px solid #dee2e6'
-              }}
-            />
-            {fieldErrors.first_name && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.first_name}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Middle Name
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="middle_name"
-              value={formData.middle_name}
-              onChange={handleFormChange}
-              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, middle_name: 'Cannot end with a space' })); }}
-              disabled={formLoading}
-              placeholder="Enter middle name"
-              maxLength={30}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.middle_name ? '2px solid #dc3545' : '2px solid #dee2e6'
-              }}
-            />
-            {fieldErrors.middle_name && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.middle_name}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Last Name <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="text"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleFormChange}
-              onKeyDown={(e) => { if (/[0-9]/.test(e.key)) e.preventDefault(); }}
-              onBlur={(e) => { const v = e.target.value; if (v.endsWith('-')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a hyphen' })); else if (v.endsWith(' ')) setFieldErrors(prev => ({ ...prev, last_name: 'Cannot end with a space' })); }}
-              required
-              disabled={formLoading}
-              placeholder="Enter last name"
-              maxLength={30}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.last_name ? '2px solid #dc3545' : '2px solid #dee2e6'
-              }}
-            />
-            {fieldErrors.last_name && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.last_name}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-      </Row>
-
-      <Row>
-       <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Birthdate <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="date"
-              name="birthdate"
-              value={formData.birthdate}
-              onChange={handleFormChange}
-              required
-              disabled={formLoading}
-              max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().split('T')[0]; })()}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.birthdate ? '2px solid #dc3545' : '2px solid #dee2e6',
-                colorScheme: 'light'
-              }}
-            />
-            {fieldErrors.birthdate && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.birthdate}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Gender <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Select
-              name="gender"
-              value={formData.gender}
-              onChange={handleFormChange}
-              required
-              disabled={formLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: '2px solid #dee2e6'
-              }}
-            >
-              <option value="">Select gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </Form.Select>
-          </Form.Group>
-        </Col>
-        <Col md={4}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              Phone Number
-            </Form.Label>
-            <Form.Control
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleFormChange}
-              disabled={formLoading}
-              placeholder="09XXXXXXXXX"
-              onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem',
-                border: fieldErrors.phone && formData.phone
-                  ? '2px solid #dc3545'
-                  : formData.phone && /^09\d{9}$/.test(formData.phone)
-                    ? '2px solid #198754'
-                    : '2px solid #dee2e6'
-              }}
-            />
-          {fieldErrors.phone && formData.phone && (
-              <small style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.35rem', display: 'block' }}>
-                <i className="fas fa-times-circle me-1" />{fieldErrors.phone}
-              </small>
-            )}
-          </Form.Group>
-        </Col>
-      </Row>
-
-      <Row>
-        <Col md={12}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-              City Vet Office Role <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Select
-              name="office_role"
-              value={formData.office_role}
-              onChange={handleFormChange}
-              disabled={formLoading}
-              style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
-            >
-              <option value="">Select role...</option>
-              {OFFICE_ROLES.map(r => (
-                <option key={r} value={r}>{r}</option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-        </Col>
-      </Row>
-      {formData.office_role === 'Other' && (
-        <Row>
-          <Col md={12}>
-            <Form.Group className="mb-3">
-              <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                Specify Role <span style={{ color: '#dc3545' }}>*</span>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="office_role_custom"
-                value={formData.office_role_custom || ''}
-                onChange={handleFormChange}
-                placeholder="Enter specific role title..."
-                disabled={formLoading}
-                style={{ borderRadius: '8px', padding: '0.75rem', border: '2px solid #dee2e6' }}
-              />
-            </Form.Group>
-          </Col>
-        </Row>
-      )}
-    </Modal.Body>
-    <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-      <Button 
-        variant="secondary" 
-        onClick={() => setShowEditModal(false)}
-        disabled={formLoading}
-        style={{
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '600'
-        }}
-      >
-        Cancel
-      </Button>
-      <Button 
-        type="submit"
-        disabled={
-          formLoading ||
-          !formData.first_name.trim() ||
-          !formData.last_name.trim() ||
-          !formData.birthdate ||
-          !formData.gender ||
-          !formData.office_role ||
-          (formData.office_role === 'Other' && !formData.office_role_custom?.trim()) ||
-          (formData.phone && !/^09\d{9}$/.test(formData.phone)) ||
-          Object.values(fieldErrors).some(e => !!e)
-        }
-        className="border-0"
-        style={{
-          background: formLoading ? '#6c757d' : '#ffc107',
-          color: '#000000',
-          borderRadius: '8px',
-          padding: '0.75rem 1.5rem',
-          fontWeight: '700',
-          boxShadow: formLoading ? 'none' : '0 4px 15px rgba(255, 193, 7, 0.4)',
-          transition: 'all 0.3s'
-        }}
-        onMouseOver={(e) => {
-          if (!formLoading) {
-            e.target.style.background = '#ffb300';
-            e.target.style.boxShadow = '0 6px 20px rgba(255, 193, 7, 0.6)';
-          }
-        }}
-        onMouseOut={(e) => {
-          if (!formLoading) {
-            e.target.style.background = '#ffc107';
-            e.target.style.boxShadow = '0 4px 15px rgba(255, 193, 7, 0.4)';
-          }
-        }}
-      >
-        {formLoading ? (
-          <>
-            <Spinner size="sm" animation="border" className="me-2" />
-            Updating...
-          </>
-        ) : (
-          <>
-            <i className="fas fa-save me-2"></i>
-            Update Admin
-          </>
-        )}
-      </Button>
-    </Modal.Footer>
-  </Form>
-</Modal>
-
-      {/* View Official Modal */}
-<Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" style={{zoom: '0.75'}}>
-  <Modal.Header 
-    closeButton
-    style={{
-      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
-      borderBottom: '2px solid #ffc107',
-      borderRadius: '20px 20px 0 0'
-    }}
-  >
-    <Modal.Title style={{ color: '#333333', fontWeight: '700' }}>
-      {selectedOfficial?.gender && (
-        <img 
-          src={selectedOfficial.gender === 'Female' ? '/female.png' : '/male.png'}
-          alt={selectedOfficial.gender}
-          style={{
-            width: '40px',
-            height: '40px',
-            objectFit: 'contain',
-            marginRight: '0.75rem'
-          }}
-          onError={(e) => {
-            e.target.style.display = 'none';
-          }}
-        />
-      )}
-      Admin: {selectedOfficial?.first_name}
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '2rem' }}>
-    {selectedOfficial && (
-      <Row>
-        <Col md={6}>
-          <Card 
-            className="mb-3 border-0" 
-            style={{ 
-              borderRadius: '15px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-            }}
-          >
-            <Card.Header style={{ 
-              background: 'rgba(255, 193, 7, 0.1)', 
-              borderBottom: '2px solid rgba(255, 193, 7, 0.3)',
-              borderRadius: '15px 15px 0 0'
-            }}>
-              <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }}></i>
-                Personal Information
-              </h6>
-            </Card.Header>
-            <Card.Body>
-              <Table borderless size="sm">
-                <tbody>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666', width: '120px' }}>Name:</td>
-                    <td style={{ fontWeight: '600', color: '#333333' }}>
-                      {selectedOfficial.first_name} {selectedOfficial.middle_name && selectedOfficial.middle_name + ' '}{selectedOfficial.last_name}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666' }}>Birthdate:</td>
-                    <td style={{ fontWeight: '600', color: '#333333' }}>
-                      {selectedOfficial.birthdate ? new Date(selectedOfficial.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not provided'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666' }}>Gender:</td>
-                    <td style={{ fontWeight: '600', color: '#333333' }}>
-                      {selectedOfficial.gender || 'Not specified'}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666' }}>Username:</td>
-                    <td style={{ fontWeight: '600', color: '#333333' }}>
-                      {selectedOfficial.username}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666' }}>Email:</td>
-                    <td style={{ fontWeight: '600', color: '#333333', wordBreak: 'break-all' }}>
-                      {selectedOfficial.email}
-                    </td>
-                  </tr>
-                  {selectedOfficial.phone && (
-                    <tr>
-                      <td style={{ fontWeight: '600', color: '#666666' }}>Phone:</td>
-                      <td style={{ fontWeight: '600', color: '#333333' }}>
-                        {selectedOfficial.phone}
-                      </td>
-                    </tr>
+                  {isAdd && (
+                    <div className="mm-note-box">
+                      <i className="fas fa-key" />
+                      <div>
+                        <strong>Login is created automatically.</strong> Email <code>lastname.YYYY###@muntinlupa.gov.ph</code>, username <code>lastname.YYYY###</code>, default password <code>admin123</code>.
+                        {preview && (
+                          <div className="mm-cred">
+                            <span><i className="fas fa-envelope" /><span className="mm-mono">{preview.email}</span></span>
+                            <span><i className="fas fa-at" /><span className="mm-mono">{preview.username}</span></span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-        </Col>
-        
-        <Col md={6}>
-          <Card 
-            className="mb-3 border-0" 
-            style={{ 
-              borderRadius: '15px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-            }}
-          >
-            <Card.Header style={{ 
-              background: 'rgba(255, 193, 7, 0.1)', 
-              borderBottom: '2px solid rgba(255, 193, 7, 0.3)',
-              borderRadius: '15px 15px 0 0'
-            }}>
-              <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                <i className="fas fa-map-marker-alt me-2" style={{ color: '#ffc107' }}></i>
-                Assignment Information
-              </h6>
-            </Card.Header>
-            <Card.Body>
-              <Table borderless size="sm">
-                <tbody>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666', width: '120px' }}>Office Role:</td>
-                    <td style={{ fontWeight: '600', color: '#333333' }}>
-                      {selectedOfficial.office_role || <span className="text-muted">Not specified</span>}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666' }}>Status:</td>
-                    <td>
-                      <Badge 
-                        bg={selectedOfficial.is_active ? 'success' : 'secondary'}
-                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                      >
-                        {selectedOfficial.is_active ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </td>
-                  </tr>
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
 
-          {/* Activity Summary */}
-          <Card 
-            className="border-0" 
-            style={{ 
-              borderRadius: '15px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-            }}
-          >
-            <Card.Header style={{ 
-              background: 'rgba(255, 193, 7, 0.1)', 
-              borderBottom: '2px solid rgba(255, 193, 7, 0.3)',
-              borderRadius: '15px 15px 0 0'
-            }}>
-              <h6 className="mb-0" style={{ fontWeight: '700', color: '#333333' }}>
-                <i className="fas fa-chart-line me-2" style={{ color: '#ffc107' }}></i>
-                Activity Summary
-              </h6>
-            </Card.Header>
-            <Card.Body>
-              <Table borderless size="sm">
-                <tbody>
-                  <tr>
-                    <td style={{ fontWeight: '600', color: '#666666' }}>Vaccinations:</td>
-                    <td>
-                      <Badge 
-                        bg="info" 
-                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                      >
-                        {selectedOfficial.vaccinations_administered || 0}
-                      </Badge>
-                    </td>
-                  </tr>
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    )}
-  </Modal.Body>
-  <Modal.Footer style={{ borderTop: '1px solid #e0e0e0' }}>
-    <Button 
-      variant="secondary" 
-      onClick={() => setShowViewModal(false)}
-      style={{
-        borderRadius: '10px',
-        padding: '0.75rem 1.5rem',
-        fontWeight: '600'
-      }}
-    >
-      Close
-    </Button>
-  </Modal.Footer>
-</Modal>
+                  <div className="mm-section">
+                    <div className="mm-section-title"><i className="fas fa-user" />Personal details</div>
+                    <Row className="g-3">
+                      <Col md={4}>{nameField('first_name', 'First name', true, 'First name')}</Col>
+                      <Col md={4}>{nameField('middle_name', 'Middle name', false, 'Middle name')}</Col>
+                      <Col md={4}>{nameField('last_name', 'Last name', true, 'Last name')}</Col>
+                      <Col md={4}>
+                        <Form.Label className="mm-label">Birthdate <span className="mm-req">*</span></Form.Label>
+                        <Form.Control className={`mm-input${fieldErrors.birthdate ? ' bad' : ''}`} type="date" name="birthdate" value={formData.birthdate || ''}
+                          onChange={handleFormChange} required disabled={formLoading} max={maxBirthdate} style={{ colorScheme: 'light' }} />
+                        {fieldErrors.birthdate && <div className="mm-hint bad"><i className="fas fa-times-circle" />{fieldErrors.birthdate}</div>}
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="mm-label">Gender <span className="mm-req">*</span></Form.Label>
+                        <Form.Select className="mm-input" name="gender" value={formData.gender || ''} onChange={handleFormChange} required disabled={formLoading}>
+                          <option value="">Select gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </Form.Select>
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="mm-label">Phone number</Form.Label>
+                        <Form.Control className={`mm-input${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`} type="tel" inputMode="numeric" maxLength={11} name="phone" value={formData.phone || ''}
+                          onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
+                          onChange={handleFormChange} disabled={formLoading} placeholder="09XXXXXXXXX" />
+                        {phoneBad && <div className="mm-hint bad"><i className="fas fa-times-circle" />{fieldErrors.phone || 'Phone must be 11 digits starting with 09'}</div>}
+                      </Col>
+                    </Row>
+                  </div>
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        centered
-        style={{ zoom: '0.75' }}
-      >
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-            Confirm Deactivation
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedOfficial && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to deactivate this admin?
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #dc3545' }}>
-                <div className="mb-2">
-                  <span style={{ fontWeight: '500', color: '#555' }}>
-                    <i className="fas fa-user-tie me-1" style={{ color: '#ffc107' }}></i>
-                    Admin
-                  </span>
-                </div>
-                <strong style={{ fontSize: '1.1rem' }}>
-                  {selectedOfficial.first_name} {selectedOfficial.middle_name && selectedOfficial.middle_name + ' '}{selectedOfficial.last_name}
-                </strong>
-                <br />
-                <small className="text-muted">
-                  <i className="fas fa-at me-1"></i>
-                  {selectedOfficial.username}
-                  {selectedOfficial.barangay_name && <> • {selectedOfficial.barangay_name}</>}
-                </small>
-              </div>
-              <Alert variant="warning" className="mt-3 mb-0">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Warning:</strong> All vaccination records and activities will be preserved for historical purposes.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button
-            variant="secondary"
-            onClick={() => setShowDeleteModal(false)}
-            disabled={formLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            onClick={handleConfirmDelete}
-            disabled={formLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
-          >
-            {formLoading ? (
-              <><Spinner size="sm" animation="border" className="me-2" />Deactivating...</>
-            ) : (
-              <><i className="fas fa-user-times me-2"></i>Deactivate Admin</>
+                  <div className="mm-section mb-0">
+                    <div className="mm-section-title"><i className="fas fa-briefcase" />City Vet office role</div>
+                    <Row className="g-3">
+                      <Col md={formData.office_role === 'Other' ? 6 : 12}>
+                        <Form.Label className="mm-label">Role <span className="mm-req">*</span></Form.Label>
+                        <Form.Select className="mm-input" name="office_role" value={formData.office_role || ''} onChange={handleFormChange} disabled={formLoading}>
+                          <option value="">Select role...</option>
+                          {OFFICE_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                        </Form.Select>
+                      </Col>
+                      {formData.office_role === 'Other' && (
+                        <Col md={6}>
+                          <Form.Label className="mm-label">Specify role <span className="mm-req">*</span></Form.Label>
+                          <Form.Control className="mm-input" type="text" name="office_role_custom" value={formData.office_role_custom || ''}
+                            onChange={handleFormChange} placeholder="Enter the role title" disabled={formLoading} />
+                        </Col>
+                      )}
+                    </Row>
+                  </div>
+                </Modal.Body>
+                <Modal.Footer className="mm-foot">
+                  <button type="button" className="mm-btn ghost" onClick={close} disabled={formLoading}>Cancel</button>
+                  <button type="submit" className="mm-btn primary" disabled={invalid}>
+                    {formLoading
+                      ? <><i className="fas fa-circle-notch fa-spin" />{isAdd ? 'Adding…' : 'Saving…'}</>
+                      : isAdd ? <><i className="fas fa-plus" />Add admin</> : <><i className="fas fa-save" />Save changes</>}
+                  </button>
+                </Modal.Footer>
+              </Form>
+            </Modal>
+          );
+        })}
+
+        {/* ════════════════════════════════════════════════════════════════
+            VIEW ADMIN MODAL
+        ════════════════════════════════════════════════════════════════ */}
+        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="mm-modal" className="mm-zoom-modal" scrollable>
+          {selectedOfficial && (() => {
+            const o = selectedOfficial;
+            const active = o.is_active === 1;
+            const fullName = `${o.first_name || ''} ${o.middle_name ? o.middle_name + ' ' : ''}${o.last_name || ''}`.trim();
+            const initials = `${(o.first_name || '?')[0]}${(o.last_name || '')[0] || ''}`.toUpperCase();
+            const age = o.birthdate ? Math.floor((Date.now() - new Date(o.birthdate).getTime()) / 31557600000) : null;
+            const info = [
+              { icon: 'fa-at', label: 'Username', value: o.username ? <span className="mm-mono">{o.username}</span> : '—' },
+              { icon: 'fa-phone-alt', label: 'Phone', value: o.phone || <span className="mm-none">Not provided</span> },
+              { icon: 'fa-envelope', label: 'Email', value: o.email || '—', wide: true },
+              { icon: 'fa-birthday-cake', label: 'Birthdate', value: o.birthdate ? new Date(o.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : <span className="mm-none">Not provided</span> },
+              { icon: 'fa-venus-mars', label: 'Gender', value: o.gender || <span className="mm-none">Not specified</span> },
+            ];
+            return (
+              <>
+                <Modal.Header closeButton className="mm-head" style={{ '--c': '#e0a800' }}>
+                  <div className="mm-head-main">
+                    <div className="mm-avatar" style={active ? undefined : { background: '#e5e7eb', color: '#6b7280', boxShadow: 'none' }}>{initials}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="mm-chips">
+                        <span className={`mm-chip ${active ? 'green' : 'grey'}`}><i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />{active ? 'Active' : 'Inactive'}</span>
+                      </div>
+                      <Modal.Title as="h5" className="mm-title">{fullName || 'Admin'}</Modal.Title>
+                      <div className="mm-sub">City Veterinary Office admin</div>
+                    </div>
+                  </div>
+                </Modal.Header>
+                <Modal.Body className="mm-body">
+                  <div className="mm-kpis">
+                    <div className="mm-kpi">
+                      <div className="ic" style={{ '--c': '#e0a800' }}><i className="fas fa-syringe" /></div>
+                      <div>
+                        <div className="v">{o.vaccinations_administered || 0}</div>
+                        <div className="k">Vaccinations given</div>
+                      </div>
+                    </div>
+                    <div className="mm-kpi">
+                      <div className="ic" style={{ '--c': '#0d6efd' }}><i className="fas fa-briefcase" /></div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="v sm">{o.office_role || '—'}</div>
+                        <div className="k">Office role</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mm-section-title mt-4"><i className="fas fa-info-circle" />Account and personal details</div>
+                  <div className="mm-grid">
+                    {info.map(it => (
+                      <div key={it.label} className={`mm-info${it.wide ? ' wide' : ''}`}>
+                        <div className="mm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="mm-info-label">{it.label}{it.label === 'Birthdate' && age !== null && age >= 0 ? <span className="mm-opt"> · {age} yrs old</span> : null}</div>
+                          <div className="mm-info-value">{it.value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Modal.Body>
+                <Modal.Footer className="mm-foot">
+                  {active && (
+                    <button type="button" className="mm-btn ghost me-auto" onClick={() => { setShowViewModal(false); handleEditOfficial(o); }}>
+                      <i className="fas fa-pen" />Edit
+                    </button>
+                  )}
+                  <button type="button" className="mm-btn primary" onClick={() => setShowViewModal(false)}>Close</button>
+                </Modal.Footer>
+              </>
+            );
+          })()}
+        </Modal>
+
+        {/* ════════════════════════════════════════════════════════════════
+            DEACTIVATE / RESTORE / RESET PASSWORD (small, always centered)
+        ════════════════════════════════════════════════════════════════ */}
+        {[
+          { key: 'deactivate', show: showDeleteModal, close: () => setShowDeleteModal(false), color: '#dc3545', icon: 'fa-user-slash',
+            title: 'Deactivate this admin?', text: 'The admin will no longer be able to sign in.',
+            note: 'Vaccination records and activity are kept for history.',
+            label: 'Deactivate', busy: 'Deactivating…', onConfirm: handleConfirmDelete },
+          { key: 'restore', show: showRestoreModal, close: () => setShowRestoreModal(false), color: '#198754', icon: 'fa-undo',
+            title: 'Restore this admin?', text: 'The account will be reactivated and the admin can sign in again.',
+            label: 'Restore', busy: 'Restoring…', onConfirm: handleConfirmRestore },
+          { key: 'reset', show: showResetPasswordModal, close: () => setShowResetPasswordModal(false), color: '#0d6efd', icon: 'fa-key',
+            title: 'Reset password?', text: 'The admin\'s current password will stop working.',
+            note: <>The password will be reset to <strong>admin123</strong>. Ask the admin to change it after signing in.</>,
+            label: 'Reset password', busy: 'Resetting…', onConfirm: handleConfirmResetPassword },
+        ].map(m => (
+          <Modal key={m.key} show={m.show} onHide={() => !formLoading && m.close()} centered dialogClassName="mm-small" className="mm-zoom-modal">
+            {selectedOfficial && (
+              <>
+                <Modal.Body className="mm-small-body">
+                  <div className="mm-small-icon" style={{ '--c': m.color }}><i className={`fas ${m.icon}`} /></div>
+                  <h5 className="mm-small-title">{m.title}</h5>
+                  <p className="mm-small-text">{m.text}</p>
+                  <div className="mm-item">
+                    <div className="mm-item-av" style={{ '--c': '#e0a800' }}><i className="fas fa-user-shield" /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="mm-item-name">{`${selectedOfficial.first_name || ''} ${selectedOfficial.middle_name ? selectedOfficial.middle_name + ' ' : ''}${selectedOfficial.last_name || ''}`.trim()}</div>
+                      <div className="mm-item-meta">{[selectedOfficial.username, selectedOfficial.office_role].filter(Boolean).join(' · ')}</div>
+                    </div>
+                  </div>
+                  {m.note && <div className="mm-note" style={{ '--c': m.color }}><i className="fas fa-info-circle" /><span>{m.note}</span></div>}
+                </Modal.Body>
+                <Modal.Footer className="mm-foot even">
+                  <button type="button" className="mm-btn ghost" onClick={m.close} disabled={formLoading}>Cancel</button>
+                  <button type="button" className="mm-btn solid" style={{ '--c': m.color }} onClick={m.onConfirm} disabled={formLoading}>
+                    {formLoading ? <><i className="fas fa-circle-notch fa-spin" />{m.busy}</> : <><i className={`fas ${m.icon}`} />{m.label}</>}
+                  </button>
+                </Modal.Footer>
+              </>
             )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Restore Confirmation Modal */}
-      <Modal
-        show={showRestoreModal}
-        onHide={() => setShowRestoreModal(false)}
-        centered
-        style={{ zoom: '0.75' }}
-      >
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #198754' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-undo text-success me-2"></i>
-            Confirm Restore
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedOfficial && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to restore this admin?
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #198754' }}>
-                <div className="mb-2">
-                  <span style={{ fontWeight: '500', color: '#555' }}>
-                    <i className="fas fa-user-tie me-1" style={{ color: '#198754' }}></i>
-                    Admin
-                  </span>
-                </div>
-                <strong style={{ fontSize: '1.1rem' }}>
-                  {selectedOfficial.first_name} {selectedOfficial.middle_name && selectedOfficial.middle_name + ' '}{selectedOfficial.last_name}
-                </strong>
-                <br />
-                <small className="text-muted">
-                  <i className="fas fa-at me-1"></i>
-                  {selectedOfficial.username}
-                </small>
-              </div>
-              <Alert variant="success" className="mt-3 mb-0" style={{ background: 'rgba(25,135,84,0.1)', border: '1px solid rgba(25,135,84,0.3)', color: '#198754' }}>
-                <i className="fas fa-info-circle me-2"></i>
-                This admin will be reactivated and can log in again.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button
-            variant="secondary"
-            onClick={() => setShowRestoreModal(false)}
-            disabled={formLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmRestore}
-            disabled={formLoading}
-            className="border-0"
-            style={{ background: '#198754', color: '#ffffff', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600', boxShadow: '0 4px 15px rgba(25,135,84,0.3)' }}
-          >
-            {formLoading ? (
-              <><Spinner size="sm" animation="border" className="me-2" />Restoring...</>
-            ) : (
-              <><i className="fas fa-undo me-2"></i>Restore Admin</>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Reset Password Confirmation Modal */}
-      <Modal
-        show={showResetPasswordModal}
-        onHide={() => setShowResetPasswordModal(false)}
-        centered
-        style={{ zoom: '0.75' }}
-      >
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #0d6efd' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-key text-primary me-2"></i>
-            Confirm Password Reset
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedOfficial && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to reset this admin's password?
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #0d6efd' }}>
-                <div className="mb-2">
-                  <span style={{ fontWeight: '500', color: '#555' }}>
-                    <i className="fas fa-user-tie me-1" style={{ color: '#0d6efd' }}></i>
-                    Admin
-                  </span>
-                </div>
-                <strong style={{ fontSize: '1.1rem' }}>
-                  {selectedOfficial.first_name} {selectedOfficial.middle_name && selectedOfficial.middle_name + ' '}{selectedOfficial.last_name}
-                </strong>
-                <br />
-                <small className="text-muted">
-                  <i className="fas fa-at me-1"></i>
-                  {selectedOfficial.username}
-                </small>
-              </div>
-              <Alert variant="primary" className="mt-3 mb-0" style={{ background: 'rgba(13,110,253,0.1)', border: '1px solid rgba(13,110,253,0.3)', color: '#0d6efd' }}>
-                <i className="fas fa-info-circle me-2"></i>
-                Password will be reset to <strong>admin123</strong>. The admin should change it after logging in.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button
-            variant="secondary"
-            onClick={() => setShowResetPasswordModal(false)}
-            disabled={formLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleConfirmResetPassword}
-            disabled={formLoading}
-            className="border-0"
-            style={{ background: '#0d6efd', color: '#ffffff', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600', boxShadow: '0 4px 15px rgba(13,110,253,0.3)' }}
-          >
-            {formLoading ? (
-              <><Spinner size="sm" animation="border" className="me-2" />Resetting...</>
-            ) : (
-              <><i className="fas fa-key me-2"></i>Reset Password</>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          </Modal>
+        ))}
 
       </Container>
     </>

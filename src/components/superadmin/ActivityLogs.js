@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Alert } from 'react-bootstrap';
 import { activityLogAPI, handleAPIError } from '../../services/api';
 
 const ROLE_LABELS = {
@@ -68,7 +67,7 @@ const initialsOf = (name) =>
 
 const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -269,6 +268,28 @@ const ActivityLogs = () => {
       .al-date .al-input { width: 130px; }
       .al-hide-sm { display: none; }
     }
+    /* fixed columns so long names/details cut off with … instead of pushing Status off screen */
+    .al-table { table-layout: fixed; }
+    .al-table th.c-date { width: 128px; }
+    .al-table th.c-by { width: 24%; }
+    .al-table th.c-when { width: 150px; }
+    .al-table th.c-status { width: 120px; }
+    .al-table td > div, .al-user > div { min-width: 0; }
+    .al-ellipsis { max-width: 100%; }
+    .al-table td > .d-flex > div:last-child { flex: 1; }
+    @media (max-width: 1199px) and (min-width: 769px) {
+      .al-hide-lt { display: none; }
+      .al-table th.c-by { width: 28%; }
+    }
+    @media (max-width: 768px) {
+      .al-table { table-layout: auto; }
+      .al-table th { width: auto !important; }
+      .al-table td .al-ellipsis { max-width: 220px; }
+    }
+    .al-alert { display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 0.85rem; border-radius: 10px; font-size: 0.84rem; background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #842029; }
+    .al-alert span { flex: 1; }
+    .al-x { border: none; background: transparent; color: inherit; width: 26px; height: 26px; border-radius: 7px; opacity: 0.7; }
+    .al-x:hover { opacity: 1; background: rgba(220,53,69,0.1); }
     @media (prefers-reduced-motion: reduce) {
       .al-table tbody tr, .al-skel, .al-anim { animation: none !important; }
     }
@@ -333,9 +354,12 @@ const ActivityLogs = () => {
       <div>
         {error && (
           <div style={{ padding: '0.75rem 1.35rem 0' }}>
-            <Alert variant="danger" dismissible onClose={() => setError('')} className="py-2 small mb-0">
-              {error}
-            </Alert>
+            <div className="al-alert" role="alert">
+              <i className="fas fa-exclamation-circle" />
+              <span>{error}</span>
+              <button type="button" className="al-link" onClick={loadLogs}>Try again</button>
+              <button type="button" className="al-x" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+            </div>
           </div>
         )}
 
@@ -380,11 +404,11 @@ const ActivityLogs = () => {
             <table className="al-table">
               <thead>
                 <tr>
-                  <th>Date added</th>
-                  <th>Performed by</th>
+                  <th className="c-date">Date added</th>
+                  <th className="c-by">Performed by</th>
                   <th>Activity</th>
-                  <th className="al-hide-sm">Record / event date</th>
-                  <th>Status</th>
+                  <th className="al-hide-sm al-hide-lt c-when">Record / event date</th>
+                  <th className="c-status">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -414,8 +438,8 @@ const ActivityLogs = () => {
                             {initialsOf(log.performed_by_name)}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div className="al-strong al-ellipsis" style={{ maxWidth: 170 }} title={log.performed_by_name}>{log.performed_by_name}</div>
-                            <div className="al-muted al-ellipsis" style={{ maxWidth: 170 }} title={log.organization}>
+                            <div className="al-strong al-ellipsis" title={log.performed_by_name}>{log.performed_by_name}</div>
+                            <div className="al-muted al-ellipsis" title={log.organization}>
                               {log.organization || ROLE_LABELS[log.performed_by_role]}
                             </div>
                           </div>
@@ -427,8 +451,8 @@ const ActivityLogs = () => {
                             <i className={`fas ${meta.icon}`} />
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div className="d-flex align-items-center gap-2">
-                              <span className="al-strong al-ellipsis" style={{ maxWidth: 360 }} title={log.item_name}>{log.item_name}</span>
+                            <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                              <span className="al-strong al-ellipsis" title={log.item_name}>{log.item_name}</span>
                               <span
                                 className="al-tag"
                                 style={isEvent
@@ -438,13 +462,13 @@ const ActivityLogs = () => {
                                 {isEvent ? 'Event' : 'Record'}
                               </span>
                             </div>
-                            <div className="al-muted al-ellipsis" style={{ maxWidth: 520 }} title={`${log.action}${details ? ` · ${details}` : ''}`}>
+                            <div className="al-muted al-ellipsis" title={`${log.action}${details ? ` · ${details}` : ''}`}>
                               {log.action}{details ? ` · ${details}` : ''}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="al-hide-sm" style={{ whiteSpace: 'nowrap' }}>
+                      <td className="al-hide-sm al-hide-lt" style={{ whiteSpace: 'nowrap' }}>
                         <div>{formatDate(log.activity_date)}</div>
                         {log.start_time && (
                           <div className="al-muted">{formatClock(log.start_time)} – {formatClock(log.end_time)}</div>

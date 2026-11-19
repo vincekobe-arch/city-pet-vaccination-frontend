@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Modal, Table, Form, InputGroup } from 'react-bootstrap';
+import { Row, Container, Card } from 'react-bootstrap';
 import { vetCardAPI, petAPI, handleAPIError } from '../../services/api';
-import { getUser } from '../../utils/auth';
 
 const VetCardManagement = () => {
   const [vetCards, setVetCards] = useState([]);
@@ -192,12 +191,29 @@ const [filterSpecies, setFilterSpecies] = useState('all');
       .vm-table { table-layout: auto; }
       .vm-table th { width: auto !important; }
     }
+    .vm-alert { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 12px; font-size: 0.9rem; font-weight: 500; }
+    .vm-alert span { flex: 1; }
+    .vm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .vm-alert.success { background: rgba(25,135,84,0.07); border: 1px solid rgba(25,135,84,0.25); color: #146c43; }
+    .vm-alert button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+    .vm-alert button:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+    @media (min-width: 769px) { .vm-ellipsis { max-width: 100%; } }
+
+    /* Laptops with the sidebar (769–1199px): drop Gender so names and buttons fit */
+    @media (min-width: 769px) and (max-width: 1199.98px) {
+      .vm-table th:nth-child(3), .vm-table td:nth-child(3) { display: none; }
+      .vm-table th:nth-child(1) { width: 32% !important; }
+      .vm-table th:nth-child(2) { width: 20% !important; }
+      .vm-table th:nth-child(4), .vm-table th:nth-child(5) { width: 15% !important; }
+      .vm-table th:last-child { width: 18% !important; }
+      .vc-stat-card-body { padding: 1.1rem !important; }
+      .vc-stat-number { font-size: 2.2rem !important; }
+    }
   `;
   
   const [displayCounts, setDisplayCounts] = useState({ totalVetCards: 0, withoutCards: 0, coverage: 0 });
 const [hasAnimated, setHasAnimated] = useState(false);
 
-const user = getUser();
 
   useEffect(() => {
     loadData();
@@ -249,10 +265,6 @@ const loadData = async (bustCache = false) => {
     window.open(`/vet-card-view/${petId}`, '_blank');
   };
 
-  const getPetDetails = (petId) => {
-    return pets.find(p => p.id === petId);
-  };
-
   const hasActiveVetCard = (petId) => {
     // Check pets array first (from pets endpoint with has_vet_card field)
     const pet = pets.find(p => p.id === petId);
@@ -289,8 +301,10 @@ const loadData = async (bustCache = false) => {
 });
   const petsWithoutCards = pets.filter(pet => !hasActiveVetCard(pet.id) && (pet.is_active === 1 || pet.is_active === '1' || pet.is_active === true));
 
+  // Stats use every pet, so they don't change while searching or filtering
+  const allPetsWithCards = pets.filter(pet => hasActiveVetCard(pet.id));
   const totalPets = pets.length;
-  const totalVetCards = petsWithCards.length;
+  const totalVetCards = allPetsWithCards.length;
   const averagePercentage = totalPets > 0 ? ((totalVetCards / totalPets) * 100).toFixed(0) : 0;
 
   useEffect(() => {
@@ -323,7 +337,6 @@ const totalPages = Math.ceil(petsWithCards.length / itemsPerPage);
 const startIdx = (currentPage - 1) * itemsPerPage;
 const endIdx = startIdx + itemsPerPage;
 const paginatedPetsWithCards = petsWithCards.slice(startIdx, endIdx);
-const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
 
   
 
@@ -349,17 +362,17 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2"></i>
-            {error}
-          </Alert>
+          <div role="alert" className="vm-alert danger">
+            <i className="fas fa-exclamation-circle" /><span>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
         {success && (
-          <Alert variant="success" dismissible onClose={() => setSuccess('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-check-circle me-2"></i>
-            {success}
-          </Alert>
+          <div role="status" className="vm-alert success">
+            <i className="fas fa-check-circle" /><span>{success}</span>
+            <button type="button" onClick={() => setSuccess('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
       {/* Statistics Cards */}
       <Row className="mb-4" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px' }}>
@@ -445,7 +458,8 @@ const emptyRows = itemsPerPage - paginatedPetsWithCards.length;
                         <span style={{
                           display: 'inline-block', width: '3ch', height: '1em',
                           borderRadius: '6px',
-                          background: '#f0f0f0',
+                          background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                          backgroundSize: '800px 100%',
                           animation: 'shimmer 1.4s ease-in-out infinite',
                           verticalAlign: 'middle'
                         }} />

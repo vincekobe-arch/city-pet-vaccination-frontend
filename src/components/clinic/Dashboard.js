@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Alert, Spinner, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Alert } from 'react-bootstrap';
 import { clinicAPI, handleAPIError } from '../../services/api';
-import { getUser } from '../../utils/auth';
 
 const ClinicDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -15,7 +14,6 @@ const ClinicDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const user = getUser();
 
   useEffect(() => {
     loadDashboardData();
@@ -69,24 +67,26 @@ const ClinicDashboard = () => {
       .mobile-subtitle {
         font-size: 0.9rem !important;
       }
+      .clinic-dashboard-page { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
       .mobile-stat-number {
-        font-size: 1.2rem !important;
+        font-size: 1.9rem !important;
+        margin-bottom: 0.4rem !important;
       }
       .mobile-stat-label {
-        font-size: 0.6rem !important;
-        margin-bottom: 0.25rem !important;
+        font-size: 0.68rem !important;
+        margin-bottom: 0.35rem !important;
       }
       .mobile-stat-icon {
-        width: 30px !important;
-        height: 30px !important;
-        border-radius: 8px !important;
+        width: 42px !important;
+        height: 42px !important;
+        border-radius: 12px !important;
       }
       .mobile-stat-icon img {
-        width: 18px !important;
-        height: 18px !important;
+        width: 24px !important;
+        height: 24px !important;
       }
       .mobile-card-padding {
-        padding: 0.5rem 0.3rem !important;
+        padding: 1rem !important;
       }
       .mobile-card-header {
         padding: 1rem !important;
@@ -97,11 +97,8 @@ const ClinicDashboard = () => {
       .mobile-card-body {
         padding: 1rem !important;
       }
-      .mobile-stat-description {
-        display: none !important;
-      }
-      .mobile-stat-card {
-        margin-bottom: 0.5rem !important;
+      .mobile-stat-description span {
+        font-size: 0.68rem !important;
       }
       .mobile-record-item {
         padding: 0.6rem !important;
@@ -204,8 +201,6 @@ const ClinicDashboard = () => {
 
     .cd-title { font-weight: 700; color: #1f2328; font-size: 1.85rem; margin: 0; }
     .cd-sub { color: #6b7280; font-size: 0.95rem; margin: 0.15rem 0 0; }
-    .cd-date { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.9rem; border: 1px solid #e9ecef; border-radius: 10px; background: #fff; color: #4b5563; font-size: 0.85rem; font-weight: 600; }
-    .cd-date i { color: #e0a800; }
 
 
 
@@ -251,10 +246,40 @@ const ClinicDashboard = () => {
     .cd-type-ic { width: 42px; height: 42px; border-radius: 12px; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.95rem; }
     .cd-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .cd-body-scroll { max-height: 440px; overflow-y: auto; }
+    /* small laptops (992–1199px): keep the 4 stat boxes readable */
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+      .mobile-stat-number { font-size: 2.2rem !important; }
+      .mobile-card-padding { padding: 1.15rem !important; }
+      .mobile-stat-icon { width: 46px !important; height: 46px !important; }
+    }
+    /* tablets & phones: panels grow with their content instead of a fixed scroll box */
+    @media (max-width: 991.98px) {
+      .cd-body-scroll { max-height: none; }
+    }
     @media (max-width: 768px) {
       .cd-title { font-size: 1.45rem; }
       .cd-sub { font-size: 0.85rem; }
-      .cd-date { display: none !important; }
+      .cd-panel-head { padding: 0.9rem 1rem; }
+      .cd-panel-body { padding: 0.5rem 1rem 1rem; }
+      .cd-rem { gap: 0.7rem; }
+      .cd-type-ic { width: 38px; height: 38px; border-radius: 10px; }
+      .cd-empty { padding: 1.75rem 0.75rem; }
+    }
+    /* small phones */
+    @media (max-width: 400px) {
+      .mobile-stat-number { font-size: 1.6rem !important; }
+      .mobile-stat-icon { width: 36px !important; height: 36px !important; }
+      .mobile-stat-icon img { width: 20px !important; height: 20px !important; }
+      .mobile-stat-description { display: none !important; }
+      .cd-panel-title .ic { width: 32px; height: 32px; }
+      .cd-panel-title small { display: none; }
+      .cd-tag { display: none; }
+      .cd-rem-due { font-size: 0.7rem; white-space: nowrap; }
+      .mobile-stat-label { letter-spacing: 0.04em !important; }
+    }
+    /* very narrow phones (≤ 359px): drop the stat icons so numbers have room */
+    @media (max-width: 359.98px) {
+      .mobile-stat-icon { display: none !important; }
     }
     @media (prefers-reduced-motion: reduce) {
       .cd-anim, .cd-row-anim, .cd-skel { animation: none !important; }
@@ -311,115 +336,6 @@ const ClinicDashboard = () => {
     }
   };
 
-  // Vaccination stats by species (mirroring AdminDashboard pattern)
-  const getVaccinationStatsBySpecies = () => {
-    const species = ['Dog', 'Cat', 'Rabbit'];
-    const colors = {
-      Dog: '#FF6B6B',
-      Cat: '#4ECDC4',
-      Rabbit: '#95E1D3'
-    };
-
-    return species
-      .map(speciesName => {
-        const speciesPets = dashboardData.pets.filter(
-          p => p.species?.toLowerCase() === speciesName.toLowerCase()
-        );
-        const vaccinated = speciesPets.filter(
-          p => p.vaccination_count && p.vaccination_count > 0
-        ).length;
-        const total = speciesPets.length;
-        const percentage = total > 0 ? Math.round((vaccinated / total) * 100) : 0;
-
-        return {
-          species: speciesName,
-          vaccinated,
-          total,
-          percentage,
-          color: colors[speciesName],
-          icon:
-            speciesName === 'Dog'
-              ? '/dog_face.png'
-              : speciesName === 'Cat'
-              ? '/cat_face.png'
-              : '/rabbit_face.png'
-        };
-      })
-      .filter(s => s.total > 0);
-  };
-
-  const VaccinationProgressBar = ({ species, vaccinated, total, percentage, icon, color }) => (
-    <div className="mb-4 mobile-vaccination-item">
-      <div className="d-flex justify-content-between align-items-center mb-2">
-        <div className="d-flex align-items-center">
-          <div
-            className="mobile-species-icon"
-            style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: `${color}15`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '12px',
-              border: `2px solid ${color}30`
-            }}
-          >
-            <img
-              src={icon}
-              alt={species}
-              style={{ width: '24px', height: '24px', objectFit: 'contain' }}
-              className="mobile-species-icon-img"
-              onError={e => (e.target.style.display = 'none')}
-            />
-          </div>
-          <span style={{ fontWeight: '600', fontSize: '1rem', color: '#333333' }}>{species}</span>
-        </div>
-        <div className="text-end">
-          <Badge
-            className="mobile-vaccination-badge"
-            style={{
-              background: color,
-              fontSize: '0.85rem',
-              fontWeight: '700',
-              padding: '0.4rem 0.8rem',
-              borderRadius: '8px'
-            }}
-          >
-            {percentage}%
-          </Badge>
-          <small className="text-muted ms-2" style={{ fontWeight: '600' }}>
-            ({vaccinated}/{total})
-          </small>
-        </div>
-      </div>
-      <div
-        className="vaccination-progress-bar"
-        style={{
-          width: '100%',
-          height: '28px',
-          backgroundColor: '#f0f0f0',
-          borderRadius: '14px',
-          overflow: 'hidden',
-          position: 'relative',
-          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
-        }}
-      >
-        <div
-          style={{
-            width: `${percentage}%`,
-            height: '100%',
-            background: `linear-gradient(90deg, ${color} 0%, ${color}dd 100%)`,
-            transition: 'width 0.8s ease',
-            borderRadius: '14px',
-            boxShadow: `0 2px 8px ${color}40`
-          }}
-        />
-      </div>
-    </div>
-  );
-
   const getPetImage = species => {
     if (species?.toLowerCase() === 'dog') return '/dog.png';
     if (species?.toLowerCase() === 'cat') return '/cat.png';
@@ -427,16 +343,6 @@ const ClinicDashboard = () => {
     return '/dog.png';
   };
 
-  const getRecordTypeMeta = type => {
-    const map = {
-      vaccination: { label: 'Vaccination', color: '#ffc107', icon: 'fas fa-syringe' },
-      deworming: { label: 'Deworming', color: '#17a2b8', icon: 'fas fa-pills' },
-      sterilization: { label: 'Sterilization', color: '#28a745', icon: 'fas fa-cut' }
-    };
-    return map[type] || { label: type, color: '#6c757d', icon: 'fas fa-file-medical' };
-  };
-
-  const vaccinationStatsBySpecies = getVaccinationStatsBySpecies();
   const totalRecords =
     dashboardData.vaccinations.length +
     dashboardData.dewormings.length +
@@ -450,7 +356,6 @@ const ClinicDashboard = () => {
   ]);
   const totalPetsServed = uniquePetIds.size;
 
-  const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const REC_TYPES = {
     vaccination:   { label: 'Vaccination',   color: '#e0a800', icon: 'fa-syringe' },
     deworming:     { label: 'Deworming',     color: '#0d6efd', icon: 'fa-pills' },
@@ -489,7 +394,6 @@ const ClinicDashboard = () => {
                 : 'Your clinic records and upcoming appointments.'}
             </p>
           </div>
-          <div className="cd-date"><i className="fas fa-calendar-day" />{todayLabel}</div>
         </div>
 
         {error && (
@@ -514,7 +418,7 @@ const ClinicDashboard = () => {
         )}
 
         {/* ── Statistics Cards ── */}
-        <Row className="mb-4">
+        <Row className="g-3 mb-4">
           {[
             { label: 'Total Records',   value: totalRecords,                          accent: '#ffc107', accentAlpha: 'rgba(255,193,7,0.12)',  img: '/vaccine.png',       fallback: 'fa-file-medical', description: 'All Medical Records',    delay: '0.1s' },
             { label: 'Pets Served',     value: totalPetsServed,                       accent: '#0dcaf0', accentAlpha: 'rgba(13,202,240,0.12)', img: '/paw.png',           fallback: 'fa-paw',          description: 'Unique Pets',            delay: '0.2s' },
@@ -538,7 +442,7 @@ const ClinicDashboard = () => {
             }, [loading, value]);
 
             return (
-              <Col key={label} xs={12} sm={6} md={6} lg={3} className="mb-3 mobile-stat-card" style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+              <Col key={label} xs={6} lg={3} className="mobile-stat-card" style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
                 <Card
                   className="border-0 h-100"
                   style={{ borderRadius: '16px', background: '#ffffff', border: '1px solid #f0f0f0', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', transition: 'all 0.25s ease', cursor: 'default', overflow: 'hidden' }}
@@ -552,7 +456,7 @@ const ClinicDashboard = () => {
                         <p className="mobile-stat-label" style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999999', marginBottom: '0.5rem' }}>{label}</p>
                         <h2 className="mobile-stat-number" style={{ fontSize: '2.75rem', fontWeight: '700', color: '#111111', lineHeight: 1, marginBottom: '0.75rem', fontVariantNumeric: 'tabular-nums', minWidth: '3ch' }}>
                           {loading ? (
-                            <span style={{ display: 'inline-block', width: '3ch', height: '1em', borderRadius: '6px', background: '#f0f0f0', animation: 'shimmer 1.4s ease-in-out infinite', verticalAlign: 'middle' }} />
+                            <span className="cd-skel" style={{ display: 'inline-block', width: '2.2ch', height: '0.85em', verticalAlign: 'middle' }} />
                           ) : displayCount}
                         </h2>
                         <div className="mobile-stat-description" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

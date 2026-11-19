@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, Modal, Form, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Modal } from 'react-bootstrap';
 import { petAPI, ownerAPI, microchipAPI, handleAPIError } from '../../services/api';
 
 const AnimatedStatValue = ({ value, loading, darkMode }) => {
@@ -193,7 +193,7 @@ const SuperPetManagement = ({ darkMode }) => {
       }
     `}
   /* ---------------- Pet Management ---------------- */
-  .spm-wrap {
+  .spm-wrap, .pv-theme {
     ${darkMode ? `
     --pm-panel: #141414; --pm-line: #262626; --pm-line2: #1f1f1f; --pm-text: #f0f0f0; --pm-muted: #9a9a9a; --pm-faint: #6b6b6b;
     --pm-soft: #1e1e1e; --pm-hover: #1b1b1b; --pm-input: #1a1a1a; --pm-menu: #1e1e1e;` : `
@@ -280,6 +280,75 @@ const SuperPetManagement = ({ darkMode }) => {
     .pm-select { flex: 1 1 140px; }
     .pm-select select.pm-input { width: 100%; min-width: 0; }
   }
+  .pm-alert { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 12px; font-size: 0.9rem; font-weight: 500; }
+  .pm-alert span { flex: 1; }
+  .pm-alert.danger { background: rgba(220,53,69,0.08); border: 1px solid rgba(220,53,69,0.25); color: #dc3545; }
+  .pm-alert.success { background: rgba(25,135,84,0.08); border: 1px solid rgba(25,135,84,0.25); color: #198754; }
+  .pm-alert button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+  .pm-alert button:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+
+  /* Laptops with the sidebar: keep the table readable */
+  @media (min-width: 769px) and (max-width: 1199.98px) {
+    .pm-table th:nth-child(3), .pm-table td:nth-child(3) { display: none; }
+    .pm-table th:nth-child(1) { width: 28% !important; }
+    .pm-table th:nth-child(4) { width: 22% !important; }
+    .pm-table th:nth-child(5) { width: 16% !important; }
+    .pm-table th:nth-child(6) { width: 14% !important; }
+    .mobile-card-padding { padding: 1.1rem !important; }
+    .mobile-stat-number { font-size: 2.2rem !important; }
+  }
+
+  /* ---------------- View pet modal ---------------- */
+  .pv-zoom-modal { zoom: 0.75; }
+  @media (min-width: 1600px) { .pv-zoom-modal { zoom: 0.9; } }
+  @media (min-width: 1920px) { .pv-zoom-modal { zoom: 1; } }
+  @media (max-width: 768px) {
+    .pv-zoom-modal { zoom: 1; }
+    .pv-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); }
+  }
+  .pv-modal { max-width: 900px; }
+  .pv-modal .modal-content { border: 1px solid var(--pm-line); border-radius: 16px; overflow: hidden; background: var(--pm-panel); color: var(--pm-text); box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+  .pv-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid var(--pm-line) !important; background: ${darkMode ? 'linear-gradient(180deg, rgba(255,193,7,0.08) 0%, #141414 100%)' : 'linear-gradient(180deg, #fffaeb 0%, #fff 100%)'}; }
+  ${darkMode ? '.pv-head .btn-close { filter: invert(1) grayscale(1) brightness(2); }' : ''}
+  .pv-head-main { display: flex; gap: 1rem; align-items: center; min-width: 0; flex: 1; }
+  .pv-face { width: 68px; height: 68px; border-radius: 18px; flex-shrink: 0; background: rgba(255,193,7,0.14); border: 3px solid var(--pm-panel); box-shadow: 0 6px 18px rgba(16,24,40,0.12); display: flex; align-items: center; justify-content: center; }
+  .pv-face img { width: 44px; height: 44px; object-fit: contain; }
+  .pv-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+  .pv-title { font-size: 1.3rem; font-weight: 700; color: var(--pm-text); margin: 0; line-height: 1.25; word-break: break-word; }
+  .pv-num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.8rem; font-weight: 600; color: var(--pm-muted); margin-top: 0.15rem; }
+  .pv-num i { font-size: 0.65rem; margin-right: 0.3rem; color: var(--pm-faint); }
+  .pv-body { padding: 1.4rem 1.5rem !important; background: var(--pm-panel); }
+  .pv-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--pm-muted); margin-bottom: 0.75rem; }
+  .pv-section-title > i { color: #e0a800; font-size: 0.8rem; }
+  .pv-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+  .pv-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid var(--pm-line); border-radius: 12px; background: var(--pm-hover); }
+  .pv-info.wide { grid-column: 1 / -1; }
+  .pv-info-ic { width: 30px; height: 30px; border-radius: 9px; background: var(--pm-panel); border: 1px solid var(--pm-line); color: var(--pm-faint); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+  .pv-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--pm-faint); }
+  .pv-info-value { font-size: 0.9rem; font-weight: 600; color: var(--pm-text); word-break: break-word; }
+  .pv-info-extra { font-size: 0.74rem; color: var(--pm-muted); margin-top: 0.1rem; }
+  .pv-chip { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 999px; }
+  .pv-chip i { font-size: 0.65rem; }
+  .pv-chip.green { background: rgba(25,135,84,0.12); color: #198754; }
+  .pv-chip.grey { background: var(--pm-soft); color: var(--pm-muted); }
+  .pv-notes { margin: 0; padding: 0.8rem 0.95rem; border-radius: 12px; border: 1px solid var(--pm-line); background: var(--pm-hover); font-size: 0.9rem; color: var(--pm-text); line-height: 1.6; white-space: pre-line; word-break: break-word; }
+  .pv-qr-card { border: 1px solid var(--pm-line); border-radius: 14px; padding: 1.2rem; text-align: center; background: var(--pm-hover); }
+  .pv-qr-img { width: 180px; max-width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--pm-line); padding: 6px; background: #fff; }
+  .pv-qr-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; font-weight: 600; color: var(--pm-text); margin-top: 0.6rem; }
+  .pv-qr-note { font-size: 0.76rem; color: var(--pm-muted); margin: 0.35rem 0 0.9rem; line-height: 1.5; }
+  .pv-qr-skel { width: 180px; height: 180px; margin: 0 auto; border-radius: 12px; background: ${darkMode ? 'linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%)' : 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)'}; background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite; }
+  .pv-qr-none { color: var(--pm-faint); font-size: 0.85rem; padding: 1.5rem 0; }
+  .pv-qr-none i { display: block; font-size: 2rem; opacity: 0.4; margin-bottom: 0.4rem; }
+  .pv-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid var(--pm-line) !important; background: var(--pm-panel); display: flex; justify-content: flex-end; gap: 0.6rem; }
+  .pv-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.88rem; padding: 0.6rem 1.2rem; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+  .pv-btn.primary { background: #ffc107; color: #1f2328; min-width: 110px; }
+  .pv-btn.primary:hover { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+  .pv-btn.blue { background: #4361ee; color: #fff; padding: 0.5rem 1rem; font-size: 0.82rem; }
+  .pv-btn.blue:hover { background: #3451d1; }
+  .pv-btn:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+  @media (min-width: 992px) and (max-width: 1199.98px) {
+    .pv-modal { max-width: 820px; }
+  }
   @media (prefers-reduced-motion: reduce) {
     .pm-anim, .pm-table tbody tr, .pm-menu { animation: none !important; }
   }
@@ -350,7 +419,6 @@ const SuperPetManagement = ({ darkMode }) => {
     }
   };
 
-  const loadData = () => loadPage(1);
 
   useEffect(() => {
     loadStats();
@@ -455,7 +523,6 @@ const SuperPetManagement = ({ darkMode }) => {
     return matchesSearch && matchesSpecies && matchesStatus;
   });
 
-  const activePets = pets.filter(p => p.is_active);
 
   const pmPagerNumbers = (() => {
     const pages = [];
@@ -502,14 +569,14 @@ const SuperPetManagement = ({ darkMode }) => {
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2"></i>
-            {error}
-          </Alert>
+          <div role="alert" className="pm-alert danger">
+            <i className="fas fa-exclamation-circle" /><span>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
       {/* Statistics Cards */}
-<Row className="mb-4">
+<Row className="mb-4 g-3">
   {[
     {
       label: 'Total Pets',
@@ -536,7 +603,7 @@ const SuperPetManagement = ({ darkMode }) => {
       delay: '0.3s'
     }
   ].map(({ label, count, img, accent, accentAlpha, delay }) => (
-    <Col xs={4} md={6} lg={4} className="mb-3" key={label} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+    <Col xs={4} className="mb-3" key={label} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
       <Card
         className="border-0 h-100"
         style={{
@@ -806,284 +873,116 @@ const SuperPetManagement = ({ darkMode }) => {
           )}
         </div>
 
-      {/* View Modal */}
-      <Modal show={showViewModal} onHide={() => { setShowViewModal(false); setQrDataURL(''); }} size="lg" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }} className="pet-modal">
-        <Modal.Header closeButton style={{ borderBottom: '2px solid #ffc107', background: darkMode ? '#1a1a1a' : '#ffffff' }}>
-          <Modal.Title style={{ fontWeight: '700', color: darkMode ? '#f0f0f0' : '#333' }}>
-            <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>
-            Pet Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '1.5rem', background: darkMode ? '#141414' : '#ffffff' }}>
-          {selectedPet && (
-            <Row>
-              <Col xs={12} md={6}>
-                <Card 
-                  className="mb-3 border-0" 
-                  style={{ 
-                    borderRadius: '12px', 
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-                    background: darkMode ? '#1e1e1e' : '#ffffff'
-                  }}
-                >
-                  <Card.Header style={{ background: darkMode ? '#2a2a2a' : '#f8f9fa', borderBottom: darkMode ? '2px solid #333333' : '2px solid #e9ecef' }}>
-                    <h6 className="mb-0" style={{ fontWeight: '600', color: darkMode ? '#f0f0f0' : '#333' }}>
-                      <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }}></i>
-                      Basic Information
-                    </h6>
-                  </Card.Header>
-                  <Card.Body style={{ background: darkMode ? '#1e1e1e' : '#ffffff' }}>
-                    <Table borderless size="sm" className="pet-modal-table">
-                      <tbody>
-                        <tr>
-                          <td style={{ width: '140px', fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Pet Name:</td>
-                          <td style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{selectedPet.name}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Registration No:</td>
-                          <td>
-                            <code style={{ 
-                              background: darkMode ? '#2a2a2a' : '#f8f9fa', 
-                              padding: '0.2rem 0.5rem', 
-                              borderRadius: '4px',
-                              color: darkMode ? '#f0f0f0' : '#333'
-                            }}>
-                              {selectedPet.registration_number || 'N/A'}
-                            </code>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Species:</td>
-                          <td style={{ color: darkMode ? '#f0f0f0' : '#333', textTransform: 'capitalize' }}>{selectedPet.species || 'Not specified'}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Breed:</td>
-                          <td style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{selectedPet.breed || 'Not specified'}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Gender:</td>
-                          <td style={{ color: darkMode ? '#f0f0f0' : '#333', textTransform: 'capitalize' }}>{selectedPet.gender || 'Not specified'}</td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Birth Date:</td>
-                          <td>
-                            {selectedPet.birth_date && selectedPet.birth_date !== '0000-00-00' ? (
-                              <>
-                                <span style={{ color: darkMode ? '#f0f0f0' : '#333' }}>
-                                  {new Date(selectedPet.birth_date).toLocaleDateString()}
-                                </span>
-                                <br />
-                                <small className="text-muted" style={{ fontWeight: '500' }}>
-                                  Age: {calculateAge(selectedPet.birth_date)}
-                                </small>
-                              </>
-                            ) : (
-                              <span style={{ color: '#666' }}>Not specified</span>
-                            )}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Sterilized:</td>
-                          <td>
-                            {selectedPet.sterilized ? (
-                              <>
-                                <Badge 
-                                  bg="success"
-                                  style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                                >
-                                  {selectedPet.gender === 'male' ? 'Neutered' : 'Spayed'}
-                                </Badge>
-                                {selectedPet.sterilization_date && (
-                                  <div className="mt-1">
-                                    <small className="text-muted" style={{ fontWeight: '500' }}>
-                                      Date: {new Date(selectedPet.sterilization_date).toLocaleDateString()}
-                                    </small>
-                                  </div>
-                                )}
-                                {selectedPet.sterilized_by && (
-                                  <div>
-                                    <small className="text-muted" style={{ fontWeight: '500' }}>
-                                      By: {selectedPet.sterilized_by}
-                                    </small>
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <Badge 
-                                bg="secondary"
-                                style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                              >
-                                Not Sterilized
-                              </Badge>
-                            )}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </Table>
-                  </Card.Body>
-                </Card>
-                </Col>
-              
-              <Col xs={12} md={6}>
-                <Card 
-                  className="mb-3 border-0" 
-                  style={{ 
-                    borderRadius: '12px', 
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-                    background: darkMode ? '#1e1e1e' : '#ffffff'
-                  }}
-                >
-                  <Card.Header style={{ background: darkMode ? '#2a2a2a' : '#f8f9fa', borderBottom: darkMode ? '2px solid #333333' : '2px solid #e9ecef' }}>
-                    <h6 className="mb-0" style={{ fontWeight: '600', color: darkMode ? '#f0f0f0' : '#333' }}>
-                      <i className="fas fa-clipboard-list me-2" style={{ color: '#ffc107' }}></i>
-                      Additional Details
-                    </h6>
-                  </Card.Header>
-                  <Card.Body style={{ background: darkMode ? '#1e1e1e' : '#ffffff' }}>
-                    <Table borderless size="sm" className="pet-modal-table">
-                      <tbody>
-                        <tr>
-                          <td style={{ width: '140px', fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Owner:</td>
-                          <td style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{getOwnerName(selectedPet)}</td>
-                        </tr>
-                    
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Weight:</td>
-                          <td>
-                            {selectedPet.weight ? (
-                              <>
-                                <span style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{selectedPet.weight} kg</span>
-                                <br />
-                                <small className="text-muted" style={{ fontWeight: '500' }}>
-                                  {(selectedPet.weight * 2.20462).toFixed(2)} lbs
-                                </small>
-                              </>
-                            ) : (
-                              <span style={{ color: '#666' }}>Not specified</span>
-                            )}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Registration Date:</td>
-                          <td style={{ color: darkMode ? '#f0f0f0' : '#333' }}>
-                            {selectedPet.registration_date 
-                              ? new Date(selectedPet.registration_date).toLocaleDateString()
-                              : new Date(selectedPet.created_at).toLocaleDateString()}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ fontWeight: '600', color: '#555' }}>Status:</td>
-                          <td>
-                            <Badge 
-                              bg={selectedPet.is_active ? 'success' : 'secondary'}
-                              style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px' }}
-                            >
-                              {selectedPet.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </td>
-                        </tr>
-                        {selectedPet.special_notes && (
-                          <tr>
-                            <td style={{ fontWeight: '600', color: darkMode ? '#aaaaaa' : '#555' }}>Special Notes:</td>
-                            <td style={{ color: darkMode ? '#f0f0f0' : '#333' }}>{selectedPet.special_notes}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </Table>
-                  </Card.Body>
-                </Card>
-              {(selectedPet?.public_code || selectedPet?.qr_code || selectedPet?.microchip_number) && (
-                <Card
-                  className="mb-3 border-0"
-                  style={{
-                    borderRadius: '12px',
-                    boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-                    background: darkMode ? '#1e1e1e' : '#ffffff'
-                  }}
-                >
-                  <Card.Header style={{
-                    background: darkMode ? 'rgba(67,97,238,0.15)' : 'rgba(67,97,238,0.08)',
-                    borderBottom: '2px solid rgba(67,97,238,0.2)'
-                  }}>
-                    <h6 className="mb-0" style={{ fontWeight: '600', color: darkMode ? '#f0f0f0' : '#333' }}>
-                      <i className="fas fa-qrcode me-2" style={{ color: '#4361ee' }}></i>
-                      Pet QR Code
-                    </h6>
-                  </Card.Header>
-                  <Card.Body className="text-center" style={{ background: darkMode ? '#1e1e1e' : '#ffffff' }}>
-                    {qrLoading ? (
-                      <div className="py-3">
-                        <Spinner animation="border" size="sm" style={{ color: '#4361ee' }} />
-                        <div style={{ fontSize: '0.78rem', color: '#888', marginTop: '0.5rem' }}>Generating QR code...</div>
-                      </div>
-                    ) : qrDataURL ? (
-                      <>
-                        <img
-                          src={qrDataURL}
-                          alt="Pet QR Code"
-                          style={{
-                            width: '160px',
-                            height: '160px',
-                            borderRadius: '10px',
-                            border: '3px solid #4361ee',
-                            padding: '4px',
-                            background: '#fff',
-                            boxShadow: '0 4px 16px rgba(67,97,238,0.15)'
-                          }}
-                        />
-                        <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.5rem', fontFamily: 'monospace' }}>
-                          {selectedPet.registration_number || selectedPet.microchip_number}
+      {/* ======================== VIEW PET MODAL ======================== */}
+      <Modal show={showViewModal} onHide={() => { setShowViewModal(false); setQrDataURL(''); }} dialogClassName="pv-modal" className="pv-zoom-modal pv-theme" scrollable>
+        {selectedPet && (() => {
+          const p = selectedPet;
+          const hasBirth = p.birth_date && p.birth_date !== '0000-00-00';
+          const fmtLong = (v) => {
+            if (!v) return null;
+            const d = new Date(String(v).replace(' ', 'T'));
+            return isNaN(d) ? null : d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+          };
+          const hasQr = p.public_code || p.qr_code || p.microchip_number;
+          const info = [
+            { icon: 'fa-paw', label: 'Species / breed', value: <span className="text-capitalize">{p.species || 'Not specified'}</span>, extra: p.breed || 'Mixed' },
+            { icon: p.gender === 'male' ? 'fa-mars' : 'fa-venus', label: 'Gender', value: <span className="text-capitalize">{p.gender || 'Not specified'}</span> },
+            { icon: 'fa-birthday-cake', label: 'Birth date', value: hasBirth ? fmtLong(p.birth_date) : 'Not specified', extra: hasBirth ? `${calculateAge(p.birth_date)} old` : null },
+            { icon: 'fa-weight', label: 'Weight', value: p.weight ? `${p.weight} kg` : 'Not specified', extra: p.weight ? `${(p.weight * 2.20462).toFixed(2)} lbs` : null },
+            {
+              icon: 'fa-cut', label: 'Sterilization',
+              value: p.sterilized
+                ? <span className="pv-chip green"><i className="fas fa-check" />{p.gender === 'male' ? 'Neutered' : 'Spayed'}</span>
+                : <span className="pv-chip grey">Not sterilized</span>,
+              extra: p.sterilized ? [fmtLong(p.sterilization_date), p.sterilized_by && `by ${p.sterilized_by}`].filter(Boolean).join(' · ') || null : null,
+            },
+            { icon: 'fa-calendar-plus', label: 'Registered', value: fmtLong(p.registration_date || p.created_at) || '—' },
+            { icon: 'fa-user', label: 'Owner', value: getOwnerName(p), wide: true },
+          ];
+          return (
+            <>
+              <Modal.Header closeButton className="pv-head">
+                <div className="pv-head-main">
+                  <div className="pv-face">
+                    <img src={getPetFaceImage(p.species)} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="pv-chips">
+                      <span className={`pm-pill ${p.is_active ? 'on' : 'inactive'}`}>
+                        <i className="fas fa-circle" />{p.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <Modal.Title as="h5" className="pv-title">{p.name}</Modal.Title>
+                    <div className="pv-num"><i className="fas fa-hashtag" />{p.registration_number || 'No registration number'}</div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Modal.Body className="pv-body">
+                <Row className="g-4">
+                  <Col lg={hasQr ? 7 : 12}>
+                    <div className="pv-section-title"><i className="fas fa-info-circle" />Pet information</div>
+                    <div className="pv-info-grid">
+                      {info.map(it => (
+                        <div key={it.label} className={`pv-info${it.wide ? ' wide' : ''}`}>
+                          <div className="pv-info-ic"><i className={`fas ${it.icon}`} /></div>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="pv-info-label">{it.label}</div>
+                            <div className="pv-info-value">{it.value}</div>
+                            {it.extra && <div className="pv-info-extra">{it.extra}</div>}
+                          </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = qrDataURL;
-                            link.download = `QR_${selectedPet.name}_${selectedPet.registration_number || selectedPet.id}.png`;
-                            link.click();
-                          }}
-                          style={{
-                            marginTop: '0.75rem',
-                            background: '#4361ee',
-                            border: 'none',
-                            color: '#fff',
-                            borderRadius: '8px',
-                            padding: '0.4rem 1rem',
-                            fontSize: '0.8rem',
-                            fontWeight: '700',
-                            cursor: 'pointer'
-                          }}
-                          onMouseOver={e => e.currentTarget.style.background = '#3451d1'}
-                          onMouseOut={e => e.currentTarget.style.background = '#4361ee'}
-                        >
-                          <i className="fas fa-download me-1"></i> Download
-                        </button>
+                      ))}
+                    </div>
+
+                    {p.special_notes && (
+                      <>
+                        <div className="pv-section-title mt-4"><i className="fas fa-sticky-note" />Special notes</div>
+                        <p className="pv-notes">{p.special_notes}</p>
                       </>
-                    ) : (
-                      <div style={{ color: '#bbb', fontSize: '0.82rem', padding: '1rem' }}>
-                        <i className="fas fa-qrcode" style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem', color: '#ddd' }} />
-                        QR code not available
-                      </div>
                     )}
-                  </Card.Body>
-                </Card>
-              )}
-              </Col>
-            </Row>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ borderTop: darkMode ? '2px solid #333333' : '2px solid #e9ecef', background: darkMode ? '#1a1a1a' : '#ffffff' }}>
-          <Button 
-            variant="secondary" 
-            onClick={() => setShowViewModal(false)}
-            style={{ 
-              borderRadius: '8px',
-              padding: '0.5rem 1.5rem',
-              fontWeight: '600'
-            }}
-          >
-            Close
-          </Button>
-        </Modal.Footer>
+                  </Col>
+
+                  {hasQr && (
+                    <Col lg={5}>
+                      <div className="pv-section-title"><i className="fas fa-qrcode" />Pet QR code</div>
+                      <div className="pv-qr-card">
+                        {qrLoading ? (
+                          <>
+                            <div className="pv-qr-skel" />
+                            <div className="pv-qr-note">Generating QR code…</div>
+                          </>
+                        ) : qrDataURL ? (
+                          <>
+                            <img src={qrDataURL} alt={`QR code for ${p.name}`} className="pv-qr-img" />
+                            <div className="pv-qr-code">{p.registration_number || p.microchip_number}</div>
+                            <div className="pv-qr-note">Scanning this opens the pet's public profile.</div>
+                            <button
+                              type="button"
+                              className="pv-btn blue"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = qrDataURL;
+                                link.download = `QR_${p.name}_${p.registration_number || p.microchip_number}.png`;
+                                link.click();
+                              }}
+                            >
+                              <i className="fas fa-download" />Download QR
+                            </button>
+                          </>
+                        ) : (
+                          <div className="pv-qr-none"><i className="fas fa-qrcode" />QR code not available</div>
+                        )}
+                      </div>
+                    </Col>
+                  )}
+                </Row>
+              </Modal.Body>
+              <Modal.Footer className="pv-foot">
+                <button type="button" className="pv-btn primary" onClick={() => { setShowViewModal(false); setQrDataURL(''); }}>Close</button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
       </Modal>
     </Container>
 

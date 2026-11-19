@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner,
-  Badge, Table, Modal, Form, InputGroup
-} from 'react-bootstrap';
+import { Container, Row, Col, Modal, Form } from 'react-bootstrap';
 import { useLocation } from 'react-router-dom';
 import { barangayAPI, handleAPIError } from '../../services/api';
 import api from '../../services/api';
@@ -44,18 +42,13 @@ const getActionButtons = (report) => {
   return [];
 };
 
-const StatusBadge = ({ status }) => {
-  const cfg = STATUS_CONFIG[status] || { label: status, color: '#fff', bg: '#6c757d', border: '#6c757d' };
-  return (
-    <Badge style={{
-      background: cfg.bg, color: cfg.color,
-      border: `1px solid ${cfg.border}`,
-      fontWeight: '600', fontSize: '0.75rem',
-      padding: '0.35rem 0.65rem', borderRadius: '20px'
-    }}>
-      {cfg.label}
-    </Badge>
-  );
+const API_BASE = (window.location.hostname === 'localhost'
+  ? 'http://localhost/city-pet-vaccination-api'
+  : 'https://city-pet-vaccination-api.onrender.com').replace(/\/+$/, '');
+const getImgUrl = (img) => {
+  if (!img) return '';
+  if (img.startsWith('http') || img.startsWith('data:') || img.startsWith('blob:')) return img;
+  return `${API_BASE}/${img.replace(/^\/+/, '')}`;
 };
 
 const getReportType = (value) => REPORT_TYPES.find(t => t.value === value) || REPORT_TYPES[3];
@@ -90,9 +83,6 @@ const ReportManagement = () => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedReport,  setSelectedReport]  = useState(null);
   const [showDropdown, setShowDropdown] = useState(null);
-const dropdownButtonRef = useRef(null);
-const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
-const ZOOM = 0.75;
   const [actionTarget,    setActionTarget]    = useState(null);
 
   const [adminNotes,    setAdminNotes]    = useState('');
@@ -320,6 +310,179 @@ const [filterSource, setFilterSource] = useState('all');
     .ra-menu-note i { margin-top: 2px; }
     .ra-pill i { font-size: 0.68rem; }
 
+    /* ---------------- Modals ---------------- */
+    .mm-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .mm-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .mm-zoom-modal { zoom: 1; } }
+    .mm-backdrop-top { z-index: 1060 !important; }
+    .mm-modal { max-width: 720px; }
+    .mm-small { max-width: 440px; }
+    .mm-small.wide { max-width: 540px; }
+    .mm-modal .modal-content, .mm-small .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .mm-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%) !important; }
+    .mm-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .mm-head-ic { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--c, #e0a800); background: color-mix(in srgb, var(--c, #ffc107) 14%, #fff); }
+    .mm-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in srgb, var(--c, #e0a800) 80%, #000); }
+    .mm-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; }
+    .mm-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .mm-body { padding: 1.4rem 1.5rem !important; }
+    .mm-section { margin-bottom: 1.25rem; }
+    .mm-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.7rem; }
+    .mm-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .mm-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .mm-type { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.9rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 14px; background: #fff; transition: all 0.15s ease; }
+    .mm-type:hover { border-color: color-mix(in srgb, var(--c) 50%, #fff); }
+    .mm-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 7%, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
+    .mm-type-ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); font-size: 1.1rem; }
+    .mm-type-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .mm-type-label { font-weight: 700; font-size: 0.86rem; color: #374151; }
+    .mm-type.on .mm-type-label { color: color-mix(in srgb, var(--c) 80%, #000); }
+    .mm-type-check { position: absolute; top: 7px; right: 8px; color: var(--c); font-size: 0.85rem; }
+
+    /* fields inside the modals */
+    .mm-zoom-modal .form-label { font-size: 0.84rem !important; font-weight: 600 !important; color: #374151 !important; margin-bottom: 0.35rem; }
+    .mm-zoom-modal .form-control, .mm-zoom-modal .form-select { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; box-shadow: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .mm-zoom-modal .form-control:focus, .mm-zoom-modal .form-select:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .mm-zoom-modal .form-control.is-invalid { border-color: #dc3545 !important; }
+    .mm-zoom-modal .form-control:disabled, .mm-zoom-modal .form-select:disabled { background-color: #f8f9fa !important; }
+    .mm-zoom-modal .input-group > .form-control { border-radius: 0 !important; }
+    .mm-zoom-modal .input-group-text { border: 1.5px solid #e5e7eb !important; border-right: none !important; background: #f8f9fa !important; border-radius: 10px 0 0 10px !important; font-size: 0.95rem !important; }
+    .mm-zoom-modal .input-group > .btn:last-child { border-radius: 0 10px 10px 0 !important; }
+    .mm-zoom-modal .form-text { font-size: 0.76rem; }
+    .mm-zoom-modal .alert { border-radius: 10px; font-size: 0.86rem; border-width: 1px; }
+    .mm-zoom-modal .form-check-input:checked { background-color: #ffc107; border-color: #ffc107; }
+
+    .mm-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .mm-alert i { margin-top: 3px; }
+    .mm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #842029; }
+    .mm-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .mm-foot > * { margin: 0 !important; }
+    .mm-foot.even > * { flex: 1; }
+    .mm-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 10px !important; border: 1px solid transparent !important; font-weight: 700 !important; font-size: 0.9rem !important; padding: 0.65rem 1.2rem !important; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .mm-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .mm-btn.primary { background: #ffc107 !important; color: #1f2328 !important; }
+    .mm-btn.primary:hover:not(:disabled) { background: #f0b400 !important; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .mm-btn.ghost { background: #fff !important; color: #1f2328 !important; border-color: #e5e7eb !important; font-weight: 600 !important; }
+    .mm-btn.ghost:hover:not(:disabled) { background: #f6f7f9 !important; }
+    .mm-btn.solid { background: var(--c) !important; color: #fff !important; }
+    .mm-btn.solid:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000) !important; }
+
+    /* view details */
+    .mm-pet { display: flex; align-items: center; gap: 0.8rem; padding: 0.85rem 1rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .mm-pet-av { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,193,7,0.16); color: #b88a00; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mm-pet-name { font-weight: 700; color: #1f2328; font-size: 1rem; }
+    .mm-pet-meta { font-size: 0.8rem; color: #6b7280; }
+    .mm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .mm-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fff; }
+    .mm-info.wide { grid-column: 1 / -1; }
+    .mm-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #f6f7f9; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .mm-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .mm-info-value { font-size: 0.92rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .mm-none { color: #b8bdc6; font-weight: 500; }
+    .mm-notes { margin-top: 0.9rem; padding: 0.8rem 0.95rem; border-radius: 12px; background: #fffaeb; border: 1px solid rgba(255,193,7,0.3); }
+    .mm-notes p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+
+    /* small centered modals */
+    @keyframes rxPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .mm-small-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; }
+    .mm-small-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: rxPop 0.4s ease-out; }
+    .mm-small-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .mm-small-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .mm-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .mm-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .mm-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .mm-item-meta { font-size: 0.78rem; color: #6b7280; }
+    .mm-item-flag { font-size: 0.76rem; font-weight: 600; color: #c2410c; margin-top: 0.2rem; }
+    .mm-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 20%, #fff); }
+    .mm-note i { margin-top: 3px; }
+    .mm-review { background: #fafbfc; border: 1px solid #eef0f3; border-radius: 12px; padding: 0.9rem 1rem; }
+
+    @media (max-width: 768px) {
+      .mm-zoom-modal { zoom: 1; }
+      .mm-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .mm-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+      .mm-head { padding: 1rem !important; }
+      .mm-head-ic { width: 40px; height: 40px; }
+      .mm-title { font-size: 1.05rem; }
+      .mm-body { padding: 1rem !important; }
+      .mm-types { grid-template-columns: repeat(2, 1fr); }
+      .mm-zoom-modal .input-group .form-control { font-size: 0.92rem !important; letter-spacing: 0 !important; min-width: 0; }
+      .mm-zoom-modal .input-group > .btn { padding: 0 0.75rem !important; font-size: 0.82rem !important; }
+      .mm-zoom-modal .input-group-text { padding: 0 0.6rem !important; font-size: 0.85rem !important; }
+      .mm-type { flex-direction: row; justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
+      .mm-type-ic { width: 36px; height: 36px; border-radius: 10px; }
+      .mm-type-ic img { width: 22px; height: 22px; }
+      .mm-type-label { font-size: 0.82rem; }
+      .mm-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .mm-info-ic { display: none; }
+      .mm-foot { padding: 0.75rem 1rem !important; }
+      .mm-foot > * { flex: 1; }
+      .mm-small-body { padding: 1.5rem 1.1rem 1rem !important; }
+    }
+    @media (max-width: 380px) { .mm-grid { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .mm-small-icon { animation: none; } }
+
+    /* Report management extras */
+    .mm-modal.lg { max-width: 940px; }
+    .mm-head-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .mm-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .mm-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .mm-chip i { font-size: 0.66rem; }
+    .mm-chip.grey { background: #f3f4f6; color: #4b5563; }
+    .mm-num, .mm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .mm-num { font-size: 0.8rem; font-weight: 600; color: #6b7280; margin-top: 0.15rem; }
+    .mm-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .mm-count { margin-left: auto; font-size: 0.7rem; background: #f3f4f6; color: #4b5563; padding: 0.1rem 0.55rem; border-radius: 999px; letter-spacing: 0; }
+    .mm-req { color: #dc3545; }
+    .mm-opt { font-size: 0.72rem; font-weight: 600; color: #9ca3af; text-transform: none; letter-spacing: 0; }
+    .mm-label { font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+    .mm-input { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .mm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .mm-input.good { border-color: #10b981 !important; }
+    .mm-input.bad { border-color: #ef4444 !important; }
+    .mm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+    .mm-hint.bad { color: #dc3545; }
+    .mm-readonly { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1.5px dashed #e5e7eb; background: #f8f9fa; font-size: 0.92rem; font-weight: 600; color: #1f2328; }
+    .mm-readonly i { color: #9ca3af; }
+    .mm-readonly.empty { font-weight: 500; font-style: italic; color: #9ca3af; }
+    .mm-map { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .mm-map-loading { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 0.85rem; font-weight: 600; border-radius: 0; }
+    .mm-pin { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; padding: 0.55rem 0.75rem; border-radius: 10px; background: #f8f9fa; color: #6b7280; font-size: 0.8rem; }
+    .mm-pin.ok { background: rgba(25,135,84,0.07); color: #146c43; border: 1px solid rgba(25,135,84,0.2); }
+    .mm-pin .mm-mono { margin-left: 0.3rem; opacity: 0.85; }
+    .mm-pin button { margin-left: auto; border: none; background: none; color: #dc3545; font-size: 0.78rem; font-weight: 600; padding: 0; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .mm-desc { font-size: 0.92rem; color: #374151; line-height: 1.6; margin: 0; white-space: pre-line; word-break: break-word; }
+    .mm-desc.muted { color: #9ca3af; font-style: italic; }
+    .mm-admin { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 12px; background: rgba(13,110,253,0.05); border: 1px solid rgba(13,110,253,0.18); }
+    .mm-admin-head { font-size: 0.78rem; font-weight: 700; color: #0a58ca; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem; }
+    .mm-admin p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+    .mm-empty { padding: 1.1rem; border: 1px dashed #e5e7eb; border-radius: 12px; color: #9ca3af; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .mm-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem; }
+    .mm-thumb { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #f8f9fa; padding: 0; cursor: zoom-in; }
+    .mm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
+    .mm-thumb:hover img { transform: scale(1.05); }
+    .mm-thumb-zoom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); color: transparent; transition: all 0.15s ease; }
+    .mm-thumb:hover .mm-thumb-zoom, .mm-thumb:focus-visible .mm-thumb-zoom { background: rgba(0,0,0,0.3); color: #fff; }
+    .mm-thumb.broken::after { content: 'No preview'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #9ca3af; }
+    .mm-actions { display: flex; flex-direction: column; gap: 0.45rem; }
+    .mm-action { display: flex; align-items: center; gap: 0.65rem; width: 100%; padding: 0.6rem 0.75rem; border-radius: 11px; border: 1px solid color-mix(in srgb, var(--c) 25%, #fff); background: color-mix(in srgb, var(--c) 5%, #fff); color: #1f2328; font-weight: 600; font-size: 0.88rem; transition: all 0.15s ease; }
+    .mm-action:hover { background: color-mix(in srgb, var(--c) 10%, #fff); border-color: var(--c); transform: translateX(2px); }
+    .mm-action-ic { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 14%, #fff); color: var(--c); font-size: 0.8rem; flex-shrink: 0; }
+    .mm-action-arrow { color: #c4c9d0; font-size: 0.72rem; }
+    .mm-flow { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin: 0.9rem 0 1rem; color: #9ca3af; font-size: 0.8rem; }
+    .mm-item-av img { width: 26px; height: 26px; object-fit: contain; }
+    .mm-types { grid-template-columns: repeat(2, 1fr); }
+    .mm-lightbox { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .mm-lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); transition: transform 0.1s ease; }
+    .mm-lb-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; }
+    .mm-lb-btn:hover { background: rgba(255,255,255,0.3); }
+    .mm-lb-btn.close { top: 1.25rem; right: 1.25rem; }
+    .mm-lb-btn.prev { left: 1rem; top: 50%; transform: translateY(-50%); }
+    .mm-lb-btn.next { right: 1rem; top: 50%; transform: translateY(-50%); }
+    .mm-lb-count { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.75); font-size: 0.8rem; font-weight: 600; }
+    .mm-alert.page { margin-bottom: 1.25rem; align-items: center; }
+    .mm-alert.page span { flex: 1; }
+    .mm-alert.page button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
   `;
 
 const location = useLocation();
@@ -438,9 +601,10 @@ const location = useLocation();
     return () => { if (monthlyChartObj.current) { monthlyChartObj.current.destroy(); monthlyChartObj.current = null; } };
   }, [chartJsLoaded, reports, loading]);
 
-  const loadData = async () => {
+  // silent = true after status updates / new reports: no skeleton, no jump to the top
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [rRes, bRes] = await Promise.all([reportsAPI.getAll(), barangayAPI.getAll()]);
       setReports(rRes.data.reports   || []);
       setBarangays(bRes.data.barangays || []);
@@ -477,7 +641,7 @@ const location = useLocation();
       const label = STATUS_CONFIG[actionTarget.next]?.label || actionTarget.next;
       setSuccess(`Report marked as "${label}" successfully.`);
       setActionTarget(null);
-      await loadData();
+      await loadData(true);
       setTimeout(() => setSuccess(''), 3500);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -590,7 +754,7 @@ fd.append('description',  generateForm.description);
       await reportsAPI.create(fd);
       setSuccess('Report generated successfully and is now visible on the map.');
       setShowGenerateModal(false);
-      await loadData();
+      await loadData(true);
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -667,9 +831,10 @@ const matchArchive = true;
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2" />{error}
-          </Alert>
+          <div role="alert" className="mm-alert danger page">
+            <i className="fas fa-exclamation-triangle" /><span>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
         {success && (
           <div className="ra-toast" role="status">
@@ -929,385 +1094,283 @@ const matchArchive = true;
         </div>
 
         {/* ══════════ VIEW DETAILS MODAL ══════════ */}
-        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" className="rpt-view-modal" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
-          <Modal.Header closeButton style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-            <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
-              {selectedReport && (
-                <span style={{ marginRight: '0.6rem' }}>
-                  <ReportTypeImg type={getReportType(selectedReport.report_type)} size={28} />
-                </span>
-              )}
-              Report Details
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem' }}>
-            {selectedReport && (
-              <Row>
-                <Col md={6}>
-                  <Card className="border-0 mb-3" style={{ borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
-                    <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px 14px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333' }}>
-                        <i className="fas fa-info-circle me-2" style={{ color: '#ffc107' }} />Report Information
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <Table borderless size="sm">
-                        <tbody>
-                          {[
-                            ['Report No.',  <code style={{ background: '#f8f9fa', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>{selectedReport.report_number}</code>],
-                            ['Type',        getReportType(selectedReport.report_type).label],
-                            ['Status',      <StatusBadge status={selectedReport.status} />],
-                            ['Barangay',    selectedReport.barangay_name || getBarangayName(selectedReport.barangay_id)],
-                            ['Address',     selectedReport.address || 'N/A'],
-                            ['Contact No.', selectedReport.phone_number || 'N/A'],
-                            ['Reporter',    selectedReport.reporter_name || 'N/A'],
-                            
-                            ['Submitted',   formatDate(selectedReport.created_at)],
-                          ].map(([label, val]) => (
-                            <tr key={label}>
-                              <td style={{ fontWeight: '600', color: '#666', width: '130px', paddingBottom: '0.5rem' }}>{label}:</td>
-                              <td style={{ fontWeight: '500', color: '#333' }}>{val}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                    </Card.Body>
-                  </Card>
-                </Col>
-
-                <Col md={6}>
-                  <Card className="border-0 mb-3" style={{ borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
-                    <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px 14px 0 0' }}>
-                      <h6 className="mb-0" style={{ fontWeight: '700', color: '#333' }}>
-                        <i className="fas fa-align-left me-2" style={{ color: '#ffc107' }} />Description
-                      </h6>
-                    </Card.Header>
-                    <Card.Body>
-                      {selectedReport.description
-                        ? <p style={{ color: '#555', lineHeight: '1.7', marginBottom: 0 }}>{selectedReport.description}</p>
-                        : <p className="text-muted text-center py-3 mb-0">No description provided.</p>
-                      }
-                    </Card.Body>
-                  </Card>
-
-                  {selectedReport.admin_notes && (
-                    <Card className="border-0 mb-3" style={{ borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
-                      <Card.Header style={{ background: 'rgba(13,202,240,0.1)', borderBottom: '2px solid rgba(13,202,240,0.3)', borderRadius: '14px 14px 0 0' }}>
-                        <h6 className="mb-0" style={{ fontWeight: '700', color: '#333' }}>
-                          <i className="fas fa-user-shield me-2" style={{ color: '#0dcaf0' }} />Admin Notes
-                        </h6>
-                      </Card.Header>
-                      <Card.Body>
-                        <p style={{ color: '#555', lineHeight: '1.7', marginBottom: 0 }}>{selectedReport.admin_notes}</p>
-                      </Card.Body>
-                    </Card>
-                  )}
-
-                  {selectedReport.images && selectedReport.images.length > 0 && (() => {
-  const API_BASE = (window.location.hostname === 'localhost'
-    ? 'http://localhost/city-pet-vaccination-api'
-    : 'https://city-pet-vaccination-api.onrender.com').replace(/\/+$/, '');
-  const getImgUrl = (img) => {
-    if (!img) return '';
-    if (img.startsWith('http')) return img;
-    return `${API_BASE}/${img.replace(/^\/+/, '')}`;
-  };
-  return (
-    <>
-      {lightboxImg && (
-  <div
-    onClick={() => setLightboxImg(null)}
-    onWheel={e => {
-      e.preventDefault();
-      setLightboxZoom(z => Math.min(Math.max(z - e.deltaY * 0.001, 0.5), 5));
-    }}
-    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', zoom: `${1 / 0.75}`, cursor: 'zoom-in' }}
-  >
-    <img
-      src={lightboxImg}
-      alt="Full view"
-      style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px', boxShadow: '0 8px 40px rgba(0,0,0,0.6)', transform: `scale(${lightboxZoom})`, transformOrigin: 'center center', transition: 'transform 0.1s ease' }}
-      onClick={e => e.stopPropagation()}
-    />
-          <button
-            onClick={() => setLightboxImg(null)}
-            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1.2rem', backdropFilter: 'blur(4px)' }}
-          >
-            <i className="fas fa-times" />
-          </button>
-          {selectedReport.images.length > 1 && (() => {
-            const currentIdx = selectedReport.images.findIndex(img => getImgUrl(img) === lightboxImg);
-            const prev = selectedReport.images[(currentIdx - 1 + selectedReport.images.length) % selectedReport.images.length];
-            const next = selectedReport.images[(currentIdx + 1) % selectedReport.images.length];
+        <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="mm-modal lg" className="mm-zoom-modal" scrollable>
+          {selectedReport && (() => {
+            const r = selectedReport;
+            const t = getReportType(r.report_type);
+            const st = raStatus(r.status);
+            const images = r.images || [];
+            const actions = getActionButtons(r);
+            const info = [
+              { icon: 'fa-map', label: 'Barangay', value: r.barangay_name || getBarangayName(r.barangay_id) },
+              { icon: 'fa-phone-alt', label: 'Contact no.', value: r.phone_number || 'N/A' },
+              { icon: 'fa-home', label: 'Address', value: r.address || 'N/A', wide: true },
+              { icon: 'fa-user', label: 'Reporter', value: r.reporter_name || 'N/A' },
+              { icon: 'fa-calendar-plus', label: 'Submitted', value: formatDate(r.created_at) },
+            ];
             return (
               <>
-                <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(prev)); }}
-                  style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1rem', backdropFilter: 'blur(4px)' }}>
-                  <i className="fas fa-chevron-left" />
-                </button>
-                <button onClick={e => { e.stopPropagation(); setLightboxImg(getImgUrl(next)); }}
-                  style={{ position: 'absolute', right: '4rem', top: '50%', transform: 'translateY(-50%)', background: 'rgba(255,255,255,0.15)', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: '1rem', backdropFilter: 'blur(4px)' }}>
-                  <i className="fas fa-chevron-right" />
-                </button>
-                <div style={{ position: 'absolute', bottom: '1.25rem', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', fontWeight: '600' }}>
-                  {currentIdx + 1} / {selectedReport.images.length}
-                </div>
+                <Modal.Header closeButton className="mm-head" style={{ '--c': t.color }}>
+                  <div className="mm-head-main">
+                    <div className="mm-head-ic" style={{ background: `color-mix(in srgb, ${t.color} 12%, #fff)` }}>
+                      <img src={t.img} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="mm-chips">
+                        <span className="mm-chip" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 12%, #fff)` }}><i className={`fas ${st.icon}`} />{st.label}</span>
+                        {parseInt(r.reported_by_clinic) ? <span className="mm-chip grey"><i className="fas fa-clinic-medical" />Clinic report</span> : null}
+                      </div>
+                      <Modal.Title as="h5" className="mm-title">{t.label}</Modal.Title>
+                      <div className="mm-num">#{r.report_number || `RPT-${String(r.id).padStart(6, '0')}`}</div>
+                    </div>
+                  </div>
+                </Modal.Header>
+                <Modal.Body className="mm-body">
+                  <Row className="g-4">
+                    <Col lg={7}>
+                      <div className="mm-section-title"><i className="fas fa-info-circle" />Report information</div>
+                      <div className="mm-grid">
+                        {info.map(it => (
+                          <div key={it.label} className={`mm-info${it.wide ? ' wide' : ''}`}>
+                            <div className="mm-info-ic"><i className={`fas ${it.icon}`} /></div>
+                            <div style={{ minWidth: 0 }}>
+                              <div className="mm-info-label">{it.label}</div>
+                              <div className="mm-info-value">{it.value}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mm-section-title mt-4"><i className="fas fa-align-left" />Description</div>
+                      <p className={`mm-desc${r.description ? '' : ' muted'}`}>{r.description || 'No description provided.'}</p>
+
+                      {r.admin_notes && (
+                        <div className="mm-admin">
+                          <div className="mm-admin-head"><i className="fas fa-user-shield" />Admin notes</div>
+                          <p>{r.admin_notes}</p>
+                        </div>
+                      )}
+                    </Col>
+                    <Col lg={5}>
+                      <div className="mm-section-title"><i className="fas fa-images" />Attached photos {images.length > 0 && <span className="mm-count">{images.length}</span>}</div>
+                      {images.length > 0 ? (
+                        <div className="mm-photos">
+                          {images.map((img, i) => {
+                            const src = getImgUrl(img);
+                            return (
+                              <button key={i} type="button" className="mm-thumb" onClick={() => { setLightboxImg(src); setLightboxZoom(1); }} aria-label={`Open photo ${i + 1}`}>
+                                <img src={src} alt={`Report photo ${i + 1}`}
+                                  onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.classList.add('broken'); }} />
+                                <span className="mm-thumb-zoom"><i className="fas fa-search-plus" /></span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="mm-empty"><i className="fas fa-image" />No photos attached.</div>
+                      )}
+
+                      {actions.length > 0 && (
+                        <>
+                          <div className="mm-section-title mt-4"><i className="fas fa-bolt" />Update status</div>
+                          <div className="mm-actions">
+                            {actions.map(a => {
+                              const ns = raStatus(a.next);
+                              return (
+                                <button key={a.next} type="button" className="mm-action" style={{ '--c': ns.color }}
+                                  onClick={() => { setShowViewModal(false); handleActionClick(r, a.next); }}>
+                                  <span className="mm-action-ic"><i className={`fas ${ns.icon}`} /></span>
+                                  <span className="flex-grow-1 text-start">{a.label}</span>
+                                  <i className="fas fa-chevron-right mm-action-arrow" />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </Col>
+                  </Row>
+                </Modal.Body>
+                <Modal.Footer className="mm-foot">
+                  <button type="button" className="mm-btn primary" onClick={() => setShowViewModal(false)}>Close</button>
+                </Modal.Footer>
               </>
             );
           })()}
-        </div>
-      )}
-      <Card className="border-0 mb-3" style={{ borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
-        <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px 14px 0 0' }}>
-          <h6 className="mb-0" style={{ fontWeight: '700', color: '#333' }}>
-            <i className="fas fa-images me-2" style={{ color: '#ffc107' }} />Attached Photos ({selectedReport.images.length})
-          </h6>
-        </Card.Header>
-        <Card.Body>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {selectedReport.images.map((img, i) => {
-              const src = getImgUrl(img);
-              return (
-                <div
-                  key={i}
-                  onClick={() => setLightboxImg(src)}
-                  style={{ position: 'relative', cursor: 'pointer', borderRadius: '10px', overflow: 'hidden', width: '85px', height: '85px', border: '2px solid #dee2e6', transition: 'all 0.2s', flexShrink: 0 }}
-                  onMouseOver={e => { e.currentTarget.style.borderColor = '#ffc107'; e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)'; }}
-                  onMouseOut={e  => { e.currentTarget.style.borderColor = '#dee2e6'; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
-                >
-                  <img
-                    src={src}
-                    alt={`report-img-${i}`}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    onError={e => {
-                      e.target.style.display = 'none';
-                      e.target.parentElement.style.background = '#f8f9fa';
-                      e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px"><i class="fas fa-image" style="color:#ccc;font-size:1.4rem"></i><small style="color:#aaa;font-size:0.6rem">No preview</small></div>';
-                    }}
-                  />
-                  <div
-                    style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.background = 'rgba(0,0,0,0.3)'}
-                    onMouseOut={e  => e.currentTarget.style.background = 'rgba(0,0,0,0)'}
-                  >
-                    <i className="fas fa-search-plus" style={{ color: 'rgba(255,255,255,0)', fontSize: '1.2rem', transition: 'color 0.2s', pointerEvents: 'none' }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card.Body>
-      </Card>
-    </>
-  );
-})()}
-
-                  {getActionButtons(selectedReport).length > 0 && (
-                    <Card className="border-0" style={{ borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
-                      <Card.Header style={{ background: 'rgba(255,193,7,0.1)', borderBottom: '2px solid rgba(255,193,7,0.3)', borderRadius: '14px 14px 0 0' }}>
-                        <h6 className="mb-0" style={{ fontWeight: '700', color: '#333' }}>
-                          <i className="fas fa-bolt me-2" style={{ color: '#ffc107' }} />Quick Actions
-                        </h6>
-                      </Card.Header>
-                      <Card.Body style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {getActionButtons(selectedReport).map(a => (
-                          <Button key={a.next} size="sm" variant={a.variant}
-                            style={{ fontWeight: '600', borderRadius: '8px', fontSize: '0.82rem' }}
-                            onClick={() => { setShowViewModal(false); handleActionClick(selectedReport, a.next); }}>
-                            {a.label}
-                          </Button>
-                        ))}
-                      </Card.Body>
-                    </Card>
-                  )}
-                </Col>
-              </Row>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowViewModal(false)}
-              style={{ borderRadius: '10px', padding: '0.65rem 1.5rem', fontWeight: '600' }}>
-              Close
-            </Button>
-          </Modal.Footer>
         </Modal>
 
-        {/* ══════════ CONFIRM UPDATE MODAL ══════════ */}
-        <Modal show={showUpdateModal} onHide={() => { setShowUpdateModal(false); setActionTarget(null); }} centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
-          <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-            <Modal.Title style={{ fontWeight: '700' }}>
-              <i className="fas fa-edit me-2" style={{ color: '#ffc107' }} />Confirm Status Update
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body style={{ padding: '2rem' }}>
-            {actionTarget && (
+        {/* ══════════ CONFIRM UPDATE MODAL (small, always centered) ══════════ */}
+        <Modal show={showUpdateModal} onHide={() => { if (!updateLoading) { setShowUpdateModal(false); setActionTarget(null); } }} centered dialogClassName="mm-small" className="mm-zoom-modal">
+          {actionTarget && (() => {
+            const ns = raStatus(actionTarget.next);
+            const cur = raStatus(actionTarget.report.status);
+            const t = getReportType(actionTarget.report.report_type);
+            return (
               <>
-                <p style={{ marginBottom: '1.25rem', fontSize: '1rem' }}>
-                  Update report <strong>{actionTarget.report.report_number}</strong> to:
-                </p>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <StatusBadge status={actionTarget.next} />
-                </div>
-                <Form.Group>
-                  <Form.Label style={{ fontWeight: '600', color: '#333' }}>
-                    Admin Notes <span style={{ fontWeight: '400', color: '#888', fontSize: '0.85rem' }}>(optional)</span>
-                  </Form.Label>
-                  <Form.Control
-                    as="textarea" rows={3}
-                    value={adminNotes}
-                    onChange={e => setAdminNotes(e.target.value)}
-                    placeholder="Add any notes about this status change..."
-                    style={{ borderRadius: '8px', border: '2px solid #dee2e6' }}
-                  />
-                </Form.Group>
+                <Modal.Body className="mm-small-body">
+                  <div className="mm-small-icon" style={{ '--c': ns.color }}><i className={`fas ${ns.icon}`} /></div>
+                  <h5 className="mm-small-title">Mark as {ns.label.toLowerCase()}?</h5>
+                  <p className="mm-small-text">The reporter will see the new status of this report.</p>
+                  <div className="mm-item">
+                    <div className="mm-item-av" style={{ background: `color-mix(in srgb, ${t.color} 12%, #fff)` }}>
+                      <img src={t.img} alt="" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="mm-item-name">{t.label}</div>
+                      <div className="mm-item-meta">#{actionTarget.report.report_number}</div>
+                    </div>
+                  </div>
+                  <div className="mm-flow">
+                    <span className="mm-chip" style={{ color: cur.color, background: `color-mix(in srgb, ${cur.color} 12%, #fff)` }}>{cur.label}</span>
+                    <i className="fas fa-arrow-right" />
+                    <span className="mm-chip" style={{ color: ns.color, background: `color-mix(in srgb, ${ns.color} 12%, #fff)` }}>{ns.label}</span>
+                  </div>
+                  <Form.Group className="text-start">
+                    <Form.Label className="mm-label">Admin notes <span className="mm-opt">optional</span></Form.Label>
+                    <Form.Control className="mm-input" as="textarea" rows={3} value={adminNotes}
+                      onChange={e => setAdminNotes(e.target.value)} placeholder="Add any notes about this status change…" />
+                  </Form.Group>
+                </Modal.Body>
+                <Modal.Footer className="mm-foot even">
+                  <button type="button" className="mm-btn ghost" onClick={() => { setShowUpdateModal(false); setActionTarget(null); }} disabled={updateLoading}>Cancel</button>
+                  <button type="button" className="mm-btn solid" style={{ '--c': ns.color }} onClick={() => { if (!updateLoading) confirmUpdate(); }} disabled={updateLoading}>
+                    {updateLoading ? <><i className="fas fa-circle-notch fa-spin" />Updating…</> : <><i className="fas fa-check" />Confirm</>}
+                  </button>
+                </Modal.Footer>
               </>
-            )}
-          </Modal.Body>
-          <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-            <Button variant="secondary"
-              onClick={() => { setShowUpdateModal(false); setActionTarget(null); }}
-              disabled={updateLoading}
-              style={{ borderRadius: '8px', padding: '0.65rem 1.5rem', fontWeight: '600' }}>
-              Cancel
-            </Button>
-            <Button onClick={() => { if (!updateLoading) confirmUpdate(); }} disabled={updateLoading} className="border-0"
-              style={{ background: updateLoading ? '#6c757d' : '#ffc107', color: updateLoading ? '#fff' : '#000', borderRadius: '8px', padding: '0.65rem 1.5rem', fontWeight: '700', boxShadow: '0 4px 12px rgba(255,193,7,0.4)', transition: 'all 0.2s' }}>
-              {updateLoading
-                ? <><Spinner size="sm" animation="border" className="me-2" />Updating...</>
-                : <><i className="fas fa-check me-2" />Confirm Update</>
-              }
-            </Button>
-          </Modal.Footer>
+            );
+          })()}
         </Modal>
 
       </Container>
 
+      {/* Photo lightbox (outside the modal so it covers the whole screen) */}
+      {lightboxImg && selectedReport && (() => {
+        const imgs = (selectedReport.images || []).map(getImgUrl);
+        const idx = imgs.indexOf(lightboxImg);
+        const go = (d) => { setLightboxImg(imgs[(idx + d + imgs.length) % imgs.length]); setLightboxZoom(1); };
+        return (
+          <div className="mm-lightbox" onClick={() => { setLightboxImg(null); setLightboxZoom(1); }}
+            onWheel={e => setLightboxZoom(z => Math.min(Math.max(z - e.deltaY * 0.001, 0.5), 5))}>
+            <img src={lightboxImg} alt="Full view" onClick={e => e.stopPropagation()} style={{ transform: `scale(${lightboxZoom})` }} />
+            <button type="button" className="mm-lb-btn close" onClick={() => { setLightboxImg(null); setLightboxZoom(1); }} aria-label="Close"><i className="fas fa-times" /></button>
+            {imgs.length > 1 && (
+              <>
+                <button type="button" className="mm-lb-btn prev" onClick={e => { e.stopPropagation(); go(-1); }} aria-label="Previous"><i className="fas fa-chevron-left" /></button>
+                <button type="button" className="mm-lb-btn next" onClick={e => { e.stopPropagation(); go(1); }} aria-label="Next"><i className="fas fa-chevron-right" /></button>
+                <div className="mm-lb-count">{idx + 1} / {imgs.length}</div>
+              </>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ══════════ GENERATE REPORT MODAL ══════════ */}
-      <Modal show={showGenerateModal} onHide={() => !generateLoading && setShowGenerateModal(false)} size="lg" backdrop="static" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton={!generateLoading} style={{ background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
-            <i className="fas fa-biohazard me-2" style={{ color: '#ffc107' }} />Generate Rabies Report
-          </Modal.Title>
+      <Modal show={showGenerateModal} onHide={() => !generateLoading && setShowGenerateModal(false)} backdrop="static" dialogClassName="mm-modal" className="mm-zoom-modal" scrollable>
+        <Modal.Header closeButton={!generateLoading} className="mm-head" style={{ '--c': '#dc3545' }}>
+          <div className="mm-head-main">
+            <div className="mm-head-ic" style={{ background: 'rgba(220,53,69,0.1)', color: '#dc3545' }}><i className="fas fa-biohazard" /></div>
+            <div style={{ minWidth: 0 }}>
+              <div className="mm-kicker" style={{ color: '#dc3545' }}>Admin report</div>
+              <Modal.Title as="h5" className="mm-title">Generate rabies report</Modal.Title>
+              <div className="mm-sub">It shows on the map as soon as it's created.</div>
+            </div>
+          </div>
         </Modal.Header>
-        <Modal.Body style={{ padding: '2rem', maxHeight: '72vh', overflowY: 'auto' }}>
-          {generateError && (
-            <Alert variant="danger" className="mb-3" style={{ borderRadius: '10px', border: '2px solid rgba(220,53,69,0.3)' }}>
-              <i className="fas fa-exclamation-triangle me-2" />{generateError}
-            </Alert>
-          )}
+        <Modal.Body className="mm-body">
+          {generateError && <div className="mm-alert danger"><i className="fas fa-exclamation-circle" /><span>{generateError}</span></div>}
 
-          {/* Status */}
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Initial Status <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div className="mm-section">
+            <div className="mm-section-title"><i className="fas fa-flag" />Initial status <span className="mm-req">*</span></div>
+            <div className="mm-types">
               {[
-                { value: 'suspected_rabies', label: 'Suspected Rabies', img: '/suspected_rabies.png', color: '#f0c800', bg: 'rgba(240,200,0,0.08)' },
-                { value: 'positive_rabies',  label: 'Positive Rabies',  img: '/rabies.png',           color: '#dc3545', bg: 'rgba(220,53,69,0.08)' },
-              ].map(s => (
-                <div key={s.value} onClick={() => setGenerateForm(f => ({ ...f, auto_status: s.value }))}
-                  style={{ flex: 1, border: `2px solid ${generateForm.auto_status === s.value ? s.color : '#dee2e6'}`, borderRadius: '12px', padding: '0.85rem', textAlign: 'center', cursor: 'pointer', background: generateForm.auto_status === s.value ? s.bg : '#fff', transition: 'all 0.2s' }}>
-                  <div style={{ marginBottom: '0.35rem', display: 'flex', justifyContent: 'center' }}>
-                    <img src={s.img} alt={s.label} style={{ width: '36px', height: '36px', objectFit: 'contain', filter: generateForm.auto_status === s.value ? 'none' : 'grayscale(60%) opacity(0.6)' }} onError={e => e.target.style.display='none'} />
-                  </div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: '700', color: generateForm.auto_status === s.value ? s.color : '#555' }}>{s.label}</div>
-                </div>
-              ))}
+                { value: 'suspected_rabies', label: 'Suspected rabies', img: '/suspected_rabies.png', color: '#dc3545', icon: 'fa-exclamation-triangle' },
+                { value: 'positive_rabies',  label: 'Positive rabies',  img: '/rabies.png',           color: '#8b0000', icon: 'fa-biohazard' },
+              ].map(s => {
+                const on = generateForm.auto_status === s.value;
+                return (
+                  <button key={s.value} type="button" className={`mm-type${on ? ' on' : ''}`} style={{ '--c': s.color }} aria-pressed={on}
+                    onClick={() => setGenerateForm(f => ({ ...f, auto_status: s.value }))} disabled={generateLoading}>
+                    {on && <i className="fas fa-check-circle mm-type-check" />}
+                    <span className="mm-type-ic">
+                      <img src={s.img} alt="" onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'inline'; }} />
+                      <i className={`fas ${s.icon}`} style={{ display: 'none' }} />
+                    </span>
+                    <span className="mm-type-label">{s.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          </Form.Group>
+          </div>
 
-          <Row className="mb-3">
-            <Col md={6}>
-              <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Barangay</Form.Label>
-              <Form.Control readOnly value={generateForm.barangay_id ? (barangays.find(b => b.id === parseInt(generateForm.barangay_id))?.name || '') : 'Pin a location to auto-detect'}
-                style={{ borderRadius: '8px', border: '2px solid #dee2e6', background: '#f8f9fa', color: generateForm.barangay_id ? '#333' : '#aaa', fontStyle: generateForm.barangay_id ? 'normal' : 'italic', padding: '0.7rem' }} />
-            </Col>
-            <Col md={6}>
-              <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Contact Number <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-              <Form.Control type="text" placeholder="09XXXXXXXXX" value={generateForm.phone_number}
-  maxLength={11}
-  onChange={e => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 11);
-    setGenerateForm(f => ({ ...f, phone_number: val }));
-    setGeneratePhoneError(val && !/^09\d{9}$/.test(val) ? 'Phone must be 11 digits starting with 09' : '');
-  }}
-                style={{
-                  borderRadius: '8px', padding: '0.7rem',
-                  border: generatePhoneError
-                    ? '2px solid #ef4444'
-                    : (generateForm.phone_number && /^09\d{9}$/.test(generateForm.phone_number))
-                      ? '2px solid #10b981'
-                      : '2px solid #dee2e6'
-                }} />
-              {generatePhoneError && (
-                <small style={{ color: '#ef4444', display: 'block', marginTop: '0.3rem', fontSize: '0.78rem' }}>
-                  <i className="fas fa-times-circle me-1" />{generatePhoneError}
-                </small>
-              )}
-            </Col>
-          </Row>
-
-          <Form.Group className="mb-3">
-  <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Reporter Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-  <Form.Control type="text" placeholder="Full name of the reporter..." value={generateForm.reporter_name}
-    onChange={e => setGenerateForm(f => ({ ...f, reporter_name: e.target.value }))}
-    style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem' }} />
-</Form.Group>
-
-<Form.Group className="mb-3">
-  <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Address <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-            <Form.Control type="text" placeholder="House no., Street, Purok / Sitio..." value={generateForm.address}
-              onChange={e => setGenerateForm(f => ({ ...f, address: e.target.value }))}
-              style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem' }} />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>Description / Notes</Form.Label>
-            <Form.Control as="textarea" rows={2} placeholder="Describe the case..." value={generateForm.description}
-              onChange={e => setGenerateForm(f => ({ ...f, description: e.target.value }))}
-              style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem', resize: 'none' }} />
-          </Form.Group>
-
-          {/* Map */}
-          <Form.Group>
-            <Form.Label style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem' }}>
-              <i className="fas fa-map-marker-alt me-2" style={{ color: '#ffc107' }} />Pin Location on Map <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <div style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dee2e6' }}>
-              {!leafletLoaded && (
-                <div style={{ position: 'absolute', inset: 0, background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                  <Spinner animation="border" size="sm" style={{ color: '#ffc107' }} />
-                  <span className="ms-2" style={{ fontSize: '0.9rem', color: '#666' }}>Loading map...</span>
-                </div>
-              )}
-              <div ref={generateMapRef} style={{ height: '320px', width: '100%' }} />
+          <div className="mm-section">
+            <div className="mm-section-title"><i className="fas fa-map-marker-alt" />Location</div>
+            <Form.Label className="mm-label">Pin the exact location <span className="mm-req">*</span></Form.Label>
+            <div className="mm-map">
+              {!leafletLoaded && <div className="mm-map-loading skeleton"><i className="fas fa-map-marked-alt me-2" />Loading map…</div>}
+              <div ref={generateMapRef} style={{ height: '300px', width: '100%' }} />
             </div>
-            <small style={{ color: '#888', fontSize: '0.78rem', marginTop: '0.35rem', display: 'block' }}>
-              <i className="fas fa-mouse-pointer me-1" />Click inside Muntinlupa City to pin the exact location
-            </small>
-            {generateLat && generateLng && (
-              <div style={{ marginTop: '0.5rem', padding: '0.45rem 0.75rem', background: 'rgba(25,135,84,0.08)', borderRadius: '8px', border: '1px solid rgba(25,135,84,0.2)', fontSize: '0.82rem', color: '#198754', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span><i className="fas fa-check-circle me-1" />Pinned: {generateLat.toFixed(6)}, {generateLng.toFixed(6)}</span>
-                <button onClick={() => { setGenerateLat(null); setGenerateLng(null); if (generateMarkerRef.current && generateMapObj.current) { generateMapObj.current.removeLayer(generateMarkerRef.current); generateMarkerRef.current = null; } }}
-                  style={{ background: 'none', border: 'none', color: '#dc3545', fontSize: '0.78rem', cursor: 'pointer', padding: 0 }}>
-                  <i className="fas fa-times me-1" />Clear
+            {generateLat && generateLng ? (
+              <div className="mm-pin ok">
+                <i className="fas fa-check-circle" />
+                <span>Location pinned <span className="mm-mono">{generateLat.toFixed(5)}, {generateLng.toFixed(5)}</span></span>
+                <button type="button" disabled={generateLoading}
+                  onClick={() => { setGenerateLat(null); setGenerateLng(null); if (generateMarkerRef.current && generateMapObj.current) { generateMapObj.current.removeLayer(generateMarkerRef.current); generateMarkerRef.current = null; } }}>
+                  <i className="fas fa-times" />Clear
                 </button>
               </div>
+            ) : (
+              <div className="mm-pin"><i className="fas fa-hand-pointer" />Click inside Muntinlupa City to drop a pin. The barangay and address fill in automatically.</div>
             )}
-          </Form.Group>
+
+            <Row className="g-3 mt-1">
+              <Col md={6}>
+                <Form.Label className="mm-label">Barangay</Form.Label>
+                <div className={`mm-readonly${generateForm.barangay_id ? '' : ' empty'}`}>
+                  <i className="fas fa-map" />
+                  {generateForm.barangay_id ? (barangays.find(b => b.id === parseInt(generateForm.barangay_id))?.name || '') : 'Detected from the map pin'}
+                </div>
+              </Col>
+              <Col md={6}>
+                <Form.Label className="mm-label">Contact number <span className="mm-req">*</span></Form.Label>
+                <Form.Control className={`mm-input${generatePhoneError ? ' bad' : (generateForm.phone_number && /^09\d{9}$/.test(generateForm.phone_number)) ? ' good' : ''}`}
+                  type="tel" inputMode="numeric" placeholder="09XXXXXXXXX" value={generateForm.phone_number} maxLength={11} disabled={generateLoading}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    setGenerateForm(f => ({ ...f, phone_number: val }));
+                    setGeneratePhoneError(val && !/^09\d{9}$/.test(val) ? 'Must be 11 digits starting with 09' : '');
+                  }} />
+                {generatePhoneError && <div className="mm-hint bad"><i className="fas fa-times-circle" />{generatePhoneError}</div>}
+              </Col>
+              <Col md={12}>
+                <Form.Label className="mm-label">Address <span className="mm-req">*</span></Form.Label>
+                <Form.Control className="mm-input" type="text" placeholder="House no., street, purok / sitio…" value={generateForm.address} disabled={generateLoading}
+                  onChange={e => setGenerateForm(f => ({ ...f, address: e.target.value }))} />
+              </Col>
+            </Row>
+          </div>
+
+          <div className="mm-section mb-0">
+            <div className="mm-section-title"><i className="fas fa-user" />Reporter & details</div>
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Label className="mm-label">Reporter name <span className="mm-req">*</span></Form.Label>
+                <Form.Control className="mm-input" type="text" placeholder="Full name of the reporter…" value={generateForm.reporter_name} disabled={generateLoading}
+                  onChange={e => setGenerateForm(f => ({ ...f, reporter_name: e.target.value }))} />
+              </Col>
+              <Col md={12}>
+                <Form.Label className="mm-label">Description <span className="mm-opt">optional</span></Form.Label>
+                <Form.Control className="mm-input" as="textarea" rows={3} placeholder="Describe the case…" value={generateForm.description} disabled={generateLoading}
+                  onChange={e => setGenerateForm(f => ({ ...f, description: e.target.value }))} style={{ resize: 'none' }} />
+              </Col>
+            </Row>
+          </div>
         </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowGenerateModal(false)} disabled={generateLoading}
-            style={{ borderRadius: '8px', fontWeight: '600', padding: '0.65rem 1.5rem' }}>
-            Cancel
-          </Button>
-          <Button onClick={() => { if (!generateLoading) handleGenerateSubmit(); }} disabled={generateLoading}
-            style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', padding: '0.65rem 1.75rem', boxShadow: '0 4px 14px rgba(255,193,7,0.35)', transition: 'all 0.2s' }}
-            onMouseOver={e => e.currentTarget.style.background = '#ffb300'}
-            onMouseOut={e  => e.currentTarget.style.background = '#ffc107'}>
-            {generateLoading
-              ? <><Spinner size="sm" animation="border" className="me-2" />Generating...</>
-              : <><i className="fas fa-biohazard me-2" />Generate Report</>}
-          </Button>
+        <Modal.Footer className="mm-foot">
+          <button type="button" className="mm-btn ghost" onClick={() => setShowGenerateModal(false)} disabled={generateLoading}>Cancel</button>
+          <button type="button" className="mm-btn solid" style={{ '--c': '#dc3545' }} onClick={() => { if (!generateLoading) handleGenerateSubmit(); }} disabled={generateLoading}>
+            {generateLoading ? <><i className="fas fa-circle-notch fa-spin" />Generating…</> : <><i className="fas fa-biohazard" />Generate report</>}
+          </button>
         </Modal.Footer>
       </Modal>
     </>

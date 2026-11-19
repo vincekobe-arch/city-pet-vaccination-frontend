@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-  import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, Modal, Form, InputGroup, Tabs, Tab } from 'react-bootstrap';
+  import { Container, Row, Col, Card, Button, Modal, Form, InputGroup } from 'react-bootstrap';
   import { vaccinationAPI, dewormingAPI, sterilizationAPI, microchipAPI, petAPI, handleAPIError } from '../../services/api';
   import { getUser } from '../../utils/auth';
   import QRCode from 'qrcode';
@@ -268,6 +268,133 @@ const [filterClinic, setFilterClinic] = useState('city_vet');
       .rm-table th { width: auto !important; }
       .rm-toolbar .rm-btn span { display: none; }
     }
+    /* ---------------- Modals ---------------- */
+    .rx-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .rx-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .rx-zoom-modal { zoom: 1; } }
+    .rx-backdrop-top { z-index: 1060 !important; }
+    .rx-modal { max-width: 720px; }
+    .rx-small { max-width: 440px; }
+    .rx-small.wide { max-width: 540px; }
+    .rx-modal .modal-content, .rx-small .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .rx-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%) !important; }
+    .rx-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .rx-head-ic { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--c, #e0a800); background: color-mix(in srgb, var(--c, #ffc107) 14%, #fff); }
+    .rx-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in srgb, var(--c, #e0a800) 80%, #000); }
+    .rx-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; }
+    .rx-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .rx-body { padding: 1.4rem 1.5rem !important; }
+    .rx-section { margin-bottom: 1.25rem; }
+    .rx-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.7rem; }
+    .rx-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .rx-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .rx-type { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.9rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 14px; background: #fff; transition: all 0.15s ease; }
+    .rx-type:hover { border-color: color-mix(in srgb, var(--c) 50%, #fff); }
+    .rx-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 7%, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
+    .rx-type-ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); font-size: 1.1rem; }
+    .rx-type-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .rx-type-label { font-weight: 700; font-size: 0.86rem; color: #374151; }
+    .rx-type.on .rx-type-label { color: color-mix(in srgb, var(--c) 80%, #000); }
+    .rx-type-check { position: absolute; top: 7px; right: 8px; color: var(--c); font-size: 0.85rem; }
+
+    /* fields inside the modals */
+    .rx-zoom-modal .form-label { font-size: 0.84rem !important; font-weight: 600 !important; color: #374151 !important; margin-bottom: 0.35rem; }
+    .rx-zoom-modal .form-control, .rx-zoom-modal .form-select { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; box-shadow: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .rx-zoom-modal .form-control:focus, .rx-zoom-modal .form-select:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .rx-zoom-modal .form-control.is-invalid { border-color: #dc3545 !important; }
+    .rx-zoom-modal .form-control:disabled, .rx-zoom-modal .form-select:disabled { background-color: #f8f9fa !important; }
+    .rx-zoom-modal .input-group > .form-control { border-radius: 0 !important; }
+    .rx-zoom-modal .input-group-text { border: 1.5px solid #e5e7eb !important; border-right: none !important; background: #f8f9fa !important; border-radius: 10px 0 0 10px !important; font-size: 0.95rem !important; }
+    .rx-zoom-modal .input-group > .btn:last-child { border-radius: 0 10px 10px 0 !important; }
+    .rx-zoom-modal .form-text { font-size: 0.76rem; }
+    .rx-zoom-modal .alert { border-radius: 10px; font-size: 0.86rem; border-width: 1px; }
+    .rx-zoom-modal .form-check-input:checked { background-color: #ffc107; border-color: #ffc107; }
+
+    .rx-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .rx-alert i { margin-top: 3px; }
+    .rx-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #842029; }
+    .rx-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .rx-foot > * { margin: 0 !important; }
+    .rx-foot.even > * { flex: 1; }
+    .rx-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 10px !important; border: 1px solid transparent !important; font-weight: 700 !important; font-size: 0.9rem !important; padding: 0.65rem 1.2rem !important; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .rx-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .rx-btn.primary { background: #ffc107 !important; color: #1f2328 !important; }
+    .rx-btn.primary:hover:not(:disabled) { background: #f0b400 !important; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .rx-btn.ghost { background: #fff !important; color: #1f2328 !important; border-color: #e5e7eb !important; font-weight: 600 !important; }
+    .rx-btn.ghost:hover:not(:disabled) { background: #f6f7f9 !important; }
+    .rx-btn.solid { background: var(--c) !important; color: #fff !important; }
+    .rx-btn.solid:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000) !important; }
+
+    /* view details */
+    .rx-pet { display: flex; align-items: center; gap: 0.8rem; padding: 0.85rem 1rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .rx-pet-av { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,193,7,0.16); color: #b88a00; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .rx-pet-name { font-weight: 700; color: #1f2328; font-size: 1rem; }
+    .rx-pet-meta { font-size: 0.8rem; color: #6b7280; }
+    .rx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .rx-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fff; }
+    .rx-info.wide { grid-column: 1 / -1; }
+    .rx-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #f6f7f9; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .rx-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .rx-info-value { font-size: 0.92rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .rx-none { color: #b8bdc6; font-weight: 500; }
+    .rx-notes { margin-top: 0.9rem; padding: 0.8rem 0.95rem; border-radius: 12px; background: #fffaeb; border: 1px solid rgba(255,193,7,0.3); }
+    .rx-notes p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+
+    /* small centered modals */
+    @keyframes rxPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .rx-small-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; }
+    .rx-small-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: rxPop 0.4s ease-out; }
+    .rx-small-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .rx-small-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .rx-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .rx-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .rx-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .rx-item-meta { font-size: 0.78rem; color: #6b7280; }
+    .rx-item-flag { font-size: 0.76rem; font-weight: 600; color: #c2410c; margin-top: 0.2rem; }
+    .rx-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 20%, #fff); }
+    .rx-note i { margin-top: 3px; }
+    .rx-review { background: #fafbfc; border: 1px solid #eef0f3; border-radius: 12px; padding: 0.9rem 1rem; }
+
+    @media (max-width: 768px) {
+      .rx-zoom-modal { zoom: 1; }
+      .rx-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .rx-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+      .rx-head { padding: 1rem !important; }
+      .rx-head-ic { width: 40px; height: 40px; }
+      .rx-title { font-size: 1.05rem; }
+      .rx-body { padding: 1rem !important; }
+      .rx-types { grid-template-columns: repeat(2, 1fr); }
+      .rx-zoom-modal .input-group .form-control { font-size: 0.92rem !important; letter-spacing: 0 !important; min-width: 0; }
+      .rx-zoom-modal .input-group > .btn { padding: 0 0.75rem !important; font-size: 0.82rem !important; }
+      .rx-zoom-modal .input-group-text { padding: 0 0.6rem !important; font-size: 0.85rem !important; }
+      .rx-type { flex-direction: row; justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
+      .rx-type-ic { width: 36px; height: 36px; border-radius: 10px; }
+      .rx-type-ic img { width: 22px; height: 22px; }
+      .rx-type-label { font-size: 0.82rem; }
+      .rx-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .rx-info-ic { display: none; }
+      .rx-foot { padding: 0.75rem 1rem !important; }
+      .rx-foot > * { flex: 1; }
+      .rx-small-body { padding: 1.5rem 1.1rem 1rem !important; }
+    }
+    @media (max-width: 380px) { .rx-grid { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .rx-small-icon { animation: none; } }
+
+    /* Admin extras */
+    .rx-types.three { grid-template-columns: repeat(3, 1fr); }
+    .rx-pet.found { border-color: rgba(25,135,84,0.3); background: rgba(25,135,84,0.05); }
+    .rx-alert.success { background: rgba(25,135,84,0.07); border: 1px solid rgba(25,135,84,0.25); color: #146c43; }
+    .rx-alert.page { margin-bottom: 1.25rem; align-items: center; }
+    .rx-alert.page span { flex: 1; }
+    .rx-alert.page button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+    .rx-alert.page button:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+    .rx-qr { display: flex; align-items: center; gap: 1.25rem; margin-top: 1.25rem; padding: 1.1rem; border-radius: 14px; border: 1px solid rgba(67,97,238,0.2); background: linear-gradient(135deg, #f5f7ff 0%, #eef1ff 100%); }
+    .rx-qr-img { width: 170px; height: 170px; border-radius: 12px; border: 1px solid rgba(67,97,238,0.25); padding: 6px; background: #fff; flex-shrink: 0; }
+    .rx-qr-skel { width: 170px; height: 170px; border-radius: 12px; flex-shrink: 0; background: linear-gradient(90deg, #e8ebf7 25%, #dde1f2 50%, #e8ebf7 75%); background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite; }
+    .rx-qr-text { flex: 1; min-width: 0; }
+    .rx-qr-text p { font-size: 0.8rem; color: #6b7280; margin: 0.4rem 0 0.8rem; line-height: 1.5; }
+    .rx-qr-none { width: 100%; text-align: center; color: #9ca3af; font-size: 0.85rem; padding: 0.75rem 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+    @media (max-width: 576px) { .rx-qr { flex-direction: column; text-align: center; } }
     `;
     
     const [formData, setFormData] = useState({
@@ -371,7 +498,9 @@ const loadData = async (bustCache = false) => {
   }
 
   try {
-    setLoading(true);
+    // loadData(true) is called after saving / archiving / restoring:
+    // refresh quietly so the table doesn't flash and the page doesn't jump to the top
+    if (!bustCache) setLoading(true);
     const trashParam = filterStatus === 'inactive' ? '?trash=1' : '';
     const [vaccinationsRes, dewormingsRes, sterilizationsRes, microchipsRes, petsRes] = await Promise.all([
       vaccinationAPI.getAll('?with_inactive=1'),
@@ -1450,17 +1579,17 @@ const getSelectedPet = () => {
           </div>
 
           {error && (
-            <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-              <i className="fas fa-exclamation-triangle me-2"></i>
-              {error}
-            </Alert>
+            <div role="alert" className="rx-alert danger page">
+              <i className="fas fa-exclamation-triangle" /><span>{error}</span>
+              <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+            </div>
           )}
 
           {success && (
-            <Alert variant="success" dismissible onClose={() => setSuccess('')} style={{ borderRadius: '12px' }}>
-              <i className="fas fa-check-circle me-2"></i>
-              {success}
-            </Alert>
+            <div role="status" className="rx-alert success page">
+              <i className="fas fa-check-circle" /><span>{success}</span>
+              <button type="button" onClick={() => setSuccess('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+            </div>
           )}
         {/* Statistics Cards */}
       <Row className="mb-4" style={{ flexWrap: 'nowrap', margin: '0 -6px' }}>
@@ -1547,7 +1676,8 @@ const getSelectedPet = () => {
                         <span style={{
                           display: 'inline-block', width: '3ch', height: '1em',
                           borderRadius: '6px',
-                          background: '#f0f0f0',
+                          background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                          backgroundSize: '800px 100%',
                           animation: 'shimmer 1.4s ease-in-out infinite',
                           verticalAlign: 'middle'
                         }} />
@@ -1735,75 +1865,55 @@ const getSelectedPet = () => {
           </div>
 
         {/* Add Record Modal */}
-        <Modal show={showModal} onHide={handleCloseModal} size="lg" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
-          <Modal.Header 
-            closeButton
-            style={{
-              background: '#f8f9fa',
-              borderBottom: '2px solid #dee2e6'
-            }}
-          >
-            <Modal.Title style={{ fontWeight: '700' }}>
-              {modalMode === 'edit' ? (
-                <>
-                  <i className="fas fa-edit me-2"></i>
-                  Edit {getRecordTypeLabel(formData.record_type)} Record
-                </>
-              ) : formData.record_type ? (
-                <>
-                  <i className="fas fa-plus me-2"></i>
-                  Add {getRecordTypeLabel(formData.record_type)} Record
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-plus me-2"></i>
-                  Add Record
-                </>
-              )}
-            </Modal.Title>
-          </Modal.Header>
-          <Form onSubmit={handleSubmit}>
-            <Modal.Body style={{ maxHeight: '70vh', overflowY: 'auto', padding: '2rem' }}>
-            {error && (
-                <Alert variant="danger" className="mb-3">
-                  <i className="fas fa-exclamation-triangle me-2"></i>
-                  {error}
-                </Alert>
-              )}
+        <Modal show={showModal} onHide={handleCloseModal} dialogClassName="rx-modal" className="rx-zoom-modal" scrollable>
+          {(() => {
+            const [hIcon, hColor] = RECORD_TYPE_META[formData.record_type] || ['fa-notes-medical', '#e0a800'];
+            return (
+              <Modal.Header closeButton className="rx-head" style={{ '--c': hColor }}>
+                <div className="rx-head-main">
+                  <div className="rx-head-ic"><i className={`fas ${modalMode === 'edit' ? 'fa-pen' : hIcon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rx-kicker">{modalMode === 'edit' ? 'Edit record' : 'New record'}</div>
+                    <Modal.Title as="h5" className="rx-title">
+                      {modalMode === 'edit' ? `Edit ${getRecordTypeLabel(formData.record_type)} record` : (formData.record_type ? `Add ${getRecordTypeLabel(formData.record_type).toLowerCase()} record` : 'Add a record')}
+                    </Modal.Title>
+                    <div className="rx-head-sub">Fields marked <span className="text-danger">*</span> are required.</div>
+                  </div>
+                </div>
+              </Modal.Header>
+            );
+          })()}
+          <Form onSubmit={handleSubmit} style={{ display: 'contents' }}>
+            <Modal.Body className="rx-body">
+              {error && <div className="rx-alert danger"><i className="fas fa-exclamation-triangle" /><span>{error}</span></div>}
 
-              {/* Record Type Selection */}
-              <Row className="mb-4" style={{ display: modalMode === 'edit' ? 'none' : '' }}>
-                <Col md={12}>
-                  <Form.Group>
-                    <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-                      Record Type <span style={{ color: '#dc3545' }}>*</span>
-                    </Form.Label>
-                    <div style={{ display: 'flex', gap: '1rem' }} className="record-type-scroll">
-                      <div 
-                        onClick={() => handleRecordTypeSelect('vaccination')}
-                        style={{ flex: '1', padding: '1.5rem', border: formData.record_type === 'vaccination' ? '3px solid #ffc107' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'vaccination' ? '#fff9e6' : '#ffffff', transition: 'all 0.3s' }}>
-                        <img src="/vaccine.png" alt="Vaccination" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                        <i className="fas fa-syringe" style={{ fontSize: '2.5rem', color: '#ffc107', marginBottom: '0.5rem', display: 'none' }}></i>
-                        <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Vaccination</div>
-                      </div>
-                      <div 
-                        onClick={() => handleRecordTypeSelect('sterilization')}
-                        style={{ flex: '1', padding: '1.5rem', border: formData.record_type === 'sterilization' ? '3px solid #28a745' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'sterilization' ? '#e6f9e9' : '#ffffff', transition: 'all 0.3s' }}>
-                        <img src="/sterilization.png" alt="Sterilization" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                        <i className="fas fa-cut" style={{ fontSize: '2.5rem', color: '#28a745', marginBottom: '0.5rem', display: 'none' }}></i>
-                        <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Sterilization</div>
-                      </div>
-                      <div 
-                        onClick={() => handleRecordTypeSelect('microchip')}
-                        style={{ flex: '1', padding: '1.5rem', border: formData.record_type === 'microchip' ? '3px solid #4361ee' : '2px solid #dee2e6', borderRadius: '12px', cursor: 'pointer', textAlign: 'center', background: formData.record_type === 'microchip' ? '#eef0ff' : '#ffffff', transition: 'all 0.3s' }}>
-                        <img src="/microchip.png" alt="Microchip" style={{ width: '50px', height: '50px', objectFit: 'contain', display: 'block', margin: '0 auto 0.5rem' }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                        <i className="fas fa-microchip" style={{ fontSize: '2.5rem', color: '#4361ee', marginBottom: '0.5rem', display: 'none' }}></i>
-                        <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Microchip</div>
-                      </div>
-                    </div>
-                  </Form.Group>
-                </Col>
-              </Row>
+              {/* Record Type Selection — hidden in edit mode */}
+              {modalMode !== 'edit' && (
+                <div className="rx-section">
+                  <div className="rx-section-title"><i className="fas fa-tag" />Record type <span className="text-danger">*</span></div>
+                  <div className="rx-types three">
+                    {[
+                      { v: 'vaccination', img: '/vaccine.png' },
+                      { v: 'sterilization', img: '/sterilization.png' },
+                      { v: 'microchip', img: '/microchip.png' },
+                    ].map(t => {
+                      const [ic, color, label] = RECORD_TYPE_META[t.v];
+                      const on = formData.record_type === t.v;
+                      return (
+                        <button key={t.v} type="button" className={`rx-type${on ? ' on' : ''}`} style={{ '--c': color }}
+                          onClick={() => handleRecordTypeSelect(t.v)} aria-pressed={on}>
+                          {on && <i className="fas fa-check-circle rx-type-check" />}
+                          <span className="rx-type-ic">
+                            <img src={t.img} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'inline'; }} />
+                            <i className={`fas ${ic}`} style={{ display: 'none' }} />
+                          </span>
+                          <span className="rx-type-label">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Show form fields only after record type is selected */}
               {formData.record_type && (
@@ -1876,22 +1986,18 @@ const getSelectedPet = () => {
       {formData.pet_registration_input && formData.pet_registration_input.length > 0 && (
         <>
           {getSelectedPet() ? (
-            <Alert variant="success" className="mt-2 mb-0 py-2">
-              <i className="fas fa-check-circle me-2"></i>
-              <strong>Pet Found:</strong> {getSelectedPet().name}
-              <br />
-              <small>
-                Species: <span className="text-capitalize">{getSelectedPet().species}</span> |
-                Breed: {getSelectedPet().breed || 'Mixed'} |
-                Owner: {getSelectedPet().owner_name}
-              </small>
-            </Alert>
+            <div className="rx-pet found mt-2">
+              <div className="rx-pet-av"><i className={`fas ${getSelectedPet().species === 'cat' ? 'fa-cat' : 'fa-dog'}`} /></div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="rx-pet-name">{getSelectedPet().name} <i className="fas fa-check-circle" style={{ color: '#198754', fontSize: '0.8rem' }} /></div>
+                <div className="rx-pet-meta">
+                  <span className="text-capitalize">{getSelectedPet().species}</span> · {getSelectedPet().breed || 'Mixed'} · Owner: {getSelectedPet().owner_name}
+                </div>
+              </div>
+            </div>
           ) : (
             formData.pet_registration_input.length >= 7 && (
-              <Alert variant="danger" className="mt-2 mb-0 py-2">
-                <i className="fas fa-times-circle me-2"></i>
-                Pet registration number not found.
-              </Alert>
+              <div className="rx-alert danger mt-2 mb-0"><i className="fas fa-times-circle" /><span>Pet registration number not found.</span></div>
             )
           )}
         </>
@@ -1905,19 +2011,21 @@ const getSelectedPet = () => {
   show={showPetSearchModal}
   onHide={() => { setShowPetSearchModal(false); setPetSearchTerm(''); }}
   centered
-  size="md"
-  style={{ zoom: '0.75' }}
+  dialogClassName="rx-small wide"
+  className="rx-zoom-modal"
+  style={{ zIndex: 1065 }}
+  backdropClassName="rx-backdrop-top"
 >
-  <Modal.Header
-    closeButton
-    style={{ background: '#f0f4ff', borderBottom: '2px solid #4361ee' }}
-  >
-    <Modal.Title style={{ fontWeight: '700', fontSize: '1rem' }}>
-      <i className="fas fa-search me-2" style={{ color: '#4361ee' }}></i>
-      Search Pet
-    </Modal.Title>
+  <Modal.Header closeButton className="rx-head" style={{ '--c': '#4361ee' }}>
+    <div className="rx-head-main">
+      <div className="rx-head-ic"><i className="fas fa-search" /></div>
+      <div>
+        <Modal.Title as="h5" className="rx-title">Search pet</Modal.Title>
+        <div className="rx-head-sub">Find a pet by name, owner, breed or registration no.</div>
+      </div>
+    </div>
   </Modal.Header>
-  <Modal.Body style={{ padding: '1.5rem' }}>
+  <Modal.Body className="rx-body">
     <InputGroup className="mb-3">
       <InputGroup.Text style={{ background: '#f0f4ff', border: '2px solid #4361ee', borderRight: 'none' }}>
         <i className="fas fa-search" style={{ color: '#4361ee' }}></i>
@@ -2556,20 +2664,9 @@ const getSelectedPet = () => {
                 </>
               )}
             </Modal.Body>
-            <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-              <Button 
-                variant="secondary" 
-                onClick={handleCloseModal} 
-                disabled={formLoading}
-                style={{
-                  borderRadius: '8px',
-                  padding: '0.75rem 1.5rem',
-                  fontWeight: '600'
-                }}
-              >
-                Cancel
-              </Button>
-              <Button 
+            <Modal.Footer className="rx-foot">
+              <button type="button" className="rx-btn ghost" onClick={handleCloseModal} disabled={formLoading}>Cancel</button>
+              <button
                 type="button"
                                   onClick={(e) => {
                   e.preventDefault();
@@ -2620,318 +2717,131 @@ const getSelectedPet = () => {
                   !formData.veterinarian_name.trim() ||
                   (modalMode === 'create' && (!formData.weight || parseFloat(formData.weight) <= 0 || parseFloat(formData.weight) > 200))
                 }
-                className="border-0"
-                style={{
-                  background: formLoading ? '#6c757d' : '#000000',
-                  color: '#ffffff',
-                  borderRadius: '8px',
-                  padding: '0.75rem 1.5rem',
-                  fontWeight: '600'
-                }}
-                onMouseOver={(e) => { if (!formLoading) e.currentTarget.style.background = '#333333'; }}
-                onMouseOut={(e) => { if (!formLoading) e.currentTarget.style.background = '#000000'; }}
+                className="rx-btn primary"
               >
-                {formLoading ? (
-                  <>
-                    <Spinner size="sm" animation="border" className="me-2" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <i className={`fas ${modalMode === 'edit' ? 'fa-save' : 'fa-eye'} me-2`}></i>
-                    {modalMode === 'edit' ? 'Save Changes' : `Add ${formData.record_type ? getRecordTypeLabel(formData.record_type) : ''} Record`}
-                  </>
-                )}
-              </Button>
+                {formLoading
+                  ? <><i className="fas fa-circle-notch fa-spin" />Saving…</>
+                  : modalMode === 'edit'
+                    ? <><i className="fas fa-save" />Save changes</>
+                    : <><i className="fas fa-arrow-right" />Review record</>}
+              </button>
             </Modal.Footer>
           </Form>
         </Modal>
 
         {/* View Record Modal */}
-        <Modal show={showViewModal} onHide={handleCloseViewModal} size="lg" centered={window.innerWidth <= 768} className="record-view-modal" style={{ zoom: '0.75' }}>
-  <Modal.Header 
-    closeButton
-    style={{
-      background: '#f8f9fa',
-      borderBottom: '2px solid #dee2e6'
-    }}
-  >
-    <Modal.Title style={{ fontWeight: '700', fontSize: '1rem' }}>
-      <i className="fas fa-eye me-2"></i>
-      Record Details
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '0' }}>
-  {selectedRecord && (
-    <>
-      {/* Colored Header Banner */}
-      <div className="record-banner" style={{
-        background: selectedRecord.recordType === 'microchip'
-          ? 'linear-gradient(135deg, #4361ee 0%, #3451d1 100%)'
-          : selectedRecord.recordType === 'vaccination'
-          ? 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'
-          : selectedRecord.recordType === 'deworming'
-          ? 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
-          : 'linear-gradient(135deg, #28a745 0%, #1e7e34 100%)',
-        padding: '1.5rem 2rem',
-        color: selectedRecord.recordType === 'vaccination' ? '#000' : '#fff'
-      }}>
-        <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '0.5rem', width: '100%' }}>
-          <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.75, marginBottom: '0.25rem' }}>
-              Record Type
-            </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {selectedRecord.recordType === 'vaccination' && <><i className="fas fa-syringe"></i> Vaccination</>}
-              {selectedRecord.recordType === 'deworming' && <><i className="fas fa-pills"></i> Deworming</>}
-              {selectedRecord.recordType === 'sterilization' && <><i className="fas fa-cut"></i> Sterilization</>}
-              {selectedRecord.recordType === 'microchip' && <><i className="fas fa-microchip"></i> Microchip</>}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.75, marginBottom: '0.25rem' }}>
-              Date
-            </div>
-            <div style={{ fontSize: '1rem', fontWeight: '600' }}>
-              {selectedRecord.recordType === 'vaccination' && new Date(selectedRecord.vaccination_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              {selectedRecord.recordType === 'deworming' && new Date(selectedRecord.deworming_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              {selectedRecord.recordType === 'sterilization' && new Date(selectedRecord.sterilization_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              {selectedRecord.recordType === 'microchip' && new Date(selectedRecord.implant_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Body Content */}
-      <div className="record-body" style={{ padding: '1.75rem 2rem' }}>
-
-        {/* Pet Info Card */}
-        <div className="pet-info-card" style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.25rem', border: '1px solid #e9ecef' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#999', marginBottom: '0.75rem' }}>
-            Pet Information
-          </div>
-          <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '0.5rem' }}>
-            <div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#111' }}>{selectedRecord.pet_name}</div>
-              <div style={{ fontSize: '0.82rem', color: '#888', marginTop: '0.2rem' }}>
-                <i className="fas fa-barcode me-1"></i>{selectedRecord.registration_number}
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{
-                background: '#e9ecef',
-                borderRadius: '20px',
-                padding: '0.25rem 0.85rem',
-                fontSize: '0.78rem',
-                fontWeight: '600',
-                color: '#555',
-                textTransform: 'capitalize'
-              }}>
-                {selectedRecord.species || selectedRecord.pet_species}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Record-specific details */}
-        <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-
-          {/* Vaccination */}
-          {selectedRecord.recordType === 'vaccination' && (
-            <>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Vaccine Type</div>
-                <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.vaccine_name}</div>
-              </div>
-              {selectedRecord.next_due_date && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Next Due Date</div>
-                  <div style={{ fontWeight: '700', color: new Date(selectedRecord.next_due_date) < new Date() ? '#dc3545' : '#28a745', fontSize: '0.95rem' }}>
-                    <i className={`fas ${new Date(selectedRecord.next_due_date) < new Date() ? 'fa-exclamation-circle' : 'fa-calendar-check'} me-1`}></i>
-                    {new Date(selectedRecord.next_due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        <Modal show={showViewModal} onHide={handleCloseViewModal} dialogClassName="rx-modal" className="rx-zoom-modal" scrollable>
+          {selectedRecord && (() => {
+            const r = selectedRecord;
+            const [icon, color, label] = RECORD_TYPE_META[r.recordType] || RECORD_TYPE_META.vaccination;
+            const rawDate = r.recordType === 'vaccination' ? r.vaccination_date : r.recordType === 'deworming' ? r.deworming_date : r.recordType === 'sterilization' ? r.sterilization_date : r.implant_date;
+            const fmt = (v) => v ? new Date(String(v).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+            const overdue = r.next_due_date && new Date(r.next_due_date) < new Date();
+            const none = <span className="rx-none">Not specified</span>;
+            const info = [
+              r.recordType === 'vaccination' && { icon: 'fa-syringe', label: 'Vaccine', value: r.vaccine_name, wide: true },
+              r.recordType === 'deworming' && { icon: 'fa-pills', label: 'Dewormer', value: r.deworming_name },
+              r.recordType === 'deworming' && r.dosage && { icon: 'fa-prescription-bottle', label: 'Dosage', value: r.dosage },
+              r.recordType === 'sterilization' && { icon: 'fa-cut', label: 'Procedure', value: <span className="text-capitalize">{r.procedure_type}</span> },
+              r.recordType === 'sterilization' && r.clinic_name && { icon: 'fa-clinic-medical', label: 'Clinic', value: r.clinic_name },
+              r.recordType === 'microchip' && { icon: 'fa-microchip', label: 'Microchip no.', value: <span className="rm-mono" style={{ color: '#4361ee' }}>{r.microchip_number}</span>, wide: true },
+              r.recordType === 'microchip' && { icon: 'fa-tag', label: 'Brand', value: r.microchip_brand || none },
+              r.recordType === 'microchip' && { icon: 'fa-map-marker-alt', label: 'Implant site', value: r.implant_site || none },
+              (r.recordType === 'vaccination' || r.recordType === 'deworming') && r.next_due_date && {
+                icon: overdue ? 'fa-exclamation-circle' : 'fa-calendar-check', label: 'Next due date', wide: true,
+                value: <span style={{ color: overdue ? '#dc3545' : '#198754' }}>{fmt(r.next_due_date)}{overdue ? ' · overdue' : ''}</span>,
+              },
+              { icon: 'fa-user-md', label: 'Veterinarian', value: r.veterinarian_name || none },
+              { icon: 'fa-weight', label: 'Weight', value: r.weight ? `${r.weight} kg` : none },
+              { icon: 'fa-landmark', label: 'Recorded by', value: r.recorded_by || 'City Vet Muntinlupa', wide: true },
+            ].filter(Boolean);
+            return (
+              <>
+                <Modal.Header closeButton className="rx-head" style={{ '--c': color }}>
+                  <div className="rx-head-main">
+                    <div className="rx-head-ic"><i className={`fas ${icon}`} /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="rx-kicker">{label} record</div>
+                      <Modal.Title as="h5" className="rx-title">{fmt(rawDate)}</Modal.Title>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Deworming */}
-          {selectedRecord.recordType === 'deworming' && (
-            <>
-              <div>
-                <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Deworming Type</div>
-                <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.deworming_name}</div>
-              </div>
-              {selectedRecord.dosage && (
-                <div>
-                  <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Dosage</div>
-                  <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.dosage}</div>
-                </div>
-              )}
-              {selectedRecord.next_due_date && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Next Due Date</div>
-                  <div style={{ fontWeight: '700', color: new Date(selectedRecord.next_due_date) < new Date() ? '#dc3545' : '#28a745', fontSize: '0.95rem' }}>
-                    <i className={`fas ${new Date(selectedRecord.next_due_date) < new Date() ? 'fa-exclamation-circle' : 'fa-calendar-check'} me-1`}></i>
-                    {new Date(selectedRecord.next_due_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </Modal.Header>
+                <Modal.Body className="rx-body">
+                  <div className="rx-pet">
+                    <div className="rx-pet-av"><i className={`fas ${(r.species || r.pet_species) === 'cat' ? 'fa-cat' : 'fa-dog'}`} /></div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="rx-pet-name">{r.pet_name}</div>
+                      <div className="rx-pet-meta"><span className="rm-mono">{r.registration_number}</span> · <span className="text-capitalize">{r.species || r.pet_species}</span></div>
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Sterilization */}
-          {selectedRecord.recordType === 'sterilization' && (
-            <>
-              <div>
-                <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Procedure Type</div>
-                <div>
-                  <Badge bg="success" style={{ fontSize: '0.82rem', padding: '0.35rem 0.8rem', borderRadius: '20px', textTransform: 'capitalize' }}>
-                    {selectedRecord.procedure_type}
-                  </Badge>
-                </div>
-              </div>
-              {selectedRecord.clinic_name && (
-                <div>
-                  <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Clinic</div>
-                  <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.clinic_name}</div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Microchip */}
-          {selectedRecord.recordType === 'microchip' && (
-            <>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Microchip Number</div>
-                <div className="microchip-number" style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: '700', color: '#4361ee', background: '#eef0ff', borderRadius: '8px', padding: '0.5rem 0.85rem', display: 'inline-block', letterSpacing: '1px' }}>
-                  {selectedRecord.microchip_number}
-                </div>
-              </div>
-              <div>
-                <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Microchip Brand</div>
-                <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.microchip_brand || <span style={{ color: '#bbb', fontWeight: '400' }}>Not specified</span>}</div>
-              </div>
-              <div>
-                <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Implant Site</div>
-                <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.implant_site || <span style={{ color: '#bbb', fontWeight: '400' }}>Not specified</span>}</div>
-              </div>
-            </>
-          )}
-
-          {/* Common Fields */}
-          <div>
-            <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Veterinarian</div>
-            <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.veterinarian_name || <span style={{ color: '#bbb', fontWeight: '400' }}>Not specified</span>}</div>
-          </div>
-          <div>
-            <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Weight</div>
-            <div className="detail-value" style={{ fontWeight: '600', color: '#222', fontSize: '0.95rem' }}>{selectedRecord.weight ? `${selectedRecord.weight} kg` : <span style={{ color: '#bbb', fontWeight: '400' }}>Not specified</span>}</div>
-          </div>
-
-          {/* Notes */}
-          {(selectedRecord.recordType === 'vaccination' || selectedRecord.recordType === 'deworming' || selectedRecord.recordType === 'microchip') && selectedRecord.notes && (
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div className="detail-label" style={{ fontSize: '0.75rem', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.3rem' }}>Additional Notes</div>
-              <div style={{ fontWeight: '500', color: '#444', fontSize: '0.95rem', background: '#f8f9fa', borderRadius: '8px', padding: '0.6rem 0.85rem', border: '1px solid #e9ecef' }}>{selectedRecord.notes}</div>
-            </div>
-          )}
-        </div>
-
-        {/* QR Code Section — only for microchip, at the bottom */}
-        {selectedRecord.recordType === 'microchip' && (
-          <div className="qr-section" style={{ borderTop: '2px dashed #e0e4ff', paddingTop: '1.5rem', marginTop: '0.5rem' }}>
-            <div style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4361ee', marginBottom: '1rem', textAlign: 'center' }}>
-              <i className="fas fa-qrcode me-2" />Pet Identity QR Code
-            </div>
-            {qrLoading ? (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
-                <Spinner animation="border" size="sm" style={{ color: '#4361ee' }} />
-                <div style={{ fontSize: '0.78rem', color: '#888', marginTop: '0.5rem' }}>Generating QR code...</div>
-              </div>
-            ) : qrDataURL ? (
-              <div className="qr-inner" style={{ display: 'flex', alignItems: 'center', gap: '2rem', background: 'linear-gradient(135deg, #f0f4ff 0%, #eef0ff 100%)', borderRadius: '14px', padding: '1.5rem', border: '1.5px solid rgba(67,97,238,0.15)' }}>
-                <div style={{ flexShrink: 0 }}>
-                  <img
-                    src={qrDataURL}
-                    alt="Pet QR Code"
-                    style={{ width: '220px', height: '220px', borderRadius: '12px', border: '3px solid #4361ee', padding: '6px', background: '#fff', boxShadow: '0 6px 24px rgba(67,97,238,0.18)', display: 'block' }}
-                  />
-                </div>
-                <div className="qr-text" style={{ flex: 1 }}>
-                  <div style={{ fontWeight: '700', color: '#4361ee', fontSize: '1rem', marginBottom: '0.4rem' }}>
-                    {selectedRecord.pet_name}
+                  <div className="rx-grid mt-3">
+                    {info.map(it => (
+                      <div key={it.label} className={`rx-info${it.wide ? ' wide' : ''}`}>
+                        <div className="rx-info-ic"><i className={`fas ${it.icon}`} /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div className="rx-info-label">{it.label}</div>
+                          <div className="rx-info-value">{it.value}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '0.3rem' }}>
-                    <i className="fas fa-microchip me-1" style={{ color: '#4361ee' }}></i>
-                    <span style={{ fontFamily: 'monospace' }}>{selectedRecord.microchip_number}</span>
-                  </div>
-                  <div style={{ fontSize: '0.78rem', color: '#999', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                    Scan this QR code to instantly view full pet identity and medical information.
-                  </div>
-                  <button
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = qrDataURL;
-                      link.download = `QR_${selectedRecord.pet_name}_${selectedRecord.microchip_number}.png`;
-                      link.click();
-                    }}
-                    style={{ background: '#4361ee', border: 'none', color: '#fff', borderRadius: '8px', padding: '0.55rem 1.25rem', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-                    onMouseOver={e => e.currentTarget.style.background = '#3451d1'}
-                    onMouseOut={e => e.currentTarget.style.background = '#4361ee'}
-                  >
-                    <i className="fas fa-download"></i> Download QR Code
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '1.5rem', color: '#bbb', background: '#f8f9fa', borderRadius: '12px', border: '1.5px dashed #e0e0e0' }}>
-                <i className="fas fa-qrcode" style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.5rem', color: '#ddd' }} />
-                <div style={{ fontSize: '0.82rem' }}>QR code not available for this record</div>
-              </div>
-            )}
-          </div>
-        )}
+                  {(r.recordType === 'vaccination' || r.recordType === 'deworming' || r.recordType === 'microchip') && r.notes && (
+                    <div className="rx-notes">
+                      <div className="rx-info-label mb-1"><i className="fas fa-sticky-note me-1" />Notes</div>
+                      <p>{r.notes}</p>
+                    </div>
+                  )}
 
-      </div>
-    </>
-  )}
-</Modal.Body>
-          <Modal.Footer style={{ padding: '0.75rem 1.25rem' }}>
-            {selectedRecord?.recorded_by === 'City Vet Muntinlupa' && (
-  <Button
-    onClick={() => { handleCloseViewModal(); handleOpenEditModal(selectedRecord, selectedRecord.recordType); }}
-    className="border-0"
-    style={{ background: '#000000', color: '#ffffff', borderRadius: '8px', padding: '0.5rem 1.25rem', fontWeight: '600', fontSize: '0.9rem' }}
-    onMouseOver={(e) => e.target.style.background = '#333333'}
-    onMouseOut={(e) => e.target.style.background = '#000000'}
-  >
-    <i className="fas fa-edit me-2"></i>Edit Record
-  </Button>
-)}
-            <Button 
-              variant="secondary" 
-              onClick={handleCloseViewModal}
-              style={{
-                borderRadius: '8px',
-                padding: '0.5rem 1.25rem',
-                fontWeight: '600',
-                fontSize: '0.9rem'
-              }}
-            >
-              Close
-            </Button>
-          </Modal.Footer>
+                  {/* Pet identity QR (microchip records) */}
+                  {r.recordType === 'microchip' && (
+                    <div className="rx-qr">
+                      {qrLoading ? (
+                        <>
+                          <div className="rx-qr-skel" />
+                          <div className="rx-qr-text"><div className="rx-info-label">Pet identity QR code</div><p>Generating QR code…</p></div>
+                        </>
+                      ) : qrDataURL ? (
+                        <>
+                          <img src={qrDataURL} alt={`QR code for ${r.pet_name}`} className="rx-qr-img" />
+                          <div className="rx-qr-text">
+                            <div className="rx-info-label">Pet identity QR code</div>
+                            <div className="rx-pet-name mt-1">{r.pet_name}</div>
+                            <div className="rm-mono" style={{ fontSize: '0.82rem', color: '#4361ee', fontWeight: 600 }}>{r.microchip_number}</div>
+                            <p>Scan to view the pet's identity and medical information.</p>
+                            <button type="button" className="rx-btn solid" style={{ '--c': '#4361ee' }}
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = qrDataURL;
+                                link.download = `QR_${r.pet_name}_${r.microchip_number}.png`;
+                                link.click();
+                              }}>
+                              <i className="fas fa-download" />Download QR
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="rx-qr-none"><i className="fas fa-qrcode" />QR code not available for this record</div>
+                      )}
+                    </div>
+                  )}
+                </Modal.Body>
+                <Modal.Footer className="rx-foot">
+                  <button type="button" className="rx-btn ghost" onClick={handleCloseViewModal}>Close</button>
+                  {r.recorded_by === 'City Vet Muntinlupa' && (
+                    <button type="button" className="rx-btn primary" onClick={() => { handleCloseViewModal(); handleOpenEditModal(r, r.recordType); }}>
+                      <i className="fas fa-pen" />Edit record
+                    </button>
+                  )}
+                </Modal.Footer>
+              </>
+            );
+          })()}
         </Modal>
             {/* Restore Confirmation Modal */}
-      <Modal show={showRestoreModal} onHide={() => !restoreLoading && setShowRestoreModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f0fff4', borderBottom: '2px solid #28a745' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-undo text-success me-2"></i>Restore Record
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
+      <Modal show={showRestoreModal} onHide={() => !restoreLoading && setShowRestoreModal(false)} centered dialogClassName="rx-small" className="rx-zoom-modal" scrollable>
+        <Modal.Body className="rx-small-body">
+          <div className="rx-small-icon" style={{ '--c': '#198754' }}><i className="fas fa-undo" /></div>
+          <h5 className="rx-small-title">Restore this record?</h5>
           {recordToRestore && (() => {
             const [icon, color, label] = RECORD_TYPE_META[recordToRestore.recordType] || RECORD_TYPE_META.vaccination;
             const isMissed = recordToRestore.record_status === 'missed';
@@ -2943,7 +2853,7 @@ const getSelectedPet = () => {
             return (
               <>
                 {conflict && (
-                  <div style={{ background: 'rgba(220,53,69,0.06)', border: '2px solid #dc3545', borderRadius: '12px', padding: '1rem 1.1rem', marginBottom: '1.25rem' }}>
+                  <div className="text-start" style={{ background: 'rgba(220,53,69,0.06)', border: '1px solid rgba(220,53,69,0.35)', borderRadius: '12px', padding: '1rem 1.1rem', marginBottom: '1.25rem' }}>
                     <div className="d-flex align-items-start" style={{ gap: '0.75rem' }}>
                       <i className="fas fa-ban" style={{ color: '#dc3545', fontSize: '1.3rem', marginTop: '2px', flexShrink: 0 }}></i>
                       <div style={{ flex: 1 }}>
@@ -2978,30 +2888,28 @@ const getSelectedPet = () => {
                   </div>
                 )}
                 {restoreError && !conflict && (
-                  <Alert variant="danger" className="mb-3"><i className="fas fa-exclamation-triangle me-2"></i>{restoreError}</Alert>
+                  <div className="rx-alert danger text-start"><i className="fas fa-exclamation-triangle" /><span>{restoreError}</span></div>
                 )}
-                <p style={{ fontSize: '1rem', marginBottom: '1.25rem', color: '#444' }}>
+                <p className="rx-small-text">
                   {isMissed
                     ? 'This record was not followed up before its due date (e.g. typhoon, holiday, or clinic closed). Set a new next due date so the pet can continue its sessions.'
                     : 'This record will become active again and show on the vet card.'}
                 </p>
-                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #28a745' }}>
-                  <div className="mb-2" style={{ fontWeight: '500', color: '#555' }}>
-                    <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
+                <div className="rx-item">
+                  <div className="rx-item-av" style={{ '--c': color }}><i className={`fas ${icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rx-item-name">{recordToRestore.pet_name}</div>
+                    <div className="rx-item-meta">{label} · <span className="rm-mono">{recordToRestore.registration_number}</span></div>
+                    {getInactiveLabel(recordToRestore) && (
+                      <div className="rx-item-flag"><i className="fas fa-info-circle me-1" />{getInactiveLabel(recordToRestore)}</div>
+                    )}
                   </div>
-                  <strong style={{ fontSize: '1.1rem' }}>{recordToRestore.pet_name}</strong><br />
-                  <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToRestore.registration_number}</small>
-                  {getInactiveLabel(recordToRestore) && (
-                    <div className="mt-2" style={{ fontSize: '0.82rem', fontWeight: '600', color: '#fd7e14' }}>
-                      <i className="fas fa-info-circle me-1"></i>{getInactiveLabel(recordToRestore)}
-                    </div>
-                  )}
                 </div>
                 {hasDue && !conflict && (
-                  <div className="mt-3">
+                  <div className="mt-3 text-start">
                     <Form.Group className="mb-3">
-                      <Form.Label style={{ fontWeight: '600', color: '#333' }}>
-                        New Next Due Date{' '}
+                      <Form.Label>
+                        New next due date{' '}
                         {isMissed
                           ? <span style={{ color: '#dc3545' }}>*</span>
                           : <span style={{ fontWeight: '400', color: '#888', fontSize: '0.85rem' }}>(optional)</span>}
@@ -3020,7 +2928,7 @@ const getSelectedPet = () => {
                       )}
                     </Form.Group>
                     <Form.Group>
-                      <Form.Label style={{ fontWeight: '600', color: '#333' }}>
+                      <Form.Label>
                         Reason <span style={{ fontWeight: '400', color: '#888', fontSize: '0.85rem' }}>(optional)</span>
                       </Form.Label>
                       <Form.Select
@@ -3040,227 +2948,166 @@ const getSelectedPet = () => {
             );
           })()}
         </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-          <Button variant="success" onClick={handleRestoreConfirm}
-            disabled={restoreLoading || (recordToRestore?.record_status === 'missed' && !restoreDueDate) || !!findRestoreConflict(recordToRestore)}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
+        <Modal.Footer className="rx-foot even">
+          <button type="button" className="rx-btn ghost" onClick={() => setShowRestoreModal(false)} disabled={restoreLoading}>Cancel</button>
+          <button type="button" className="rx-btn solid" style={{ '--c': '#198754' }} onClick={handleRestoreConfirm}
+            disabled={restoreLoading || (recordToRestore?.record_status === 'missed' && !restoreDueDate) || !!findRestoreConflict(recordToRestore)}>
             {restoreLoading
-              ? <><Spinner size="sm" animation="border" className="me-2" />Restoring...</>
-              : <><i className="fas fa-undo me-2"></i>Restore Record</>}
-          </Button>
+              ? <><i className="fas fa-circle-notch fa-spin" />Restoring...</>
+              : <><i className="fas fa-undo" />Restore record</>}
+          </button>
         </Modal.Footer>
       </Modal>
 
       {/* Archive Confirmation Modal (records are never deleted) */}
-      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#fffbea', borderBottom: '2px solid #ffc107' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-archive me-2" style={{ color: '#ffc107' }}></i>Archive Record
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {recordToDelete && (() => {
-            const [icon, color, label] = RECORD_TYPE_META[recordToDelete.recordType] || RECORD_TYPE_META.vaccination;
-            return (
-              <>
-                <p style={{ fontSize: '1rem', marginBottom: '1.5rem', color: '#444' }}>
-                  Archive this record? Use this for records added by mistake. Nothing will be deleted.
-                </p>
-                <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #ffc107' }}>
-                  <div className="mb-2" style={{ fontWeight: '500', color: '#555' }}>
-                    <i className={`fas ${icon} me-1`} style={{ color }}></i>{label}
-                  </div>
-                  <strong style={{ fontSize: '1.1rem' }}>{recordToDelete.pet_name}</strong><br />
-                  <small className="text-muted"><i className="fas fa-barcode me-1"></i>{recordToDelete.registration_number}</small>
-                </div>
-                <div className="mt-3 d-flex align-items-start gap-2 p-3" style={{ background: 'rgba(13,110,253,0.06)', borderRadius: '10px', border: '1px solid rgba(13,110,253,0.2)', fontSize: '0.88rem', color: '#555' }}>
-                  <i className="fas fa-info-circle mt-1" style={{ color: '#0d6efd', flexShrink: 0 }}></i>
-                  <div>
-                    The record becomes <strong>inactive</strong>: it moves to the <strong>Inactive</strong> filter and no longer shows on the vet card. All its data is kept and you can restore it anytime.
+      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered dialogClassName="rx-small" className="rx-zoom-modal">
+        {recordToDelete && (() => {
+          const [icon, color, label] = RECORD_TYPE_META[recordToDelete.recordType] || RECORD_TYPE_META.vaccination;
+          return (
+            <>
+              <Modal.Body className="rx-small-body">
+                <div className="rx-small-icon" style={{ '--c': '#b07d05' }}><i className="fas fa-archive" /></div>
+                <h5 className="rx-small-title">Archive this record?</h5>
+                <p className="rx-small-text">Use this for records added by mistake. Nothing will be deleted.</p>
+                <div className="rx-item">
+                  <div className="rx-item-av" style={{ '--c': color }}><i className={`fas ${icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rx-item-name">{recordToDelete.pet_name}</div>
+                    <div className="rx-item-meta">{label} · <span className="rm-mono">{recordToDelete.registration_number}</span></div>
                   </div>
                 </div>
-              </>
-            );
-          })()}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} disabled={deleteLoading} className="border-0"
-            style={{ background: '#ffc107', color: '#000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700' }}>
-            {deleteLoading
-              ? <><Spinner size="sm" animation="border" className="me-2" />Archiving...</>
-              : <><i className="fas fa-archive me-2"></i>Archive Record</>}
-          </Button>
-        </Modal.Footer>
+                <div className="rx-note" style={{ '--c': '#0d6efd' }}>
+                  <i className="fas fa-info-circle" />
+                  <span>The record moves to the <strong>Inactive</strong> filter and no longer shows on the vet card. You can restore it anytime.</span>
+                </div>
+              </Modal.Body>
+              <Modal.Footer className="rx-foot even">
+                <button type="button" className="rx-btn ghost" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>Cancel</button>
+                <button type="button" className="rx-btn solid" style={{ '--c': '#b07d05' }} onClick={handleDeleteConfirm} disabled={deleteLoading}>
+                  {deleteLoading ? <><i className="fas fa-circle-notch fa-spin" />Archiving...</> : <><i className="fas fa-archive" />Archive record</>}
+                </button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
       </Modal>
 
       </Container>
 
-      {/* ── Age Confirmation Modal ── */}
-      <Modal show={showAgeConfirmModal} onHide={() => setShowAgeConfirmModal(false)} centered size="md" style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #fff9e6, #fff3cd)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '800', color: '#7a5000', fontSize: '1.1rem' }}>
-            <i className="fas fa-exclamation-triangle me-2" style={{ color: '#ffc107' }} />
-            Age Requirement Notice
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem', textAlign: 'center' }}>
-          <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(255,193,7,0.12)', border: '2px solid rgba(255,193,7,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
-            <i className="fas fa-paw" style={{ fontSize: '2rem', color: '#ffc107' }} />
-          </div>
-          <p style={{ fontWeight: '700', color: '#333', fontSize: '1rem', marginBottom: '0.5rem' }}>
-            {!getSelectedPet()?.birth_date
-              ? <>This pet has <span style={{ color: '#ffc107' }}>no birth date on record</span>.</>
-              : <>This pet appears to be <span style={{ color: '#ffc107' }}>under 3 months old</span>.</>
-            }
+      {/* ── Age Confirmation Modal (small, centered, above the add form) ── */}
+      <Modal show={showAgeConfirmModal} onHide={() => setShowAgeConfirmModal(false)} centered dialogClassName="rx-small" className="rx-zoom-modal" style={{ zIndex: 1065 }} backdropClassName="rx-backdrop-top">
+        <Modal.Body className="rx-small-body">
+          <div className="rx-small-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-paw" /></div>
+          <h5 className="rx-small-title">
+            {!getSelectedPet()?.birth_date ? 'No birth date on record' : 'Pet may be under 3 months'}
+          </h5>
+          <p className="rx-small-text">
+            The minimum age for {getRecordTypeLabel(formData.record_type).toLowerCase()} is <strong>3 months</strong>.
+            Are you sure {getSelectedPet()?.name || 'this pet'} is at least 3 months old and <strong style={{ color: '#198754' }}>healthy</strong>?
           </p>
-          <p style={{ fontSize: '0.88rem', color: '#777', marginBottom: '1rem', lineHeight: 1.65, maxWidth: '360px', margin: '0 auto 1.25rem' }}>
-            The minimum age requirement for {getRecordTypeLabel(formData.record_type)} is <strong>3 months old</strong>.
-            Are you sure this pet is 3 months old or above and <span style={{ color: '#198754', fontWeight: '700' }}>healthy</span>?
-          </p>
-          <div style={{ background: 'rgba(220,53,69,0.06)', border: '1.5px solid rgba(220,53,69,0.25)', borderRadius: '10px', padding: '0.75rem 1rem', textAlign: 'left' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-              <i className="fas fa-exclamation-triangle" style={{ color: '#dc3545', fontSize: '0.85rem', marginTop: '2px', flexShrink: 0 }} />
-              <span style={{ fontSize: '0.8rem', color: '#dc3545', fontWeight: '600', lineHeight: 1.55 }}>
-                Proceeding with an unqualified pet may result in complications. Please confirm the pet meets the age and health requirements before proceeding.
-              </span>
-            </div>
+          <div className="rx-note" style={{ '--c': '#dc3545' }}>
+            <i className="fas fa-exclamation-triangle" />
+            <span>Proceeding with an unqualified pet may result in complications. Confirm the pet meets the age and health requirements first.</span>
           </div>
         </Modal.Body>
-        <Modal.Footer style={{ borderTop: '1px solid #e0e0e0', padding: '1.25rem 2rem', gap: '0.75rem' }}>
-          <Button variant="secondary" onClick={() => setShowAgeConfirmModal(false)}
-            style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600', fontSize: '0.9rem', flex: 1 }}>
-            <i className="fas fa-arrow-left me-2" />Back
-          </Button>
-          <Button className="border-0" onClick={() => { setShowAgeConfirmModal(false); setShowConfirmRecordModal(true); }}
-            style={{ background: 'linear-gradient(135deg, #ffc107, #ffb300)', color: '#000', borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '700', fontSize: '0.9rem', flex: 1, boxShadow: '0 4px 12px rgba(255,193,7,0.4)' }}>
-            <i className="fas fa-check me-2" />Yes, Proceed
-          </Button>
+        <Modal.Footer className="rx-foot even">
+          <button type="button" className="rx-btn ghost" onClick={() => setShowAgeConfirmModal(false)}>
+            <i className="fas fa-arrow-left" />Back
+          </button>
+          <button type="button" className="rx-btn primary" onClick={() => { setShowAgeConfirmModal(false); setShowConfirmRecordModal(true); }}>
+            <i className="fas fa-check" />Yes, proceed
+          </button>
         </Modal.Footer>
       </Modal>
 
-      {/* ── Review & Confirm Record Modal ── */}
-      <Modal show={showConfirmRecordModal} onHide={() => setShowConfirmRecordModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
-          <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
-            <i className="fas fa-clipboard-check me-2" style={{ color: '#ffc107' }} />
-            Review Record Before Saving
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-            Please review the record details before adding.
-          </p>
+      {/* ── Review & Confirm Record Modal (small, centered, above the add form) ── */}
+      <Modal show={showConfirmRecordModal} onHide={() => !formLoading && setShowConfirmRecordModal(false)} centered dialogClassName="rx-small wide" className="rx-zoom-modal" style={{ zIndex: 1065 }} backdropClassName="rx-backdrop-top" scrollable>
+        {(() => {
+          const [tIcon, tColor] = RECORD_TYPE_META[formData.record_type] || RECORD_TYPE_META.vaccination;
+          const n = getSessionNumber();
+          const pet = getSelectedPet();
+          const rows = [
+            { icon: 'fa-paw', label: 'Pet', value: pet ? `${pet.name} (${pet.registration_number})` : '—' },
+            ...(formData.record_type === 'vaccination' ? [
+              { icon: 'fa-syringe', label: 'Vaccine', value: (() => { const f = inventoryItems.find(i => String(i.id) === String(formData.vaccination_type_id)); return f ? f.item_name : '—'; })() },
+              { icon: 'fa-calendar', label: 'Vaccination date', value: formData.vaccination_date || '—' },
+              { icon: 'fa-calendar-check', label: 'Next due date', value: formData.vaccination_next_due_date || 'Not set' },
+            ] : []),
+            ...(formData.record_type === 'deworming' ? [
+              { icon: 'fa-pills', label: 'Deworming type', value: (() => { const f = dewormingTypes.find(d => String(d.id) === String(formData.deworming_type_id)); return f ? f.name : '—'; })() },
+              { icon: 'fa-calendar', label: 'Deworming date', value: formData.deworming_date || '—' },
+              { icon: 'fa-calendar-check', label: 'Next due date', value: formData.deworming_next_due_date || 'Not set' },
+              { icon: 'fa-prescription-bottle', label: 'Dosage', value: formData.dosage || 'Not specified' },
+            ] : []),
+            ...(formData.record_type === 'sterilization' ? [
+              { icon: 'fa-cut', label: 'Procedure', value: pet ? (pet.gender === 'female' ? 'Spay (Female)' : 'Neuter (Male)') : '—' },
+              { icon: 'fa-calendar', label: 'Sterilization date', value: formData.sterilization_date || '—' },
+            ] : []),
+            ...(formData.record_type === 'microchip' ? [
+              { icon: 'fa-tag', label: 'Type', value: formData.microchip_subtype === 'qr' ? 'QR Code (auto-generated)' : 'Physical microchip' },
+              ...(formData.microchip_subtype === 'microchip' ? [{ icon: 'fa-microchip', label: 'Microchip no.', value: formData.microchip_number || '—', mono: true }] : []),
+              { icon: 'fa-calendar', label: 'Implant date', value: formData.implant_date || '—' },
+              ...(formData.microchip_subtype === 'microchip' ? [
+                { icon: 'fa-map-marker-alt', label: 'Implant site', value: formData.implant_site || 'Not specified' },
+                { icon: 'fa-tag', label: 'Brand', value: formData.microchip_brand || 'Not specified' },
+              ] : []),
+            ] : []),
+            { icon: 'fa-user-md', label: 'Veterinarian', value: formData.veterinarian_name || 'Not specified' },
+            { icon: 'fa-weight', label: 'Weight', value: formData.weight ? `${formData.weight} kg` : 'Not specified' },
+            ...(formData.notes ? [{ icon: 'fa-sticky-note', label: 'Notes', value: formData.notes }] : []),
+          ];
+          return (
+            <>
+              <Modal.Body className="rx-small-body">
+                <div className="rx-small-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-clipboard-check" /></div>
+                <h5 className="rx-small-title">{modalMode === 'edit' ? 'Review your changes' : 'Review the record'}</h5>
+                <p className="rx-small-text">{modalMode === 'edit' ? 'Please check the changes before saving.' : 'Please check the details before adding this record.'}</p>
 
-          {/* Record Type Banner */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            background: formData.record_type === 'vaccination' ? 'rgba(255,193,7,0.1)'
-              : formData.record_type === 'deworming' ? 'rgba(23,162,184,0.1)'
-              : formData.record_type === 'sterilization' ? 'rgba(40,167,69,0.1)'
-              : 'rgba(67,97,238,0.1)',
-            border: `1.5px solid ${
-              formData.record_type === 'vaccination' ? 'rgba(255,193,7,0.3)'
-              : formData.record_type === 'deworming' ? 'rgba(23,162,184,0.3)'
-              : formData.record_type === 'sterilization' ? 'rgba(40,167,69,0.3)'
-              : 'rgba(67,97,238,0.3)'}`,
-            borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1rem'
-          }}>
-            <img
-              src={formData.record_type === 'vaccination' ? '/vaccine.png' : formData.record_type === 'deworming' ? '/deworm.png' : formData.record_type === 'sterilization' ? '/sterilization.png' : '/microchip.png'}
-              alt={formData.record_type}
-              style={{ width: '36px', height: '36px', objectFit: 'contain' }}
-              onError={e => e.target.style.display = 'none'}
-            />
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', marginBottom: '2px' }}>Record Type</div>
-              <div style={{ fontWeight: '700', color: '#333' }}>{getRecordTypeLabel(formData.record_type)}</div>
-            </div>
-          </div>
-
-          {(() => {
-            const n = getSessionNumber();
-            if (n < 2) return null;
-            return (
-              <div style={{ background: 'rgba(255,193,7,0.12)', border: '2px solid #ffc107', borderRadius: '12px', padding: '0.85rem 1rem', marginBottom: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <i className="fas fa-exclamation-triangle" style={{ color: '#ffc107', fontSize: '1.2rem', marginTop: '2px' }} />
-                <div>
-                  <div style={{ fontWeight: '800', color: '#7a5000' }}>This will be the {ordinal(n)} session</div>
-                  <div style={{ fontSize: '0.85rem', color: '#6b5300' }}>
-                    {getSelectedPet()?.name || 'This pet'} already has {n - 1} record{n - 1 > 1 ? 's' : ''} of this {formData.record_type === 'deworming' ? 'dewormer' : 'vaccine'}. Are you sure this is the {ordinal(n)} session?
+                <div className="rx-item text-start mb-3" style={{ borderColor: `color-mix(in srgb, ${tColor} 35%, #fff)`, background: `color-mix(in srgb, ${tColor} 7%, #fff)` }}>
+                  <div className="rx-item-av" style={{ '--c': tColor }}><i className={`fas ${tIcon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rx-info-label">Record type</div>
+                    <div className="rx-item-name">{getRecordTypeLabel(formData.record_type)}</div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
-          {/* Details */}
-          <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', border: '1px solid #e9ecef' }}>
-            {[
-              { icon: 'fa-paw', label: 'Pet', value: getSelectedPet() ? `${getSelectedPet().name} (${getSelectedPet().registration_number})` : '—' },
-              ...(formData.record_type === 'vaccination' ? [
-                { icon: 'fa-syringe', label: 'Vaccine', value: (() => { const f = inventoryItems.find(i => String(i.id) === String(formData.vaccination_type_id)); return f ? f.item_name : '—'; })() },
-                { icon: 'fa-calendar', label: 'Vaccination Date', value: formData.vaccination_date || '—' },
-                { icon: 'fa-calendar-check', label: 'Next Due Date', value: formData.vaccination_next_due_date || 'Not set' },
-              ] : []),
-              ...(formData.record_type === 'deworming' ? [
-                { icon: 'fa-pills', label: 'Deworming Type', value: (() => { const f = dewormingTypes.find(d => String(d.id) === String(formData.deworming_type_id)); return f ? f.name : '—'; })() },
-                { icon: 'fa-calendar', label: 'Deworming Date', value: formData.deworming_date || '—' },
-                { icon: 'fa-calendar-check', label: 'Next Due Date', value: formData.deworming_next_due_date || 'Not set' },
-                { icon: 'fa-prescription-bottle', label: 'Dosage', value: formData.dosage || 'Not specified' },
-              ] : []),
-              ...(formData.record_type === 'sterilization' ? [
-                { icon: 'fa-cut', label: 'Procedure', value: getSelectedPet() ? (getSelectedPet().gender === 'female' ? 'Spay (Female)' : 'Neuter (Male)') : '—' },
-                { icon: 'fa-calendar', label: 'Sterilization Date', value: formData.sterilization_date || '—' },
-              ] : []),
-              ...(formData.record_type === 'microchip' ? [
-                { icon: 'fa-tag', label: 'Type', value: formData.microchip_subtype === 'qr' ? 'QR Code (Auto-generated)' : 'Physical Microchip' },
-                ...(formData.microchip_subtype === 'microchip' ? [{ icon: 'fa-microchip', label: 'Microchip No.', value: formData.microchip_number || '—' }] : []),
-                { icon: 'fa-calendar', label: 'Implant Date', value: formData.implant_date || '—' },
-                ...(formData.microchip_subtype === 'microchip' ? [
-                  { icon: 'fa-map-marker-alt', label: 'Implant Site', value: formData.implant_site || 'Not specified' },
-                  { icon: 'fa-tag', label: 'Brand', value: formData.microchip_brand || 'Not specified' },
-                ] : []),
-              ] : []),
-              { icon: 'fa-user-md', label: 'Veterinarian', value: formData.veterinarian_name || 'Not specified' },
-              { icon: 'fa-weight', label: 'Weight', value: formData.weight ? `${formData.weight} kg` : 'Not specified' },
-              ...(formData.notes ? [{ icon: 'fa-sticky-note', label: 'Notes', value: formData.notes }] : []),
-            ].map((item, i, arr) => (
-              <div key={i} style={{ display: 'flex', gap: '0.75rem', paddingBottom: i < arr.length - 1 ? '0.75rem' : 0, marginBottom: i < arr.length - 1 ? '0.75rem' : 0, borderBottom: i < arr.length - 1 ? '1px solid #e9ecef' : 'none' }}>
-                <div style={{ width: '28px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2px' }}>
-                  <i className={`fas ${item.icon}`} style={{ color: '#ffc107', fontSize: '0.8rem' }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>{item.label}</div>
-                  <div style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem', wordBreak: 'break-word', fontFamily: item.label === 'Microchip No.' ? 'monospace' : 'inherit' }}>{item.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem', gap: '0.75rem' }}>
-          <Button variant="secondary" onClick={() => setShowConfirmRecordModal(false)} disabled={formLoading}
-            style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            <i className="fas fa-arrow-left me-2" />Back to Edit
-          </Button>
-          <Button disabled={formLoading} className="border-0"
-            onClick={() => {
-              setShowConfirmRecordModal(false);
-              handleSubmit({ preventDefault: () => {} });
-            }}
-            style={{ background: formLoading ? '#6c757d' : '#000000', color: '#ffffff', borderRadius: '10px', padding: '0.75rem 1.75rem', fontWeight: '700', transition: 'all 0.3s' }}
-            onMouseOver={e => { if (!formLoading) e.currentTarget.style.background = '#333'; }}
-            onMouseOut={e => { if (!formLoading) e.currentTarget.style.background = '#000'; }}
-          >
-            {formLoading
-              ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</>
-              : <><i className="fas fa-save me-2" />{getSessionNumber() > 1 ? `Yes, Save as ${ordinal(getSessionNumber())} Session` : 'Confirm'}</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
+                {n >= 2 && (
+                  <div className="rx-note mb-3" style={{ '--c': '#b07d05', marginTop: 0 }}>
+                    <i className="fas fa-exclamation-triangle" />
+                    <span>
+                      <strong>This will be the {ordinal(n)} session.</strong>{' '}
+                      {pet?.name || 'This pet'} already has {n - 1} record{n - 1 > 1 ? 's' : ''} of this {formData.record_type === 'deworming' ? 'dewormer' : 'vaccine'}.
+                    </span>
+                  </div>
+                )}
+
+                <div className="rx-grid text-start">
+                  {rows.map(it => (
+                    <div key={it.label} className={`rx-info${['Pet', 'Vaccine', 'Notes', 'Microchip no.'].includes(it.label) ? ' wide' : ''}`}>
+                      <div className="rx-info-ic"><i className={`fas ${it.icon}`} /></div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="rx-info-label">{it.label}</div>
+                        <div className={`rx-info-value${it.mono ? ' rm-mono' : ''}`}>{it.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Modal.Body>
+              <Modal.Footer className="rx-foot even">
+                <button type="button" className="rx-btn ghost" onClick={() => setShowConfirmRecordModal(false)} disabled={formLoading}>
+                  <i className="fas fa-arrow-left" />Back to edit
+                </button>
+                <button type="button" className="rx-btn primary" disabled={formLoading}
+                  onClick={() => { setShowConfirmRecordModal(false); handleSubmit({ preventDefault: () => {} }); }}>
+                  {formLoading
+                    ? <><i className="fas fa-circle-notch fa-spin" />Saving…</>
+                    : <><i className="fas fa-save" />{n > 1 ? `Save as ${ordinal(n)} session` : 'Save record'}</>}
+                </button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
+      </Modal>
       
       </>
     );

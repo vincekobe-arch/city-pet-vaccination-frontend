@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Table, InputGroup, Form, Modal, ListGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Modal } from 'react-bootstrap';
 import api, { ownerAPI, petAPI, handleAPIError } from '../../services/api';
 
 const AnimatedStatValue = ({ value, loading }) => {
@@ -37,6 +37,55 @@ const AnimatedStatValue = ({ value, loading }) => {
   return displayValue;
 };
 
+// Raw base64 or data URL -> usable <img> src
+const toImgSrc = (src) => {
+  if (!src || typeof src !== 'string') return null;
+  const s = src.trim();
+  if (!s) return null;
+  if (s.startsWith('data:')) return s;
+  if (s.startsWith('/9j/')) return `data:image/jpeg;base64,${s}`;   // check before "/" paths
+  if (s.startsWith('iVBOR')) return `data:image/png;base64,${s}`;
+  if (s.startsWith('UklGR')) return `data:image/webp;base64,${s}`;
+  if (s.startsWith('http') || s.startsWith('/')) return s;
+  return `data:image/jpeg;base64,${s}`;
+};
+
+// Full-screen photo viewer: scroll or buttons to zoom, drag to pan, Esc to close
+const IdLightbox = ({ src, label, onClose }) => {
+  const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
+  const drag = useRef(null);
+
+  useEffect(() => {
+    // Capture Esc first so it closes only the photo, not the modal behind it
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  const zoomBy = (d) => setView(v => {
+    const scale = Math.min(Math.max(v.scale + d, 1), 5);
+    return scale === 1 ? { scale: 1, x: 0, y: 0 } : { ...v, scale };
+  });
+
+  return (
+    <div className="om-lightbox" onClick={onClose} onWheel={e => zoomBy(e.deltaY < 0 ? 0.15 : -0.15)}
+      onMouseMove={e => { if (drag.current) setView(v => ({ ...v, x: drag.current.bx + e.clientX - drag.current.sx, y: drag.current.by + e.clientY - drag.current.sy })); }}
+      onMouseUp={() => { drag.current = null; }} onMouseLeave={() => { drag.current = null; }}>
+      <div className="om-lb-label">{label} · Scroll to zoom, drag to pan</div>
+      <img src={src} alt={label} draggable={false}
+        onClick={e => e.stopPropagation()}
+        onMouseDown={e => { if (view.scale <= 1) return; e.preventDefault(); drag.current = { sx: e.clientX, sy: e.clientY, bx: view.x, by: view.y }; }}
+        style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`, cursor: view.scale > 1 ? 'grab' : 'default', transition: drag.current ? 'none' : 'transform 0.15s ease' }} />
+      <button type="button" className="om-lb-btn close" onClick={onClose} aria-label="Close"><i className="fas fa-times" /></button>
+      <div className="om-lb-controls" onClick={e => e.stopPropagation()}>
+        <button type="button" className="om-lb-btn" onClick={() => zoomBy(-0.3)} aria-label="Zoom out"><i className="fas fa-search-minus" /></button>
+        <button type="button" className="om-lb-btn" onClick={() => setView({ scale: 1, x: 0, y: 0 })} aria-label="Reset zoom"><i className="fas fa-compress" /></button>
+        <button type="button" className="om-lb-btn" onClick={() => zoomBy(0.3)} aria-label="Zoom in"><i className="fas fa-search-plus" /></button>
+      </div>
+    </div>
+  );
+};
+
 const SuperAdminOwnerManagement = () => {
   const [owners, setOwners] = useState([]);
   const [pets, setPets] = useState([]);
@@ -68,6 +117,8 @@ const SuperAdminOwnerManagement = () => {
   const [verifLoading, setVerifLoading] = useState(false);
   const [verifSuccess, setVerifSuccess] = useState('');
   const [verifError, setVerifError] = useState('');
+  const [showDeclineConfirm, setShowDeclineConfirm] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
 
   const VERIF_CONFIG = {
     not_verified:   { label: 'Not Verified',   color: '#dc3545', icon: 'fa-times-circle' },
@@ -255,7 +306,7 @@ const SuperAdminOwnerManagement = () => {
     .cm-toolbar { border-bottom: 1px solid #eef0f3; padding-bottom: 1rem; }
     .cm-filters { padding-top: 1rem; }
     .cm-table { table-layout: fixed; }
-    .cm-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #ffe08a, #ffc107); color: #1f2328; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
+    .cm-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,193,7,0.18); color: #8a6700; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 800; flex-shrink: 0; }
     .cm-ic { width: 14px; margin-right: 0.4rem; color: #9ca3af; font-size: 0.72rem; }
     .cm-pets { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #9ca3af; }
     .cm-pets i { font-size: 0.72rem; }
@@ -281,11 +332,137 @@ const SuperAdminOwnerManagement = () => {
     @media (min-width: 1600px) { .som-wrap { zoom: 0.9; } }
     @media (min-width: 1920px) { .som-wrap { zoom: 1; } }
     @media (max-width: 768px) { .som-wrap { zoom: 1; } }
+    /* ---------- Alerts ---------- */
+    .om-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 1rem; margin-bottom: 1.1rem; border-radius: 12px; font-size: 0.88rem; font-weight: 500; }
+    .om-alert i { margin-top: 3px; }
+    .om-alert span { flex: 1; }
+    .om-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .om-alert.success { background: rgba(25,135,84,0.07); border: 1px solid rgba(25,135,84,0.25); color: #146c43; }
+    .om-alert button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; margin: -4px -4px -4px 0; border-radius: 7px; opacity: 0.7; }
+    .om-alert button:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+
+    /* ---------- Laptops with the sidebar (769–1199px) ---------- */
+    @media (min-width: 769px) and (max-width: 1199.98px) {
+      .cm-table th:nth-child(5), .cm-table td:nth-child(5) { display: none; }
+      .cm-table th:nth-child(1) { width: 30% !important; }
+      .cm-table th:nth-child(2) { width: 33% !important; }
+      .cm-table th:nth-child(3) { width: 9% !important; }
+      .cm-table th:nth-child(4) { width: 21% !important; }
+      .mobile-card-padding { padding: 1.1rem !important; }
+      .mobile-stat-number { font-size: 2.2rem !important; }
+    }
+
+    /* ---------- Modals: top on desktop, centered on phones ---------- */
+    .om-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .om-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .om-zoom-modal { zoom: 1; } }
+    @media (max-width: 768px) {
+      .om-zoom-modal { zoom: 1; }
+      .om-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .om-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+    }
+    .om-backdrop-top { z-index: 1060 !important; }
+    .om-modal { max-width: 720px; }
+    .om-modal.lg { max-width: 860px; }
+    .om-modal .modal-content, .omc-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .om-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, #fffaeb 0%, #fff 100%); }
+    .om-head-main { display: flex; gap: 0.95rem; align-items: center; min-width: 0; flex: 1; }
+    .om-avatar { width: 56px; height: 56px; border-radius: 16px; flex-shrink: 0; background: linear-gradient(135deg, #ffc107, #ffb000); color: #1f2328; font-weight: 800; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,193,7,0.3); }
+    .om-head-ic { width: 52px; height: 52px; border-radius: 14px; flex-shrink: 0; background: rgba(255,193,7,0.18); color: #b88a00; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; }
+    .om-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .om-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .om-chip i { font-size: 0.66rem; }
+    .om-chip.green { background: rgba(25,135,84,0.12); color: #198754; }
+    .om-chip.grey { background: #f3f4f6; color: #6b7280; }
+    .om-title { font-size: 1.25rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.25; word-break: break-word; }
+    .om-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; font-weight: 600; }
+    .om-body { padding: 1.4rem 1.5rem !important; }
+    .om-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.75rem; }
+    .om-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .om-count { font-size: 0.7rem; background: #1f2328; color: #fff; padding: 0.05rem 0.5rem; border-radius: 999px; letter-spacing: 0; }
+    .om-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .om-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; min-width: 0; }
+    .om-info.wide { grid-column: 1 / -1; }
+    .om-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #fff; border: 1px solid #eef0f3; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .om-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .om-info-value { font-size: 0.9rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .om-pets { border: 1px solid #eef0f3; border-radius: 12px; overflow: hidden; }
+    .om-pet { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 0.9rem; border-bottom: 1px solid #f3f4f6; }
+    .om-pet:last-child { border-bottom: none; }
+    .om-pet-ic { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .om-pet-name { font-weight: 700; font-size: 0.92rem; color: #1f2328; }
+    .om-pet-meta { font-size: 0.78rem; color: #6b7280; display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.1rem; }
+    .om-pet-meta .dot { margin: 0 0.35rem; color: #c4c9d0; }
+    .om-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .om-pager { display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem; font-size: 0.82rem; }
+    .om-empty { display: flex; align-items: center; gap: 0.5rem; padding: 1.1rem; border: 1px dashed #e5e7eb; border-radius: 12px; color: #9ca3af; font-size: 0.86rem; }
+    .om-ids { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+    .om-id { position: relative; display: block; width: 100%; height: 150px; padding: 0; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #f8f9fa; cursor: zoom-in; }
+    .om-id img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
+    .om-id:hover img { transform: scale(1.04); }
+    .om-id-zoom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); color: transparent; font-size: 1.3rem; transition: all 0.15s ease; }
+    .om-id:hover .om-id-zoom, .om-id:focus-visible .om-id-zoom { background: rgba(0,0,0,0.35); color: #fff; }
+    .om-id.broken::after { content: 'Failed to load'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #9ca3af; }
+    .om-id-none { height: 150px; border: 1.5px dashed #e5e7eb; border-radius: 12px; background: #fafbfc; display: flex; align-items: center; justify-content: center; gap: 0.4rem; color: #9ca3af; font-size: 0.82rem; }
+    .om-review { margin-top: 1.4rem; padding: 1.1rem 1.2rem; border-radius: 14px; background: rgba(255,193,7,0.07); border: 1px solid rgba(255,193,7,0.4); }
+    .om-review-title { font-weight: 700; color: #1f2328; display: flex; align-items: center; gap: 0.5rem; }
+    .om-review-title i { color: #e0a800; }
+    .om-review-text { font-size: 0.84rem; color: #6b7280; margin: 0.3rem 0 0.9rem; }
+    .om-review-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+    .om-review-actions .om-btn { flex: 1 1 150px; }
+    .om-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; gap: 0.6rem; }
+    .om-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; border-radius: 10px; border: 1px solid transparent; font-weight: 600; font-size: 0.88rem; padding: 0.6rem 1.15rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .om-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .om-btn.primary { background: #ffc107; color: #1f2328; min-width: 110px; }
+    .om-btn.primary:hover:not(:disabled) { background: #f0b400; box-shadow: 0 6px 16px rgba(255,193,7,0.35); }
+    .om-btn.ghost { background: #fff; color: #1f2328; border-color: #e5e7eb; }
+    .om-btn.ghost:hover:not(:disabled) { background: #fff8e1; border-color: #ffc107; }
+    .om-btn.blue { background: #0d6efd; color: #fff; }
+    .om-btn.blue:hover:not(:disabled) { background: #0b5ed7; box-shadow: 0 6px 16px rgba(13,110,253,0.25); }
+    .om-btn.green { background: #198754; color: #fff; }
+    .om-btn.green:hover:not(:disabled) { background: #157347; box-shadow: 0 6px 16px rgba(25,135,84,0.25); }
+    .om-btn.danger { background: #dc3545; color: #fff; }
+    .om-btn.danger:hover:not(:disabled) { background: #bb2d3b; }
+    .om-btn.danger-outline { background: #fff; color: #dc3545; border-color: rgba(220,53,69,0.35); }
+    .om-btn.danger-outline:hover:not(:disabled) { background: rgba(220,53,69,0.06); }
+    .om-btn:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    /* Small confirm modal */
+    .omc-modal { max-width: 420px; }
+    @keyframes omcPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .omc-body { padding: 1.75rem 1.6rem 1.2rem !important; text-align: center; }
+    .omc-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: #dc3545; background: rgba(220,53,69,0.1); animation: omcPop 0.4s ease-out; }
+    .omc-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .omc-text { font-size: 0.88rem; color: #6b7280; margin: 0; line-height: 1.55; }
+    .omc-foot { border-top: 1px solid #eef0f3 !important; padding: 0.9rem 1.4rem !important; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .omc-foot .om-btn { flex: 1; margin: 0; }
+
+    /* Lightbox */
+    .om-lightbox { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .om-lightbox img { max-width: 90vw; max-height: 86vh; object-fit: contain; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); user-select: none; }
+    .om-lb-label { position: absolute; top: 1.25rem; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 0.8rem; white-space: nowrap; pointer-events: none; }
+    .om-lb-btn { width: 42px; height: 42px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease; }
+    .om-lb-btn:hover { background: rgba(255,255,255,0.3); }
+    .om-lb-btn.close { position: absolute; top: 1rem; right: 1rem; }
+    .om-lb-controls { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); display: flex; gap: 0.5rem; }
+
+    @media (max-width: 768px) {
+      .om-head { padding: 1rem !important; }
+      .om-avatar { width: 46px; height: 46px; font-size: 1rem; border-radius: 13px; }
+      .om-body { padding: 1rem !important; }
+      .om-info-grid { grid-template-columns: 1fr; }
+      .om-info-ic { display: none; }
+      .om-ids { grid-template-columns: 1fr 1fr; }
+      .om-foot { padding: 0.75rem 1rem !important; }
+      .om-foot .om-btn { flex: 1; }
+      .om-foot .me-auto { margin-right: 0 !important; }
+    }
+    @media (prefers-reduced-motion: reduce) { .omc-icon { animation: none; } }
   `;
 
   const CACHE_TTL = 60_000;
 
-  const loadPage = async (page, force = false) => {
+  const loadPage = async (page, force = false, silent = false) => {
     const cacheKey = `${page}`;
     const cached = pageCache[cacheKey];
     if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -294,7 +471,7 @@ const SuperAdminOwnerManagement = () => {
       return;
     }
 
-    page === 1 ? setLoading(true) : setPageLoading(true);
+    if (!silent) page === 1 ? setLoading(true) : setPageLoading(true);
     try {
       const [ownersRes, petsRes] = await Promise.all([
         ownerAPI.getAll(page, itemsPerPage),
@@ -316,7 +493,6 @@ const SuperAdminOwnerManagement = () => {
     }
   };
 
-  const loadData = () => loadPage(1);
 
   useEffect(() => {
     loadPage(currentPage);
@@ -343,9 +519,6 @@ const SuperAdminOwnerManagement = () => {
         ? pets.filter(pet => parseInt(pet.owner_id) === parseInt(owner.pet_owner_id))
         : [];
       
-      console.log('Owner:', owner);
-      console.log('Filtered Pets:', userPets);
-      
       setOwnerPets(userPets);
     } catch (err) {
       console.error('Error filtering pets:', err);
@@ -359,14 +532,13 @@ const SuperAdminOwnerManagement = () => {
     setVerifOwner(owner);
     setVerifError('');
     setVerifSuccess('');
+    setShowDeclineConfirm(false);
     setShowVerifModal(true);
     setShowDropdown(null);
     // Fetch single owner to get full image fields
     try {
       const res = await ownerAPI.getByUserId(owner.user_id);
       const fresh = res.data.owner;
-      console.log('RAW valid_id_front (first 100 chars):', fresh?.valid_id_front?.substring(0, 100));
-      console.log('valid_id_front length:', fresh?.valid_id_front?.length);
       if (fresh) setVerifOwner(prev => ({ ...prev, ...fresh }));
     } catch {
       // keep the original owner data already set above
@@ -379,7 +551,7 @@ const SuperAdminOwnerManagement = () => {
     try {
       await ownerAPI_verify(verifOwner.user_id, status);
       setVerifSuccess(`Community status updated to: ${VERIF_CONFIG[status]?.label}`);
-      await loadPage(currentPage, true);
+      await loadPage(currentPage, true, true);   // silent: no skeleton, no jump
       const petsRes = await petAPI.getAllUnpaginated();
       setPets(petsRes.data.pets || []);
       // Sync verifOwner with the fresh data so images reflect immediately
@@ -484,10 +656,10 @@ const SuperAdminOwnerManagement = () => {
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2"></i>
-            {error}
-          </Alert>
+          <div role="alert" className="om-alert danger">
+            <i className="fas fa-exclamation-circle" /><span>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
       {/* Statistics */}
@@ -524,7 +696,7 @@ const SuperAdminOwnerManagement = () => {
             delay: '0.3s'
           }
         ].map(({ label, count, img, accent, accentAlpha, fallbackIcon, description, delay }) => (
-          <Col xs={4} md={6} lg={4} className="mb-3" key={label} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
+          <Col xs={4} className="mb-3" key={label} style={{ animation: `dropDown 0.4s ease-out ${delay} backwards` }}>
             <Card
               className="border-0 h-100"
               style={{
@@ -808,455 +980,233 @@ const SuperAdminOwnerManagement = () => {
         )}
       </div>
 
-      {/* View Community Details Modal */}
-      <Modal 
-        show={showViewModal} 
-        onHide={() => setShowViewModal(false)} 
-        size="lg" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title className="mobile-modal-title">
-            <i className="fas fa-user me-2"></i>
-            Community Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="mobile-modal-body" style={{ padding: '1rem', maxHeight: '75vh', overflowY: 'auto' }}>
-          {selectedOwner && (
+      {/* ======================== VIEW COMMUNITY MODAL ======================== */}
+      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="om-modal" className="om-zoom-modal" scrollable>
+        {selectedOwner && (() => {
+          const o = selectedOwner;
+          const first = o.po_first_name || o.first_name || '';
+          const last = o.po_last_name || o.last_name || '';
+          const initials = `${first[0] || ''}${last[0] || ''}`.toUpperCase() || '?';
+          const verif = VERIF_CONFIG[o.verification_status] || VERIF_CONFIG.not_verified;
+          const login = lastLoginInfo(o.last_login);
+          const info = [
+            { icon: 'fa-at', label: 'Username', value: o.username || '—' },
+            { icon: 'fa-venus-mars', label: 'Gender', value: <span className="text-capitalize">{o.gender || 'Not provided'}</span> },
+            { icon: 'fa-envelope', label: 'Email', value: o.email || 'Not provided' },
+            { icon: 'fa-phone-alt', label: 'Phone', value: o.po_phone || o.phone || 'Not provided' },
+            { icon: 'fa-home', label: 'Address', value: o.po_address || o.address || 'Not provided', wide: true },
+          ];
+          return (
             <>
-              {/* Owner Information */}
-              <Card className="mb-3">
-                <Card.Header>
-                  <h6 className="mb-0">
-                    <i className="fas fa-user-circle me-2"></i>
-                    Community Information
-                  </h6>
-                </Card.Header>
-                <Card.Body style={{ padding: '0.75rem' }}>
-                  <Row className="g-0">
-                    <Col xs={12} md={6}>
-                      <Table borderless size="sm">
-                        <tbody>
-                          <tr>
-                            <td style={{ width: '120px' }}><strong>Name:</strong></td>
-                            <td>{selectedOwner.po_first_name || selectedOwner.first_name} {selectedOwner.po_last_name || selectedOwner.last_name}</td>
-                          </tr>
-                          <tr>
-                            <td><strong>Username:</strong></td>
-                            <td>{selectedOwner.username}</td>
-                          </tr>
-                          <tr>
-                            <td><strong>Address:</strong></td>
-                            <td>{selectedOwner.address || 'Not provided'}</td>
-                          </tr>
-                          <tr>
-                            <td><strong>Status:</strong></td>
-                            <td>
-                              <Badge bg={selectedOwner.is_active ? 'success' : 'secondary'}>
-                                {selectedOwner.is_active ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </Table>
-                    </Col>
-                    <Col xs={12} md={6}>
-                      <Table borderless size="sm">
-                        <tbody>
-                          <tr>
-                            <td style={{ width: '120px' }}><strong>Email:</strong></td>
-                            <td>{selectedOwner.email}</td>
-                          </tr>
-                          <tr>
-                            <td><strong>Phone:</strong></td>
-                            <td>{selectedOwner.po_phone || selectedOwner.phone || 'Not provided'}</td>
-                          </tr>
-                        </tbody>
-                      </Table>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-
-              {/* Pets List */}
-              <h6 className="text-muted mb-3">
-                <i className="fas fa-paw me-2"></i>
-                Registered Pets ({ownerPets.length})
-              </h6>
-
-              {viewLoading ? (
-                <div className="text-center py-4">
-                  <Spinner animation="border" variant="primary" />
-                </div>
-              ) : ownerPets.length === 0 ? (
-                <Alert variant="info">
-                  <i className="fas fa-info-circle me-2"></i>
-                  This member hasn't registered any pets yet.
-                </Alert>
-              ) : (
-                <>
-                  <div className="table-responsive">
-                    <Table bordered hover size="sm">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Pet Name</th>
-                          <th>Species/Breed</th>
-                          <th>Gender</th>
-                          <th>Age</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentPets.map(pet => (
-                          <tr key={pet.id}>
-                            <td>
-                              <div>
-                                <strong>{pet.name}</strong>
-                                <br />
-                                <small className="text-muted">
-                                  <i className="fas fa-barcode me-1"></i>
-                                  {pet.registration_number || 'N/A'}
-                                </small>
-                              </div>
-                            </td>
-                            <td>
-                              <span className="text-capitalize" style={{ fontWeight: '500' }}>
-                                {pet.species}
-                              </span>
-                              {pet.breed && (
-                                <div className="mt-1">
-                                  <small className="text-muted">{pet.breed}</small>
-                                </div>
-                              )}
-                            </td>
-                            <td className="text-capitalize">
-                              {pet.gender === 'male' ? (
-                                <><i className="fas fa-mars text-primary me-1"></i>Male</>
-                              ) : (
-                                <><i className="fas fa-venus text-danger me-1"></i>Female</>
-                              )}
-                            </td>
-                            <td>{calculateAge(pet.birth_date)}</td>
-                            <td>
-                              <Badge bg={pet.is_active ? 'success' : 'secondary'}>
-                                {pet.is_active ? 'Active' : 'Inactive'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-
-                  {/* Pagination */}
-                  {modalTotalPages > 1 && (
-                    <div className="d-flex justify-content-between align-items-center mt-3">
-                      <Button 
-                        variant="outline-secondary" 
-                        size="sm"
-                        onClick={handleModalPrevPage}
-                        disabled={modalCurrentPage === 1}
-                      >
-                        <i className="fas fa-chevron-left me-1"></i>
-                        Previous
-                      </Button>
-                      
-                      <span className="text-muted">
-                        Page {modalCurrentPage} / {modalTotalPages}
-                      </span>
-                      
-                      <Button 
-                        variant="outline-secondary" 
-                        size="sm"
-                        onClick={handleModalNextPage}
-                        disabled={modalCurrentPage === modalTotalPages}
-                      >
-                        Next
-                        <i className="fas fa-chevron-right ms-1"></i>
-                      </Button>
+              <Modal.Header closeButton className="om-head">
+                <div className="om-head-main">
+                  <div className="om-avatar">{initials}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="om-chips">
+                      <span className={`om-chip ${o.is_active ? 'green' : 'grey'}`}><i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />{o.is_active ? 'Active' : 'Inactive'}</span>
+                      <span className="om-chip" style={{ color: verif.color, background: `color-mix(in srgb, ${verif.color} 12%, #fff)` }}><i className={`fas ${verif.icon}`} />{verif.label}</span>
                     </div>
-                  )}
-                </>
-              )}
+                    <Modal.Title as="h5" className="om-title">{first} {last}</Modal.Title>
+                    <div className="om-sub" style={{ color: login.color }}><i className="fas fa-clock me-1" />{login.label}</div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Modal.Body className="om-body">
+                <div className="om-section-title"><i className="fas fa-user-circle" />Personal information</div>
+                <div className="om-info-grid">
+                  {info.map(it => (
+                    <div key={it.label} className={`om-info${it.wide ? ' wide' : ''}`}>
+                      <div className="om-info-ic"><i className={`fas ${it.icon}`} /></div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="om-info-label">{it.label}</div>
+                        <div className="om-info-value">{it.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="om-section-title mt-4">
+                  <i className="fas fa-paw" />Registered pets
+                  {!viewLoading && <span className="om-count">{ownerPets.length}</span>}
+                </div>
+                {viewLoading ? (
+                  <div className="om-pets">
+                    {Array.from({ length: 3 }, (_, i) => (
+                      <div key={i} className="om-pet" style={{ opacity: 1 - i * 0.2 }}>
+                        <div className="skeleton" style={{ width: 38, height: 38, borderRadius: 10 }} />
+                        <div className="flex-grow-1">
+                          <div className="skeleton" style={{ width: '35%', height: 12, marginBottom: 7 }} />
+                          <div className="skeleton" style={{ width: '22%', height: 10 }} />
+                        </div>
+                        <div className="skeleton" style={{ width: 60, height: 20, borderRadius: 999 }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : ownerPets.length === 0 ? (
+                  <div className="om-empty"><i className="fas fa-paw" />This member hasn't registered any pets yet.</div>
+                ) : (
+                  <>
+                    <div className="om-pets">
+                      {currentPets.map(pet => (
+                        <div key={pet.id} className="om-pet">
+                          <div className="om-pet-ic"><i className="fas fa-paw" /></div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div className="om-pet-name">{pet.name}</div>
+                            <div className="om-pet-meta">
+                              <span className="om-mono">{pet.registration_number || 'N/A'}</span>
+                              <span className="dot">·</span>
+                              <span className="text-capitalize">{pet.species}</span>{pet.breed && <> ({pet.breed})</>}
+                              <span className="dot">·</span>
+                              {pet.gender === 'male'
+                                ? <span><i className="fas fa-mars" style={{ color: '#0d6efd' }} /> Male</span>
+                                : <span><i className="fas fa-venus" style={{ color: '#d63384' }} /> Female</span>}
+                              <span className="dot">·</span>
+                              <span>{calculateAge(pet.birth_date)}</span>
+                            </div>
+                          </div>
+                          <span className={`om-chip ${pet.is_active ? 'green' : 'grey'}`}>{pet.is_active ? 'Active' : 'Archived'}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {modalTotalPages > 1 && (
+                      <div className="om-pager">
+                        <span className="cm-muted">Page <strong style={{ color: '#1f2328' }}>{modalCurrentPage}</strong> of {modalTotalPages}</span>
+                        <div className="d-flex gap-1">
+                          <button type="button" className="cm-page nav" onClick={handleModalPrevPage} disabled={modalCurrentPage === 1} aria-label="Previous pets"><i className="fas fa-chevron-left" /></button>
+                          <button type="button" className="cm-page nav" onClick={handleModalNextPage} disabled={modalCurrentPage === modalTotalPages} aria-label="Next pets"><i className="fas fa-chevron-right" /></button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </Modal.Body>
+              <Modal.Footer className="om-foot">
+                {o.verification_status && o.verification_status !== 'not_verified' && (
+                  <button type="button" className="om-btn ghost me-auto" onClick={() => { setShowViewModal(false); handleOpenVerifModal(o); }}>
+                    <i className="fas fa-id-card" />{o.verification_status === 'pending' ? 'Review ID verification' : 'View ID verification'}
+                  </button>
+                )}
+                <button type="button" className="om-btn primary" onClick={() => setShowViewModal(false)}>Close</button>
+              </Modal.Footer>
             </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowViewModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
+          );
+        })()}
       </Modal>
     </Container>
 
-
-    {/* ══════════ VERIFICATION MODAL ══════════ */}
-    {verifOwner && (
-      <Modal show={showVerifModal} onHide={() => !verifLoading && setShowVerifModal(false)} size="lg" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }} backdrop="static">
-        <Modal.Header closeButton={!verifLoading} style={{ background: 'linear-gradient(135deg,#f8f9fa,#e9ecef)', borderBottom: '2px solid #ffc107', borderRadius: '20px 20px 0 0' }}>
-          <Modal.Title className="mobile-verif-title" style={{ fontWeight: '800', color: '#333', fontSize: '1.05rem' }}>
-            <i className="fas fa-id-card me-2" style={{ color: '#ffc107' }} />
-            Community Verification — {verifOwner.po_first_name || verifOwner.first_name} {verifOwner.po_last_name || verifOwner.last_name}
-            <span style={{ marginLeft: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.25rem 0.75rem', borderRadius: '999px', background: (VERIF_CONFIG[verifOwner.verification_status]?.color || '#999') + '18', border: `1.5px solid ${(VERIF_CONFIG[verifOwner.verification_status]?.color || '#999')}40`, fontSize: '0.75rem', fontWeight: '700', color: VERIF_CONFIG[verifOwner.verification_status]?.color || '#999' }}>
-              <i className={`fas ${VERIF_CONFIG[verifOwner.verification_status]?.icon || 'fa-circle'}`} style={{ fontSize: '0.7rem' }} />
-              {VERIF_CONFIG[verifOwner.verification_status]?.label}
-            </span>
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="mobile-verif-body" style={{ padding: '2rem', maxHeight: '72vh', overflowY: 'auto' }}>
-          {verifError && (
-            <Alert variant="danger" className="mb-3" style={{ borderRadius: '10px', border: '2px solid rgba(220,53,69,0.25)', background: 'rgba(220,53,69,0.07)', fontSize: '0.875rem' }}>
-              <i className="fas fa-exclamation-circle me-2" style={{ color: '#dc3545' }} />{verifError}
-            </Alert>
-          )}
-          {verifSuccess && (
-            <Alert variant="success" className="mb-3" style={{ borderRadius: '10px', border: '2px solid rgba(25,135,84,0.25)', background: 'rgba(25,135,84,0.07)', fontSize: '0.875rem' }}>
-              <i className="fas fa-check-circle me-2" style={{ color: '#198754' }} />{verifSuccess}
-            </Alert>
-          )}
-
-          {/* Submitted info */}
-          <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem 1.25rem', marginBottom: '1.5rem', border: '1.5px solid #e9ecef' }}>
-            <Row>
-              <Col md={6} className="mb-2">
-                <small style={{ color: '#888', fontWeight: '600', textTransform: 'uppercase', fontSize: '0.75rem' }}>ID Type</small>
-                <p className="mb-0" style={{ fontWeight: '600', color: '#333' }}>{verifOwner.valid_id_type || <span className="text-muted">Not provided</span>}</p>
-              </Col>
-              <Col md={6} className="mb-2">
-                <small style={{ color: '#888', fontWeight: '600', textTransform: 'uppercase', fontSize: '0.75rem' }}>Submitted On</small>
-                <p className="mb-0" style={{ fontWeight: '600', color: '#333' }}>
-                  {verifOwner.id_submitted_at ? new Date(verifOwner.id_submitted_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : <span className="text-muted">—</span>}
-                </p>
-              </Col>
-              <Col md={12} className="mb-2">
-                <small style={{ color: '#888', fontWeight: '600', textTransform: 'uppercase', fontSize: '0.75rem' }}>Declared Address</small>
-                <p className="mb-0" style={{ fontWeight: '600', color: '#333' }}>{verifOwner.po_address || verifOwner.address || <span className="text-muted">Not provided</span>}</p>
-              </Col>
-              {verifOwner.verified_at && (
-                <Col md={6}>
-                  <small style={{ color: '#888', fontWeight: '600', textTransform: 'uppercase', fontSize: '0.75rem' }}>Verified On</small>
-                  <p className="mb-0" style={{ fontWeight: '600', color: '#333' }}>
-                    {new Date(verifOwner.verified_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </p>
-                </Col>
-              )}
-            </Row>
-          </div>
-
-          {/* ID Images */}
-          <Row className="mb-3">
-            {[
-              { label: 'ID Front', src: verifOwner.valid_id_front },
-              { label: 'ID Back', src: verifOwner.valid_id_back },
-              { label: 'Selfie with ID', src: verifOwner.selfie_with_id },
-            ].map(({ label, src }) => {
-              // Normalize the src: if it's a raw base64 string without a data URL
-              // prefix, add one. If it already has the prefix, use as-is.
-              const imgSrc = (() => {
-                if (!src) return null;
-                const s = typeof src === 'string' ? src.trim() : '';
-                if (!s) return null;
-                // Already a full data URL
-                if (s.startsWith('data:')) return s;
-                // Raw base64 — detect type by magic bytes
-                if (s.startsWith('/9j/')) return `data:image/jpeg;base64,${s}`;
-                if (s.startsWith('iVBOR')) return `data:image/png;base64,${s}`;
-                if (s.startsWith('UklGR')) return `data:image/webp;base64,${s}`;
-                // Fallback
-                return `data:image/jpeg;base64,${s}`;
-              })();
-              return (
-                <Col md={4} key={label} className="mb-3">
-                  <small style={{ color: '#888', fontWeight: '600', textTransform: 'uppercase', fontSize: '0.75rem', display: 'block', marginBottom: '0.5rem' }}>{label}</small>
-                  {imgSrc ? (
-                    <img
-                      src={imgSrc}
-                      alt={label}
-                      style={{ width: '100%', borderRadius: '10px', border: '2px solid #dee2e6', objectFit: 'cover', maxHeight: '160px', cursor: 'zoom-in', transition: 'all 0.2s', display: 'block' }}
-                      onMouseOver={(e) => {
-                        e.target.style.filter = 'brightness(0.6)';
-                        const parent = e.target.parentElement;
-                        let icon = parent.querySelector('.zoom-icon');
-                        if (!icon) {
-                          icon = document.createElement('div');
-                          icon.className = 'zoom-icon';
-                          icon.innerHTML = '<i class="fas fa-expand" style="font-size:1.5rem;color:#fff;"></i>';
-                          icon.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;z-index:2;';
-                          parent.style.position = 'relative';
-                          parent.appendChild(icon);
-                        }
-                        icon.style.display = 'flex';
-                      }}
-                      onMouseOut={(e) => {
-                        e.target.style.filter = 'brightness(1)';
-                        const icon = e.target.parentElement.querySelector('.zoom-icon');
-                        if (icon) icon.style.display = 'none';
-                      }}
-                      onClick={() => {
-                        const overlay = document.createElement('div');
-                        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;overflow:hidden;';
-
-                        const img = document.createElement('img');
-                        img.src = imgSrc;
-                        img.style.cssText = 'max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,0.5);user-select:none;cursor:grab;transform-origin:center center;';
-
-                        let scale = 1, tx = 0, ty = 0;
-                        let dragging = false, startX = 0, startY = 0, baseX = 0, baseY = 0;
-
-                        const applyTransform = (animated) => {
-                          img.style.transition = animated ? 'transform 0.2s ease' : 'none';
-                          img.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
-                        };
-
-                        // scroll wheel zoom
-                        overlay.addEventListener('wheel', (e) => {
-                          e.preventDefault();
-                          scale = Math.min(Math.max(scale + (e.deltaY < 0 ? 0.15 : -0.15), 1), 5);
-                          if (scale === 1) { tx = 0; ty = 0; }
-                          img.style.cursor = scale > 1 ? 'grab' : 'grab';
-                          applyTransform(false);
-                        }, { passive: false });
-
-                        // drag to pan
-                        img.addEventListener('mousedown', (e) => {
-                          if (scale <= 1) return;
-                          e.preventDefault();
-                          dragging = true;
-                          startX = e.clientX;
-                          startY = e.clientY;
-                          baseX = tx;
-                          baseY = ty;
-                          img.style.cursor = 'grabbing';
-                          img.style.transition = 'none';
-                        });
-
-                        const onMove = (e) => {
-                          if (!dragging) return;
-                          tx = baseX + (e.clientX - startX);
-                          ty = baseY + (e.clientY - startY);
-                          img.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
-                        };
-
-                        const onUp = () => {
-                          if (!dragging) return;
-                          dragging = false;
-                          img.style.cursor = scale > 1 ? 'grab' : 'grab';
-                        };
-
-                        window.addEventListener('mousemove', onMove);
-                        window.addEventListener('mouseup', onUp);
-
-                        // bottom controls
-                        const controls = document.createElement('div');
-                        controls.style.cssText = 'position:absolute;bottom:1.25rem;left:50%;transform:translateX(-50%);display:flex;gap:0.5rem;align-items:center;';
-
-                        const btnStyle = 'background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:0.9rem;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;';
-
-                        const mkBtn = (icon, action) => {
-                          const b = document.createElement('button');
-                          b.innerHTML = `<i class="fas ${icon}"></i>`;
-                          b.style.cssText = btnStyle;
-                          b.onmouseover = () => b.style.background = 'rgba(255,255,255,0.3)';
-                          b.onmouseout  = () => b.style.background = 'rgba(255,255,255,0.15)';
-                          b.onclick = (e) => { e.stopPropagation(); action(); };
-                          return b;
-                        };
-
-                        controls.appendChild(mkBtn('fa-search-minus', () => {
-                          scale = Math.max(scale - 0.3, 1);
-                          if (scale === 1) { tx = 0; ty = 0; }
-                          applyTransform(true);
-                        }));
-                        controls.appendChild(mkBtn('fa-compress', () => {
-                          scale = 1; tx = 0; ty = 0;
-                          applyTransform(true);
-                        }));
-                        controls.appendChild(mkBtn('fa-search-plus', () => {
-                          scale = Math.min(scale + 0.3, 5);
-                          applyTransform(true);
-                        }));
-
-                        // hint label
-                        const hint = document.createElement('div');
-                        hint.innerHTML = 'Scroll to zoom &nbsp;·&nbsp; Drag to pan';
-                        hint.style.cssText = 'position:absolute;top:1.25rem;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.45);font-size:0.75rem;pointer-events:none;white-space:nowrap;';
-
-                        const closeBtn = document.createElement('button');
-                        closeBtn.innerHTML = '✕';
-                        closeBtn.style.cssText = 'position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.3);color:#fff;font-size:1.2rem;width:42px;height:42px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;z-index:10;';
-                        closeBtn.onmouseover = () => closeBtn.style.background = 'rgba(255,255,255,0.3)';
-                        closeBtn.onmouseout  = () => closeBtn.style.background = 'rgba(255,255,255,0.15)';
-                        closeBtn.onclick = () => {
-                          window.removeEventListener('mousemove', onMove);
-                          window.removeEventListener('mouseup', onUp);
-                          document.body.removeChild(overlay);
-                        };
-
-                        overlay.appendChild(img);
-                        overlay.appendChild(closeBtn);
-                        overlay.appendChild(controls);
-                        overlay.appendChild(hint);
-                        document.body.appendChild(overlay);
-                      }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                        e.target.parentElement.innerHTML = '<div style="width:100%;height:120px;border-radius:10px;border:2px dashed #dee2e6;background:#f8f9fa;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:0.8rem"><i class="fas fa-image"></i>&nbsp;Failed to load</div>';
-                      }}
-                    />
-                  ) : (
-                    <div style={{ width: '100%', height: '120px', borderRadius: '10px', border: '2px dashed #dee2e6', background: '#f8f9fa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: '0.8rem' }}>
-                      <i className="fas fa-image me-1" />Not uploaded
-                    </div>
-                  )}
-                </Col>
-              );
-            })}
-          </Row>
-
-          {/* Action buttons for pending status */}
-          {verifOwner.verification_status === 'pending' && (
-            <div style={{ background: 'rgba(255,193,7,0.06)', border: '1.5px dashed #ffc107', borderRadius: '12px', padding: '1.25rem', marginTop: '0.5rem' }}>
-              <p style={{ fontWeight: '700', color: '#333', marginBottom: '1rem', fontSize: '0.95rem' }}>
-                <i className="fas fa-gavel me-2" style={{ color: '#ffc107' }} />
-                Review Action
-              </p>
-              <div className="mobile-verif-actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <Button onClick={() => handleVerifyAction('semi_verified')} disabled={verifLoading} className="border-0"
-                  style={{ background: 'linear-gradient(135deg,#0d6efd,#0a58ca)', color: '#fff', borderRadius: '10px', fontWeight: '700', padding: '0.65rem 1.25rem', fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(13,110,253,0.35)', transition: 'all 0.2s' }}
-                  onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 6px 18px rgba(13,110,253,0.5)'}
-                  onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(13,110,253,0.35)'}>
-                  {verifLoading ? <Spinner as="span" animation="border" size="sm" className="me-2" /> : <i className="fas fa-shield-alt me-2" />}
-                  Semi Verified
-                </Button>
-                <Button onClick={() => handleVerifyAction('fully_verified')} disabled={verifLoading} className="border-0"
-                  style={{ background: 'linear-gradient(135deg,#198754,#146c43)', color: '#fff', borderRadius: '10px', fontWeight: '700', padding: '0.65rem 1.25rem', fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(25,135,84,0.35)', transition: 'all 0.2s' }}
-                  onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 6px 18px rgba(25,135,84,0.5)'}
-                  onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(25,135,84,0.35)'}>
-                  {verifLoading ? <Spinner as="span" animation="border" size="sm" className="me-2" /> : <i className="fas fa-check-circle me-2" />}
-                  Fully Verified
-                </Button>
-                <Button onClick={() => handleVerifyAction('not_verified')} disabled={verifLoading} className="border-0"
-                  style={{ background: 'linear-gradient(135deg,#dc3545,#b02a37)', color: '#fff', borderRadius: '10px', fontWeight: '700', padding: '0.65rem 1.25rem', fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(220,53,69,0.35)', transition: 'all 0.2s' }}
-                  onMouseOver={(e) => e.currentTarget.style.boxShadow = '0 6px 18px rgba(220,53,69,0.5)'}
-                  onMouseOut={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(220,53,69,0.35)'}>
-                  {verifLoading ? <Spinner as="span" animation="border" size="sm" className="me-2" /> : <i className="fas fa-times-circle me-2" />}
-                  Decline
-                </Button>
+    {/* ======================== ID VERIFICATION MODAL ======================== */}
+    <Modal show={showVerifModal && !!verifOwner} onHide={() => !verifLoading && setShowVerifModal(false)} backdrop="static" dialogClassName="om-modal lg" className="om-zoom-modal" scrollable>
+      {verifOwner && (() => {
+        const v = verifOwner;
+        const verif = VERIF_CONFIG[v.verification_status] || VERIF_CONFIG.not_verified;
+        const fmt = (d) => d ? new Date(String(d).replace(' ', 'T')).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : null;
+        const info = [
+          { icon: 'fa-id-badge', label: 'ID type', value: v.valid_id_type || 'Not provided' },
+          { icon: 'fa-calendar-check', label: 'Submitted on', value: fmt(v.id_submitted_at) || '—' },
+          { icon: 'fa-home', label: 'Declared address', value: v.po_address || v.address || 'Not provided', wide: true },
+          v.verified_at && { icon: 'fa-shield-alt', label: 'Verified on', value: fmt(v.verified_at) },
+        ].filter(Boolean);
+        const images = [
+          { label: 'ID front', src: toImgSrc(v.valid_id_front) },
+          { label: 'ID back', src: toImgSrc(v.valid_id_back) },
+          { label: 'Selfie with ID', src: toImgSrc(v.selfie_with_id) },
+        ];
+        return (
+          <>
+            <Modal.Header closeButton={!verifLoading} className="om-head">
+              <div className="om-head-main">
+                <div className="om-head-ic"><i className="fas fa-id-card" /></div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="om-chips">
+                    <span className="om-chip" style={{ color: verif.color, background: `color-mix(in srgb, ${verif.color} 12%, #fff)` }}><i className={`fas ${verif.icon}`} />{verif.label}</span>
+                  </div>
+                  <Modal.Title as="h5" className="om-title">{v.po_first_name || v.first_name} {v.po_last_name || v.last_name}</Modal.Title>
+                  <div className="om-sub">ID verification</div>
+                </div>
               </div>
-              <small style={{ color: '#888', marginTop: '0.75rem', display: 'block', fontSize: '0.78rem' }}>
-                <i className="fas fa-info-circle me-1" />Declining will reset the member's verification status and erase their submitted request.
-              </small>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem', borderTop: '1px solid #e9ecef' }}>
-          <Button variant="secondary" onClick={() => setShowVerifModal(false)} disabled={verifLoading}
-            style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    )}
+            </Modal.Header>
+            <Modal.Body className="om-body">
+              {verifError && <div className="om-alert danger"><i className="fas fa-exclamation-circle" /><span>{verifError}</span></div>}
+              {verifSuccess && <div className="om-alert success"><i className="fas fa-check-circle" /><span>{verifSuccess}</span></div>}
+
+              <div className="om-section-title"><i className="fas fa-file-alt" />Submitted details</div>
+              <div className="om-info-grid">
+                {info.map(it => (
+                  <div key={it.label} className={`om-info${it.wide ? ' wide' : ''}`}>
+                    <div className="om-info-ic"><i className={`fas ${it.icon}`} /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="om-info-label">{it.label}</div>
+                      <div className="om-info-value">{it.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="om-section-title mt-4"><i className="fas fa-images" />Uploaded photos</div>
+              <div className="om-ids">
+                {images.map(({ label, src }) => (
+                  <div key={label}>
+                    <div className="om-info-label mb-1">{label}</div>
+                    {src ? (
+                      <button type="button" className="om-id" onClick={() => setLightbox({ src, label })} aria-label={`Open ${label}`}>
+                        <img src={src} alt={label}
+                          onError={e => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement.classList.add('broken'); }} />
+                        <span className="om-id-zoom"><i className="fas fa-search-plus" /></span>
+                      </button>
+                    ) : (
+                      <div className="om-id-none"><i className="fas fa-image" />Not uploaded</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {v.verification_status === 'pending' && (
+                <div className="om-review">
+                  <div className="om-review-title"><i className="fas fa-gavel" />Review decision</div>
+                  <p className="om-review-text">Check that the photos are clear, the selfie matches the ID, and the details match the account.</p>
+                  <div className="om-review-actions">
+                    <button type="button" className="om-btn blue" onClick={() => handleVerifyAction('semi_verified')} disabled={verifLoading}>
+                      {verifLoading ? <i className="fas fa-circle-notch fa-spin" /> : <i className="fas fa-shield-alt" />}Semi verified
+                    </button>
+                    <button type="button" className="om-btn green" onClick={() => handleVerifyAction('fully_verified')} disabled={verifLoading}>
+                      {verifLoading ? <i className="fas fa-circle-notch fa-spin" /> : <i className="fas fa-check-circle" />}Fully verified
+                    </button>
+                    <button type="button" className="om-btn danger-outline" onClick={() => setShowDeclineConfirm(true)} disabled={verifLoading}>
+                      <i className="fas fa-times-circle" />Decline
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Modal.Body>
+            <Modal.Footer className="om-foot">
+              <button type="button" className="om-btn primary" onClick={() => setShowVerifModal(false)} disabled={verifLoading}>Close</button>
+            </Modal.Footer>
+          </>
+        );
+      })()}
+    </Modal>
+
+    {/* ======================== DECLINE CONFIRM (small, centered) ======================== */}
+    <Modal show={showDeclineConfirm} onHide={() => !verifLoading && setShowDeclineConfirm(false)} centered dialogClassName="omc-modal" className="om-zoom-modal" style={{ zIndex: 1065 }} backdropClassName="om-backdrop-top">
+      <Modal.Body className="omc-body">
+        <div className="omc-icon"><i className="fas fa-times-circle" /></div>
+        <h5 className="omc-title">Decline this verification?</h5>
+        <p className="omc-text">
+          {verifOwner ? `${verifOwner.po_first_name || verifOwner.first_name || ''} ${verifOwner.po_last_name || verifOwner.last_name || ''}`.trim() : 'This member'}'s
+          status goes back to Not Verified and their submitted ID is erased. They can submit a new one.
+        </p>
+      </Modal.Body>
+      <Modal.Footer className="omc-foot">
+        <button type="button" className="om-btn ghost" onClick={() => setShowDeclineConfirm(false)} disabled={verifLoading}>Cancel</button>
+        <button type="button" className="om-btn danger" disabled={verifLoading}
+          onClick={async () => { await handleVerifyAction('not_verified'); setShowDeclineConfirm(false); }}>
+          {verifLoading ? <><i className="fas fa-circle-notch fa-spin" />Declining…</> : <><i className="fas fa-times-circle" />Decline</>}
+        </button>
+      </Modal.Footer>
+    </Modal>
+
+    {/* ======================== ID PHOTO LIGHTBOX ======================== */}
+    {lightbox && <IdLightbox src={lightbox.src} label={lightbox.label} onClose={() => setLightbox(null)} />}
     </>
   );
 };

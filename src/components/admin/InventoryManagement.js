@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Table, Button, Modal, Form, Alert, Spinner, Badge, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Card, Modal, Form } from 'react-bootstrap';
 import { inventoryAPI, handleAPIError } from '../../services/api';
 
 const TYPE_CONFIG = {
@@ -16,9 +16,32 @@ const SPECIES_COLORS = {
   all:  { bg: '#fde8e8', color: '#842029' },
 };
 
+// Reference info shown in "View details"
+const ITEM_DETAILS = {
+  vaccination: {
+    purpose:   'Stimulates the immune system to provide protection against specific infectious diseases in pets.',
+    usage:     'Administered via subcutaneous or intramuscular injection by a licensed veterinarian.',
+    storage:   'Store at 2–8 °C. Keep away from direct sunlight and do not freeze.',
+    frequency: 'Varies by vaccine: annually, every 3 years, or as directed by the attending vet.',
+  },
+  medicine: {
+    purpose:   'Pharmaceutical products used to treat, prevent, or manage diseases and health conditions in pets.',
+    usage:     'Administered orally, topically, or via injection as prescribed by a licensed veterinarian.',
+    storage:   'Store at room temperature (15–25 °C) unless otherwise specified. Keep away from moisture and direct sunlight.',
+    frequency: 'As prescribed by the attending veterinarian. Complete the full course even if symptoms improve.',
+  },
+  microchip: {
+    purpose:   'A permanent radio-frequency identification (RFID) implant used to uniquely identify pets and reunite them with their owners.',
+    usage:     'Implanted subcutaneously (usually between the shoulder blades) using a hypodermic needle by a licensed veterinarian. No anesthesia required for most pets.',
+    storage:   'Sterile single-use implants. Store in a cool, dry place at room temperature. Do not expose to electromagnetic fields.',
+    frequency: 'One-time permanent implant. No replacement needed under normal circumstances.',
+    standard:  'ISO 11784/11785 compliant 15-digit RFID chip operating at 134.2 kHz.',
+    readRange: 'Readable by standard ISO-compliant scanners at a range of approximately 10–15 cm.',
+  },
+};
+
 export default function InventoryManagement() {
   const [inventory, setInventory]       = useState([]);
-const [vaccinationTypes, setVaccinationTypes] = useState([]);
 const [loading, setLoading]           = useState(true);
 const [error, setError]               = useState('');
 
@@ -54,11 +77,6 @@ const [showEditItemModal, setShowEditItemModal] = useState(false);
 const [editItemForm, setEditItemForm] = useState(null);
 const [editItemLoading, setEditItemLoading] = useState(false);
 
-// Edit threshold modal
-const [showEditModal, setShowEditModal] = useState(false);
-const [editItem, setEditItem]           = useState(null);
-const [editMinStock, setEditMinStock]   = useState('');
-const [editLoading, setEditLoading]     = useState(false);
 
 // Pagination
 const [currentPage, setCurrentPage] = useState(1);
@@ -76,9 +94,6 @@ const [showDeleteModal, setShowDeleteModal] = useState(false);
 const [itemToDelete, setItemToDelete]       = useState(null);
 const [deleteLoading, setDeleteLoading]     = useState(false);
 const [showDropdown, setShowDropdown]       = useState(null);
-const [dropdownPos, setDropdownPos]         = useState({ top: 0, left: 0 });
-const dropdownButtonRef = useRef(null);
-const ZOOM = 0.75;
 
 useEffect(() => {
   if (showDropdown === null) return;
@@ -321,6 +336,256 @@ useEffect(() => {
   @media (max-width: 768px) {
     .iv-legend { display: none; }
   }
+    /* Modals: same zoom as the page; normal size and centered on phones */
+    .iv-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .iv-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .iv-zoom-modal { zoom: 1; } }
+    @media (max-width: 768px) {
+      .iv-zoom-modal { zoom: 1; }
+      .iv-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .iv-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+    }
+
+    /* Big modals (submit / view) */
+    .rm-modal { max-width: 680px; }
+    .rm-modal.lg { max-width: 940px; }
+    .rm-modal .modal-content, .cm-modal .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .rm-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%); }
+    .rm-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .rm-head-ic { width: 48px; height: 48px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #b88a00; background: rgba(255,193,7,0.18); }
+    .rm-head-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .rm-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b88a00; }
+    .rm-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; word-break: break-word; }
+    .rm-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .rm-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .rm-num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; font-weight: 600; color: #6b7280; margin-top: 0.15rem; }
+    .rm-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .rm-req { color: #dc3545; }
+    .rm-body { padding: 1.4rem 1.5rem !important; }
+    .rm-section { margin-bottom: 1.4rem; }
+    .rm-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.75rem; }
+    .rm-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .rm-count { margin-left: auto; font-size: 0.7rem; background: #f3f4f6; color: #4b5563; padding: 0.1rem 0.55rem; border-radius: 999px; letter-spacing: 0; }
+    .rm-label { font-size: 0.84rem; font-weight: 600; color: #374151; margin-bottom: 0.35rem; }
+    .rm-input { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .rm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .rm-input.good { border-color: #10b981 !important; }
+    .rm-input.bad { border-color: #ef4444 !important; }
+    .rm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+    .rm-hint.bad { color: #dc3545; }
+    .rm-readonly { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1.5px dashed #e5e7eb; background: #f8f9fa; font-size: 0.92rem; font-weight: 600; color: #1f2328; }
+    .rm-readonly i { color: #9ca3af; }
+    .rm-readonly.empty { font-weight: 500; font-style: italic; color: #9ca3af; }
+    .rm-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .rm-type { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.9rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 14px; background: #fff; transition: all 0.15s ease; }
+    .rm-type:hover:not(:disabled) { border-color: color-mix(in srgb, var(--c) 50%, #fff); }
+    .rm-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 6%, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 15%, transparent); }
+    .rm-type-ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+    .rm-type-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .rm-type-label { font-weight: 700; font-size: 0.86rem; color: #374151; text-align: center; line-height: 1.2; }
+    .rm-type.on .rm-type-label { color: var(--c); }
+    .rm-type-check { position: absolute; top: 7px; right: 8px; color: var(--c); font-size: 0.85rem; }
+    .rm-map { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .rm-pin { display: flex; align-items: center; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.55rem; padding: 0.55rem 0.75rem; border-radius: 10px; background: #f8f9fa; color: #6b7280; font-size: 0.8rem; }
+    .rm-pin.ok { background: rgba(25,135,84,0.07); color: #146c43; border: 1px solid rgba(25,135,84,0.2); }
+    .rm-pin .rm-mono { margin-left: 0.3rem; opacity: 0.85; }
+    .rm-pin button { margin-left: auto; border: none; background: none; color: #dc3545; font-size: 0.78rem; font-weight: 600; padding: 0; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .rm-photos { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .rm-thumb { position: relative; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; background: #f8f9fa; padding: 0; flex-shrink: 0; }
+    .rm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .rm-thumb > button { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(17,24,39,0.7); color: #fff; font-size: 0.7rem; display: flex; align-items: center; justify-content: center; }
+    .rm-thumb.view { cursor: zoom-in; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .rm-thumb.view:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+    .rm-thumb-zoom { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0); color: transparent; transition: all 0.15s ease; }
+    .rm-thumb.view:hover .rm-thumb-zoom { background: rgba(0,0,0,0.3); color: #fff; }
+    .rm-thumb.broken::after { content: 'No preview'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #9ca3af; }
+    .rm-thumb.sm { width: 64px; height: 64px; border-radius: 10px; }
+    .rm-drop { width: 96px; height: 96px; border-radius: 12px; border: 1.5px dashed #d1d5db; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.3rem; color: #6b7280; font-size: 0.78rem; font-weight: 600; cursor: pointer; margin: 0; transition: all 0.15s ease; }
+    .rm-drop i { font-size: 1rem; color: #e0a800; }
+    .rm-drop:hover { border-color: #ffc107; background: #fffaeb; color: #1f2328; }
+    .rm-drop.disabled { opacity: 0.5; pointer-events: none; }
+    .rm-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .rm-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .rm-info.wide { grid-column: 1 / -1; }
+    .rm-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #fff; border: 1px solid #eef0f3; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .rm-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .rm-info-value { font-size: 0.9rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .rm-desc { font-size: 0.92rem; color: #374151; line-height: 1.6; margin: 0; white-space: pre-line; word-break: break-word; }
+    .rm-desc.sm { font-size: 0.86rem; padding: 0.65rem 0.8rem; border: 1px solid #eef0f3; border-radius: 10px; background: #fafbfc; }
+    .rm-desc.muted { color: #9ca3af; font-style: italic; }
+    .rm-admin { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: 12px; background: rgba(13,110,253,0.05); border: 1px solid rgba(13,110,253,0.18); }
+    .rm-admin-head { font-size: 0.78rem; font-weight: 700; color: #0a58ca; display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.3rem; }
+    .rm-admin p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+    .rm-map.view { min-height: 260px; }
+    .rm-empty { padding: 1.25rem; border: 1px dashed #e5e7eb; border-radius: 12px; color: #9ca3af; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .rm-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .rm-alert i { margin-top: 3px; }
+    .rm-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .rm-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; }
+    .rm-lightbox { position: fixed; inset: 0; z-index: 100000; background: rgba(0,0,0,0.92); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .rm-lightbox img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.6); transition: transform 0.1s ease; }
+    .rm-lb-btn { position: absolute; width: 44px; height: 44px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    .rm-lb-btn.close { top: 1.25rem; right: 1.25rem; }
+    .rm-lb-btn.prev { left: 1rem; top: 50%; transform: translateY(-50%); }
+    .rm-lb-btn.next { right: 1rem; top: 50%; transform: translateY(-50%); }
+    .rm-lb-count { position: absolute; bottom: 1.25rem; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.75); font-size: 0.8rem; font-weight: 600; }
+
+    /* Small confirmation modals (withdraw / verify / review) */
+    .cm-modal { max-width: 430px; }
+    .cm-modal.wide { max-width: 520px; }
+    @keyframes cmPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .cm-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; position: relative; }
+    .cm-x { position: absolute; top: 1rem; right: 1rem; }
+    .cm-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: cmPop 0.4s ease-out; }
+    .cm-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .cm-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .cm-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .cm-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-item-av img { width: 26px; height: 26px; object-fit: contain; }
+    .cm-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .cm-item-meta { font-size: 0.76rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cm-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 7%, #fff); border: 1px solid color-mix(in srgb, var(--c) 22%, #fff); }
+    .cm-note i { margin-top: 3px; }
+    .cm-steps { text-align: left; display: flex; flex-direction: column; gap: 0.45rem; }
+    .cm-step { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.75rem; border: 1px solid #eef0f3; border-radius: 10px; background: #fafbfc; font-size: 0.86rem; color: #374151; font-weight: 500; }
+    .cm-step span { width: 22px; height: 22px; border-radius: 50%; background: #ffc107; color: #1f2328; font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .cm-step i { color: #b88a00; width: 16px; text-align: center; }
+    .cm-foot { border-top: 1px solid #eef0f3 !important; padding: 0.9rem 1.4rem !important; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .cm-foot .iv-btn { flex: 1; margin: 0; padding: 0.62rem; }
+    .cm-confirm { background: var(--c); color: #fff; }
+    .cm-confirm:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000); color: #fff; }
+
+    @media (max-width: 991.98px) {
+      .rm-types { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .rm-head { padding: 1rem !important; }
+      .rm-head-ic { width: 42px; height: 42px; }
+      .rm-title { font-size: 1.08rem; }
+      .rm-body { padding: 1rem !important; }
+      .rm-type { flex-direction: row; justify-content: flex-start; padding: 0.65rem 0.7rem; gap: 0.55rem; }
+      .rm-type-ic { width: 36px; height: 36px; border-radius: 10px; }
+      .rm-type-ic img { width: 22px; height: 22px; }
+      .rm-type-label { text-align: left; font-size: 0.82rem; }
+      .rm-thumb, .rm-drop { width: 84px; height: 84px; }
+      .rm-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .rm-info-ic { display: none; }
+      .rm-info-value { font-size: 0.86rem; }
+      .rm-foot { padding: 0.75rem 1rem !important; }
+      .rm-foot .iv-btn { flex: 1; }
+      .rm-foot .me-auto { margin-right: 0 !important; }
+      .cm-body { padding: 1.5rem 1.1rem 1rem !important; }
+      .cm-foot { padding: 0.8rem 1rem !important; }
+    }
+    @media (max-width: 380px) {
+      .rm-info-grid { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { .cm-icon { animation: none; } }
+
+    /* Inventory modal extras */
+    .iv-backdrop-top { z-index: 1060 !important; }
+    .rm-modal.sm { max-width: 560px; }
+    .rm-types { grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); }
+    .rm-type-ic { font-size: 1.05rem; }
+    .rm-opt { font-size: 0.7rem; font-weight: 600; text-transform: none; letter-spacing: 0; color: #9ca3af; }
+    .rm-input.sm { padding: 0.35rem 0.55rem !important; font-size: 0.84rem; border-radius: 8px !important; }
+    select.rm-input { padding-right: 2rem !important; }
+    .rm-suffix { position: relative; }
+    .rm-suffix .rm-input { padding-right: 4.2rem !important; }
+    .rm-suffix > span { position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); font-size: 0.8rem; font-weight: 600; color: #9ca3af; pointer-events: none; }
+    .rm-alert.warn { background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.35); color: #8a6700; }
+    .cm-item-av { font-size: 1rem; }
+
+    .iv-btn.sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; border-radius: 8px; }
+    .iv-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .iv-btn.ghost { background: #fff; color: #1f2328; border-color: #e5e7eb; }
+    .iv-btn.ghost:hover:not(:disabled) { background: #fff8e1; border-color: #ffc107; }
+    .iv-btn.success { background: #198754; color: #fff; }
+    .iv-btn.success:hover:not(:disabled) { background: #157347; box-shadow: 0 6px 16px rgba(25,135,84,0.25); }
+    .iv-btn.info { background: #0d6efd; color: #fff; }
+    .iv-btn.info:hover:not(:disabled) { background: #0b5ed7; }
+    .iv-btn.info-outline { background: #fff; color: #0d6efd; border-color: rgba(13,110,253,0.35); }
+    .iv-btn.info-outline:hover:not(:disabled) { background: rgba(13,110,253,0.06); }
+    .iv-icon-btn.danger { color: #dc3545; }
+    .iv-icon-btn.danger:hover { background: #fff5f5; border-color: rgba(220,53,69,0.25); color: #dc3545; }
+    .iv-icon-btn:disabled { opacity: 0.5; }
+
+    .rs-flow { display: flex; align-items: stretch; gap: 0.6rem; margin-bottom: 1.25rem; }
+    .rs-box { flex: 1; padding: 0.75rem 0.9rem; border-radius: 12px; background: #fafbfc; border: 1px solid #eef0f3; }
+    .rs-box .k { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .rs-box .v { font-size: 1.35rem; font-weight: 800; color: #1f2328; font-variant-numeric: tabular-nums; }
+    .rs-box .v span { font-size: 0.78rem; font-weight: 600; color: #9ca3af; }
+    .rs-box .v.out { color: #dc3545; }
+    .rs-box.after { background: rgba(25,135,84,0.06); border-color: rgba(25,135,84,0.2); }
+    .rs-box.after .v { color: #198754; }
+    .rs-arrow { display: flex; align-items: center; color: #c4c9d0; }
+
+    .ib-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+    .ib-sum > div { padding: 0.65rem 0.85rem; border-radius: 12px; background: #fafbfc; border: 1px solid #eef0f3; display: flex; flex-direction: column; }
+    .ib-sum .k { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .ib-sum .v { font-size: 1.2rem; font-weight: 800; color: #1f2328; }
+    .ib-sum .v small { font-size: 0.75rem; color: #9ca3af; font-weight: 600; }
+    .ib-sum .bad { background: rgba(220,53,69,0.05); border-color: rgba(220,53,69,0.2); }
+    .ib-sum .bad .v { color: #dc3545; }
+    .ib-table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; border: 1px solid #eef0f3; border-radius: 12px; overflow: hidden; }
+    .ib-table th { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; padding: 0.7rem 0.8rem; background: #fafbfc; border-bottom: 1px solid #eef0f3; text-align: left; white-space: nowrap; }
+    .ib-table td { padding: 0.7rem 0.8rem; border-bottom: 1px solid #f3f4f6; vertical-align: middle; font-size: 0.86rem; color: #1f2328; }
+    .ib-table tbody tr:last-child td { border-bottom: none; }
+    .ib-table tbody tr:hover { background: #fafbfc; }
+    .ib-table tr.editing { background: rgba(13,110,253,0.04) !important; }
+    .ib-table tr.expired td:first-child { box-shadow: inset 3px 0 0 #dc3545; }
+    .ib-notes { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ib-actions { text-align: right; white-space: nowrap; }
+    .ib-actions > * + * { margin-left: 0.25rem; }
+
+    .iv-meter { padding: 1rem 1.1rem; border-radius: 14px; background: #fafbfc; border: 1px solid #eef0f3; }
+    .iv-meter-v { font-size: 1.8rem; font-weight: 800; color: #198754; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .iv-meter-v.low { color: #b88a00; }
+    .iv-meter-v.out { color: #dc3545; }
+    .iv-meter-v span { font-size: 0.85rem; font-weight: 600; color: #9ca3af; }
+
+    @media (max-width: 576px) {
+      .ib-sum { gap: 0.4rem; }
+      .ib-sum > div { padding: 0.55rem 0.6rem; }
+      .ib-sum .v { font-size: 1.05rem; }
+      .ib-table, .ib-table tbody, .ib-table tr, .ib-table td { display: block; width: 100%; }
+      .ib-table { border: none; border-radius: 0; overflow: visible; }
+      .ib-table thead { display: none; }
+      .ib-table tbody tr { position: relative; border: 1px solid #eef0f3; border-radius: 12px; padding: 0.6rem 0.75rem; margin-bottom: 0.6rem; background: #fff; }
+      .ib-table tr.expired { border-color: rgba(220,53,69,0.3); }
+      .ib-table tr.expired td:first-child { box-shadow: none; }
+      .ib-table td { border: none; padding: 0.25rem 0; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+      .ib-table td[data-label]::before { content: attr(data-label); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; flex-shrink: 0; }
+      .ib-table td[data-label] > * { min-width: 0; text-align: right; }
+      .ib-table td[data-label] .rm-input { max-width: 60%; text-align: left; }
+      .ib-table td:first-child { padding-right: 5.5rem; }
+      .ib-actions { position: absolute; top: 0.5rem; right: 0.6rem; width: auto !important; padding: 0 !important; }
+      .ib-table tr.editing .ib-actions { position: static; justify-content: flex-end; padding-top: 0.4rem !important; }
+      .ib-table tr.editing td:first-child { padding-right: 0; }
+      .rs-box { padding: 0.6rem 0.7rem; }
+      .rs-box .v { font-size: 1.15rem; }
+    }
+    @media (max-width: 400px) {
+      .rm-types { grid-template-columns: 1fr 1fr; }
+    }
+    /* Admin inventory extras */
+    .rm-types { grid-template-columns: repeat(3, 1fr); }
+    .iv-btn.purple { background: #6f42c1; color: #fff; }
+    .iv-btn.purple:hover:not(:disabled) { background: #5e35a8; }
+    .iv-about { border: 1px solid #eef0f3; border-radius: 12px; overflow: hidden; }
+    .iv-about-row { display: flex; gap: 0.9rem; padding: 0.7rem 0.9rem; border-bottom: 1px solid #f3f4f6; }
+    .iv-about-row:last-child { border-bottom: none; }
+    .iv-about-row .k { width: 120px; flex-shrink: 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; display: flex; align-items: flex-start; gap: 0.45rem; padding-top: 2px; }
+    .iv-about-row .k i { color: #c4c9d0; width: 14px; text-align: center; margin-top: 1px; }
+    .iv-about-row .v { font-size: 0.86rem; color: #374151; line-height: 1.5; }
+    @media (min-width: 769px) and (max-width: 1199.98px) {
+      .inv-table th:nth-child(5), .inv-table td:nth-child(5) { display: none; }
+      .inv-table th:nth-child(1) { width: 36% !important; }
+      .inv-table th:nth-child(2) { width: 22% !important; }
+      .inv-table th:nth-child(3) { width: 20% !important; }
+      .inv-table th:nth-child(4) { width: 16% !important; }
+    }
+    @media (max-width: 576px) { .iv-about-row { flex-direction: column; gap: 0.2rem; } .iv-about-row .k { width: auto; } }
 `;
 
   // Stats — must be declared before animation useEffect
@@ -329,7 +594,7 @@ useEffect(() => {
   const outOfStock    = inventory.filter(i => parseInt(i.current_stock) === 0).length;
   const totalStock    = inventory.reduce((sum, i) => sum + parseInt(i.current_stock || 0), 0);
 
-  useEffect(() => { loadInventory(); loadVaccinationTypes(); }, []);
+  useEffect(() => { loadInventory(); }, []);
 
   useEffect(() => {
     if (inventory.length === 0) return;
@@ -377,28 +642,21 @@ useEffect(() => {
     return () => clearInterval(timer);
   }, [loading, totalItems, totalStock, lowStockItems, outOfStock]);
 
+  // First load shows the skeleton; reloads after an action are silent (no jump to the top)
+  const hasLoadedRef = useRef(false);
   const loadInventory = async () => {
     try {
-      setLoading(true);
+      if (!hasLoadedRef.current) setLoading(true);
       const res = await inventoryAPI.getAll();
       setInventory(res.data.inventory || []);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
   };
-  const loadVaccinationTypes = async () => {
-  try {
-    const { vaccinationAPI } = await import('../../services/api');
-    const res = await vaccinationAPI.getTypes();
-    setVaccinationTypes(res.data.vaccination_types || []);
-  } catch (err) {
-    console.error('Failed to load vaccination types:', err);
-  }
-};
-
   const [toast, setToast] = useState({ visible: false, hiding: false, msg: '' });
   const toastTimer = useRef(null);
 
@@ -527,31 +785,34 @@ const getMaxBatchQty = (type) => MAX_BATCH_QTY[type] || 1000;
     }
   };
 
-  const handleOpenEdit = (item) => {
-    setEditItem(item);
-    setEditMinStock(item.minimum_stock);
-    setShowEditModal(true);
-  };
-
-  const handleEditSave = async () => {
-    if (!editMinStock || parseInt(editMinStock) < 0) {
-      setError('Please enter a valid minimum stock value.');
-      return;
-    }
-    setEditLoading(true);
-    setShowEditModal(false);
+  // ── Add item ─────────────────────────────────────────────────────────────
+  const handleAdd = async () => {
+    if (addLoading) return;
+    if (!addForm.item_name.trim()) { setError('Item name is required.'); return; }
+    setShowAddModal(false);
+    setAddLoading(true);
     try {
-      await inventoryAPI.update(editItem.id, { minimum_stock: parseInt(editMinStock) });
-      showSuccess(`Minimum stock threshold updated for ${editItem.item_name}.`);
+      await inventoryAPI.create({
+        item_type: addForm.item_type,
+        item_name: addForm.item_name.trim(),
+        species: addForm.species,
+        current_stock: 0,
+        minimum_stock: parseInt(addForm.minimum_stock),
+        unit: addForm.unit || 'pcs',
+        notes: addForm.notes,
+      });
+      showSuccess(`"${addForm.item_name}" added to inventory.`);
+      setAddForm({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '' });
       loadInventory();
     } catch (err) {
-      setShowEditModal(true);
+      setShowAddModal(true);
       const { message } = handleAPIError(err);
       setError(message);
     } finally {
-      setEditLoading(false);
+      setAddLoading(false);
     }
   };
+
   // ── Batch modal ───────────────────────────────────────────────────────────
 const handleOpenBatches = async (item) => {
   setBatchItem(item);
@@ -652,18 +913,6 @@ const handleDeleteClick = (item) => {
       setDeleteLoading(false);
     }
   };
-  // ── Manual set stock ──────────────────────────────────────────────────────
-  const handleSetStock = async (item, newStock) => {
-    try {
-      await inventoryAPI.update(item.id, { current_stock: parseInt(newStock) });
-      showSuccess(`Stock updated for ${item.item_name}.`);
-      loadInventory();
-    } catch (err) {
-      const { message } = handleAPIError(err);
-      setError(message);
-    }
-  };
-
   const invTotalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
   const invStart = (currentPage - 1) * itemsPerPage;
   const invPageItems = filtered.slice(invStart, invStart + itemsPerPage);
@@ -704,9 +953,10 @@ const handleDeleteClick = (item) => {
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2" />{error}
-          </Alert>
+          <div className="rm-alert danger" role="alert">
+            <i className="fas fa-exclamation-circle" /><span className="flex-grow-1">{error}</span>
+            <button type="button" className="iv-toast-close" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
         {/* Stat Cards */}
         <Row className="mb-4 inv-stat-row" style={{ display: 'flex', flexWrap: 'nowrap', margin: '0 -6px', animation: 'dropDown 0.4s ease-out 0.1s backwards' }}>
@@ -731,7 +981,8 @@ const handleDeleteClick = (item) => {
                           <span style={{
                             display: 'inline-block', width: '3ch', height: '1em',
                             borderRadius: '6px',
-                            background: '#f0f0f0',
+                            background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                            backgroundSize: '800px 100%',
                             animation: 'shimmer 1.4s ease-in-out infinite',
                             verticalAlign: 'middle'
                           }} />
@@ -966,692 +1217,545 @@ const handleDeleteClick = (item) => {
 
       </Container>
 
-      {/* ── Add Item Modal ── */}
-      <Modal show={showAddModal} onHide={() => !addLoading && setShowAddModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107', borderRadius: '12px 12px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-            <i className="fas fa-plus-circle me-2" style={{ color: '#ffc107' }} />
-            Add Inventory Item
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '1.75rem' }}>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Type <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-            <Form.Select value={addForm.item_type} onChange={e => {
-  const typeUnitMap = { vaccination: 'doses', medicine: 'mg', equipment: 'pcs' };
-  setAddForm(f => ({ ...f, item_type: e.target.value, unit: typeUnitMap[e.target.value] || 'pcs', vaccination_type_id: '', item_name: '' }));
-}}
-              style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
-              <option value="vaccination">Vaccination</option>
-              <option value="medicine">Medicine</option>
-              <option value="equipment">Equipment</option>
-            </Form.Select>
-          </Form.Group>
-          
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Item Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-            <Form.Control value={addForm.item_name} onChange={e => setAddForm(f => ({ ...f, item_name: e.target.value }))}
-              placeholder="e.g. Rabies Vaccine" style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }} />
-          </Form.Group>
-          <Row className="mb-3 g-2">
-            <Col xs={6}>
-              <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Species</Form.Label>
-              <Form.Select value={addForm.species} onChange={e => setAddForm(f => ({ ...f, species: e.target.value }))}
-                style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
-                <option value="dog">Dog</option>
-                <option value="cat">Cat</option>
-                <option value="all">All</option>
-              </Form.Select>
-            </Col>
-            <Col xs={6}>
-  <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Unit</Form.Label>
-  <Form.Select value={addForm.unit} onChange={e => setAddForm(f => ({ ...f, unit: e.target.value }))}
-    style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
-    <option value="doses">doses</option>
-    <option value="pcs">pcs</option>
-    <option value="mg">mg</option>
-    <option value="ml">ml</option>
-    <option value="tablets">tablets</option>
-    <option value="capsules">capsules</option>
-    <option value="vials">vials</option>
-    <option value="sachets">sachets</option>
-    <option value="bottles">bottles</option>
-    <option value="boxes">boxes</option>
-  </Form.Select>
-</Col>
-          </Row>
-          <Form.Group className="mb-3">
-            <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Min. Threshold</Form.Label>
-            <Form.Control type="number" min="0" value={addForm.minimum_stock}
-              onChange={e => setAddForm(f => ({ ...f, minimum_stock: e.target.value }))}
-              style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }} />
-          </Form.Group>
-          <Form.Group>
-            <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Notes (Optional)</Form.Label>
-            <Form.Control as="textarea" rows={2} value={addForm.notes}
-              onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
-              placeholder="Any remarks..."
-              style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem', resize: 'none' }} />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1rem 1.75rem' }}>
-          <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={addLoading}
-            style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
-          <Button onClick={async () => {
-            if (!addForm.item_name.trim()) { setError('Item name is required.'); return; }
-            setShowAddModal(false);
-            setAddLoading(true);
-            try {
-              await inventoryAPI.create({
-                item_type: addForm.item_type,
-                item_name: addForm.item_name.trim(),
-                species: addForm.species,
-                current_stock: 0,
-                minimum_stock: parseInt(addForm.minimum_stock),
-                unit: addForm.unit || 'pcs',
-                notes: addForm.notes,
-                
-              });
-              showSuccess(`"${addForm.item_name}" added to inventory.`);
-              setAddForm({ item_type: 'vaccination', item_name: '', species: 'dog', minimum_stock: '10', unit: 'doses', notes: '' });
-              loadInventory();
-            } catch (err) {
-              setShowAddModal(true);
-              const { message } = handleAPIError(err);
-              setError(message);
-            } finally {
-              setAddLoading(false);
-            }
-          }} disabled={addLoading || !addForm.item_name.trim()}
-            style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
-            {addLoading ? <><Spinner size="sm" animation="border" className="me-2" />Adding...</> : <><i className="fas fa-plus me-2" />Add Item</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      {/* ════════════════════════════════════════
+          MODALS
+      ════════════════════════════════════════ */}
 
-      {/* ── Restock Modal ── */}
-<Modal show={showRestockModal} onHide={() => !restockLoading && setShowRestockModal(false)} centered style={{ zoom: '0.75' }}>
-  <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #28a745', borderRadius: '12px 12px 0 0' }}>
-    <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-      <i className="fas fa-plus-circle me-2" style={{ color: '#28a745' }} />
-      Add Stock — {restockItem?.item_name}
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '1.75rem' }}>
-    {restockItem && (
-      <>
-        {/* Current info */}
-        <div style={{ background: '#f8f9fa', borderRadius: '10px', padding: '0.9rem 1rem', marginBottom: '1.25rem', display: 'flex', gap: '1.5rem' }}>
-          <div>
-            <div style={{ fontSize: '0.7rem', color: '#aaa', fontWeight: '700', textTransform: 'uppercase' }}>Current Stock</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: '700', color: parseInt(restockItem.current_stock) === 0 ? '#dc3545' : '#333' }}>
-              {restockItem.current_stock} <span style={{ fontSize: '0.8rem', color: '#aaa' }}>{restockItem.unit}</span>
+      {/* ======================== ADD ITEM MODAL ======================== */}
+      <Modal show={showAddModal} onHide={() => !addLoading && setShowAddModal(false)} centered dialogClassName="rm-modal sm" className="iv-zoom-modal" scrollable>
+        <Modal.Header closeButton className="rm-head">
+          <div className="rm-head-main">
+            <div className="rm-head-ic"><i className="fas fa-box-open" /></div>
+            <div style={{ minWidth: 0 }}>
+              <div className="rm-kicker">Inventory</div>
+              <Modal.Title as="h5" className="rm-title">Add new item</Modal.Title>
+              <div className="rm-head-sub">Add stock to it later as batches.</div>
             </div>
           </div>
-          <div>
-            <div style={{ fontSize: '0.7rem', color: '#aaa', fontWeight: '700', textTransform: 'uppercase' }}>After Restock</div>
-            <div style={{ fontSize: '1.3rem', fontWeight: '700', color: '#28a745' }}>
-              {parseInt(restockItem.current_stock || 0) + parseInt(restockQty || 0)} <span style={{ fontSize: '0.8rem', color: '#aaa' }}>{restockItem.unit}</span>
+        </Modal.Header>
+        <Modal.Body className="rm-body">
+          <div className="rm-section">
+            <div className="rm-section-title"><i className="fas fa-tag" />Item type <span className="rm-req">*</span></div>
+            <div className="rm-types">
+              {Object.entries(TYPE_CONFIG)
+                .filter(([k]) => k !== 'microchip')
+                .map(([k, cfg]) => {
+                  const on = addForm.item_type === k;
+                  return (
+                    <button key={k} type="button" disabled={addLoading}
+                      className={`rm-type${on ? ' on' : ''}`} style={{ '--c': cfg.color }}
+                      onClick={() => {
+                        const typeUnitMap = { vaccination: 'doses', medicine: 'mg', equipment: 'pcs' };
+                        setAddForm(f => ({ ...f, item_type: k, unit: typeUnitMap[k] || 'pcs' }));
+                      }}
+                      aria-pressed={on}>
+                      {on && <i className="fas fa-check-circle rm-type-check" />}
+                      <span className="rm-type-ic" style={{ background: cfg.bg, color: cfg.color }}><i className={`fas ${cfg.icon}`} /></span>
+                      <span className="rm-type-label">{cfg.label}</span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
-        </div>
 
-        <Row className="mb-3 g-2">
-          <Col xs={6}>
-            <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>
-              Batch No. <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              value={restockBatchNo}
-              onChange={e => { setRestockBatchNo(e.target.value); setBatchNoError(''); }}
-              placeholder="e.g. BCH-2025-001"
-              isInvalid={!!batchNoError}
-              style={{ borderRadius: '8px', border: `2px solid ${batchNoError ? '#dc3545' : '#dee2e6'}`, padding: '0.7rem' }}
-            />
-            {batchNoError && <div style={{ color: '#dc3545', fontSize: '0.78rem', marginTop: '0.3rem' }}>{batchNoError}</div>}
-          </Col>
-          <Col xs={6}>
-            <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>
-              Quantity <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="number"
-              min="1"
-              max={getMaxBatchQty(restockItem.item_type)}
-              value={restockQty}
-              onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
-              onChange={e => setRestockQty(e.target.value.replace(/\D/g, '').slice(0, 5))}
-              placeholder={`Enter qty in ${restockItem.unit}`}
-              isInvalid={parseInt(restockQty) > getMaxBatchQty(restockItem.item_type)}
-              style={{ borderRadius: '8px', border: `2px solid ${parseInt(restockQty) > getMaxBatchQty(restockItem.item_type) ? '#dc3545' : '#dee2e6'}`, padding: '0.7rem' }}
-            />
-            <div style={{ fontSize: '0.75rem', marginTop: '0.3rem', color: parseInt(restockQty) > getMaxBatchQty(restockItem.item_type) ? '#dc3545' : '#888' }}>
-              {parseInt(restockQty) > getMaxBatchQty(restockItem.item_type)
-                ? `Max ${getMaxBatchQty(restockItem.item_type).toLocaleString()} ${restockItem.unit} per batch`
-                : `Up to ${getMaxBatchQty(restockItem.item_type).toLocaleString()} ${restockItem.unit} per batch`}
-            </div>
-          </Col>
-        </Row>
-
-        {!['microchip', 'equipment'].includes(restockItem?.item_type) && (
-  <Form.Group className="mb-3">
-    <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Expiration Date</Form.Label>
-    <Form.Control
-      type="date"
-      value={restockExpDate}
-      onChange={e => setRestockExpDate(e.target.value)}
-      style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem' }}
-    />
-  </Form.Group>
-)}
-
-        <Form.Group>
-          <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Notes (Optional)</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={2}
-            value={restockNotes}
-            onChange={e => setRestockNotes(e.target.value)}
-            placeholder="e.g. Delivery from DOH..."
-            style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem', resize: 'none' }}
-          />
-        </Form.Group>
-      </>
-    )}
-  </Modal.Body>
-  <Modal.Footer style={{ padding: '1rem 1.75rem' }}>
-    <Button variant="secondary" onClick={() => setShowRestockModal(false)} disabled={restockLoading}
-      style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
-    <Button onClick={handleRestock}
-      disabled={
-        restockLoading ||
-        !restockQty ||
-        parseInt(restockQty) <= 0 ||
-        parseInt(restockQty) > getMaxBatchQty(restockItem?.item_type) ||
-        !restockBatchNo.trim() ||
-        (!['microchip', 'equipment'].includes(restockItem?.item_type) && !restockExpDate)
-      }
-      style={{ background: '#28a745', border: 'none', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
-      {restockLoading ? <><Spinner size="sm" animation="border" className="me-2" />Adding...</> : <><i className="fas fa-plus me-2" />Add Stock</>}
-    </Button>
-  </Modal.Footer>
-</Modal>
-{/* ── Batches Modal ── */}
-<Modal show={showBatchModal} onHide={() => { if (!editBatchSaving) { setShowBatchModal(false); setEditingBatch(null); } }} size="lg" centered style={{ zoom: '0.75' }}>
-  <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #0d6efd', borderRadius: '12px 12px 0 0' }}>
-    <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-      <i className="fas fa-layer-group me-2" style={{ color: '#0d6efd' }} />
-      Batches — {batchItem?.item_name}
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '1.5rem' }}>
-    {(() => {
-      const today = new Date(); today.setHours(0,0,0,0);
-      const expiredBatches = batches.filter(b => b.expiration_date && new Date(b.expiration_date) < today && parseInt(b.quantity) > 0);
-      return expiredBatches.length > 0 && !batchesLoading ? (
-        <div style={{ background: 'rgba(220,53,69,0.07)', border: '1.5px solid rgba(220,53,69,0.3)', borderRadius: '10px', padding: '0.7rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.83rem', color: '#dc3545', fontWeight: '600' }}>
-          <i className="fas fa-exclamation-triangle" />
-          {expiredBatches.length} expired batch{expiredBatches.length !== 1 ? 'es' : ''} detected — please review and remove expired stock.
-        </div>
-      ) : null;
-    })()}
-    {batchesLoading ? (
-      <div className="text-center py-4"><Spinner animation="border" style={{ color: '#0d6efd' }} /></div>
-    ) : batches.length === 0 ? (
-      <div className="text-center py-4" style={{ color: '#aaa' }}>
-        <i className="fas fa-box-open" style={{ fontSize: '2.5rem' }} />
-        <p className="mt-2">No batches yet. Use "Add Stock" to add the first batch.</p>
-      </div>
-    ) : (
-      <div className="table-responsive">
-        <Table hover style={{ fontSize: '0.85rem', marginBottom: 0 }}>
-          <thead>
-            <tr style={{ background: '#f8f9fa' }}>
-              {['Batch No.', 'Quantity', 'Expiration Date', 'Notes', 'Actions'].map(h => (
-                <th key={h} style={{ fontWeight: '700', color: '#555', padding: '0.75rem 0.9rem', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {batches.map(batch => {
-              const isEditing = editingBatch?.id === batch.id;
-              const isExpired = batch.expiration_date && new Date(batch.expiration_date) < new Date();
-              return (
-                <tr key={batch.id} style={{ background: isEditing ? 'rgba(13,110,253,0.04)' : 'transparent' }}>
-                  {/* Batch No */}
-                  <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle' }}>
-                    {isEditing ? (
-                      <Form.Control size="sm" value={editingBatch.batch_no}
-                        onChange={e => setEditingBatch(b => ({ ...b, batch_no: e.target.value }))}
-                        style={{ border: '2px solid #0d6efd', borderRadius: '6px', fontWeight: '700', minWidth: '120px' }} />
-                    ) : (
-                      <span style={{ fontWeight: '700', color: '#333' }}>{batch.batch_no}</span>
-                    )}
-                  </td>
-                  {/* Qty */}
-                  <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle' }}>
-                    {isEditing ? (
-                      <Form.Control size="sm" type="number" min="0" max={getMaxBatchQty(batchItem?.item_type)} value={editingBatch.quantity}
-                        onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
-                        onChange={e => setEditingBatch(b => ({ ...b, quantity: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
-                        title={`Max ${getMaxBatchQty(batchItem?.item_type)} per batch`}
-                        style={{ border: `2px solid ${parseInt(editingBatch.quantity) > getMaxBatchQty(batchItem?.item_type) ? '#dc3545' : '#0d6efd'}`, borderRadius: '6px', width: '90px', fontWeight: '700' }} />
-                    ) : (
-                      <span style={{ fontWeight: '700' }}>{batch.quantity} <span style={{ color: '#aaa', fontWeight: '400' }}>{batch.unit}</span></span>
-                    )}
-                  </td>
-                  {/* Exp Date */}
-                  <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle' }}>
-                    {isEditing ? (
-                      <Form.Control size="sm" type="date" value={editingBatch.expiration_date || ''}
-                        onChange={e => setEditingBatch(b => ({ ...b, expiration_date: e.target.value }))}
-                        style={{ border: '2px solid #0d6efd', borderRadius: '6px' }} />
-                    ) : batch.expiration_date ? (
-                      <span style={{ color: isExpired ? '#dc3545' : '#333', fontWeight: isExpired ? '700' : '400' }}>
-                        {isExpired && <i className="fas fa-exclamation-triangle me-1" style={{ color: '#dc3545' }} />}
-                        {new Date(batch.expiration_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    ) : <span style={{ color: '#ccc' }}>—</span>}
-                  </td>
-                  {/* Notes */}
-                  <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle', maxWidth: '160px' }}>
-                    {isEditing ? (
-                      <Form.Control size="sm" value={editingBatch.notes || ''}
-                        onChange={e => setEditingBatch(b => ({ ...b, notes: e.target.value }))}
-                        style={{ border: '2px solid #0d6efd', borderRadius: '6px' }} />
-                    ) : (
-                      <span style={{ color: '#666', fontSize: '0.82rem' }}>{batch.notes || <span style={{ color: '#ccc' }}>—</span>}</span>
-                    )}
-                  </td>
-                  {/* Actions */}
-                  <td style={{ padding: '0.7rem 0.9rem', verticalAlign: 'middle' }}>
-                    <div className="d-flex gap-1">
-                      {isEditing ? (
-                        <>
-                          <button onClick={handleSaveBatch} disabled={editBatchSaving}
-                            style={{ padding: '0.25rem 0.6rem', borderRadius: '5px', border: 'none', background: '#0d6efd', color: '#fff', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                            {editBatchSaving ? <Spinner size="sm" animation="border" style={{ width: '10px', height: '10px' }} /> : <><i className="fas fa-save me-1" />Save</>}
-                          </button>
-                          <button onClick={() => setEditingBatch(null)}
-                            style={{ padding: '0.25rem 0.6rem', borderRadius: '5px', border: '2px solid #dee2e6', background: '#fff', color: '#555', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button onClick={() => setEditingBatch({ ...batch })}
-                            style={{ padding: '0.25rem 0.6rem', borderRadius: '5px', border: '2px solid #0d6efd', background: '#fff', color: '#0d6efd', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                            <i className="fas fa-edit" />
-                          </button>
-                          <button onClick={() => handleDeleteBatch(batch.id)} disabled={deletingBatchId === batch.id}
-                            style={{ padding: '0.25rem 0.6rem', borderRadius: '5px', border: '2px solid #dc3545', background: '#fff', color: '#dc3545', fontWeight: '700', fontSize: '0.75rem', cursor: 'pointer' }}>
-                            {deletingBatchId === batch.id ? <Spinner size="sm" animation="border" style={{ width: '10px', height: '10px' }} /> : <i className="fas fa-trash" />}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Table>
-      </div>
-    )}
-  </Modal.Body>
-  <Modal.Footer style={{ padding: '1rem 1.5rem', justifyContent: 'space-between' }}>
-    <small style={{ color: '#aaa' }}>{batches.length} batch{batches.length !== 1 ? 'es' : ''} · Total: {batches.reduce((s, b) => s + parseInt(b.quantity || 0), 0)} {batchItem?.unit}</small>
-    <Button variant="secondary" onClick={() => { setShowBatchModal(false); setEditingBatch(null); }}
-      style={{ borderRadius: '8px', fontWeight: '600' }}>Close</Button>
-  </Modal.Footer>
-</Modal>
-
-      {/* ── View Details Modal ── */}
-      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered size="md" style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #0d6efd', borderRadius: '12px 12px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-            <i className="fas fa-info-circle me-2" style={{ color: '#0d6efd' }} />
-            Item Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '1.75rem' }}>
-          {viewItem && (() => {
-            const typeCfg    = TYPE_CONFIG[viewItem.item_type] || TYPE_CONFIG.microchip;
-            const status     = getStockStatus(viewItem);
-            const speciesCfg = viewItem.species ? (SPECIES_COLORS[viewItem.species] || {}) : null;
-
-            /* ── static details per type ── */
-            const STATIC_DETAILS = {
-  vaccination: {
-    purpose:   'Stimulates the immune system to provide protection against specific infectious diseases in pets.',
-    usage:     'Administered via subcutaneous or intramuscular injection by a licensed veterinarian.',
-    storage:   'Store at 2–8 °C. Keep away from direct sunlight and do not freeze.',
-    frequency: 'Varies by vaccine: annually, every 3 years, or as directed by the attending vet.',
-  },
-  medicine: {
-    purpose:   'Pharmaceutical products used to treat, prevent, or manage diseases and health conditions in pets.',
-    usage:     'Administered orally, topically, or via injection as prescribed by a licensed veterinarian.',
-    storage:   'Store at room temperature (15–25 °C) unless otherwise specified. Keep away from moisture and direct sunlight.',
-    frequency: 'As prescribed by the attending veterinarian. Complete the full course even if symptoms improve.',
-  },
-  microchip: {
-                purpose:   'A permanent radio-frequency identification (RFID) implant used to uniquely identify pets and reunite them with their owners.',
-                usage:     'Implanted subcutaneously (usually between the shoulder blades) using a hypodermic needle by a licensed veterinarian. No anesthesia required for most pets.',
-                storage:   'Sterile single-use implants. Store in a cool, dry place at room temperature. Do not expose to electromagnetic fields.',
-                frequency: 'One-time permanent implant. No replacement needed under normal circumstances.',
-                standard:  'ISO 11784/11785 compliant 15-digit RFID chip operating at 134.2 kHz.',
-                readRange: 'Readable by standard ISO-compliant scanners at a range of approximately 10–15 cm.',
-              },
-            };
-
-            const details = STATIC_DETAILS[viewItem.item_type] || STATIC_DETAILS.microchip;
-
-            const rowStyle = { padding: '0.6rem 0', borderBottom: '1px solid #f0f0f0' };
-            const labelStyle = { fontWeight: '600', color: '#666', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em', width: '130px', flexShrink: 0 };
-            const valueStyle = { color: '#333', fontSize: '0.88rem', fontWeight: '500' };
-
-            return (
-              <>
-                {/* Header badge strip */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem', padding: '0.9rem 1rem', background: typeCfg.bg, borderRadius: '10px' }}>
-                  <i className={`fas ${typeCfg.icon}`} style={{ fontSize: '1.4rem', color: typeCfg.color }} />
-                  <div>
-                    <div style={{ fontWeight: '800', fontSize: '1rem', color: typeCfg.color }}>{viewItem.item_name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#888', fontWeight: '600' }}>{typeCfg.label}</div>
-                  </div>
-                  {viewItem.species && (
-                    <span style={{ marginLeft: 'auto', padding: '0.2rem 0.7rem', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', background: speciesCfg?.bg || '#f0f0f0', color: speciesCfg?.color || '#555' }}>
-                      {viewItem.species}
-                    </span>
-                  )}
-                </div>
-
-                {/* Stock snapshot */}
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
-                  {[
-                    { label: 'Current Stock', value: `${viewItem.current_stock} ${viewItem.unit}`, color: parseInt(viewItem.current_stock) === 0 ? '#dc3545' : '#333' },
-                    { label: 'Min. Threshold', value: `${viewItem.minimum_stock} ${viewItem.unit}`, color: '#333' },
-                    { label: 'Status', value: status.label, color: status.color },
-                  ].map(s => (
-                    <div key={s.label} style={{ flex: 1, background: '#f8f9fa', borderRadius: '8px', padding: '0.6rem 0.8rem', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.68rem', color: '#aaa', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{s.label}</div>
-                      <div style={{ fontWeight: '800', fontSize: '0.95rem', color: s.color }}>{s.value}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Details rows */}
-                <div style={{ background: '#fff', borderRadius: '10px', border: '1px solid #f0f0f0', overflow: 'hidden', marginBottom: '1rem' }}>
-                  {[
-                    { label: 'Purpose',   value: details.purpose },
-                    { label: 'Usage',     value: details.usage },
-                    { label: 'Storage',   value: details.storage },
-                    { label: 'Frequency', value: details.frequency },
-                    ...(viewItem.item_type === 'microchip' ? [
-                      { label: 'Standard',  value: details.standard },
-                      { label: 'Read Range',value: details.readRange },
-                    ] : []),
-                  ].map((row, i, arr) => (
-                    <div key={row.label} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem 1rem', borderBottom: i < arr.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
-                      <span style={labelStyle}>{row.label}</span>
-                      <span style={valueStyle}>{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Notes from DB if any */}
-                {viewItem.notes && (
-                  <div style={{ background: 'rgba(13,110,253,0.05)', borderRadius: '8px', padding: '0.75rem 1rem', borderLeft: '3px solid #0d6efd' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#0d6efd', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Notes</div>
-                    <div style={{ fontSize: '0.85rem', color: '#555' }}>{viewItem.notes}</div>
-                  </div>
-                )}
-
-                {/* Expired batch warning */}
-                {expiredBatchMap[viewItem?.id] > 0 && (
-                  <div style={{ background: 'rgba(220,53,69,0.07)', border: '1.5px solid rgba(220,53,69,0.3)', borderRadius: '8px', padding: '0.6rem 0.9rem', marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: '#dc3545', fontWeight: '600' }}>
-                    <i className="fas fa-exclamation-triangle" />
-                    {expiredBatchMap[viewItem.id]} expired batch{expiredBatchMap[viewItem.id] !== 1 ? 'es' : ''} — open Batches to review.
-                  </div>
-                )}
-                {/* Last restocked */}
-                <div style={{ marginTop: '0.85rem', fontSize: '0.78rem', color: '#aaa', textAlign: 'right' }}>
-                  Last restocked: {viewItem.last_restocked_at
-                    ? new Date(viewItem.last_restocked_at).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
-                    : 'Never'}
-                </div>
-              </>
-            );
-          })()}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1rem 1.75rem' }}>
-          <Button
-            onClick={() => { setShowViewModal(false); handleOpenRestock(viewItem); }}
-            style={{ background: '#28a745', border: 'none', borderRadius: '8px', fontWeight: '700', padding: '0.5rem 1.2rem', fontSize: '0.85rem' }}>
-            <i className="fas fa-plus me-2" />Add Stock
-          </Button>
-          <Button
-            onClick={() => { setShowViewModal(false); handleOpenBatches(viewItem); }}
-            style={{ background: '#0d6efd', border: 'none', borderRadius: '8px', fontWeight: '700', padding: '0.5rem 1.2rem', fontSize: '0.85rem' }}>
-            <i className="fas fa-layer-group me-2" />Batches
-          </Button>
-          <Button variant="secondary" onClick={() => setShowViewModal(false)}
-            style={{ borderRadius: '8px', fontWeight: '600' }}>Close</Button>
-        </Modal.Footer>
-      </Modal>
-
-
-      {/* ── Edit Item Modal ── */}
-      <Modal show={showEditItemModal} onHide={() => !editItemLoading && setShowEditItemModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #6f42c1', borderRadius: '12px 12px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-            <i className="fas fa-edit me-2" style={{ color: '#6f42c1' }} />
-            Edit Item — {editItemForm?.item_name}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '1.75rem' }}>
-          {editItemForm && (
-            <>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Type</Form.Label>
-                <Form.Select value={editItemForm.item_type} disabled
-                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem', background: '#f8f9fa', color: '#999' }}>
-                  <option value="vaccination">Vaccination</option>
-                  <option value="medicine">Medicine</option>
-                  <option value="microchip">Microchip</option>
-                  <option value="equipment">Equipment</option>
+          <div className="rm-section mb-0">
+            <div className="rm-section-title"><i className="fas fa-info-circle" />Item details</div>
+            <Row className="g-3">
+              <Col xs={12}>
+                <Form.Label className="rm-label">Item name <span className="rm-req">*</span></Form.Label>
+                <Form.Control className="rm-input" value={addForm.item_name} onChange={e => setAddForm(f => ({ ...f, item_name: e.target.value }))}
+                  placeholder="e.g. Rabies Vaccine" disabled={addLoading} />
+              </Col>
+              <Col xs={6}>
+                <Form.Label className="rm-label">Species</Form.Label>
+                <Form.Select className="rm-input" value={addForm.species} onChange={e => setAddForm(f => ({ ...f, species: e.target.value }))} disabled={addLoading}>
+                  <option value="all">All</option>
+                  <option value="dog">Dog</option>
+                  <option value="cat">Cat</option>
                 </Form.Select>
-                <Form.Text className="text-muted">Type cannot be changed after creation.</Form.Text>
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Item Name <span style={{ color: '#dc3545' }}>*</span></Form.Label>
-                <Form.Control value={editItemForm.item_name}
-                  onChange={e => setEditItemForm(f => ({ ...f, item_name: e.target.value }))}
-                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }} />
-              </Form.Group>
-              <Row className="mb-3 g-2">
-                <Col xs={6}>
-                  <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Species</Form.Label>
-                  <Form.Select value={editItemForm.species}
-                    onChange={e => setEditItemForm(f => ({ ...f, species: e.target.value }))}
-                    style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
-                    <option value="dog">Dog</option>
-                    <option value="cat">Cat</option>
-                    <option value="all">All</option>
-                  </Form.Select>
-                </Col>
-                <Col xs={6}>
-                  <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Unit</Form.Label>
-                  <Form.Select value={editItemForm.unit}
-                    onChange={e => setEditItemForm(f => ({ ...f, unit: e.target.value }))}
-                    style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }}>
-                    <option value="doses">doses</option>
-                    <option value="pcs">pcs</option>
-                    <option value="mg">mg</option>
-                    <option value="ml">ml</option>
-                    <option value="tablets">tablets</option>
-                    <option value="capsules">capsules</option>
-                    <option value="vials">vials</option>
-                    <option value="sachets">sachets</option>
-                    <option value="bottles">bottles</option>
-                    <option value="boxes">boxes</option>
-                  </Form.Select>
-                </Col>
-              </Row>
-              <Form.Group className="mb-3">
-                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Min. Threshold</Form.Label>
-                <Form.Control type="number" min="0" value={editItemForm.minimum_stock}
-                  onChange={e => setEditItemForm(f => ({ ...f, minimum_stock: e.target.value }))}
-                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem' }} />
-              </Form.Group>
-              <Form.Group>
-                <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>Notes (Optional)</Form.Label>
-                <Form.Control as="textarea" rows={2} value={editItemForm.notes}
-                  onChange={e => setEditItemForm(f => ({ ...f, notes: e.target.value }))}
-                  style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.65rem', resize: 'none' }} />
-              </Form.Group>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1rem 1.75rem' }}>
-          <Button variant="secondary" onClick={() => setShowEditItemModal(false)} disabled={editItemLoading}
-            style={{ borderRadius: '8px', fontWeight: '600' }}>Cancel</Button>
-          <Button onClick={handleEditItemSave} disabled={editItemLoading || !editItemForm?.item_name?.trim()}
-            style={{ background: '#6f42c1', border: 'none', color: '#fff', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
-            {editItemLoading ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : <><i className="fas fa-save me-2" />Save Changes</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* ── Edit Threshold Modal ── */}
-      <Modal show={showEditModal} onHide={() => !editLoading && setShowEditModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107', borderRadius: '12px 12px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-            <i className="fas fa-sliders-h me-2" style={{ color: '#ffc107' }} />
-            Edit Threshold — {editItem?.item_name}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '1.75rem' }}>
-          <p style={{ fontSize: '0.88rem', color: '#666', marginBottom: '1.25rem' }}>
-            Set the minimum stock level. You'll see a <strong style={{ color: '#ffc107' }}>Low Stock</strong> warning when stock falls at or below this number.
-          </p>
-          <Form.Group>
-            <Form.Label style={{ fontWeight: '600', fontSize: '0.88rem' }}>
-              Minimum Stock Threshold <span style={{ color: '#dc3545' }}>*</span>
-            </Form.Label>
-            <Form.Control
-              type="number"
-              min="0"
-              value={editMinStock}
-              onChange={e => setEditMinStock(e.target.value)}
-              style={{ borderRadius: '8px', border: '2px solid #dee2e6', padding: '0.7rem' }}
-              autoFocus
-            />
-            <Form.Text className="text-muted">Current: {editItem?.minimum_stock} {editItem?.unit}</Form.Text>
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1rem 1.75rem' }}>
-          <Button variant="secondary" onClick={() => setShowEditModal(false)} disabled={editLoading}
-            style={{ borderRadius: '8px', fontWeight: '600' }}>
-            Cancel
-          </Button>
-          <Button onClick={handleEditSave} disabled={editLoading}
-            style={{ background: '#ffc107', border: 'none', color: '#000', borderRadius: '8px', fontWeight: '700', padding: '0.6rem 1.5rem' }}>
-            {editLoading ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</> : <><i className="fas fa-save me-2" />Save Threshold</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      {/* ── Delete Batch Confirm Modal ── */}
-      <Modal show={showDeleteBatchModal} onHide={() => !deleteBatchLoading && setShowDeleteBatchModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6', borderRadius: '12px 12px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-            <i className="fas fa-exclamation-triangle text-danger me-2" />
-            Confirm Delete Batch
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {batchToDelete && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to delete this batch?
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #dc3545' }}>
-                <strong style={{ fontSize: '1.1rem' }}>{batchToDelete.batch_no}</strong>
-                <br />
-                <small className="text-muted">
-                  Quantity: {batchToDelete.quantity} {batchItem?.unit}
-                  {batchToDelete.expiration_date && (
-                    <> · Expires: {new Date(batchToDelete.expiration_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</>
-                  )}
-                </small>
-              </div>
-              <Alert variant="warning" className="mt-3 mb-0">
-                <i className="fas fa-info-circle me-2" />
-                <strong>Warning:</strong> Stock will be deducted automatically. This action cannot be undone.
-              </Alert>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowDeleteBatchModal(false)} disabled={deleteBatchLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDeleteBatchConfirm} disabled={deleteBatchLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            {deleteBatchLoading
-              ? <><Spinner size="sm" animation="border" className="me-2" />Deleting...</>
-              : <><i className="fas fa-trash me-2" />Delete Batch</>}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* ── Delete Confirm Modal ── */}
-      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6', borderRadius: '12px 12px 0 0' }}>
-          <Modal.Title style={{ fontWeight: '700', fontSize: '1.1rem' }}>
-            <i className="fas fa-exclamation-triangle text-danger me-2" />
-            Confirm Delete
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {itemToDelete && (
-            <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to delete this inventory item?
-              </p>
-              <div style={{ background: '#f8f9fa', padding: '1.25rem', borderRadius: '8px', borderLeft: '4px solid #dc3545' }}>
-                <div className="mb-2">
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0.65rem', borderRadius: '20px', background: (TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).bg, color: (TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).color, fontWeight: '700', fontSize: '0.75rem' }}>
-                    <i className={`fas ${(TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).icon}`} />
-                    {(TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip).label}
-                  </span>
+              </Col>
+              <Col xs={6}>
+                <Form.Label className="rm-label">Unit</Form.Label>
+                <Form.Select className="rm-input" value={addForm.unit} onChange={e => setAddForm(f => ({ ...f, unit: e.target.value }))} disabled={addLoading}>
+                  {['doses', 'pcs', 'mg', 'ml', 'tablets', 'capsules', 'vials', 'sachets', 'bottles', 'boxes'].map(u => <option key={u} value={u}>{u}</option>)}
+                </Form.Select>
+              </Col>
+              <Col xs={12}>
+                <Form.Label className="rm-label">Min. threshold</Form.Label>
+                <div className="rm-suffix">
+                  <Form.Control className="rm-input" type="number" min="0" value={addForm.minimum_stock}
+                    onChange={e => setAddForm(f => ({ ...f, minimum_stock: e.target.value }))} disabled={addLoading} />
+                  <span>{addForm.unit}</span>
                 </div>
-                <strong style={{ fontSize: '1.1rem' }}>{itemToDelete.item_name}</strong>
-                <br />
-                <small className="text-muted">
-                  Current stock: {itemToDelete.current_stock} {itemToDelete.unit}
-                </small>
-              </div>
-              <Alert variant="warning" className="mt-3 mb-0">
-                <i className="fas fa-info-circle me-2" />
-                <strong>Warning:</strong> This will permanently remove the item and all its batches. This action cannot be undone.
-              </Alert>
-            </>
-          )}
+              </Col>
+              <Col xs={12}>
+                <Form.Label className="rm-label">Notes <span className="rm-opt">optional</span></Form.Label>
+                <Form.Control className="rm-input" as="textarea" rows={2} value={addForm.notes}
+                  onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Brand, supplier, storage notes…" style={{ resize: 'none' }} disabled={addLoading} />
+              </Col>
+            </Row>
+          </div>
         </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDeleteConfirm} disabled={deleteLoading}
-            style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            {deleteLoading
-              ? <><Spinner size="sm" animation="border" className="me-2" />Deleting...</>
-              : <><i className="fas fa-trash me-2" />Delete Item</>}
-          </Button>
+        <Modal.Footer className="rm-foot">
+          <button type="button" className="iv-btn ghost lg" onClick={() => setShowAddModal(false)} disabled={addLoading}>Cancel</button>
+          <button type="button" className="iv-btn primary lg" onClick={handleAdd} disabled={addLoading || !addForm.item_name.trim()}>
+            {addLoading ? <><i className="fas fa-circle-notch fa-spin" />Adding…</> : <><i className="fas fa-plus" />Add item</>}
+          </button>
         </Modal.Footer>
+      </Modal>
+
+      {/* ======================== ADD STOCK (RESTOCK) MODAL ======================== */}
+      <Modal show={showRestockModal} onHide={() => !restockLoading && setShowRestockModal(false)} centered dialogClassName="rm-modal sm" className="iv-zoom-modal" scrollable>
+        {restockItem && (() => {
+          const cfg = TYPE_CONFIG[restockItem.item_type] || TYPE_CONFIG.equipment;
+          const max = getMaxBatchQty(restockItem.item_type);
+          const qty = parseInt(restockQty || 0);
+          const over = qty > max;
+          const current = parseInt(restockItem.current_stock || 0);
+          return (
+            <>
+              <Modal.Header closeButton className="rm-head" style={{ '--c': '#198754' }}>
+                <div className="rm-head-main">
+                  <div className="rm-head-ic" style={{ background: cfg.bg, color: cfg.color }}><i className={`fas ${cfg.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rm-kicker" style={{ color: '#198754' }}>Add stock</div>
+                    <Modal.Title as="h5" className="rm-title">{restockItem.item_name}</Modal.Title>
+                    <div className="rm-head-sub">{cfg.label} · each delivery is saved as a batch</div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Modal.Body className="rm-body">
+                <div className="rs-flow">
+                  <div className="rs-box">
+                    <div className="k">Current</div>
+                    <div className={`v${current === 0 ? ' out' : ''}`}>{current} <span>{restockItem.unit}</span></div>
+                  </div>
+                  <div className="rs-arrow"><i className="fas fa-arrow-right" /></div>
+                  <div className="rs-box after">
+                    <div className="k">After adding</div>
+                    <div className="v">{current + (over ? 0 : qty)} <span>{restockItem.unit}</span></div>
+                  </div>
+                </div>
+
+                <Row className="g-3">
+                  <Col xs={6}>
+                    <Form.Label className="rm-label">Batch no. <span className="rm-req">*</span></Form.Label>
+                    <Form.Control className={`rm-input rm-mono${batchNoError ? ' bad' : ''}`} value={restockBatchNo}
+                      onChange={e => { setRestockBatchNo(e.target.value); setBatchNoError(''); }}
+                      placeholder="BCH-2026-001" disabled={restockLoading} />
+                    {batchNoError && <div className="rm-hint bad"><i className="fas fa-times-circle" />{batchNoError}</div>}
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Label className="rm-label">Quantity <span className="rm-req">*</span></Form.Label>
+                    <div className="rm-suffix">
+                      <Form.Control className={`rm-input${over ? ' bad' : ''}`} type="number" min="1" max={max} value={restockQty}
+                        onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
+                        onChange={e => setRestockQty(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="0" disabled={restockLoading} />
+                      <span>{restockItem.unit}</span>
+                    </div>
+                    <div className={`rm-hint${over ? ' bad' : ''}`}>{over ? 'Max' : 'Up to'} {max.toLocaleString()} per batch</div>
+                  </Col>
+                  {!['microchip', 'equipment'].includes(restockItem.item_type) && (
+                    <Col xs={12}>
+                      <Form.Label className="rm-label">Expiration date <span className="rm-req">*</span></Form.Label>
+                      <Form.Control className="rm-input" type="date" value={restockExpDate} onChange={e => setRestockExpDate(e.target.value)} disabled={restockLoading} />
+                    </Col>
+                  )}
+                  <Col xs={12}>
+                    <Form.Label className="rm-label">Notes <span className="rm-opt">optional</span></Form.Label>
+                    <Form.Control className="rm-input" as="textarea" rows={2} value={restockNotes}
+                      onChange={e => setRestockNotes(e.target.value)}
+                      placeholder="Supplier, delivery details…" style={{ resize: 'none' }} disabled={restockLoading} />
+                  </Col>
+                </Row>
+              </Modal.Body>
+              <Modal.Footer className="rm-foot">
+                <button type="button" className="iv-btn ghost lg" onClick={() => setShowRestockModal(false)} disabled={restockLoading}>Cancel</button>
+                <button type="button" className="iv-btn success lg" onClick={handleRestock}
+                  disabled={restockLoading || !restockQty || qty <= 0 || over || !restockBatchNo.trim() || (!['microchip', 'equipment'].includes(restockItem.item_type) && !restockExpDate)}>
+                  {restockLoading ? <><i className="fas fa-circle-notch fa-spin" />Adding…</> : <><i className="fas fa-plus" />Add stock</>}
+                </button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
+      </Modal>
+
+      {/* ======================== BATCHES MODAL ======================== */}
+      <Modal show={showBatchModal} onHide={() => { if (!editBatchSaving) { setShowBatchModal(false); setEditingBatch(null); } }} dialogClassName="rm-modal lg" className="iv-zoom-modal" scrollable>
+        {(() => {
+          const cfg = TYPE_CONFIG[batchItem?.item_type] || TYPE_CONFIG.equipment;
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const expiredCount = batches.filter(b => b.expiration_date && new Date(b.expiration_date) < today && parseInt(b.quantity) > 0).length;
+          const total = batches.reduce((s, b) => s + parseInt(b.quantity || 0), 0);
+          const fmt = (d) => new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+          return (
+            <>
+              <Modal.Header closeButton className="rm-head" style={{ '--c': '#0d6efd' }}>
+                <div className="rm-head-main">
+                  <div className="rm-head-ic" style={{ background: 'rgba(13,110,253,0.1)', color: '#0d6efd' }}><i className="fas fa-layer-group" /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rm-kicker" style={{ color: '#0d6efd' }}>Batches</div>
+                    <Modal.Title as="h5" className="rm-title">{batchItem?.item_name}</Modal.Title>
+                    <div className="rm-head-sub">{cfg.label} · each restock is tracked by batch number and expiry</div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Modal.Body className="rm-body">
+                {!batchesLoading && batches.length > 0 && (
+                  <div className="ib-sum">
+                    <div><span className="k">Batches</span><span className="v">{batches.length}</span></div>
+                    <div><span className="k">Total stock</span><span className="v">{total} <small>{batchItem?.unit}</small></span></div>
+                    <div className={expiredCount ? 'bad' : ''}><span className="k">Expired</span><span className="v">{expiredCount}</span></div>
+                  </div>
+                )}
+
+                {expiredCount > 0 && !batchesLoading && (
+                  <div className="rm-alert danger">
+                    <i className="fas fa-exclamation-triangle" />
+                    <span>{expiredCount} expired batch{expiredCount !== 1 ? 'es' : ''} still in stock. Review and remove expired stock.</span>
+                  </div>
+                )}
+
+                {batchesLoading ? (
+                  <div className="ib-list">
+                    {Array.from({ length: 3 }, (_, i) => (
+                      <div key={i} className="d-flex align-items-center gap-3" style={{ padding: '0.9rem 0', borderBottom: '1px solid #f3f4f6', opacity: 1 - i * 0.2 }}>
+                        <div className="iv-skel" style={{ width: '22%', height: 14 }} />
+                        <div className="iv-skel" style={{ width: '14%', height: 14 }} />
+                        <div className="iv-skel" style={{ width: '18%', height: 14 }} />
+                        <div className="iv-skel flex-grow-1" style={{ height: 14 }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : batches.length === 0 ? (
+                  <div className="iv-empty" style={{ padding: '2rem 1rem' }}>
+                    <div className="ic"><i className="fas fa-box-open" /></div>
+                    <h6>No batches yet</h6>
+                    <p className="mb-0">Use "Add stock" to record the first delivery.</p>
+                  </div>
+                ) : (
+                  <table className="ib-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '24%' }}>Batch no.</th>
+                        <th style={{ width: '16%' }}>Quantity</th>
+                        <th style={{ width: '20%' }}>Expires</th>
+                        <th>Notes</th>
+                        <th style={{ width: 96 }} aria-label="Actions" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {batches.map(batch => {
+                        const isEditing = editingBatch?.id === batch.id;
+                        const isExpired = batch.expiration_date && new Date(batch.expiration_date) < today;
+                        const overQty = isEditing && parseInt(editingBatch.quantity) > getMaxBatchQty(batchItem?.item_type);
+                        return (
+                          <tr key={batch.id} className={`${isEditing ? 'editing' : ''}${isExpired ? ' expired' : ''}`}>
+                            <td data-label="Batch no.">
+                              {isEditing ? (
+                                <Form.Control size="sm" className="rm-input sm rm-mono" value={editingBatch.batch_no}
+                                  onChange={e => setEditingBatch(b => ({ ...b, batch_no: e.target.value }))} />
+                              ) : <span className="iv-mono iv-strong">{batch.batch_no}</span>}
+                            </td>
+                            <td data-label="Quantity">
+                              {isEditing ? (
+                                <Form.Control size="sm" className={`rm-input sm${overQty ? ' bad' : ''}`} type="number" min="0" max={getMaxBatchQty(batchItem?.item_type)} value={editingBatch.quantity}
+                                  onKeyDown={e => { if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault(); }}
+                                  onChange={e => setEditingBatch(b => ({ ...b, quantity: e.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                                  title={`Max ${getMaxBatchQty(batchItem?.item_type)} per batch`} />
+                              ) : <span className="iv-strong">{batch.quantity} <span className="iv-muted">{batch.unit || batchItem?.unit}</span></span>}
+                            </td>
+                            <td data-label="Expires">
+                              {isEditing ? (
+                                <Form.Control size="sm" className="rm-input sm" type="date" value={editingBatch.expiration_date || ''}
+                                  onChange={e => setEditingBatch(b => ({ ...b, expiration_date: e.target.value }))} />
+                              ) : batch.expiration_date ? (
+                                isExpired
+                                  ? <span className="iv-pill" style={{ color: '#dc3545', background: 'rgba(220,53,69,0.1)' }}><i className="fas fa-exclamation-triangle" />{fmt(batch.expiration_date)}</span>
+                                  : <span>{fmt(batch.expiration_date)}</span>
+                              ) : <span className="iv-muted">—</span>}
+                            </td>
+                            <td data-label="Notes">
+                              {isEditing ? (
+                                <Form.Control size="sm" className="rm-input sm" value={editingBatch.notes || ''} placeholder="Notes"
+                                  onChange={e => setEditingBatch(b => ({ ...b, notes: e.target.value }))} />
+                              ) : <span className="iv-muted ib-notes" title={batch.notes || ''}>{batch.notes || '—'}</span>}
+                            </td>
+                            <td className="ib-actions">
+                              {isEditing ? (
+                                <>
+                                  <button type="button" className="iv-btn info sm" onClick={handleSaveBatch} disabled={editBatchSaving}>
+                                    {editBatchSaving ? <i className="fas fa-circle-notch fa-spin" /> : <><i className="fas fa-check" />Save</>}
+                                  </button>
+                                  <button type="button" className="iv-icon-btn" onClick={() => setEditingBatch(null)} aria-label="Cancel edit"><i className="fas fa-times" /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <button type="button" className="iv-icon-btn" onClick={() => setEditingBatch({ ...batch })} aria-label={`Edit batch ${batch.batch_no}`} title="Edit">
+                                    <i className="fas fa-pen" />
+                                  </button>
+                                  <button type="button" className="iv-icon-btn danger" onClick={() => handleDeleteBatch(batch.id)} disabled={deletingBatchId === batch.id} aria-label={`Delete batch ${batch.batch_no}`} title="Delete">
+                                    {deletingBatchId === batch.id ? <i className="fas fa-circle-notch fa-spin" /> : <i className="fas fa-trash-alt" />}
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </Modal.Body>
+              <Modal.Footer className="rm-foot">
+                <button type="button" className="iv-btn success lg me-auto" onClick={() => { setShowBatchModal(false); setEditingBatch(null); handleOpenRestock(batchItem); }} disabled={!batchItem}>
+                  <i className="fas fa-plus" />Add stock
+                </button>
+                <button type="button" className="iv-btn ghost lg" onClick={() => { setShowBatchModal(false); setEditingBatch(null); }}>Close</button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
+      </Modal>
+
+      {/* ======================== VIEW DETAILS MODAL ======================== */}
+      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="rm-modal" className="iv-zoom-modal" scrollable>
+        {viewItem && (() => {
+          const cfg = TYPE_CONFIG[viewItem.item_type] || TYPE_CONFIG.equipment;
+          const status = getStockStatus(viewItem);
+          const stock = parseInt(viewItem.current_stock) || 0;
+          const min = parseInt(viewItem.minimum_stock) || 0;
+          const level = stock === 0 ? 'out' : stock < 10 ? 'low' : 'ok';
+          const barPct = Math.min(100, (stock / Math.max(min * 2, 20)) * 100);
+          const speciesCfg = viewItem.species ? (SPECIES_COLORS[viewItem.species] || null) : null;
+          const expired = expiredBatchMap[viewItem.id] || 0;
+          const statusColor = level === 'low' ? '#b88a00' : status.color;
+          return (
+            <>
+              <Modal.Header closeButton className="rm-head" style={{ '--c': cfg.color }}>
+                <div className="rm-head-main">
+                  <div className="rm-head-ic" style={{ background: cfg.bg, color: cfg.color }}><i className={`fas ${cfg.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rm-chips">
+                      <span className="iv-pill" style={{ color: statusColor, background: status.bg }}><i className={`fas ${status.icon}`} />{status.label}</span>
+                    </div>
+                    <Modal.Title as="h5" className="rm-title">{viewItem.item_name}</Modal.Title>
+                    <div className="rm-head-sub">
+                      <span style={{ color: cfg.color, fontWeight: 700 }}>{cfg.label}</span>
+                      {speciesCfg && <> · {viewItem.species === 'both' ? 'Dogs & cats' : viewItem.species === 'all' ? 'All species' : viewItem.species}</>}
+                    </div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Modal.Body className="rm-body">
+                <div className="iv-meter">
+                  <div className="d-flex align-items-end justify-content-between gap-2">
+                    <div>
+                      <div className="rm-info-label">Current stock</div>
+                      <div className={`iv-meter-v ${level}`}>{stock} <span>{viewItem.unit}</span></div>
+                    </div>
+                    <div className="text-end">
+                      <div className="rm-info-label">Min. threshold</div>
+                      <div className="iv-strong">{min} {viewItem.unit}</div>
+                    </div>
+                  </div>
+                  <div className="iv-bar" style={{ maxWidth: 'none', height: 8, marginTop: '0.7rem' }}><div className={level} style={{ width: `${barPct}%` }} /></div>
+                </div>
+
+                <div className="rm-info-grid mt-3">
+                  <div className="rm-info">
+                    <div className="rm-info-ic"><i className="fas fa-history" /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="rm-info-label">Last restocked</div>
+                      <div className="rm-info-value">{viewItem.last_restocked_at ? new Date(viewItem.last_restocked_at).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Never'}</div>
+                    </div>
+                  </div>
+                  <div className="rm-info">
+                    <div className="rm-info-ic"><i className="fas fa-ruler" /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="rm-info-label">Unit</div>
+                      <div className="rm-info-value">{viewItem.unit}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {expired > 0 && (
+                  <div className="rm-alert danger mt-3 mb-0">
+                    <i className="fas fa-exclamation-triangle" />
+                    <span>{expired} expired batch{expired !== 1 ? 'es' : ''} still in stock. Open Batches to review.</span>
+                  </div>
+                )}
+
+                {(() => {
+                  const d = ITEM_DETAILS[viewItem.item_type];
+                  if (!d) return null;
+                  const rows = [
+                    ['fa-bullseye', 'Purpose', d.purpose], ['fa-hand-holding-medical', 'Usage', d.usage],
+                    ['fa-temperature-low', 'Storage', d.storage], ['fa-redo', 'Frequency', d.frequency],
+                    ...(d.standard ? [['fa-certificate', 'Standard', d.standard]] : []),
+                    ...(d.readRange ? [['fa-wifi', 'Read range', d.readRange]] : []),
+                  ];
+                  return (
+                    <>
+                      <div className="rm-section-title mt-4"><i className="fas fa-book-medical" />About this {TYPE_CONFIG[viewItem.item_type]?.label.toLowerCase() || 'item'}</div>
+                      <div className="iv-about">
+                        {rows.map(([ic, k, v]) => (
+                          <div key={k} className="iv-about-row">
+                            <div className="k"><i className={`fas ${ic}`} />{k}</div>
+                            <div className="v">{v}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
+
+                <div className="rm-section-title mt-4"><i className="fas fa-sticky-note" />Notes</div>
+                <p className={`rm-desc${viewItem.notes ? '' : ' muted'}`}>{viewItem.notes || 'No notes added.'}</p>
+              </Modal.Body>
+              <Modal.Footer className="rm-foot">
+                <button type="button" className="iv-btn info-outline lg me-auto" onClick={() => { setShowViewModal(false); handleOpenBatches(viewItem); }}>
+                  <i className="fas fa-layer-group" />Batches
+                </button>
+                <button type="button" className="iv-btn success lg" onClick={() => { setShowViewModal(false); handleOpenRestock(viewItem); }}>
+                  <i className="fas fa-plus" />Add stock
+                </button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
+      </Modal>
+
+      {/* ======================== EDIT ITEM MODAL ======================== */}
+      <Modal show={showEditItemModal} onHide={() => !editItemLoading && setShowEditItemModal(false)} centered dialogClassName="rm-modal sm" className="iv-zoom-modal" scrollable>
+        {editItemForm && (() => {
+          const cfg = TYPE_CONFIG[editItemForm.item_type] || TYPE_CONFIG.microchip;
+          return (
+            <>
+              <Modal.Header closeButton className="rm-head" style={{ '--c': '#6f42c1' }}>
+                <div className="rm-head-main">
+                  <div className="rm-head-ic" style={{ background: cfg.bg, color: cfg.color }}><i className={`fas ${cfg.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="rm-kicker" style={{ color: '#6f42c1' }}>Edit item</div>
+                    <Modal.Title as="h5" className="rm-title">{editItemForm.item_name || 'Untitled item'}</Modal.Title>
+                    <div className="rm-head-sub">{cfg.label} · the type can't be changed after creation</div>
+                  </div>
+                </div>
+              </Modal.Header>
+              <Modal.Body className="rm-body">
+                <Row className="g-3">
+                  <Col xs={12}>
+                    <Form.Label className="rm-label">Item name <span className="rm-req">*</span></Form.Label>
+                    <Form.Control className="rm-input" value={editItemForm.item_name} disabled={editItemLoading}
+                      onChange={e => setEditItemForm(f => ({ ...f, item_name: e.target.value }))} />
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Label className="rm-label">Species</Form.Label>
+                    <Form.Select className="rm-input" value={editItemForm.species} disabled={editItemLoading}
+                      onChange={e => setEditItemForm(f => ({ ...f, species: e.target.value }))}>
+                      <option value="dog">Dog</option>
+                      <option value="cat">Cat</option>
+                      <option value="all">All</option>
+                    </Form.Select>
+                  </Col>
+                  <Col xs={6}>
+                    <Form.Label className="rm-label">Unit</Form.Label>
+                    <Form.Select className="rm-input" value={editItemForm.unit} disabled={editItemLoading}
+                      onChange={e => setEditItemForm(f => ({ ...f, unit: e.target.value }))}>
+                      {['doses', 'pcs', 'mg', 'ml', 'tablets', 'capsules', 'vials', 'sachets', 'bottles', 'boxes'].map(u => <option key={u} value={u}>{u}</option>)}
+                    </Form.Select>
+                  </Col>
+                  <Col xs={12}>
+                    <Form.Label className="rm-label">Min. threshold</Form.Label>
+                    <div className="rm-suffix">
+                      <Form.Control className="rm-input" type="number" min="0" value={editItemForm.minimum_stock} disabled={editItemLoading}
+                        onChange={e => setEditItemForm(f => ({ ...f, minimum_stock: e.target.value }))} />
+                      <span>{editItemForm.unit}</span>
+                    </div>
+                  </Col>
+                  <Col xs={12}>
+                    <Form.Label className="rm-label">Notes <span className="rm-opt">optional</span></Form.Label>
+                    <Form.Control className="rm-input" as="textarea" rows={2} value={editItemForm.notes} disabled={editItemLoading}
+                      onChange={e => setEditItemForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: 'none' }} />
+                  </Col>
+                </Row>
+              </Modal.Body>
+              <Modal.Footer className="rm-foot">
+                <button type="button" className="iv-btn ghost lg" onClick={() => setShowEditItemModal(false)} disabled={editItemLoading}>Cancel</button>
+                <button type="button" className="iv-btn purple lg" onClick={handleEditItemSave} disabled={editItemLoading || !editItemForm.item_name?.trim()}>
+                  {editItemLoading ? <><i className="fas fa-circle-notch fa-spin" />Saving…</> : <><i className="fas fa-save" />Save changes</>}
+                </button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
+      </Modal>
+
+      {/* ======================== DELETE BATCH MODAL ======================== */}
+      <Modal show={showDeleteBatchModal} onHide={() => !deleteBatchLoading && setShowDeleteBatchModal(false)} centered dialogClassName="cm-modal" className="iv-zoom-modal" style={{ zIndex: 1065 }} backdropClassName="iv-backdrop-top">
+        {batchToDelete && (
+          <>
+            <Modal.Body className="cm-body">
+              <div className="cm-icon" style={{ '--c': '#dc3545' }}><i className="fas fa-trash-alt" /></div>
+              <h5 className="cm-title">Delete this batch?</h5>
+              <p className="cm-text">Its quantity is deducted from the item's stock automatically.</p>
+              <div className="cm-item">
+                <div className="cm-item-av" style={{ background: 'rgba(13,110,253,0.1)', color: '#0d6efd' }}><i className="fas fa-layer-group" /></div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="cm-item-name iv-mono">{batchToDelete.batch_no}</div>
+                  <div className="cm-item-meta">
+                    {batchToDelete.quantity} {batchItem?.unit}
+                    {batchToDelete.expiration_date && <> · Expires {new Date(batchToDelete.expiration_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</>}
+                  </div>
+                </div>
+              </div>
+              <div className="cm-note" style={{ '--c': '#dc3545' }}>
+                <i className="fas fa-info-circle" /><span>This cannot be undone.</span>
+              </div>
+            </Modal.Body>
+            <Modal.Footer className="cm-foot">
+              <button type="button" className="iv-btn ghost" onClick={() => setShowDeleteBatchModal(false)} disabled={deleteBatchLoading}>Cancel</button>
+              <button type="button" className="iv-btn cm-confirm" style={{ '--c': '#dc3545' }} onClick={handleDeleteBatchConfirm} disabled={deleteBatchLoading}>
+                {deleteBatchLoading ? <><i className="fas fa-circle-notch fa-spin" />Deleting…</> : <><i className="fas fa-trash-alt" />Delete batch</>}
+              </button>
+            </Modal.Footer>
+          </>
+        )}
+      </Modal>
+
+      {/* ======================== DELETE ITEM MODAL ======================== */}
+      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered dialogClassName="cm-modal" className="iv-zoom-modal">
+        {itemToDelete && (() => {
+          const cfg = TYPE_CONFIG[itemToDelete.item_type] || TYPE_CONFIG.microchip;
+          return (
+            <>
+              <Modal.Body className="cm-body">
+                <div className="cm-icon" style={{ '--c': '#dc3545' }}><i className="fas fa-trash-alt" /></div>
+                <h5 className="cm-title">Delete this item?</h5>
+                <p className="cm-text">The item and all of its batches will be removed from your inventory.</p>
+                <div className="cm-item">
+                  <div className="cm-item-av" style={{ background: cfg.bg, color: cfg.color }}><i className={`fas ${cfg.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="cm-item-name">{itemToDelete.item_name}</div>
+                    <div className="cm-item-meta">{cfg.label} · {itemToDelete.current_stock} {itemToDelete.unit} in stock</div>
+                  </div>
+                </div>
+                <div className="cm-note" style={{ '--c': '#dc3545' }}>
+                  <i className="fas fa-info-circle" /><span>This cannot be undone.</span>
+                </div>
+              </Modal.Body>
+              <Modal.Footer className="cm-foot">
+                <button type="button" className="iv-btn ghost" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>Keep item</button>
+                <button type="button" className="iv-btn cm-confirm" style={{ '--c': '#dc3545' }} onClick={handleDeleteConfirm} disabled={deleteLoading}>
+                  {deleteLoading ? <><i className="fas fa-circle-notch fa-spin" />Deleting…</> : <><i className="fas fa-trash-alt" />Delete item</>}
+                </button>
+              </Modal.Footer>
+            </>
+          );
+        })()}
       </Modal>
     </>
   );
@@ -1697,7 +1801,7 @@ function InlineMinStockInput({ item, onSave }) {
       {dirty && (
         <button onClick={handleSave} disabled={saving}
           style={{ width: '20px', height: '20px', borderRadius: '5px', border: 'none', background: '#0d6efd', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', padding: 0, flexShrink: 0 }}>
-          {saving ? <Spinner size="sm" animation="border" style={{ width: '10px', height: '10px' }} /> : <i className="fas fa-check" />}
+          {saving ? <i className="fas fa-circle-notch fa-spin" /> : <i className="fas fa-check" />}
         </button>
       )}
     </div>

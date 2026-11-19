@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Container, Row, Col, Alert } from 'react-bootstrap';
+import { Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { reportsAPI, clinicAPI, handleAPIError } from '../../services/api';
 
@@ -830,6 +830,8 @@ export default function MapStatus() {
         @keyframes ring     { 0% { transform: scale(0.4); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
         @keyframes rowIn    { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
         @keyframes fadeUp   { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes mapShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+        .map-skel { height: 26px; margin-bottom: 0.8rem; border-radius: 6px; background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 800px 100%; animation: mapShimmer 1.4s ease-in-out infinite; }
 
         .dash-section .dash-panel { animation: panelIn 0.5s ease-out backwards; animation-delay: var(--d, 0.15s); }
         .side-stack .dash-panel:nth-child(1) { animation-delay: 0.3s; }
@@ -926,9 +928,10 @@ export default function MapStatus() {
         </Row>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2" />{error}
-          </Alert>
+          <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.75rem 1rem', marginBottom: '1.25rem', borderRadius: '12px', fontSize: '0.9rem', fontWeight: 500, background: 'rgba(220,53,69,0.07)', border: '1px solid rgba(220,53,69,0.25)', color: '#b02a37' }}>
+            <i className="fas fa-exclamation-triangle" /><span style={{ flex: 1 }}>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss" style={{ border: 'none', background: 'transparent', color: 'inherit', width: 28, height: 28, borderRadius: 7 }}><i className="fas fa-times" /></button>
+          </div>
         )}
 
         <Row className="g-4 dash-section" style={{ '--d': '0.15s', flex: '1 1 auto' }}>
@@ -939,7 +942,7 @@ export default function MapStatus() {
             <Panel icon="fa-chart-bar" iconColor="#ffc107" title="Report status"
               subtitle={loading ? 'Loading…' : `${stats.total} total ${stats.total === 1 ? 'report' : 'reports'} · ${clinics.length + 1} clinics`}>
               {loading
-                ? [0, 1, 2, 3, 4].map(i => <div key={i} className="skeleton" style={{ height: '26px', marginBottom: '0.8rem', borderRadius: '6px', background: t.track }} />)
+                ? [0, 1, 2, 3, 4].map(i => <div key={i} className="map-skel" style={{ opacity: 1 - i * 0.12 }} />)
                 : Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                     <BarRow key={key} label={cfg.label} value={stats[key]} total={stats.total} color={cfg.color}
                       dot={<span style={{ width: '9px', height: '9px', borderRadius: '50%', background: cfg.color }} />} />
@@ -948,7 +951,7 @@ export default function MapStatus() {
 
             <Panel icon="fa-layer-group" iconColor="#6f7cf0" title="By report type">
               {loading
-                ? [0, 1, 2, 3].map(i => <div key={i} style={{ height: '26px', marginBottom: '0.8rem', borderRadius: '6px', background: t.track }} />)
+                ? [0, 1, 2, 3].map(i => <div key={i} className="map-skel" style={{ opacity: 1 - i * 0.12 }} />)
                 : Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
                     <BarRow key={key} label={cfg.label} value={stats[`type_${key}`]} total={stats.total} color={cfg.color}
                       dot={<span style={{ width: '22px', height: '22px', borderRadius: '6px', background: `${cfg.color}1a`, color: cfg.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><i className={`fas ${cfg.icon}`} style={{ fontSize: '0.65rem' }} /></span>} />

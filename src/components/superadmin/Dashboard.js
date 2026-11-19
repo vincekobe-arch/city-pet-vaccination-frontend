@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Alert, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card } from 'react-bootstrap';
 import { officialAPI, ownerAPI, petAPI, activityLogAPI, handleAPIError } from '../../services/api';
 
 /* ------------------------------------------------------------------ */
@@ -367,7 +367,6 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
     };
   }, [pets, owners, logs]);
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   const muted = { color: t.muted };
 
   const styles = `
@@ -390,6 +389,27 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
       background-size: 800px 100%;
       animation: shimmer 1.4s ease-in-out infinite;
       border-radius: 8px;
+    }
+
+    /* Page zoom: same steps as the other admin pages */
+    .sa-page { zoom: 0.75; }
+    @media (min-width: 1600px) { .sa-page { zoom: 0.9; } }
+    @media (min-width: 1920px) { .sa-page { zoom: 1; } }
+    @media (max-width: 768px) { .sa-page { zoom: 1; } }
+
+    .dash-alert { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 12px; font-size: 0.9rem; font-weight: 500; background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+    .dash-alert button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+    .dash-alert button:hover { opacity: 1; background: rgba(220,53,69,0.08); }
+    .dash-link { display: inline-flex; align-items: center; font-size: 0.78rem; font-weight: 600; color: ${darkMode ? '#ffc107' : '#b38600'}; background: transparent; white-space: nowrap; padding: 0.3rem 0.7rem; border-radius: 8px; border: 1px solid ${darkMode ? 'rgba(255,193,7,0.4)' : 'rgba(179,134,0,0.35)'}; transition: background 0.15s ease; }
+    .dash-link:hover { background: rgba(255,193,7,0.1); }
+    .dash-link:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
+    .dash-legend > span { white-space: nowrap; }
+
+    /* Small laptops with the sidebar (992–1199px) */
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+      .dash-panel-header { flex-wrap: wrap; }
+      .dash-legend { width: 100%; padding-left: 2.75rem; gap: 0.85rem !important; }
+      .top-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2rem; }
     }
     .dash-row { transition: background 0.15s ease; }
     .dash-row:hover { background: ${t.subtle}; }
@@ -415,24 +435,21 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
   return (
     <>
       <style>{styles}</style>
-      <Container fluid className="py-4" style={{ backgroundColor: t.page, minHeight: '100vh', zoom: '0.75' }}>
+      <Container fluid className="py-4 sa-page" style={{ backgroundColor: t.page, minHeight: '100vh' }}>
 
         {/* Header */}
-        <Row className="mb-4 align-items-end" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <h2 style={{ fontWeight: 700, color: t.text, fontSize: '2rem', marginBottom: '0.25rem' }}>
-              <i className="fas fa-crown me-2" style={{ fontSize: '1.5rem', color: '#dc3545' }} />Super Admin Dashboard
-            </h2>
-            <div style={{ fontSize: '0.95rem', ...muted }}>{today}</div>
-          </Col>
-          <Col xs="auto">
-          </Col>
-        </Row>
+        <div className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
+          <h2 style={{ fontWeight: 700, color: t.text, fontSize: '2rem', marginBottom: '0.25rem' }}>
+            <i className="fas fa-crown me-2" style={{ fontSize: '1.5rem', color: '#dc3545' }} />Super Admin Dashboard
+          </h2>
+          <div style={{ fontSize: '0.95rem', ...muted }}>System-wide activity of admins, clinics and the community.</div>
+        </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2" />{error}
-          </Alert>
+          <div role="alert" className="dash-alert">
+            <i className="fas fa-exclamation-circle" /><span style={{ flex: 1 }}>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
         {/* Statistics Cards (unchanged) */}
@@ -475,13 +492,13 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
 
         {/* Growth + coverage */}
         <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.4s' }}>
-          <Col lg={8}>
+          <Col lg={7} xl={8}>
             <Panel
               t={t} icon="fa-chart-line" iconColor="#ffc107"
               title="System growth"
               subtitle={loading ? 'Loading activity…' : `${analytics.petsThisMonth} new ${analytics.petsThisMonth === 1 ? 'pet' : 'pets'} and ${analytics.ownersThisMonth} new community ${analytics.ownersThisMonth === 1 ? 'account' : 'accounts'} this month`}
               action={
-                <div className="dash-hide-sm" style={{ display: 'flex', gap: '1rem' }}>
+                <div className="dash-hide-sm dash-legend" style={{ display: 'flex', gap: '1rem' }}>
                   <LegendDot t={t} color="#ffc107" label="Pets registered" />
                   <LegendDot t={t} color="#0dcaf0" label="Communities joined" />
                   <LegendDot t={t} color="#198754" label="Records added" />
@@ -498,7 +515,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
             </Panel>
           </Col>
 
-          <Col lg={4}>
+          <Col lg={5} xl={4}>
             <Panel t={t} icon="fa-syringe" iconColor="#198754" title="Vaccination coverage" subtitle="Pets with at least one vaccination">
               {loading ? (
                 <>
@@ -534,7 +551,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
 
         {/* Admin and clinic analytics */}
         <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.55s' }}>
-          <Col lg={4}>
+          <Col lg={6} xl={4}>
             <Panel t={t} icon="fa-chart-pie" iconColor="#6f42c1" title="Records by type" subtitle="Health records added by admins and clinics">
               {loading ? (
                 <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
@@ -549,7 +566,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
                   <div style={{ flex: 1, width: '100%' }}>
                     {analytics.byType.map(s => (
                       <div key={s.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: `1px solid ${t.border}` }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.84rem', color: t.text }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.84rem', color: t.text, whiteSpace: 'nowrap' }}>
                           <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color }} />{s.label}
                         </span>
                         <span style={{ fontSize: '0.84rem', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}><CountUp value={s.value} /></span>
@@ -561,7 +578,7 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
             </Panel>
           </Col>
 
-          <Col lg={4}>
+          <Col lg={6} xl={4}>
             <Panel t={t} icon="fa-building" iconColor="#0d6efd" title="Activity by source" subtitle="Who is adding records and events">
               {loading ? (
                 [0, 1, 2].map(i => <Skeleton key={i} style={{ height: '30px', marginBottom: '1rem' }} />)
@@ -587,18 +604,18 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
             </Panel>
           </Col>
 
-          <Col lg={4}>
+          <Col lg={12} xl={4}>
             <Panel t={t} icon="fa-user-check" iconColor="#fd7e14" title="Most active accounts" subtitle="Records and events added">
               {loading ? (
                 [0, 1, 2, 3, 4].map(i => <Skeleton key={i} style={{ height: '28px', marginBottom: '0.9rem' }} />)
               ) : analytics.topAccounts.length === 0 ? (
                 <EmptyState t={t} icon="fa-user-check" text="Admin and clinic activity will show up here." />
               ) : (
-                analytics.topAccounts.map(a => (
+                <div className="top-list">{analytics.topAccounts.map(a => (
                   <BarRow key={`${a.name}${a.org}`} t={t} label={a.name} sublabel={a.org} value={a.count}
                     max={analytics.topAccounts[0].count} color={a.clinic ? '#0dcaf0' : '#198754'}
                     right={<><CountUp value={a.count} /> {a.count === 1 ? 'action' : 'actions'}</>} />
-                ))
+                ))}</div>
               )}
             </Panel>
           </Col>
@@ -611,9 +628,9 @@ const SuperAdminDashboard = ({ darkMode = false }) => {
               t={t} icon="fa-user-shield" iconColor="#ffc107"
               title="Recent admin/clinic activity"
               action={
-                <Button size="sm" variant="warning" onClick={() => navigate('/super-admin/activity-logs')} style={{ fontWeight: 600, borderRadius: '8px', whiteSpace: 'nowrap' }}>
-                  <i className="fas fa-list me-1" /> View logs
-                </Button>
+                <button type="button" className="dash-link" onClick={() => navigate('/super-admin/activity-logs')}>
+                  <i className="fas fa-list me-1" />View logs
+                </button>
               }
               bodyStyle={{ padding: '0.25rem 0.75rem 0.75rem' }}
             >

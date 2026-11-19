@@ -1,7 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, Modal, Form, Table, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Modal, Form } from 'react-bootstrap';
 import api, { scheduleAPI, barangayAPI, vaccinationAPI, dewormingAPI, inventoryAPI, handleAPIError } from '../../services/api';
 import { getUser } from '../../utils/auth';
+
+const EVENT_TYPES = {
+  vaccination:   { label: 'Vaccination',   color: '#e0a800', icon: 'fa-syringe',             img: '/vaccine.png' },
+  seminar:       { label: 'Seminar',       color: '#6f42c1', icon: 'fa-chalkboard-teacher',  img: '/seminar.png' },
+  sterilization: { label: 'Sterilization', color: '#198754', icon: 'fa-cut',                 img: '/sterilization.png' },
+  microchip:     { label: 'Microchip',     color: '#6c757d', icon: 'fa-microchip',           img: '/microchip.png' },
+  other:         { label: 'Other',         color: '#343a40', icon: 'fa-calendar',            img: '/other.png' },
+};
+
+// Same rules as before: cancelled / completed / ongoing, otherwise upcoming or past due by date
+const scheduleStatus = (s) => {
+  if (s.status === 'cancelled') return { label: 'Cancelled', color: '#dc3545', icon: 'fa-ban' };
+  if (s.status === 'completed') return { label: 'Completed', color: '#6c757d', icon: 'fa-check-circle' };
+  if (s.status === 'ongoing')   return { label: 'Ongoing',   color: '#198754', icon: 'fa-play-circle' };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const d = new Date(String(s.scheduled_date).slice(0, 10) + 'T00:00:00');
+  return d < today
+    ? { label: 'Past due', color: '#b88a00', icon: 'fa-exclamation-circle' }
+    : { label: 'Upcoming', color: '#0d6efd', icon: 'fa-clock' };
+};
 
 const Schedule = () => {
   const [schedules, setSchedules] = useState([]);
@@ -45,6 +65,7 @@ const [filterStatus, setFilterStatus] = useState('upcoming');
   const [showRegistrationsModal, setShowRegistrationsModal] = useState(false);
   const [registrationsData, setRegistrationsData] = useState([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [registrationsFor, setRegistrationsFor] = useState(null);
   const [registrationsSearchTerm, setRegistrationsSearchTerm] = useState('');
   const [expandedOwners, setExpandedOwners] = useState({});
 
@@ -246,6 +267,169 @@ const itemsPerPage = 10;
     @media (prefers-reduced-motion: reduce) {
       .em-anim, .em-table tbody tr, .em-menu, .em-toast, .em-bar > div, .em-skel { animation: none !important; }
     }
+    /* ---------------- Modals ---------------- */
+    .sx-zoom-modal { zoom: 0.75; }
+    @media (min-width: 1600px) { .sx-zoom-modal { zoom: 0.9; } }
+    @media (min-width: 1920px) { .sx-zoom-modal { zoom: 1; } }
+    .sx-backdrop-top { z-index: 1060 !important; }
+    .sx-modal { max-width: 720px; }
+    .sx-small { max-width: 440px; }
+    .sx-small.wide { max-width: 540px; }
+    .sx-modal .modal-content, .sx-small .modal-content { border: none; border-radius: 16px; overflow: hidden; box-shadow: 0 24px 60px rgba(16,24,40,0.2); }
+    .sx-head { align-items: flex-start !important; padding: 1.25rem 1.5rem !important; border-bottom: 1px solid #eef0f3 !important; background: linear-gradient(180deg, color-mix(in srgb, var(--c, #ffc107) 8%, #fff) 0%, #fff 100%) !important; }
+    .sx-head-main { display: flex; gap: 0.9rem; align-items: center; min-width: 0; flex: 1; }
+    .sx-head-ic { width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: var(--c, #e0a800); background: color-mix(in srgb, var(--c, #ffc107) 14%, #fff); }
+    .sx-kicker { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: color-mix(in srgb, var(--c, #e0a800) 80%, #000); }
+    .sx-title { font-size: 1.2rem; font-weight: 700; color: #1f2328; margin: 0; line-height: 1.3; }
+    .sx-head-sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.15rem; }
+    .sx-body { padding: 1.4rem 1.5rem !important; }
+    .sx-section { margin-bottom: 1.25rem; }
+    .sx-section-title { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 0.7rem; }
+    .sx-section-title > i { color: #e0a800; font-size: 0.8rem; }
+    .sx-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+    .sx-type { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.9rem 0.5rem; border: 1.5px solid #e5e7eb; border-radius: 14px; background: #fff; transition: all 0.15s ease; }
+    .sx-type:hover { border-color: color-mix(in srgb, var(--c) 50%, #fff); }
+    .sx-type.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 7%, #fff); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); }
+    .sx-type-ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--c) 12%, #fff); color: var(--c); font-size: 1.1rem; }
+    .sx-type-ic img { width: 30px; height: 30px; object-fit: contain; }
+    .sx-type-label { font-weight: 700; font-size: 0.86rem; color: #374151; }
+    .sx-type.on .sx-type-label { color: color-mix(in srgb, var(--c) 80%, #000); }
+    .sx-type-check { position: absolute; top: 7px; right: 8px; color: var(--c); font-size: 0.85rem; }
+
+    /* fields inside the modals */
+    .sx-zoom-modal .form-label { font-size: 0.84rem !important; font-weight: 600 !important; color: #374151 !important; margin-bottom: 0.35rem; }
+    .sx-zoom-modal .form-control, .sx-zoom-modal .form-select { border-radius: 10px !important; border: 1.5px solid #e5e7eb !important; padding: 0.62rem 0.8rem !important; font-size: 0.92rem; box-shadow: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .sx-zoom-modal .form-control:focus, .sx-zoom-modal .form-select:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
+    .sx-zoom-modal .form-control.is-invalid { border-color: #dc3545 !important; }
+    .sx-zoom-modal .form-control:disabled, .sx-zoom-modal .form-select:disabled { background-color: #f8f9fa !important; }
+    .sx-zoom-modal .input-group > .form-control { border-radius: 0 !important; }
+    .sx-zoom-modal .input-group-text { border: 1.5px solid #e5e7eb !important; border-right: none !important; background: #f8f9fa !important; border-radius: 10px 0 0 10px !important; font-size: 0.95rem !important; }
+    .sx-zoom-modal .input-group > .btn:last-child { border-radius: 0 10px 10px 0 !important; }
+    .sx-zoom-modal .form-text { font-size: 0.76rem; }
+    .sx-zoom-modal .alert { border-radius: 10px; font-size: 0.86rem; border-width: 1px; }
+    .sx-zoom-modal .form-check-input:checked { background-color: #ffc107; border-color: #ffc107; }
+
+    .sx-alert { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.75rem 0.9rem; border-radius: 10px; font-size: 0.86rem; margin-bottom: 1rem; }
+    .sx-alert i { margin-top: 3px; }
+    .sx-alert.danger { background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #842029; }
+    .sx-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; align-items: center; gap: 0.6rem; flex-wrap: nowrap !important; }
+    .sx-foot > * { margin: 0 !important; }
+    .sx-foot.even > * { flex: 1; }
+    .sx-btn { display: inline-flex !important; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 10px !important; border: 1px solid transparent !important; font-weight: 700 !important; font-size: 0.9rem !important; padding: 0.65rem 1.2rem !important; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; }
+    .sx-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .sx-btn.primary { background: #ffc107 !important; color: #1f2328 !important; }
+    .sx-btn.primary:hover:not(:disabled) { background: #f0b400 !important; box-shadow: 0 6px 16px rgba(255,193,7,0.35); transform: translateY(-1px); }
+    .sx-btn.ghost { background: #fff !important; color: #1f2328 !important; border-color: #e5e7eb !important; font-weight: 600 !important; }
+    .sx-btn.ghost:hover:not(:disabled) { background: #f6f7f9 !important; }
+    .sx-btn.solid { background: var(--c) !important; color: #fff !important; }
+    .sx-btn.solid:hover:not(:disabled) { background: color-mix(in srgb, var(--c) 85%, #000) !important; }
+
+    /* view details */
+    .sx-pet { display: flex; align-items: center; gap: 0.8rem; padding: 0.85rem 1rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .sx-pet-av { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,193,7,0.16); color: #b88a00; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sx-pet-name { font-weight: 700; color: #1f2328; font-size: 1rem; }
+    .sx-pet-meta { font-size: 0.8rem; color: #6b7280; }
+    .sx-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55rem; }
+    .sx-info { display: flex; gap: 0.65rem; align-items: flex-start; padding: 0.7rem 0.8rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fff; }
+    .sx-info.wide { grid-column: 1 / -1; }
+    .sx-info-ic { width: 30px; height: 30px; border-radius: 9px; background: #f6f7f9; color: #9ca3af; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; flex-shrink: 0; }
+    .sx-info-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+    .sx-info-value { font-size: 0.92rem; font-weight: 600; color: #1f2328; word-break: break-word; }
+    .sx-none { color: #b8bdc6; font-weight: 500; }
+    .sx-notes { margin-top: 0.9rem; padding: 0.8rem 0.95rem; border-radius: 12px; background: #fffaeb; border: 1px solid rgba(255,193,7,0.3); }
+    .sx-notes p { margin: 0; font-size: 0.88rem; color: #374151; white-space: pre-line; }
+
+    /* small centered modals */
+    @keyframes rxPop { 0% { transform: scale(0.7); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+    .sx-small-body { padding: 1.75rem 1.6rem 1.25rem !important; text-align: center; }
+    .sx-small-icon { width: 58px; height: 58px; border-radius: 16px; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.45rem; color: var(--c); background: color-mix(in srgb, var(--c) 13%, #fff); animation: rxPop 0.4s ease-out; }
+    .sx-small-title { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; font-size: 1.15rem; }
+    .sx-small-text { font-size: 0.88rem; color: #6b7280; margin-bottom: 1.1rem; line-height: 1.55; }
+    .sx-item { display: flex; align-items: center; gap: 0.7rem; text-align: left; padding: 0.7rem 0.85rem; border: 1px solid #eef0f3; border-radius: 12px; background: #fafbfc; }
+    .sx-item-av { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--c); background: color-mix(in srgb, var(--c) 14%, #fff); }
+    .sx-item-name { font-weight: 700; color: #1f2328; font-size: 0.94rem; }
+    .sx-item-meta { font-size: 0.78rem; color: #6b7280; }
+    .sx-item-flag { font-size: 0.76rem; font-weight: 600; color: #c2410c; margin-top: 0.2rem; }
+    .sx-note { display: flex; gap: 0.5rem; align-items: flex-start; text-align: left; margin-top: 0.8rem; padding: 0.65rem 0.8rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.5; color: color-mix(in srgb, var(--c) 80%, #000); background: color-mix(in srgb, var(--c) 6%, #fff); border: 1px solid color-mix(in srgb, var(--c) 20%, #fff); }
+    .sx-note i { margin-top: 3px; }
+    .sx-review { background: #fafbfc; border: 1px solid #eef0f3; border-radius: 12px; padding: 0.9rem 1rem; }
+
+    @media (max-width: 768px) {
+      .sx-zoom-modal { zoom: 1; }
+      .sx-zoom-modal .modal-dialog { margin: 0.75rem auto; max-width: calc(100% - 1.5rem); display: flex; align-items: center; min-height: calc(100% - 1.5rem); }
+      .sx-zoom-modal .modal-dialog-scrollable { height: calc(100% - 1.5rem); }
+      .sx-head { padding: 1rem !important; }
+      .sx-head-ic { width: 40px; height: 40px; }
+      .sx-title { font-size: 1.05rem; }
+      .sx-body { padding: 1rem !important; }
+      .sx-types { grid-template-columns: repeat(2, 1fr); }
+      .sx-zoom-modal .input-group .form-control { font-size: 0.92rem !important; letter-spacing: 0 !important; min-width: 0; }
+      .sx-zoom-modal .input-group > .btn { padding: 0 0.75rem !important; font-size: 0.82rem !important; }
+      .sx-zoom-modal .input-group-text { padding: 0 0.6rem !important; font-size: 0.85rem !important; }
+      .sx-type { flex-direction: row; justify-content: flex-start; padding: 0.6rem 0.7rem; gap: 0.55rem; }
+      .sx-type-ic { width: 36px; height: 36px; border-radius: 10px; }
+      .sx-type-ic img { width: 22px; height: 22px; }
+      .sx-type-label { font-size: 0.82rem; }
+      .sx-info { padding: 0.6rem 0.65rem; gap: 0.5rem; }
+      .sx-info-ic { display: none; }
+      .sx-foot { padding: 0.75rem 1rem !important; }
+      .sx-foot > * { flex: 1; }
+      .sx-small-body { padding: 1.5rem 1.1rem 1rem !important; }
+    }
+    @media (max-width: 380px) { .sx-grid { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .sx-small-icon { animation: none; } }
+
+    /* Laptops with the sidebar (769–1199px): give Date and Event more room, drop Slots */
+    @media (min-width: 769px) and (max-width: 1199.98px) {
+      .em-table th:nth-child(4), .em-table td:nth-child(4) { display: none; }
+      .em-table th:nth-child(1) { width: 21% !important; }
+      .em-table th:nth-child(2) { width: 38% !important; }
+      .em-table th:nth-child(3) { width: 22% !important; }
+      .em-table th:nth-child(5) { width: 13% !important; }
+      .em-table th:last-child { width: 6% !important; }
+    }
+    /* Event modal extras */
+    .sx-types { grid-template-columns: repeat(5, 1fr); }
+    .sx-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.3rem; }
+    .sx-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.6rem; border-radius: 999px; white-space: nowrap; }
+    .sx-chip i { font-size: 0.66rem; }
+    .sx-chip.grey { background: #f3f4f6; color: #4b5563; }
+    .sx-count { margin-left: auto; font-size: 0.72rem; background: #f3f4f6; color: #4b5563; padding: 0.1rem 0.55rem; border-radius: 999px; letter-spacing: 0; text-transform: none; }
+    .sx-muted { font-size: 0.8rem; color: #6b7280; }
+    .sx-desc { font-size: 0.92rem; color: #374151; line-height: 1.6; margin: 0; white-space: pre-line; word-break: break-word; }
+    .sx-desc.muted { color: #9ca3af; font-style: italic; }
+    .sx-list { border: 1px solid #eef0f3; border-radius: 12px; overflow: hidden; }
+    .sx-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.7rem 0.9rem; border-bottom: 1px solid #f3f4f6; width: 100%; background: #fff; }
+    .sx-list > .sx-row:last-child, .sx-owner:last-child { border-bottom: none; }
+    .sx-row-name { font-weight: 600; font-size: 0.9rem; color: #1f2328; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sx-meter { width: 170px; flex-shrink: 0; text-align: right; }
+    .sx-meter-text { font-size: 0.8rem; color: #6b7280; }
+    .sx-meter-text strong { color: #1f2328; }
+    .sx-bar { height: 6px; border-radius: 3px; background: #eef0f3; margin-top: 0.3rem; overflow: hidden; }
+    .sx-bar > div { height: 100%; border-radius: 3px; }
+    .sx-search { position: relative; margin-bottom: 0.9rem; }
+    .sx-search > i { position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: 0.8rem; }
+    .sx-search-input { width: 100%; height: 40px; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 0 2.2rem 0 2.2rem; font-size: 0.9rem; outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+    .sx-search-input:focus { border-color: #ffc107; box-shadow: 0 0 0 3px rgba(255,193,7,0.18); }
+    .sx-search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border: none; border-radius: 7px; background: transparent; color: #9ca3af; }
+    .sx-search-clear:hover { background: #f3f4f6; color: #1f2328; }
+    .sx-av { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; background: rgba(255,193,7,0.18); color: #8a6700; font-weight: 800; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; }
+    .sx-num { width: 22px; font-size: 0.76rem; color: #9ca3af; font-weight: 600; text-align: right; flex-shrink: 0; }
+    .sx-owner { border-bottom: 1px solid #f3f4f6; }
+    .sx-owner-head { border: none; border-bottom: none; text-align: left; cursor: pointer; transition: background 0.15s ease; }
+    .sx-owner-head:hover { background: #fafbfc; }
+    .sx-owner.open .sx-owner-head { background: #fffaeb; }
+    .sx-pets { padding: 0.25rem 0.9rem 0.75rem 3.4rem; background: #fffdf7; display: flex; flex-direction: column; gap: 0.35rem; }
+    .sx-pet { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.7rem; border: 1px solid #f0e6c8; border-radius: 9px; background: #fff; }
+    .sx-pet > i { color: #e0a800; font-size: 0.78rem; }
+    .sx-empty { display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 2rem 1rem; border: 1px dashed #e5e7eb; border-radius: 12px; color: #9ca3af; font-size: 0.88rem; }
+    .sx-alert.page { margin-bottom: 1.25rem; align-items: center; }
+    .sx-alert.page span { flex: 1; }
+    .sx-alert.page button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+    .sx-alert.page button:hover { opacity: 1; background: rgba(0,0,0,0.05); }
+    .sx-zoom-modal .form-check-input:checked { background-color: #ffc107; border-color: #ffc107; }
+    @media (min-width: 992px) and (max-width: 1199.98px) { .sx-types { gap: 0.45rem; } .sx-type-label { font-size: 0.8rem; } }
+    @media (max-width: 768px) { .sx-types { grid-template-columns: repeat(3, 1fr); } .sx-meter { width: 120px; } }
   `;
   
   useEffect(() => {
@@ -505,11 +689,14 @@ useEffect(() => {
 
   const CACHE_TTL = 60_000;
 
-const loadPage = async (page, force = false) => {
+const loadPage = async (page, force = false, silent = false) => {
   const cacheKey = `${page}_${filterType}_${filterBarangay}_${filterStatus}_${searchTerm}`;
 
-  page === 1 ? setLoading(true) : setPageLoading(true);
-  setSchedules([]);
+  // silent: refresh after saving / deleting without the skeleton or a jump to the top
+  if (!silent) {
+    page === 1 ? setLoading(true) : setPageLoading(true);
+    setSchedules([]);
+  }
 
   const cached = schedulePageCache[cacheKey];
   if (!force && cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -555,7 +742,7 @@ const loadPage = async (page, force = false) => {
   }
 };
 
-const loadData = (force = false) => loadPage(currentPage, force);
+const loadData = (force = false, silent = false) => loadPage(currentPage, force, silent);
 
   const loadBarangays = async () => {
     try {
@@ -772,9 +959,11 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
   };
 
   const loadAllRegistrations = async (schedule) => {
+    setRegistrationsFor(schedule);
     setLoadingRegistrations(true);
     setRegistrationsSearchTerm('');
     setExpandedOwners({});
+    setShowRegistrationsModal(true);   // open now; the list shows a skeleton while loading
     try {
       const response = await api.get(`/schedules/registrations/${schedule.id}/${schedule.type}`);
       setRegistrationsData(response.data.registrations || []);
@@ -784,7 +973,6 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
     } finally {
       setLoadingRegistrations(false);
     }
-    setShowRegistrationsModal(true);
   };
 
   const handleOpenViewModal = async (schedule) => {
@@ -1128,11 +1316,14 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
       }
 
       handleCloseModal();
-      loadData();
+      setSchedulePageCache({});
+      loadData(true, true);
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
+      // Create flow closes the form before confirming: reopen it so the error and the data are visible
+      if (modalMode === 'create') setShowModal(true);
     } finally {
       setFormLoading(false);
     }
@@ -1155,8 +1346,9 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
       setSchedules(prev => prev.filter(s => !(s.id === scheduleToDelete.id && s.type === scheduleToDelete.type)));
       setSuccess(`${getScheduleTypeLabel(scheduleToDelete.type)} schedule deleted successfully!`);
       setTimeout(() => setSuccess(''), 5000);
-      // Also refresh from server in background
-      loadData();
+      // Also refresh from server in background (quietly)
+      setSchedulePageCache({});
+      loadData(true, true);
     } catch (err) {
       const { message } = handleAPIError(err);
       setError(message);
@@ -1181,40 +1373,6 @@ end_time: schedule.end_time ? schedule.end_time.substring(0, 5) : '',
     const barangay = barangays.find(b => b.id === barangayId);
     return barangay ? barangay.name : 'Unknown';
   };
-
-  const getStatusBadge = (schedule) => {
-  // Always trust the status from the database first
-  if (schedule.status === 'cancelled') {
-    return <Badge bg="danger">Cancelled</Badge>;
-  } else if (schedule.status === 'completed') {
-    return <Badge bg="secondary">Completed</Badge>;
-  } else if (schedule.status === 'ongoing') {
-    return <Badge bg="success">Ongoing</Badge>;
-  } else if (schedule.status === 'scheduled') {
-    // Only check if it's past due if status is still "scheduled"
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const scheduleDate = new Date(schedule.scheduled_date);
-    scheduleDate.setHours(0, 0, 0, 0);
-    
-    if (scheduleDate < today) {
-      return <Badge bg="warning">Past Due</Badge>;
-    }
-    return <Badge bg="primary">Scheduled</Badge>;
-  } else {
-    return <Badge bg="primary">Scheduled</Badge>;
-  }
-};
-
-  const getTypeBadge = (type) => {
-  const badges = {
-    vaccination: <Badge bg="warning" style={{ fontSize: '0.85rem' }}><i className="fas fa-syringe me-1"></i>Vaccination</Badge>,
-    seminar: <Badge bg="info" style={{ fontSize: '0.85rem' }}><i className="fas fa-chalkboard-teacher me-1"></i>Seminar</Badge>,
-    sterilization: <Badge bg="success" style={{ fontSize: '0.85rem' }}><i className="fas fa-cut me-1"></i>Sterilization</Badge>,
-    other: <Badge bg="dark" style={{ fontSize: '0.85rem' }}><i className="fas fa-calendar me-1"></i>Other</Badge> // Add this line
-  };
-  return badges[type] || <Badge bg="secondary">{type}</Badge>;
-};
 
 // Server handles all filtering — schedules array IS the current page
 const displaySchedules = schedules;
@@ -1346,10 +1504,10 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
         </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2"></i>
-            {error}
-          </Alert>
+          <div role="alert" className="sx-alert danger page">
+            <i className="fas fa-exclamation-triangle" /><span>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
         {success && (
@@ -1539,7 +1697,7 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
                             </div>
                           </td>
                           <td className="mobile-hide">
-                            <div className="em-strong" style={{ fontSize: '0.85rem' }}>{getBarangayName(schedule.barangay_id)}</div>
+                            <div className="em-strong" style={{ fontSize: '0.85rem' }}>{getBarangayName(schedule.barangay_id, schedule.custom_place)}</div>
                             <div className="em-muted em-ellipsis" style={{ maxWidth: 200 }} title={schedule.venue}>{schedule.venue || '—'}</div>
                           </td>
                           <td className="mobile-hide">
@@ -1625,400 +1783,166 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
         </div>
 
       {/* View Schedule Modal */}
-      <Modal show={showViewModal} onHide={handleCloseViewModal} size="lg" className="sched-view-modal" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-eye me-2"></i>
-            Schedule Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {selectedSchedule && (
+      <Modal show={showViewModal} onHide={handleCloseViewModal} dialogClassName="sx-modal" className="sx-zoom-modal" scrollable>
+        {selectedSchedule && (() => {
+          const s = selectedSchedule;
+          const t = EVENT_TYPES[s.type] || EVENT_TYPES.other;
+          const typeLabel = s.type === 'other' ? (s.other_event_type || 'Other') : t.label;
+          const st = scheduleStatus(s);
+          const dateLabel = new Date(String(s.scheduled_date).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+          const info = [
+            { icon: 'fa-calendar-day', label: 'Date', value: dateLabel, wide: true },
+            { icon: 'fa-clock', label: 'Time', value: `${s.start_time || '—'} – ${s.end_time || '—'}` },
+            { icon: 'fa-map-marker-alt', label: 'Place', value: getBarangayName(s.barangay_id, s.custom_place) },
+            { icon: 'fa-building', label: 'Venue', value: s.venue || '—', wide: true },
+            s.speaker && { icon: 'fa-user-tie', label: 'Speaker', value: s.speaker },
+            s.type === 'microchip' && { icon: 'fa-users', label: 'Capacity', value: <><strong>{s.current_registrations || 0}</strong> / {s.max_capacity} pets</> },
+          ].filter(Boolean);
+          const vaccines = s.type === 'vaccination' ? getVaccineDetails(s) : [];
+          return (
             <>
-              <Row className="mb-4">
-                <Col md={6}>
-                  <div className="mb-3">
-                    <strong className="d-block mb-1" style={{ fontSize: '0.9rem', color: '#666' }}>Type</strong>
-                    <span style={{ fontWeight: '500', color: '#555' }}>
-  {selectedSchedule.type === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-  {selectedSchedule.type === 'seminar' && <><i className="fas fa-chalkboard-teacher me-1" style={{ color: '#6f42c1' }}></i>Seminar</>}
-  {selectedSchedule.type === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-  {selectedSchedule.type === 'microchip' && (
-    <><i className="fas fa-microchip me-1" style={{ color: '#6c757d' }}></i>Microchip</>
-  )}
-  {selectedSchedule.type === 'other' && (
-    <>
-      <i className="fas fa-calendar me-1" style={{ color: '#343a40' }}></i>
-      {selectedSchedule.other_event_type || 'Other'}
-    </>
-  )}
-</span>
+              <Modal.Header closeButton className="sx-head" style={{ '--c': t.color }}>
+                <div className="sx-head-main">
+                  <div className="sx-head-ic"><i className={`fas ${t.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="sx-chips">
+                      <span className="sx-chip" style={{ color: t.color, background: `color-mix(in srgb, ${t.color} 12%, #fff)` }}>{typeLabel}</span>
+                      <span className="sx-chip" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 12%, #fff)` }}><i className={`fas ${st.icon}`} />{st.label}</span>
+                    </div>
+                    <Modal.Title as="h5" className="sx-title">{s.title}</Modal.Title>
                   </div>
-                </Col>
-                <Col md={6}>
-                  <div className="mb-3">
-                    <strong className="d-block mb-1" style={{ fontSize: '0.9rem', color: '#666' }}>Status</strong>
-                    {selectedSchedule.status === 'cancelled' && (
-                      <span style={{ fontWeight: '600', color: '#dc3545' }}>Cancelled</span>
-                    )}
-                    {selectedSchedule.status === 'completed' && (
-                      <span style={{ fontWeight: '600', color: '#6c757d' }}>Completed</span>
-                    )}
-                    {selectedSchedule.status === 'ongoing' && (
-                      <span style={{ fontWeight: '600', color: '#28a745' }}>Ongoing</span>
-                    )}
-                    {selectedSchedule.status === 'scheduled' && (() => {
-                      const today = new Date();
-                      today.setHours(0, 0, 0, 0);
-                      const scheduleDate = new Date(selectedSchedule.scheduled_date);
-                      scheduleDate.setHours(0, 0, 0, 0);
-                      
-                      if (scheduleDate < today) {
-                        return <span style={{ fontWeight: '600', color: '#ffc107' }}>Past Due</span>;
-                      }
-                      return <span style={{ fontWeight: '600', color: '#007bff' }}>Upcoming</span>;
-                    })()}
-                  </div>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={12}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Title</strong>
-                  <p className="mb-0">{selectedSchedule.title}</p>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={12}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Description</strong>
-                  <p className="mb-0">{selectedSchedule.description || 'No description provided'}</p>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Date</strong>
-                  <p className="mb-0">{new Date(selectedSchedule.scheduled_date).toLocaleDateString()}</p>
-                </Col>
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Time</strong>
-                  <p className="mb-0">{selectedSchedule.start_time} - {selectedSchedule.end_time}</p>
-                </Col>
-              </Row>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Place</strong>
-                  <p className="mb-0">{getBarangayName(selectedSchedule.barangay_id, selectedSchedule.custom_place)}</p>
-                </Col>
-                <Col md={6}>
-                  <strong style={{ fontSize: '0.9rem', color: '#666' }}>Venue</strong>
-                  <p className="mb-0">{selectedSchedule.venue}</p>
-                </Col>
-              </Row>
-              
-              {/* Vaccination specific details */}
-              {selectedSchedule.type === 'vaccination' && (
-                <>
-                  <Row className="mb-3">
-  <Col md={12}>
-    <strong style={{ fontSize: '0.9rem', color: '#666' }}>Total Capacity</strong>
-    <p className="mb-0">
-      <strong>{selectedSchedule.current_registrations || 0}</strong> / {getTotalVaccineShots(selectedSchedule)} total vaccine shots available
-    </p>
-  </Col>
-</Row>
-                  <Row className="mb-3">
-  <Col md={12}>
-    <strong style={{ fontSize: '0.9rem', color: '#666' }} className="d-block mb-2">Available Vaccines</strong>
-    <div style={{ border: '2px solid #dee2e6', borderRadius: '8px', padding: '1rem', background: '#f8f9fa' }}>
-      {loadingVaccineCounts ? (
-        <div className="text-center py-3">
-          <Spinner animation="border" size="sm" variant="primary" />
-          <p className="text-muted mt-2 mb-0">Loading vaccine registration counts...</p>
-        </div>
-      ) : (
-        getVaccineDetails(selectedSchedule).map((vaccine, idx) => (
-          <div key={idx} style={{ padding: '0.75rem', background: '#ffffff', borderRadius: '6px', marginBottom: idx !== getVaccineDetails(selectedSchedule).length - 1 ? '0.75rem' : '0', border: '1px solid #e0e0e0' }}>
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <strong>{vaccine.name}</strong>
-                <span className="ms-2" style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', background: '#6c757d', color: '#fff', borderRadius: '4px' }}>
-                  {vaccine.species.toUpperCase()}
-                </span>
-              </div>
-              <div className="text-end">
-                <strong>{vaccine.registered}</strong>
-                <small className="text-muted"> / {vaccine.limit} shots</small>
-              </div>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  </Col>
-</Row>
-                </>
-              )}
-
-              {/* Microchip specific details */}
-              {selectedSchedule.type === 'microchip' && (
-                <>
-                  <Row className="mb-3">
-                    <Col md={12}>
-                      <strong style={{ fontSize: '0.9rem', color: '#666' }}>Capacity</strong>
-                      <p className="mb-0">
-                        <strong>{selectedSchedule.current_registrations || 0}</strong> / {selectedSchedule.max_capacity} pets
-                      </p>
-                    </Col>
-                  </Row>
-                  <Row className="mb-3">
-                    <Col md={12}>
-                      <strong style={{ fontSize: '0.9rem', color: '#666' }}>Allowed Pet Types</strong>
-                      <div className="d-flex gap-2 mt-2">
-                        {selectedSchedule.pet_types_allowed && selectedSchedule.pet_types_allowed.length > 0 ? (
-                          selectedSchedule.pet_types_allowed.map(type => (
-                            <span key={type} style={{ fontSize: '0.85rem', textTransform: 'capitalize', padding: '0.4rem 0.8rem', background: '#6c757d', color: '#fff', borderRadius: '4px' }}>
-                              {type}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-muted">All pet types</span>
-                        )}
+                </div>
+              </Modal.Header>
+              <Modal.Body className="sx-body">
+                <div className="sx-section-title"><i className="fas fa-info-circle" />Event details</div>
+                <div className="sx-grid">
+                  {info.map(it => (
+                    <div key={it.label} className={`sx-info${it.wide ? ' wide' : ''}`}>
+                      <div className="sx-info-ic"><i className={`fas ${it.icon}`} /></div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="sx-info-label">{it.label}</div>
+                        <div className="sx-info-value">{it.value}</div>
                       </div>
-                    </Col>
-                  </Row>
-                </>
-              )}
-              
+                    </div>
+                  ))}
+                </div>
+
+                <div className="sx-section-title mt-4"><i className="fas fa-align-left" />Description</div>
+                <p className={`sx-desc${s.description ? '' : ' muted'}`}>{s.description || 'No description provided.'}</p>
+
+                {s.type === 'microchip' && (
+                  <>
+                    <div className="sx-section-title mt-4"><i className="fas fa-paw" />Allowed pet types</div>
+                    <div className="d-flex gap-2 flex-wrap">
+                      {s.pet_types_allowed && s.pet_types_allowed.length > 0
+                        ? s.pet_types_allowed.map(type => <span key={type} className="sx-chip grey text-capitalize">{type}</span>)
+                        : <span className="sx-muted">All pet types</span>}
+                    </div>
+                  </>
+                )}
+
+                {s.type === 'vaccination' && (
+                  <>
+                    <div className="sx-section-title mt-4">
+                      <i className="fas fa-syringe" />Vaccines
+                      <span className="sx-count">{s.current_registrations || 0} / {getTotalVaccineShots(s)} shots</span>
+                    </div>
+                    <div className="sx-list">
+                      {loadingVaccineCounts ? (
+                        Array.from({ length: 2 }, (_, i) => (
+                          <div key={i} className="sx-row">
+                            <div className="skeleton" style={{ width: '40%', height: 13 }} />
+                            <div className="skeleton" style={{ width: 120, height: 8, borderRadius: 4 }} />
+                          </div>
+                        ))
+                      ) : vaccines.length === 0 ? (
+                        <div className="sx-row sx-muted">No vaccines set for this event.</div>
+                      ) : vaccines.map((v, idx) => {
+                        const pct = v.limit > 0 ? Math.min(100, (v.registered / v.limit) * 100) : 0;
+                        return (
+                          <div key={idx} className="sx-row">
+                            <div style={{ minWidth: 0 }}>
+                              <div className="sx-row-name">{v.name}</div>
+                              <span className="sx-chip grey" style={{ fontSize: '0.66rem' }}>{String(v.species || '').toUpperCase()}</span>
+                            </div>
+                            <div className="sx-meter">
+                              <div className="sx-meter-text"><strong>{v.registered}</strong> / {v.limit} shots</div>
+                              <div className="sx-bar"><div style={{ width: `${pct}%`, background: pct >= 100 ? '#dc3545' : '#e0a800' }} /></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </Modal.Body>
+              <Modal.Footer className="sx-foot">
+                {(user?.role === 'super_admin' || user?.role === 'barangay_official') && (
+                  <button type="button" className="sx-btn ghost me-auto" onClick={() => { handleCloseViewModal(); loadAllRegistrations(s); }}>
+                    <i className="fas fa-users" />View registrations
+                  </button>
+                )}
+                <button type="button" className="sx-btn primary" onClick={handleCloseViewModal}>Close</button>
+              </Modal.Footer>
             </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          {selectedSchedule && (user?.role === 'super_admin' || user?.role === 'barangay_official') && (
-            <Button
-              onClick={() => { handleCloseViewModal(); loadAllRegistrations(selectedSchedule); }}
-              className="border-0"
-              style={{ background: '#ffc107', color: '#000', borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '700' }}
-            >
-              <i className="fas fa-users me-2"></i>View All Registrations
-            </Button>
-          )}
-          <Button variant="secondary" onClick={handleCloseViewModal} style={{ borderRadius: '8px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-            Close
-          </Button>
-        </Modal.Footer>
+          );
+        })()}
       </Modal>
 
       {/* Add/Edit Schedule Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} size="lg" centered={window.innerWidth <= 768} style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            {modalMode === 'edit' ? (
-              <>
-                <i className="fas fa-edit me-2"></i>
-                Edit {getScheduleTypeLabel(formData.schedule_type)} Schedule
-              </>
-            ) : (
-              <>
-                <i className="fas fa-plus me-2"></i>
-                Add New Event
-              </>
-            )}
-          </Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmit}>
-          <Modal.Body style={{ padding: '2rem', maxHeight: '70vh', overflowY: 'auto' }}>
-            {error && (
-              <Alert variant="danger" className="mb-3">
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                {error}
-              </Alert>
-            )}
+      <Modal show={showModal} onHide={handleCloseModal} dialogClassName="sx-modal" className="sx-zoom-modal" scrollable>
+        {(() => {
+          const t = EVENT_TYPES[formData.schedule_type] || { color: '#e0a800', icon: 'fa-calendar-plus' };
+          return (
+            <Modal.Header closeButton className="sx-head" style={{ '--c': t.color }}>
+              <div className="sx-head-main">
+                <div className="sx-head-ic"><i className={`fas ${modalMode === 'edit' ? 'fa-pen' : t.icon}`} /></div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="sx-kicker">{modalMode === 'edit' ? 'Edit event' : 'New event'}</div>
+                  <Modal.Title as="h5" className="sx-title">
+                    {modalMode === 'edit'
+                      ? `Edit ${getScheduleTypeLabel(formData.schedule_type).toLowerCase()} event`
+                      : formData.schedule_type ? `Add ${(EVENT_TYPES[formData.schedule_type]?.label || 'new').toLowerCase()} event` : 'Add new event'}
+                  </Modal.Title>
+                  <div className="sx-head-sub">Fields marked <span className="text-danger">*</span> are required.</div>
+                </div>
+              </div>
+            </Modal.Header>
+          );
+        })()}
+        <Form onSubmit={handleSubmit} style={{ display: 'contents' }}>
+          <Modal.Body className="sx-body">
+            {error && <div className="sx-alert danger"><i className="fas fa-exclamation-triangle" /><span>{error}</span></div>}
 
             {/* Event Type Selection - Only show in create mode */}
-{modalMode === 'create' && (
-  <Row className="mb-4">
-    <Col md={12}>
-      <Form.Group>
-        <Form.Label style={{ fontWeight: '600', color: '#333333' }}>
-          Event Type <span style={{ color: '#dc3545' }}>*</span>
-        </Form.Label>
-        
-        <div 
-          style={{ 
-            display: 'flex',
-            gap: '1rem',
-            overflowX: 'auto',
-            paddingBottom: '1rem',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#dee2e6 #f8f9fa'
-          }}
-          className="event-type-scroll"
-        >
-          <div 
-            onClick={() => setFormData({...formData, schedule_type: 'vaccination', barangay_id: ''})}
-            style={{ 
-              minWidth: '200px',
-              flex: '0 0 auto',
-              padding: '1.5rem', 
-              border: formData.schedule_type === 'vaccination' ? '3px solid #ffc107' : '2px solid #dee2e6', 
-              borderRadius: '12px', 
-              cursor: 'pointer', 
-              textAlign: 'center', 
-              background: formData.schedule_type === 'vaccination' ? '#fff9e6' : '#ffffff', 
-              transition: 'all 0.3s' 
-            }}
-          >
-            <img 
-              src="/vaccine.png" 
-              alt="Vaccination"
-              style={{ width: '50px', height: '50px', objectFit: 'contain', marginBottom: '0.5rem' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'block';
-              }}
-            />
-            <i className="fas fa-syringe" style={{ fontSize: '2.5rem', color: '#ffc107', marginBottom: '0.5rem', display: 'none' }}></i>
-            <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Vaccination</div>
-          </div>
-          
-          <div 
-            onClick={() => setFormData({...formData, schedule_type: 'seminar', barangay_id: ''})}
-            style={{ 
-              minWidth: '200px',
-              flex: '0 0 auto',
-              padding: '1.5rem', 
-              border: formData.schedule_type === 'seminar' ? '3px solid #6f42c1' : '2px solid #dee2e6', 
-              borderRadius: '12px', 
-              cursor: 'pointer', 
-              textAlign: 'center', 
-              background: formData.schedule_type === 'seminar' ? '#f5f0ff' : '#ffffff', 
-              transition: 'all 0.3s' 
-            }}
-          >
-            <img 
-              src="/seminar.png" 
-              alt="Seminar"
-              style={{ width: '50px', height: '50px', objectFit: 'contain', marginBottom: '0.5rem' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'block';
-              }}
-            />
-            <i className="fas fa-chalkboard-teacher" style={{ fontSize: '2.5rem', color: '#6f42c1', marginBottom: '0.5rem', display: 'none' }}></i>
-            <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Seminar</div>
-          </div>
-          
-          <div 
-            onClick={() => setFormData({...formData, schedule_type: 'sterilization', barangay_id: ''})}
-            style={{ 
-              minWidth: '200px',
-              flex: '0 0 auto',
-              padding: '1.5rem', 
-              border: formData.schedule_type === 'sterilization' ? '3px solid #28a745' : '2px solid #dee2e6', 
-              borderRadius: '12px', 
-              cursor: 'pointer', 
-              textAlign: 'center', 
-              background: formData.schedule_type === 'sterilization' ? '#e6f9e9' : '#ffffff', 
-              transition: 'all 0.3s' 
-            }}
-          >
-            <img 
-              src="/sterilization.png" 
-              alt="Sterilization"
-              style={{ width: '50px', height: '50px', objectFit: 'contain', marginBottom: '0.5rem' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'block';
-              }}
-            />
-            <i className="fas fa-cut" style={{ fontSize: '2.5rem', color: '#28a745', marginBottom: '0.5rem', display: 'none' }}></i>
-            <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Sterilization</div>
-          </div>
-          <div
-            onClick={() => {
-              setFormData({...formData, schedule_type: 'microchip', barangay_id: ''});
-              // Load microchip batch availability
-              const microchipInvItem = inventory.find(i => i.item_type === 'microchip');
-              if (microchipInvItem) loadBatchAvailability(microchipInvItem.id, selectedSchedule?.id || null);
-            }}
-            style={{
-              minWidth: '200px', flex: '0 0 auto', padding: '1.5rem',
-              border: formData.schedule_type === 'microchip' ? '3px solid #6c757d' : '2px solid #dee2e6',
-              borderRadius: '12px', cursor: 'pointer', textAlign: 'center',
-              background: formData.schedule_type === 'microchip' ? '#f0f0f0' : '#ffffff',
-              transition: 'all 0.3s'
-            }}
-          >
-            <img src="/microchip.png" alt="Microchip"
-              style={{ width: '50px', height: '50px', objectFit: 'contain', marginBottom: '0.5rem' }}
-              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
-            />
-            <i className="fas fa-microchip" style={{ fontSize: '2.5rem', color: '#6c757d', marginBottom: '0.5rem', display: 'none' }}></i>
-            <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Microchip</div>
-          </div>
-          <div 
-            onClick={() => setFormData({...formData, schedule_type: 'other', barangay_id: ''})}
-            style={{ 
-              minWidth: '200px',
-              flex: '0 0 auto',
-              padding: '1.5rem', 
-              border: formData.schedule_type === 'other' ? '3px solid #343a40' : '2px solid #dee2e6', 
-              borderRadius: '12px', 
-              cursor: 'pointer', 
-              textAlign: 'center', 
-              background: formData.schedule_type === 'other' ? '#e9ecef' : '#ffffff', 
-              transition: 'all 0.3s' 
-            }}
-          >
-            <img 
-              src="/other.png" 
-              alt="Other"
-              style={{ width: '50px', height: '50px', objectFit: 'contain', marginBottom: '0.5rem' }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'block';
-              }}
-            />
-            <i className="fas fa-calendar" style={{ fontSize: '2.5rem', color: '#343a40', marginBottom: '0.5rem', display: 'none' }}></i>
-            <div style={{ fontWeight: '600', fontSize: '1.1rem' }}>Other</div>
-          </div>
-        </div>
-        
-        <style>{`
-          .event-type-scroll::-webkit-scrollbar {
-            height: 8px;
-          }
-          .event-type-scroll::-webkit-scrollbar-track {
-            background: #f8f9fa;
-            border-radius: 10px;
-          }
-          .event-type-scroll::-webkit-scrollbar-thumb {
-            background: #dee2e6;
-            border-radius: 10px;
-          }
-          .event-type-scroll::-webkit-scrollbar-thumb:hover {
-            background: #adb5bd;
-          }
-          @media (max-width: 768px) {
-            .event-type-scroll > div {
-              min-width: 110px !important;
-              padding: 0.75rem 0.5rem !important;
-            }
-            .event-type-scroll > div img {
-              width: 32px !important;
-              height: 32px !important;
-            }
-            .event-type-scroll > div .fas {
-              font-size: 1.8rem !important;
-            }
-            .event-type-scroll > div div {
-              font-size: 0.8rem !important;
-            }
-          }
-        `}</style>
-      </Form.Group>
-    </Col>
-  </Row>
-)}
+            {modalMode === 'create' && (
+              <div className="sx-section">
+                <div className="sx-section-title"><i className="fas fa-tag" />Event type <span className="text-danger">*</span></div>
+                <div className="sx-types">
+                  {Object.entries(EVENT_TYPES).map(([key, t]) => {
+                    const on = formData.schedule_type === key;
+                    return (
+                      <button key={key} type="button" className={`sx-type${on ? ' on' : ''}`} style={{ '--c': t.color }} aria-pressed={on}
+                        onClick={() => {
+                          setFormData({ ...formData, schedule_type: key, barangay_id: '' });
+                          if (key === 'microchip') {
+                            // Load microchip batch availability
+                            const microchipInvItem = inventory.find(i => i.item_type === 'microchip');
+                            if (microchipInvItem) loadBatchAvailability(microchipInvItem.id, selectedSchedule?.id || null);
+                          }
+                        }}>
+                        {on && <i className="fas fa-check-circle sx-type-check" />}
+                        <span className="sx-type-ic">
+                          <img src={t.img} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'inline'; }} />
+                          <i className={`fas ${t.icon}`} style={{ display: 'none' }} />
+                        </span>
+                        <span className="sx-type-label">{t.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Show form fields only if event type is selected (or in edit mode) */}
 {(formData.schedule_type || modalMode === 'edit') && (
@@ -2693,22 +2617,11 @@ return (
               </>
             )}
           </Modal.Body>
-          <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-            <Button 
-              variant="secondary" 
-              onClick={handleCloseModal} 
-              disabled={formLoading}
-              style={{
-                borderRadius: '8px',
-                padding: '0.75rem 1.5rem',
-                fontWeight: '600'
-              }}
-            >
-              Cancel
-            </Button>
-            <Button 
+          <Modal.Footer className="sx-foot">
+            <button type="button" className="sx-btn ghost" onClick={handleCloseModal} disabled={formLoading}>Cancel</button>
+            <button
   type="button"
-  className="border-0"
+  className="sx-btn primary"
   disabled={
     formLoading ||
     (modalMode === 'create' && !formData.schedule_type) ||
@@ -2744,360 +2657,253 @@ return (
     setShowModal(false);
     setShowConfirmScheduleModal(true);
   }}
-  style={{
-    background: formLoading ? '#6c757d' : '#000000',
-    color: '#ffffff',
-    borderRadius: '8px',
-    padding: '0.75rem 1.5rem',
-    fontWeight: '600'
-  }}
-  onMouseOver={(e) => {
-    if (!formLoading) e.currentTarget.style.background = '#333333';
-  }}
-  onMouseOut={(e) => {
-    if (!formLoading) e.currentTarget.style.background = '#000000';
-  }}
 >
-  {formLoading ? (
-    <>
-      <Spinner size="sm" animation="border" className="me-2" />
-      {modalMode === 'edit' ? 'Updating...' : 'Creating...'}
-    </>
-  ) : (
-    <>
-      <i className={`fas fa-${modalMode === 'edit' ? 'save' : 'eye'} me-2`}></i>
-      {modalMode === 'edit' ? 'Update Schedule' : 'Review & Confirm'}
-    </>
-  )}
-</Button>
+  {formLoading
+    ? <><i className="fas fa-circle-notch fa-spin" />{modalMode === 'edit' ? 'Updating…' : 'Creating…'}</>
+    : modalMode === 'edit'
+      ? <><i className="fas fa-save" />Save changes</>
+      : <><i className="fas fa-arrow-right" />Review event</>}
+</button>
           </Modal.Footer>
         </Form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered style={{ zoom: '0.75' }}>
-        <Modal.Header 
-          closeButton
-          style={{
-            background: '#f8f9fa',
-            borderBottom: '2px solid #dee2e6'
-          }}
-        >
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-exclamation-triangle text-danger me-2"></i>
-            Confirm Delete
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '2rem' }}>
-          {scheduleToDelete && (
+      {/* Delete Confirmation Modal (small, always centered) */}
+      <Modal show={showDeleteModal} onHide={() => !deleteLoading && setShowDeleteModal(false)} centered dialogClassName="sx-small" className="sx-zoom-modal">
+        {scheduleToDelete && (() => {
+          const t = EVENT_TYPES[scheduleToDelete.type] || EVENT_TYPES.other;
+          return (
             <>
-              <p style={{ fontSize: '1rem', marginBottom: '1.5rem' }}>
-                Are you sure you want to delete this schedule?
-              </p>
-              <div 
-                style={{
-                  background: '#f8f9fa',
-                  padding: '1.25rem',
-                  borderRadius: '8px',
-                  borderLeft: '4px solid #dc3545'
-                }}
-              >
-                <div className="mb-2">
-                  <span style={{ fontWeight: '500', color: '#555' }}>
-                    {scheduleToDelete.type === 'vaccination' && <><i className="fas fa-syringe me-1" style={{ color: '#ffc107' }}></i>Vaccination</>}
-                    {scheduleToDelete.type === 'seminar' && <><i className="fas fa-chalkboard-teacher me-1" style={{ color: '#6f42c1' }}></i>Seminar</>}
-                    {scheduleToDelete.type === 'sterilization' && <><i className="fas fa-cut me-1" style={{ color: '#28a745' }}></i>Sterilization</>}
-                    {scheduleToDelete.type === 'microchip' && <><i className="fas fa-microchip me-1" style={{ color: '#6c757d' }}></i>Microchip</>}
-                  </span>
+              <Modal.Body className="sx-small-body">
+                <div className="sx-small-icon" style={{ '--c': '#dc3545' }}><i className="fas fa-trash-alt" /></div>
+                <h5 className="sx-small-title">Delete this event?</h5>
+                <p className="sx-small-text">This permanently removes the event. This cannot be undone.</p>
+                <div className="sx-item">
+                  <div className="sx-item-av" style={{ '--c': t.color }}><i className={`fas ${t.icon}`} /></div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="sx-item-name">{scheduleToDelete.title}</div>
+                    <div className="sx-item-meta">
+                      {scheduleToDelete.type === 'other' ? (scheduleToDelete.other_event_type || 'Other') : t.label} · {getBarangayName(scheduleToDelete.barangay_id, scheduleToDelete.custom_place)} · {new Date(String(scheduleToDelete.scheduled_date).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  </div>
                 </div>
-                <strong style={{ fontSize: '1.1rem' }}>{scheduleToDelete.title}</strong>
-                <br />
-                <small className="text-muted">
-                  <i className="fas fa-map-marker-alt me-1"></i>
-                  {getBarangayName(scheduleToDelete.barangay_id)} • {new Date(scheduleToDelete.scheduled_date).toLocaleDateString()}
-                </small>
-              </div>
-              <Alert variant="warning" className="mt-3 mb-0">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>Warning:</strong> This action cannot be undone.
-              </Alert>
+              </Modal.Body>
+              <Modal.Footer className="sx-foot even">
+                <button type="button" className="sx-btn ghost" onClick={() => setShowDeleteModal(false)} disabled={deleteLoading}>Cancel</button>
+                <button type="button" className="sx-btn solid" style={{ '--c': '#dc3545' }} onClick={handleDeleteConfirm} disabled={deleteLoading}>
+                  {deleteLoading ? <><i className="fas fa-circle-notch fa-spin" />Deleting…</> : <><i className="fas fa-trash-alt" />Delete event</>}
+                </button>
+              </Modal.Footer>
             </>
-          )}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1.25rem 2rem' }}>
-          <Button 
-            variant="secondary" 
-            onClick={() => setShowDeleteModal(false)}
-            disabled={deleteLoading}
-            style={{
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              fontWeight: '600'
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="danger"
-            onClick={handleDeleteConfirm}
-            disabled={deleteLoading}
-            style={{
-              borderRadius: '8px',
-              padding: '0.75rem 1.5rem',
-              fontWeight: '600'
-            }}
-          >
-            {deleteLoading ? (
-              <>
-                <Spinner size="sm" animation="border" className="me-2" />
-                Deleting...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-trash me-2"></i>
-                Delete Schedule
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
+          );
+        })()}
       </Modal>
     </Container>
 
+    {/* ── Review & Confirm Schedule Modal (small, centered) ── */}
+    <Modal show={showConfirmScheduleModal} onHide={() => !formLoading && setShowConfirmScheduleModal(false)} centered dialogClassName="sx-small wide" className="sx-zoom-modal" scrollable>
+      {(() => {
+        const t = EVENT_TYPES[formData.schedule_type] || EVENT_TYPES.other;
+        const cap = (arr) => arr.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ');
+        const rows = [
+          { icon: 'fa-tag', label: 'Title', value: formData.title || '—', wide: true },
+          { icon: 'fa-calendar', label: 'Date', value: formData.scheduled_date ? new Date(formData.scheduled_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
+          { icon: 'fa-clock', label: 'Time', value: formData.start_time && formData.end_time ? `${formData.start_time} – ${formData.end_time}` : '—' },
+          { icon: 'fa-map-marker-alt', label: 'Place', value: formData.barangay_id === 'other' ? (formData.custom_place || '—') : (barangays.find(b => String(b.id) === String(formData.barangay_id))?.name || '—') },
+          { icon: 'fa-building', label: 'Venue', value: formData.venue || '—' },
+          ...(formData.schedule_type === 'seminar' ? [
+            { icon: 'fa-user-tie', label: 'Speaker', value: formData.speaker || 'Not specified' },
+            { icon: 'fa-users', label: 'Max capacity', value: formData.max_capacity || '—' },
+          ] : []),
+          ...(formData.schedule_type === 'sterilization' ? [
+            { icon: 'fa-paw', label: 'Pet types', value: formData.sterilization_species.length > 0 ? cap(formData.sterilization_species) : '—' },
+            { icon: 'fa-users', label: 'Max capacity', value: formData.max_capacity || '—' },
+          ] : []),
+          ...(formData.schedule_type === 'microchip' ? [
+            { icon: 'fa-paw', label: 'Pet types', value: formData.pet_types_allowed.length > 0 ? cap(formData.pet_types_allowed) : '—' },
+            { icon: 'fa-users', label: 'Max capacity (from batches)', value: formData.max_capacity || '—' },
+          ] : []),
+          ...(formData.schedule_type === 'other' ? [
+            { icon: 'fa-paw', label: 'Pet types', value: formData.other_pet_types.length > 0 ? cap(formData.other_pet_types) : 'Not pet-specific' },
+            { icon: 'fa-users', label: 'Max capacity', value: formData.max_capacity || '—' },
+          ] : []),
+          { icon: 'fa-align-left', label: 'Description', value: formData.description || 'Not specified', wide: true },
+        ];
+        const vaccines = formData.schedule_type === 'vaccination'
+          ? Object.entries(formData.vaccination_types).map(([id, limit]) => ({ name: inventory.find(i => String(i.id) === String(id))?.item_name || `Vaccine #${id}`, limit }))
+          : [];
+        return (
+          <>
+            <Modal.Body className="sx-small-body">
+              <div className="sx-small-icon" style={{ '--c': '#e0a800' }}><i className="fas fa-clipboard-check" /></div>
+              <h5 className="sx-small-title">Review the event</h5>
+              <p className="sx-small-text">Please check the details before creating this event.</p>
 
-    {/* ── Review & Confirm Schedule Modal ── */}
-<Modal show={showConfirmScheduleModal} onHide={() => setShowConfirmScheduleModal(false)} centered style={{ zoom: '0.75' }}>
-  <Modal.Header closeButton style={{ background: 'linear-gradient(135deg, #f8f9fa, #e9ecef)', borderBottom: '2px solid #ffc107' }}>
-    <Modal.Title style={{ fontWeight: '700', color: '#333' }}>
-      <i className="fas fa-clipboard-check me-2" style={{ color: '#ffc107' }} />
-      Review Event Before Saving
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body style={{ padding: '2rem' }}>
-    <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-      Please review the event details before creating.
-    </p>
+              <div className="sx-item text-start mb-3" style={{ borderColor: `color-mix(in srgb, ${t.color} 35%, #fff)`, background: `color-mix(in srgb, ${t.color} 7%, #fff)` }}>
+                <div className="sx-item-av" style={{ '--c': t.color }}><i className={`fas ${t.icon}`} /></div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="sx-info-label">Event type</div>
+                  <div className="sx-item-name">{formData.schedule_type === 'other' ? (formData.other_event_type || 'Other') : t.label}</div>
+                </div>
+              </div>
 
-    {/* Event Type Banner */}
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '0.75rem',
-      background: formData.schedule_type === 'vaccination' ? 'rgba(255,193,7,0.1)'
-        : formData.schedule_type === 'seminar' ? 'rgba(111,66,193,0.1)'
-        : formData.schedule_type === 'sterilization' ? 'rgba(40,167,69,0.1)'
-        : formData.schedule_type === 'microchip' ? 'rgba(108,117,125,0.1)'
-        : 'rgba(52,58,64,0.1)',
-      border: `1.5px solid ${
-        formData.schedule_type === 'vaccination' ? 'rgba(255,193,7,0.3)'
-        : formData.schedule_type === 'seminar' ? 'rgba(111,66,193,0.3)'
-        : formData.schedule_type === 'sterilization' ? 'rgba(40,167,69,0.3)'
-        : formData.schedule_type === 'microchip' ? 'rgba(108,117,125,0.3)'
-        : 'rgba(52,58,64,0.3)'}`,
-      borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1rem'
-    }}>
-      <img
-        src={
-          formData.schedule_type === 'vaccination' ? '/vaccine.png'
-          : formData.schedule_type === 'seminar' ? '/seminar.png'
-          : formData.schedule_type === 'sterilization' ? '/sterilization.png'
-          : formData.schedule_type === 'microchip' ? '/microchip.png'
-          : '/other.png'
-        }
-        alt={formData.schedule_type}
-        style={{ width: '36px', height: '36px', objectFit: 'contain' }}
-        onError={e => e.target.style.display = 'none'}
-      />
-      <div>
-        <div style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#999', marginBottom: '2px' }}>Event Type</div>
-        <div style={{ fontWeight: '700', color: '#333' }}>
-          {formData.schedule_type === 'other' ? (formData.other_event_type || 'Other') : getScheduleTypeLabel(formData.schedule_type)}
-        </div>
-      </div>
-    </div>
+              <div className="sx-grid text-start">
+                {rows.map(it => (
+                  <div key={it.label} className={`sx-info${it.wide ? ' wide' : ''}`}>
+                    <div className="sx-info-ic"><i className={`fas ${it.icon}`} /></div>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="sx-info-label">{it.label}</div>
+                      <div className="sx-info-value">{it.value}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-    {/* Details */}
-    <div style={{ background: '#f8f9fa', borderRadius: '12px', padding: '1rem', border: '1px solid #e9ecef' }}>
-      {[
-        { icon: 'fa-map-marker-alt', label: 'Place', value: formData.barangay_id === 'other' ? (formData.custom_place || '—') : (barangays.find(b => String(b.id) === String(formData.barangay_id))?.name || '—') },
-        { icon: 'fa-tag', label: 'Title', value: formData.title || '—' },
-        { icon: 'fa-align-left', label: 'Description', value: formData.description || 'Not specified' },
-        { icon: 'fa-calendar', label: 'Date', value: formData.scheduled_date ? new Date(formData.scheduled_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—' },
-        { icon: 'fa-clock', label: 'Time', value: formData.start_time && formData.end_time ? `${formData.start_time} – ${formData.end_time}` : '—' },
-        { icon: 'fa-building', label: 'Venue', value: formData.venue || '—' },
-        ...(formData.schedule_type === 'seminar' ? [
-          { icon: 'fa-user-tie', label: 'Speaker', value: formData.speaker || 'Not specified' },
-          { icon: 'fa-users', label: 'Max Capacity', value: formData.max_capacity || '—' },
-        ] : []),
-        ...(formData.schedule_type === 'sterilization' ? [
-          { icon: 'fa-paw', label: 'Pet Types', value: formData.sterilization_species.length > 0 ? formData.sterilization_species.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : '—' },
-          { icon: 'fa-users', label: 'Max Capacity', value: formData.max_capacity || '—' },
-        ] : []),
-        ...(formData.schedule_type === 'microchip' ? [
-          { icon: 'fa-paw', label: 'Pet Types', value: formData.pet_types_allowed.length > 0 ? formData.pet_types_allowed.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : '—' },
-          { icon: 'fa-users', label: 'Max Capacity (from batches)', value: formData.max_capacity || '—' },
-        ] : []),
-        ...(formData.schedule_type === 'other' ? [
-          { icon: 'fa-paw', label: 'Pet Types', value: formData.other_pet_types.length > 0 ? formData.other_pet_types.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : 'Not pet-specific' },
-          { icon: 'fa-users', label: 'Max Capacity', value: formData.max_capacity || '—' },
-        ] : []),
-        ...(formData.schedule_type === 'vaccination' ? [
-          { icon: 'fa-syringe', label: 'Vaccines & Shots', value: Object.keys(formData.vaccination_types).length > 0
-            ? Object.entries(formData.vaccination_types).map(([id, limit]) => {
-                const inv = inventory.find(i => String(i.id) === String(id));
-                return `${inv?.item_name || `Vaccine #${id}`}: ${limit} shots`;
-              }).join(' | ')
-            : '—'
-          },
-        ] : []),
-      ].map((item, i, arr) => (
-        <div key={i} style={{ display: 'flex', gap: '0.75rem', paddingBottom: i < arr.length - 1 ? '0.75rem' : 0, marginBottom: i < arr.length - 1 ? '0.75rem' : 0, borderBottom: i < arr.length - 1 ? '1px solid #e9ecef' : 'none' }}>
-          <div style={{ width: '28px', flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '2px' }}>
-            <i className={`fas ${item.icon}`} style={{ color: '#ffc107', fontSize: '0.8rem' }} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '2px' }}>{item.label}</div>
-            <div style={{ fontWeight: '600', color: '#333', fontSize: '0.88rem', wordBreak: 'break-word' }}>{item.value}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </Modal.Body>
-  <Modal.Footer style={{ padding: '1.25rem 2rem', gap: '0.75rem' }}>
-    <Button variant="secondary" onClick={() => setShowConfirmScheduleModal(false)} disabled={formLoading}
-      style={{ borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: '600' }}>
-      <i className="fas fa-arrow-left me-2" />Back to Edit
-    </Button>
-    <Button disabled={formLoading} className="border-0"
-      onClick={async () => {
-        if (formLoading) return;
-        setFormLoading(true);
-        setShowConfirmScheduleModal(false);
-        await handleSubmit({ preventDefault: () => {} });
-      }}
-      style={{ background: formLoading ? '#6c757d' : '#000000', color: '#ffffff', borderRadius: '10px', padding: '0.75rem 1.75rem', fontWeight: '700', transition: 'all 0.3s' }}
-      onMouseOver={e => { if (!formLoading) e.currentTarget.style.background = '#333'; }}
-      onMouseOut={e => { if (!formLoading) e.currentTarget.style.background = '#000'; }}
-    >
-      {formLoading
-        ? <><Spinner size="sm" animation="border" className="me-2" />Saving...</>
-        : <><i className="fas fa-save me-2" />Confirm & Create</>}
-    </Button>
-  </Modal.Footer>
-</Modal>
-      {/* All Registrations Modal */}
-      <Modal show={showRegistrationsModal} onHide={() => setShowRegistrationsModal(false)} size="lg" centered style={{ zoom: '0.75' }}>
-        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #ffc107' }}>
-          <Modal.Title style={{ fontWeight: '700' }}>
-            <i className="fas fa-users me-2" style={{ color: '#ffc107' }}></i>
-            All Registrations
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body style={{ padding: '1.5rem' }}>
-          <InputGroup className="mb-3">
-            <InputGroup.Text style={{ background: '#f8f9fa', border: '2px solid #e9ecef', borderRight: 'none' }}>
-              <i className="fas fa-search"></i>
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
-              placeholder="Search by owner or pet name..."
-              value={registrationsSearchTerm}
-              onChange={(e) => setRegistrationsSearchTerm(e.target.value)}
-              style={{ border: '2px solid #e9ecef', borderLeft: 'none' }}
-            />
-          </InputGroup>
-
-          {loadingRegistrations ? (
-            <div className="text-center py-5">
-              <Spinner animation="border" variant="warning" />
-              <p className="mt-3 text-muted">Loading registrations...</p>
-            </div>
-          ) : registrationsData.length === 0 ? (
-            <div className="text-center py-5">
-              <i className="fas fa-users text-muted mb-3" style={{ fontSize: '3rem', color: '#e0e0e0' }}></i>
-              <p className="text-muted">No registrations found.</p>
-            </div>
-          ) : (() => {
-            const term = registrationsSearchTerm.toLowerCase();
-            // Determine type from first item
-            const isPetBased = registrationsData.length > 0 && registrationsData[0].pets !== undefined;
-
-            if (!isPetBased) {
-              // Flat list for seminar / other
-              const filtered = registrationsData.filter(r =>
-                !term || r.owner_name?.toLowerCase().includes(term)
-              );
-              return (
-                <Table hover size="sm" style={{ marginBottom: 0 }}>
-                  <thead style={{ background: '#f8f9fa' }}>
-                    <tr>
-                      <th style={{ fontWeight: '600', padding: '0.75rem' }}>#</th>
-                      <th style={{ fontWeight: '600', padding: '0.75rem' }}>Owner Name</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.length === 0 ? (
-                      <tr><td colSpan="2" className="text-center text-muted py-3">No results found.</td></tr>
-                    ) : filtered.map((r, idx) => (
-                      <tr key={r.registration_id || idx}>
-                        <td style={{ padding: '0.75rem', color: '#888' }}>{idx + 1}</td>
-                        <td style={{ padding: '0.75rem', fontWeight: '500' }}>{r.first_name && r.last_name ? `${r.first_name} ${r.last_name}` : r.first_name || r.last_name || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              );
-            }
-
-            // Grouped list for vaccination / microchip / sterilization
-            const filtered = registrationsData.filter(r =>
-              !term ||
-              r.owner_name?.toLowerCase().includes(term) ||
-              r.pets?.some(p => p.pet_name?.toLowerCase().includes(term))
-            );
-            return (
-              <div>
-                {filtered.length === 0 ? (
-                  <p className="text-center text-muted py-3">No results found.</p>
-                ) : filtered.map((owner, idx) => {
-                  const isExpanded = !!expandedOwners[owner.user_id];
-                  return (
-                    <div key={owner.user_id || idx} style={{ border: '1px solid #dee2e6', borderRadius: '10px', marginBottom: '0.75rem', overflow: 'hidden' }}>
-                      <div style={{ padding: '0.85rem 1rem', background: '#f8f9fa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong>{owner.first_name && owner.last_name ? `${owner.first_name} ${owner.last_name}` : owner.first_name || owner.last_name || `Owner #${owner.user_id}`}</strong>
-                          <span className="ms-2" style={{ fontSize: '0.8rem', color: '#888' }}>{owner.pets?.length || 0} pet(s)</span>
-                        </div>
-                        <button
-                          onClick={() => setExpandedOwners(prev => ({ ...prev, [owner.user_id]: !prev[owner.user_id] }))}
-                          style={{ background: isExpanded ? '#6c757d' : '#ffc107', color: isExpanded ? '#fff' : '#000', border: 'none', borderRadius: '6px', padding: '0.35rem 0.85rem', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
-                        >
-                          <i className={`fas fa-${isExpanded ? 'eye-slash' : 'eye'} me-1`}></i>
-                          {isExpanded ? 'Hide Pets' : 'View Pets'}
-                        </button>
+              {vaccines.length > 0 && (
+                <div className="text-start mt-3">
+                  <div className="sx-info-label mb-1">Vaccines & shots</div>
+                  <div className="sx-list">
+                    {vaccines.map(v => (
+                      <div key={v.name} className="sx-row">
+                        <span className="sx-row-name">{v.name}</span>
+                        <span className="sx-muted"><strong style={{ color: '#1f2328' }}>{v.limit}</strong> shots</span>
                       </div>
-                      {isExpanded && (
-                        <div style={{ padding: '0.5rem 1rem 0.75rem' }}>
-                          {owner.pets?.map((pet, pIdx) => (
-                            <div key={pet.pet_id || pIdx} style={{ padding: '0.5rem 0.75rem', background: '#fff', borderRadius: '6px', marginTop: '0.4rem', border: '1px solid #e9ecef', fontSize: '0.88rem' }}>
-                              <i className="fas fa-paw me-2" style={{ color: '#ffc107' }}></i>
-                              <strong>{pet.pet_name}</strong>
-                              {pet.species && <span className="ms-2" style={{ fontSize: '0.75rem', background: '#6c757d', color: '#fff', borderRadius: '4px', padding: '0.15rem 0.4rem' }}>{pet.species.toUpperCase()}</span>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Modal.Body>
+            <Modal.Footer className="sx-foot even">
+              <button type="button" className="sx-btn ghost" disabled={formLoading}
+                onClick={() => { setShowConfirmScheduleModal(false); setShowModal(true); }}>
+                <i className="fas fa-arrow-left" />Back to edit
+              </button>
+              <button type="button" className="sx-btn primary" disabled={formLoading}
+                onClick={async () => {
+                  if (formLoading) return;
+                  setFormLoading(true);
+                  setShowConfirmScheduleModal(false);
+                  await handleSubmit({ preventDefault: () => {} });
+                }}>
+                {formLoading ? <><i className="fas fa-circle-notch fa-spin" />Saving…</> : <><i className="fas fa-check" />Create event</>}
+              </button>
+            </Modal.Footer>
+          </>
+        );
+      })()}
+    </Modal>
+
+    {/* All Registrations Modal */}
+    <Modal show={showRegistrationsModal} onHide={() => setShowRegistrationsModal(false)} dialogClassName="sx-modal" className="sx-zoom-modal" scrollable>
+      <Modal.Header closeButton className="sx-head" style={{ '--c': '#e0a800' }}>
+        <div className="sx-head-main">
+          <div className="sx-head-ic"><i className="fas fa-users" /></div>
+          <div style={{ minWidth: 0 }}>
+            <div className="sx-kicker">Registrations</div>
+            <Modal.Title as="h5" className="sx-title">{registrationsFor?.title || 'All registrations'}</Modal.Title>
+            <div className="sx-head-sub">{loadingRegistrations ? 'Loading…' : `${registrationsData.length} registered`}</div>
+          </div>
+        </div>
+      </Modal.Header>
+      <Modal.Body className="sx-body">
+        <div className="sx-search">
+          <i className="fas fa-search" />
+          <input className="sx-search-input" type="text" placeholder="Search by owner or pet name…"
+            value={registrationsSearchTerm} onChange={(e) => setRegistrationsSearchTerm(e.target.value)} aria-label="Search registrations" />
+          {registrationsSearchTerm && (
+            <button type="button" className="sx-search-clear" onClick={() => setRegistrationsSearchTerm('')} aria-label="Clear search"><i className="fas fa-times" /></button>
+          )}
+        </div>
+
+        {loadingRegistrations ? (
+          <div className="sx-list">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="sx-row" style={{ opacity: 1 - i * 0.18 }}>
+                <div className="d-flex align-items-center gap-2 flex-grow-1">
+                  <div className="skeleton" style={{ width: 34, height: 34, borderRadius: '50%' }} />
+                  <div className="skeleton" style={{ width: '40%', height: 13 }} />
+                </div>
+                <div className="skeleton" style={{ width: 80, height: 26, borderRadius: 8 }} />
+              </div>
+            ))}
+          </div>
+        ) : registrationsData.length === 0 ? (
+          <div className="sx-empty"><i className="fas fa-users" />No registrations yet.</div>
+        ) : (() => {
+          const term = registrationsSearchTerm.toLowerCase();
+          const fullName = (r, fallback) => (r.first_name && r.last_name ? `${r.first_name} ${r.last_name}` : r.first_name || r.last_name || fallback);
+          const initials = (name) => name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
+          // Pet-based (vaccination / microchip / sterilization) vs owner-only (seminar / other)
+          const isPetBased = registrationsData[0].pets !== undefined;
+
+          if (!isPetBased) {
+            const filtered = registrationsData.filter(r => !term || r.owner_name?.toLowerCase().includes(term) || fullName(r, '').toLowerCase().includes(term));
+            return filtered.length === 0 ? (
+              <div className="sx-empty"><i className="fas fa-search" />No results found.</div>
+            ) : (
+              <div className="sx-list">
+                {filtered.map((r, idx) => {
+                  const name = fullName(r, '—');
+                  return (
+                    <div key={r.registration_id || idx} className="sx-row">
+                      <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                        <span className="sx-num">{idx + 1}</span>
+                        <div className="sx-av">{initials(name)}</div>
+                        <span className="sx-row-name">{name}</span>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             );
-          })()}
-        </Modal.Body>
-        <Modal.Footer style={{ padding: '1rem 1.5rem' }}>
-          <small className="text-muted me-auto">{registrationsData.length} registered</small>
-          <Button variant="secondary" onClick={() => setShowRegistrationsModal(false)} style={{ borderRadius: '8px', fontWeight: '600' }}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          }
+
+          const filtered = registrationsData.filter(r =>
+            !term || r.owner_name?.toLowerCase().includes(term) || fullName(r, '').toLowerCase().includes(term) ||
+            r.pets?.some(p => p.pet_name?.toLowerCase().includes(term))
+          );
+          return filtered.length === 0 ? (
+            <div className="sx-empty"><i className="fas fa-search" />No results found.</div>
+          ) : (
+            <div className="sx-list">
+              {filtered.map((owner, idx) => {
+                const isExpanded = !!expandedOwners[owner.user_id];
+                const name = fullName(owner, `Owner #${owner.user_id}`);
+                return (
+                  <div key={owner.user_id || idx} className={`sx-owner${isExpanded ? ' open' : ''}`}>
+                    <button type="button" className="sx-row sx-owner-head" aria-expanded={isExpanded}
+                      onClick={() => setExpandedOwners(prev => ({ ...prev, [owner.user_id]: !prev[owner.user_id] }))}>
+                      <div className="d-flex align-items-center gap-2" style={{ minWidth: 0 }}>
+                        <div className="sx-av">{initials(name)}</div>
+                        <div style={{ minWidth: 0, textAlign: 'left' }}>
+                          <div className="sx-row-name">{name}</div>
+                          <div className="sx-muted">{owner.pets?.length || 0} pet{(owner.pets?.length || 0) === 1 ? '' : 's'}</div>
+                        </div>
+                      </div>
+                      <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'} sx-muted`} />
+                    </button>
+                    {isExpanded && (
+                      <div className="sx-pets">
+                        {owner.pets?.map((pet, pIdx) => (
+                          <div key={pet.pet_id || pIdx} className="sx-pet">
+                            <i className="fas fa-paw" />
+                            <span className="sx-row-name">{pet.pet_name}</span>
+                            {pet.species && <span className="sx-chip grey text-capitalize" style={{ fontSize: '0.68rem' }}>{pet.species}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </Modal.Body>
+      <Modal.Footer className="sx-foot">
+        <button type="button" className="sx-btn primary" onClick={() => setShowRegistrationsModal(false)}>Close</button>
+      </Modal.Footer>
+    </Modal>
 
     </>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Container, Row, Col, Card, Alert, Table, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table } from 'react-bootstrap';
 import { dashboardAPI, handleAPIError } from '../../services/api';
 
 const CACHE_KEY = '__dash_v2__';
@@ -318,7 +318,8 @@ const StatCard = ({ label, count, img, accent, accentAlpha, fallbackIcon, descri
                   <span style={{
                     display: 'inline-block', width: '3ch', height: '1em',
                     borderRadius: '6px',
-                    background: darkMode ? '#2a2a2a' : '#f0f0f0',
+                    background: darkMode ? 'linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%)' : 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+                    backgroundSize: '800px 100%',
                     animation: 'shimmer 1.4s ease-in-out infinite',
                     verticalAlign: 'middle'
                   }} />
@@ -587,8 +588,6 @@ const AdminDashboard = ({ darkMode }) => {
     return `${base}, ${Math.abs(diff)} ${diff > 0 ? 'more' : 'fewer'} than last month`;
   })();
 
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-
   const styles = `
   @keyframes dropDown {
     0%   { opacity: 0; transform: translateY(-30px); }
@@ -636,6 +635,26 @@ const AdminDashboard = ({ darkMode }) => {
   .dash-section > :nth-child(2) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.08s); }
   .dash-section > :nth-child(3) .dash-panel { animation-delay: calc(var(--d, 0.4s) + 0.16s); }
 
+  .dash-alert { display: flex; align-items: center; gap: 0.6rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; border-radius: 12px; font-size: 0.9rem; font-weight: 500; background: rgba(220,53,69,0.07); border: 1px solid rgba(220,53,69,0.25); color: #b02a37; }
+  .dash-alert button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
+  .dash-alert button:hover { opacity: 1; background: rgba(220,53,69,0.08); }
+  .dash-legend > span { white-space: nowrap; }
+
+  /* ---------- Desktop / laptop sizes (the sidebar takes part of the width) ---------- */
+  /* Small laptops (992–1199px): 2 + 1 report panels, wider side panels */
+  @media (min-width: 992px) and (max-width: 1199.98px) {
+    .dash-panel-header { flex-wrap: wrap; }
+    .dash-legend { width: 100%; padding-left: 2.75rem; gap: 0.85rem !important; }
+    .brgy-list { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2rem; }
+    .mobile-stat-number { font-size: 2.3rem !important; }
+    .mobile-card-padding { padding: 1.15rem !important; }
+  }
+  /* Medium laptops (1200–1439px): keep the 3-column rows readable */
+  @media (min-width: 1200px) and (max-width: 1439.98px) {
+    .donut-wrap { gap: 1rem !important; }
+    .dash-legend { gap: 0.75rem !important; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .mobile-stat-card, .skeleton, .skeleton-dark, .dash-panel { animation: none !important; }
   }
@@ -665,22 +684,18 @@ const AdminDashboard = ({ darkMode }) => {
       <Container fluid className="py-4 dashboard-page" style={{ backgroundColor: t.page, minHeight: '100vh', transition: 'background 0.3s ease' }}>
 
         {/* Header */}
-        <Row className="mb-4 align-items-end" style={{ animation: 'dropDown 0.4s ease-out' }}>
-          <Col>
-            <h2 className="mobile-title" style={{ fontWeight: 700, color: t.text, fontSize: '2rem', marginBottom: '0.25rem' }}>
-              <i className="fas fa-home me-2" style={{ fontSize: '1.5rem' }} />Admin Dashboard
-            </h2>
-            <div className="mobile-subtitle" style={{ fontSize: '0.95rem', ...muted }}>{today}</div>
-          </Col>
-          <Col xs="auto">
-
-          </Col>
-        </Row>
+        <div className="mb-4" style={{ animation: 'dropDown 0.4s ease-out' }}>
+          <h2 className="mobile-title" style={{ fontWeight: 700, color: t.text, fontSize: '2rem', marginBottom: '0.25rem' }}>
+            <i className="fas fa-home me-2" style={{ fontSize: '1.5rem' }} />Admin Dashboard
+          </h2>
+          <div className="mobile-subtitle" style={{ fontSize: '0.95rem', ...muted }}>Pet registrations, vaccinations and community reports across Muntinlupa City.</div>
+        </div>
 
         {error && (
-          <Alert variant="danger" dismissible onClose={() => setError('')} style={{ borderRadius: '12px' }}>
-            <i className="fas fa-exclamation-triangle me-2" />{error}
-          </Alert>
+          <div role="alert" className="dash-alert">
+            <i className="fas fa-exclamation-circle" /><span style={{ flex: 1 }}>{error}</span>
+            <button type="button" onClick={() => setError('')} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
         )}
 
         {/* Statistics Cards (unchanged) */}
@@ -696,13 +711,13 @@ const AdminDashboard = ({ darkMode }) => {
 
         {/* Activity + vaccination coverage */}
         <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.4s' }}>
-          <Col lg={8}>
+          <Col lg={7} xl={8}>
             <Panel
               t={t} icon="fa-chart-line" iconColor="#ffc107"
               title="Monthly activity"
               subtitle={loading ? 'Loading activity…' : petTrendText}
               action={
-                <div className="dash-hide-sm" style={{ display: 'flex', gap: '1rem', fontSize: '0.78rem', ...muted }}>
+                <div className="dash-hide-sm dash-legend" style={{ display: 'flex', gap: '1rem', fontSize: '0.78rem', ...muted }}>
                   <span><span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '3px', background: '#ffc107', marginRight: '6px' }} />Pets registered</span>
                   <span><span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '3px', background: '#dc3545', marginRight: '6px' }} />Reports submitted</span>
                 </div>
@@ -714,7 +729,7 @@ const AdminDashboard = ({ darkMode }) => {
             </Panel>
           </Col>
 
-          <Col lg={4}>
+          <Col lg={5} xl={4}>
             <Panel
               t={t} icon="fa-syringe" iconColor="#198754"
               title="Vaccination coverage"
@@ -754,7 +769,7 @@ const AdminDashboard = ({ darkMode }) => {
 
         {/* Report analytics */}
         <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.55s' }}>
-          <Col lg={4}>
+          <Col lg={6} xl={4}>
             <Panel t={t} icon="fa-chart-pie" iconColor="#dc3545" title="Reports by type" subtitle="All reports received">
               {loading ? (
                 <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
@@ -769,7 +784,7 @@ const AdminDashboard = ({ darkMode }) => {
                   <div style={{ flex: 1, width: '100%' }}>
                     {analytics.byType.map(s => (
                       <div key={s.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0', borderBottom: `1px solid ${t.border}` }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.84rem', color: t.text }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.84rem', color: t.text, whiteSpace: 'nowrap' }}>
                           <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: s.color }} />{s.label}
                         </span>
                         <span style={{ fontSize: '0.84rem', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}><CountUp value={s.value} /></span>
@@ -781,7 +796,7 @@ const AdminDashboard = ({ darkMode }) => {
             </Panel>
           </Col>
 
-          <Col lg={4}>
+          <Col lg={6} xl={4}>
             <Panel t={t} icon="fa-tasks" iconColor="#e0a800" title="Report status" subtitle="Where each report stands">
               {loading ? (
                 [0, 1, 2, 3].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '28px', marginBottom: '0.9rem' }} />)
@@ -806,17 +821,17 @@ const AdminDashboard = ({ darkMode }) => {
             </Panel>
           </Col>
 
-          <Col lg={4}>
+          <Col lg={12} xl={4}>
             <Panel t={t} icon="fa-map-pin" iconColor="#0d6efd" title="Most reports by barangay" subtitle="Top 5 barangays">
               {loading ? (
                 [0, 1, 2, 3, 4].map(i => <Skeleton key={i} darkMode={darkMode} style={{ height: '28px', marginBottom: '0.9rem' }} />)
               ) : analytics.topBarangays.length === 0 ? (
                 <EmptyState t={t} icon="fa-map-pin" text="No reports received yet." />
               ) : (
-                analytics.topBarangays.map(([name, count]) => (
+                <div className="brgy-list">{analytics.topBarangays.map(([name, count]) => (
                   <BarRow key={name} t={t} label={name} value={count} max={analytics.topBarangays[0][1]} color="#0d6efd"
                     right={<><CountUp value={count} /> {count === 1 ? 'report' : 'reports'}</>} />
-                ))
+                ))}</div>
               )}
             </Panel>
           </Col>
@@ -824,7 +839,7 @@ const AdminDashboard = ({ darkMode }) => {
 
         {/* Map + recent reports */}
         <Row className="g-4 mb-4 dash-section" style={{ '--d': '0.7s' }}>
-          <Col lg={8}>
+          <Col lg={7} xl={8}>
             <Panel
               t={t} icon="fa-map-marked-alt" iconColor="#198754"
               title="Map status"
@@ -840,7 +855,7 @@ const AdminDashboard = ({ darkMode }) => {
             </Panel>
           </Col>
 
-          <Col lg={4}>
+          <Col lg={5} xl={4}>
             <Panel
               t={t} icon="fa-flag" iconColor="#dc3545"
               title="Recent reports"
