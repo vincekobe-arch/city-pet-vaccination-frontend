@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Container, Form, Row, Col } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
@@ -54,7 +54,7 @@ const EditProfile = ({ darkMode }) => {
     '/clinic/dashboard'
   );
 
-  const roleLabel = isClinic ? 'Private Clinic' : isSuperAdmin ? 'Super Admin' : isAdmin ? 'Admin' : 'Community';
+  const roleLabel = isClinic ? 'Private Clinic' : isSuperAdmin ? 'Super Admin' : isAdmin ? (user?.office_role || 'City Vet Admin') : 'Pet Owner';
   const displayName = isClinic
     ? (user?.clinic_name || user?.first_name || 'Clinic')
     : `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'User';
@@ -126,10 +126,11 @@ const EditProfile = ({ darkMode }) => {
 
   const toggleShow = (field) => setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
 
+  const toastTimer = useRef(null);
   const showToast = (msg) => {
     setSuccess(msg);
-    clearTimeout(showToast.t);
-    showToast.t = setTimeout(() => setSuccess(''), 4000);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setSuccess(''), 4000);
   };
 
   const handleSubmit = async (e) => {
@@ -311,7 +312,7 @@ const EditProfile = ({ darkMode }) => {
     .ep-panel-body { padding: 1.15rem 1.25rem 1.25rem; }
 
     .ep-profile { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; }
-    .ep-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #ffe08a, #ffc107); color: #1f2328; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.15rem; flex-shrink: 0; }
+    .ep-avatar { width: 60px; height: 60px; border-radius: 50%; background: var(--av-bg); color: var(--av-fg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.15rem; flex-shrink: 0; }
     .ep-name { font-weight: 700; font-size: 1.15rem; color: var(--ep-text); line-height: 1.25; }
     .ep-email { font-size: 0.85rem; color: var(--ep-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ep-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.4rem; }
@@ -432,7 +433,11 @@ const EditProfile = ({ darkMode }) => {
         {/* Profile summary */}
         <div className="ep-panel ep-anim" style={{ '--d': '0.08s' }}>
           <div className="ep-profile">
-            <div className="ep-avatar">{initials}</div>
+            <div className="ep-avatar" style={
+              isClinic ? { '--av-bg': 'rgba(34,197,94,0.12)', '--av-fg': darkMode ? '#4ade80' : '#15803d' }
+              : isSuperAdmin ? { '--av-bg': 'rgba(239,68,68,0.12)', '--av-fg': darkMode ? '#f87171' : '#b91c1c' }
+              : { '--av-bg': 'rgba(255,193,7,0.18)', '--av-fg': darkMode ? '#ffd24d' : '#8a6700' }
+            }>{initials}</div>
             <div style={{ minWidth: 0 }}>
               <div className="ep-name">{displayName}</div>
               <div className="ep-email">{user?.email || '—'}</div>
