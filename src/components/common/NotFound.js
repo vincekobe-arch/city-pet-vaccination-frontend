@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const NotFound = () => {
+  // Hide the sidebar, top bar and bottom nav while this page is shown
+  useEffect(() => {
+    window.__puNotFound = true;
+    window.dispatchEvent(new Event('pu:notfound'));
+    return () => {
+      window.__puNotFound = false;
+      window.dispatchEvent(new Event('pu:found'));
+    };
+  }, []);
+
   return (
     <div style={{
       minHeight: '100vh',

@@ -26,6 +26,17 @@ const VERIFICATION_CONFIG = {
 const Sidebar = ({ user, onLogout, darkMode, setDarkMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  // The 404 page tells the sidebar to hide itself (it can't tell a wrong URL from a real page)
+  const [notFound, setNotFound] = useState(() => typeof window !== 'undefined' && !!window.__puNotFound);
+  useEffect(() => {
+    const on = () => setNotFound(true);
+    const off = () => setNotFound(false);
+    window.addEventListener('pu:notfound', on);
+    window.addEventListener('pu:found', off);
+    setNotFound(!!window.__puNotFound);
+    return () => { window.removeEventListener('pu:notfound', on); window.removeEventListener('pu:found', off); };
+  }, []);
+
   // Bigger screens: scale the desktop sidebar (hooks must stay above any early return)
   const getSbScale = () => (typeof window === 'undefined' ? 1 : window.innerWidth >= 1920 ? 1.2 : window.innerWidth >= 1600 ? 1.1 : 1);
   const [sbScale, setSbScale] = useState(getSbScale);
@@ -390,7 +401,7 @@ const streamRef = useRef(null);
   const isKnownRoute = knownRoutes.some(r => location.pathname.startsWith(r)) || isLandingPage;
   const shouldHide = hideRoutes.some(r => location.pathname.includes(r));
 
-  if (shouldHide || !isKnownRoute) return null;
+  if (shouldHide || !isKnownRoute || notFound) return null;
 
   // ─── LANDING PAGE: original top navbar (light only, no dark mode toggle) ─
   if (isLandingPage) {
