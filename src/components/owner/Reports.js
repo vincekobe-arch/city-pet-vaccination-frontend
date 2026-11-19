@@ -580,10 +580,19 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
     .rp-note.warn { background: rgba(255,193,7,0.1); color: #8a6700; }
     .rp-note.danger { background: rgba(220,53,69,0.07); color: #b02a37; }
 
-    .rp-empty { text-align: center; padding: 3.5rem 1.5rem; border: 1px dashed #e2e5ea; border-radius: 16px; background: #fcfcfd; }
-    .rp-empty .ic { width: 68px; height: 68px; border-radius: 18px; margin: 0 auto 1rem; background: rgba(255,193,7,0.14); color: #e0a800; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; }
-    .rp-empty h5 { font-weight: 700; color: #1f2328; margin-bottom: 0.35rem; }
-    .rp-empty p { color: #6b7280; font-size: 0.9rem; max-width: 420px; margin: 0 auto 1.25rem; }
+    .rp-empty { text-align: center; padding: 6rem 1.5rem; border: none; border-radius: 20px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .rp-empty .ic { width: 90px; height: 90px; border-radius: 50%; margin: 0 auto 1.5rem; background: rgba(255,193,7,0.1); border: 2px solid #ffc107; color: #ffc107; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+    .rp-empty h5 { font-size: 1.5rem; font-weight: 800; color: #1a1a1a; margin-bottom: 0.5rem; }
+    .rp-empty p { color: #6c757d; font-size: 1rem; line-height: 1.65; max-width: 420px; margin: 0 auto 1.5rem; }
+    .rp-empty .rp-btn.lg { font-size: 1.25rem; font-weight: 700; padding: 0.875rem 2.5rem; border-radius: 14px; background: linear-gradient(135deg, #ffc107, #ffb300); color: #000; box-shadow: 0 6px 20px rgba(255,193,7,0.4); }
+    .rp-empty .rp-btn.lg:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,193,7,0.6); }
+    .rp-empty .rp-note { padding: 0.75rem 1.5rem; border-radius: 12px; font-size: 0.9rem; font-weight: 600; }
+    @media (max-width: 768px) {
+      .rp-empty { padding: 3rem 1.25rem; }
+      .rp-empty .ic { width: 72px; height: 72px; font-size: 2rem; }
+      .rp-empty h5 { font-size: 1.25rem; }
+      .rp-empty .rp-btn.lg { font-size: 1rem; padding: 0.75rem 1.5rem; }
+    }
     .rp-empty p:last-child { margin-bottom: 0; }
 
     .rp-skel-card { min-height: 220px; }

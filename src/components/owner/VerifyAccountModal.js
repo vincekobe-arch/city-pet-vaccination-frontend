@@ -264,6 +264,11 @@ const VA_STYLES = `
   .va-preview > i { color: #e0a800; margin-top: 3px; }
   .va-preview-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
   .va-foot { padding: 0.9rem 1.5rem !important; border-top: 1px solid #eef0f3 !important; display: flex; justify-content: flex-end; gap: 0.6rem; flex-wrap: nowrap !important; }
+  .va-foot-hint { margin-right: auto !important; display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 600; color: #9a6b00; }
+  .va-foot-hint .fa-exclamation-circle { color: #dc3545; }
+  /* small centered modals: two equal buttons, like the logout modal */
+  .va-small .va-foot { justify-content: stretch; border-top: none !important; background: #fff; padding: 0.4rem 1.6rem 1.5rem !important; }
+  .va-small .va-foot > .va-btn { flex: 1 1 0; height: 44px; padding: 0 0.75rem; }
   .va-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 10px; border: 1px solid transparent; font-weight: 700; font-size: 0.9rem; padding: 0.65rem 1.2rem; white-space: nowrap; transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; margin: 0; }
   .va-btn:disabled { opacity: 0.55; cursor: not-allowed; }
   .va-btn.primary { background: #ffc107; color: #1f2328; }
@@ -311,6 +316,8 @@ const VA_STYLES = `
     .va-foot { padding: 0.75rem 1rem !important; }
     .va-foot .va-btn { flex: 1; padding: 0.65rem 0.6rem; font-size: 0.86rem; }
     .va-small-body { padding: 1.5rem 1.1rem 1.1rem !important; }
+    .va-small .va-foot { padding: 0.25rem 1.1rem 1.2rem !important; }
+    .va-foot-hint { display: none; }
   }
   @media (prefers-reduced-motion: reduce) { .va-small-icon { animation: none; } }
 `;
@@ -866,6 +873,17 @@ if (birthCheck > minAgeCheck) { setVerifyError('You must be at least 18 years ol
   const cityMatchesId = idOcrText && selectedCity ? foundOnId(selectedCity.name, idOcrText) : null;
   const regMiddle     = registeredNameRef.current.middle || '';
 
+  // Step 2 — Submit stays disabled until everything is filled in and valid
+  const step2Missing = (() => {
+    const minAge = new Date(); minAge.setFullYear(minAge.getFullYear() - 18);
+    return !profileForm.first_name?.trim() || !profileForm.last_name?.trim() ||
+      !profileForm.birthdate || new Date(profileForm.birthdate) > minAge ||
+      !profileForm.gender || !/^9\d{9}$/.test(profileForm.phone || '') ||
+      !idForm.province || !idForm.city || !idForm.barangay || !idForm.street?.trim() || !idForm.house_no?.trim();
+  })();
+  const step2HasErrors = Object.values(profileFieldErrors).some(Boolean);
+  const step2Blocked = step2Missing || step2HasErrors;
+
   return (
     <>
       {/* ── Verification Modal ── */}
@@ -1179,8 +1197,15 @@ style={{ ...es, colorScheme:'light', border: (profileFieldErrors.birthdate || pr
           ) : (
             <>
               <button type="button" className="va-btn ghost" onClick={() => setVerifyStep(1)} disabled={verifySubmitting}><i className="fas fa-arrow-left" />Back</button>
+              {step2Blocked && !verifySubmitting && (
+                <span className="va-foot-hint">
+                  <i className={`fas ${step2HasErrors ? 'fa-exclamation-circle' : 'fa-info-circle'}`} />
+                  {step2HasErrors ? 'Fix the fields marked in red to continue.' : 'Fill in all required fields (*) to continue.'}
+                </span>
+              )}
               <button type="button" className="va-btn primary" onClick={handleVerifySubmit}
-                disabled={verifySubmitting || !idForm.barangay || !idForm.street || !idForm.house_no}>
+                disabled={verifySubmitting || step2Blocked}
+                title={step2Blocked ? (step2HasErrors ? 'Fix the fields marked in red first' : 'Fill in all required fields first') : undefined}>
                 {verifySubmitting ? <WaveDots /> : <><i className="fas fa-paper-plane" />Submit for verification</>}
               </button>
             </>

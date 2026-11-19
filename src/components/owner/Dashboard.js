@@ -500,18 +500,7 @@ const OwnerDashboard = () => {
         )}
 
         {/* Verification notice */}
-        {ownerVerificationStatus === 'not_verified' && (
-          <div className="od-banner mb-4 od-anim" style={{ '--d': '0.05s' }}>
-            <div className="ic"><i className="fas fa-shield-alt" /></div>
-            <div className="flex-grow-1">
-              <div className="t">Verify your account</div>
-              <div className="d">Verify your identity to view and register for vaccination and other City Vet events.</div>
-            </div>
-            <button type="button" className="od-btn" style={{ background: '#ffc107', borderColor: '#ffc107' }} onClick={() => setShowVerifyModal(true)}>
-              <i className="fas fa-check-circle" /> Verify now
-            </button>
-          </div>
-        )}
+
         {ownerVerificationStatus === 'pending' && (
           <div className="od-banner pending mb-4 od-anim" style={{ '--d': '0.05s' }}>
             <div className="ic"><i className="fas fa-hourglass-half" /></div>
