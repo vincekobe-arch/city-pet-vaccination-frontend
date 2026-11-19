@@ -603,7 +603,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
     @media (max-width: 768px) {
       .rp-title { font-size: 1.45rem; }
       .rp-sub { font-size: 0.85rem; }
-      .rp-grid { grid-template-columns: 1fr; gap: 0.85rem; }
+      .rp-grid { gap: 0.85rem; }
       .rp-card { padding: 0.95rem; }
       .rp-photo { width: 56px; height: 56px; }
       .rp-toast { min-width: 0; width: calc(100% - 2rem); top: 76px; }
@@ -636,6 +636,34 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
     .rp-filter.on { background: #1f2328; border-color: #1f2328; color: #fff; }
     .rp-filter.on .count { background: rgba(255,255,255,0.2); color: #fff; }
     .rp-filter:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+
+    /* ---------------- Responsive: every screen size ---------------- */
+    /* Small laptops (992–1199px): 3 cards per row */
+    @media (min-width: 992px) and (max-width: 1199.98px) {
+      .rp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    /* Tablets (577–991px): 2 cards per row */
+    @media (min-width: 577px) and (max-width: 991.98px) {
+      .rp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    /* Phones (≤ 576px): 1 card per row, full-width button, compact cards */
+    @media (max-width: 576px) {
+      .rp-grid { grid-template-columns: minmax(0, 1fr); }
+      .dashboard-page .mobile-register-btn { width: 100%; justify-content: center; }
+      .dashboard-page .rp-filters { margin-left: -0.75rem; margin-right: -0.75rem; padding-left: 0.75rem; padding-right: 0.75rem; scrollbar-width: none; }
+      .dashboard-page .rp-filters::-webkit-scrollbar { display: none; }
+      .rp-type-ic { width: 46px !important; height: 46px !important; }
+      .rp-info { padding: 0.7rem 0.8rem !important; }
+      .rp-foot { gap: 0.5rem; }
+    }
+    /* Small phones (≤ 400px) */
+    @media (max-width: 400px) {
+      .rp-title { font-size: 1.3rem !important; }
+      .rp-card { padding: 0.85rem !important; }
+      .rp-foot { flex-wrap: wrap; }
+      .rp-foot .rp-btn { flex: 1 1 auto; justify-content: center; }
+      .rp-desc { font-size: 0.85rem; }
+    }
 
     /* Page: normal size on phones */
     @media (max-width: 768px) { .dashboard-page { zoom: 1; padding-left: 0.75rem !important; padding-right: 0.75rem !important; } }
