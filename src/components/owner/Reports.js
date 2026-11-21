@@ -136,9 +136,11 @@ const reverseGeocode = (lat, lng, onAddressResolve, onBarangayDetect) => {
 };
 
 const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
-  const mapRef    = useRef(null);
+  const wrapRef   = useRef(null);   // sized box in the page
+  const mapRef    = useRef(null);   // Google map, kept at zoom 1 inside the box
   const mapObj    = useRef(null);
   const markerRef = useRef(null);
+  const lastPinRef = useRef(null);  // last point pinned by clicking, so the view doesn't jump
   const [ready, setReady] = useState(!!window.google?.maps?.Map);
   const [mapError, setMapError] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -163,6 +165,7 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
   };
 
   const pinAt = (pLat, pLng) => {
+    lastPinRef.current = { lat: pLat, lng: pLng };
     placeMarker(pLat, pLng);
     const cb = cbRef.current;
     cb.onLocationSelect && cb.onLocationSelect(pLat, pLng);
@@ -182,6 +185,9 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
       fullscreenControl: false,
       clickableIcons: false,
       gestureHandling: readOnly ? 'cooperative' : 'greedy',
+      // Pointing finger when hovering (click once to pin), closed hand only while holding and dragging
+      draggableCursor: readOnly ? undefined : 'pointer',
+      draggingCursor: 'grabbing',
     });
     mapObj.current = map;
 
@@ -215,13 +221,34 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
     if (!mapObj.current) return;
     if (lat && lng) {
       placeMarker(lat, lng);
-      mapObj.current.panTo({ lat, lng });
+      // Only move the view when the pin came from outside (typed address), not from a click on the map
+      const last = lastPinRef.current;
+      if (!last || last.lat !== lat || last.lng !== lng) mapObj.current.panTo({ lat, lng });
     } else if (markerRef.current) {
       markerRef.current.setMap(null);
       markerRef.current = null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
+
+  // The page and modals use CSS zoom (0.75 / 0.9). Google Maps reads clicks wrong under zoom,
+  // so the map itself is kept at zoom 1 and sized to fill the box exactly.
+  useEffect(() => {
+    const wrap = wrapRef.current, inner = mapRef.current;
+    if (!wrap || !inner) return;
+    const fit = () => {
+      const r = wrap.getBoundingClientRect();
+      let z = 1;
+      for (let el = wrap; el; el = el.parentElement) z *= parseFloat(getComputedStyle(el).zoom) || 1;
+      inner.style.zoom = Math.abs(z - 1) < 0.01 ? '' : String(1 / z);
+      inner.style.width = `${r.width}px`;
+      inner.style.height = `${r.height}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [isFullscreen]);
 
   const useMyLocation = () => {
     const cb = cbRef.current;
@@ -283,13 +310,17 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
         <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.8rem' }} />
       </button>
 
-      <div ref={mapRef} style={{
+      <div ref={wrapRef} style={{
+        position: 'relative',
         height: isFullscreen ? '100%' : (readOnly ? '250px' : '400px'),
         width: '100%',
         aspectRatio: isFullscreen ? 'auto' : (readOnly ? 'auto' : '1 / 1'),
         borderRadius: '8px',
+        overflow: 'hidden',
         flex: isFullscreen ? 1 : 'auto',
-      }} />
+      }}>
+        <div ref={mapRef} style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }} />
+      </div>
 
       {!readOnly && (
         <>
