@@ -108,13 +108,16 @@ const findBarangay = (barangays, areaStr, lat, lng) => {
   const list = [...barangays].sort((a, b) => b.name.length - a.name.length); // "Ayala Alabang" before "Alabang"
   const areas = (areaStr || '').toLowerCase().split(' | ').map(a => a.trim()).filter(Boolean);
   const norm = (t) => t.toLowerCase().replace(/^(brgy\.?|barangay)\s+/, '').trim();
-  for (const b of list) {
-    const name = norm(b.name);
-    if (areas.some(a => norm(a) === name)) return b;
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // 1) Google's most specific area name that IS a barangay name (follows Google's order, not name length)
+  for (const a of areas) {
+    const hit = list.find(b => norm(b.name) === norm(a));
+    if (hit) return hit;
   }
-  for (const b of list) {
-    const name = norm(b.name);
-    if (areas.some(a => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(a))) return b;
+  // 2) An area name that contains a barangay name ("Alabang Hills" -> Alabang), most specific area first
+  for (const a of areas) {
+    const hit = list.find(b => new RegExp(`\\b${esc(norm(b.name))}\\b`).test(a));
+    if (hit) return hit;
   }
   if (lat == null || lng == null) return null;
   let best = null, min = Infinity;
@@ -163,11 +166,14 @@ const reverseGeocode = (lat, lng, onAddressResolve, onBarangayDetect) => {
       const plusCode = results.find(r => r.plus_code)?.plus_code?.compound_code || null;
       onAddressResolve && onAddressResolve(best.formatted_address || '', plusCode, lat, lng);
       // Barangay usually comes back as a sublocality or neighborhood
-      const AREA = ['sublocality', 'sublocality_level_1', 'sublocality_level_2', 'neighborhood', 'administrative_area_level_4', 'administrative_area_level_5'];
-      const areaNames = results.slice(0, 4)
-        .flatMap(r => r.address_components)
-        .filter(c => c.types.some(t => AREA.includes(t)))
+      // Barangay-level names first (in Google's order: closest match first), village/neighbourhood names after
+      const BRGY_TYPES = ['sublocality_level_1', 'administrative_area_level_5', 'sublocality'];
+      const OTHER_TYPES = ['sublocality_level_2', 'neighborhood', 'administrative_area_level_4'];
+      const top = results.slice(0, 4);
+      const pick = (types) => top.flatMap(r => r.address_components)
+        .filter(c => c.types.some(t => types.includes(t)))
         .map(c => c.long_name.toLowerCase());
+      const areaNames = [...pick(BRGY_TYPES), ...pick(OTHER_TYPES)];
       onBarangayDetect && onBarangayDetect([...new Set(areaNames)].join(' | '), lat, lng);
     })
     .catch(() => { onBarangayDetect && onBarangayDetect('', lat, lng); });
