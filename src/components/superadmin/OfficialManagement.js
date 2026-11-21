@@ -677,7 +677,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
     .mm-alert.page { margin-bottom: 1.25rem; align-items: center; }
     .mm-alert.page span { flex: 1; }
     .mm-alert.page button { border: none; background: transparent; color: inherit; width: 28px; height: 28px; border-radius: 7px; opacity: 0.7; }
-    .mm-avatar { width: 54px; height: 54px; border-radius: 15px; flex-shrink: 0; background: linear-gradient(135deg, #ffc107, #ffb000); color: #1f2328; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,193,7,0.3); }
+    .mm-avatar { width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0; background: rgba(255,193,7,0.18); color: #8a6700; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
     .mm-chip.green { background: rgba(25,135,84,0.12); color: #198754; }
     .mm-note-box { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.8rem 0.95rem; margin-bottom: 1.25rem; border-radius: 12px; background: rgba(13,202,240,0.07); border: 1px solid rgba(13,202,240,0.3); font-size: 0.86rem; color: #055160; line-height: 1.5; }
     .mm-note-box > i { margin-top: 3px; color: #0aa2c0; }
@@ -1085,11 +1085,9 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
               <>
                 <Modal.Header closeButton className="mm-head" style={{ '--c': '#e0a800' }}>
                   <div className="mm-head-main">
-                    <div className="mm-avatar" style={active ? undefined : { background: '#e5e7eb', color: '#6b7280', boxShadow: 'none' }}>{initials}</div>
+                    <div className="mm-avatar" style={active ? undefined : { background: '#f3f4f6', color: '#6b7280' }}>{initials}</div>
                     <div style={{ minWidth: 0 }}>
-                      <div className="mm-chips">
-                        <span className={`mm-chip ${active ? 'green' : 'grey'}`}><i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />{active ? 'Active' : 'Inactive'}</span>
-                      </div>
+
                       <Modal.Title as="h5" className="mm-title">{fullName || 'Admin'}</Modal.Title>
                       <div className="mm-sub">City Veterinary Office admin</div>
                     </div>

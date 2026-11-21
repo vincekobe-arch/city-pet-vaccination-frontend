@@ -1436,23 +1436,21 @@ const [addForm, setAddForm] = useState({ item_type: 'vaccination', item_name: ''
       <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="rm-modal" className="iv-zoom-modal" scrollable>
         {viewItem && (() => {
           const cfg = TYPE_CONFIG[viewItem.item_type] || TYPE_CONFIG.equipment;
-          const status = getStockStatus(viewItem);
+
           const stock = parseInt(viewItem.current_stock) || 0;
           const min = parseInt(viewItem.minimum_stock) || 0;
           const level = stock === 0 ? 'out' : stock <= min ? 'low' : 'ok';
           const barPct = Math.min(100, (stock / Math.max(min * 2, 20)) * 100);
           const speciesCfg = viewItem.species ? (SPECIES_COLORS[viewItem.species] || null) : null;
           const expired = expiredBatchMap[viewItem.id] || 0;
-          const statusColor = level === 'low' ? '#b88a00' : status.color;
+
           return (
             <>
               <Modal.Header closeButton className="rm-head" style={{ '--c': cfg.color }}>
                 <div className="rm-head-main">
                   <div className="rm-head-ic" style={{ background: cfg.bg, color: cfg.color }}><i className={`fas ${cfg.icon}`} /></div>
                   <div style={{ minWidth: 0 }}>
-                    <div className="rm-chips">
-                      <span className="iv-pill" style={{ color: statusColor, background: status.bg }}><i className={`fas ${status.icon}`} />{status.label}</span>
-                    </div>
+                    
                     <Modal.Title as="h5" className="rm-title">{viewItem.item_name}</Modal.Title>
                     <div className="rm-head-sub">
                       <span style={{ color: cfg.color, fontWeight: 700 }}>{cfg.label}</span>

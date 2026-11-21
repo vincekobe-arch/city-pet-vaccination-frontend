@@ -308,7 +308,7 @@ const handleOtpPaste = (e) => {
         sessionStorage.removeItem(STORAGE_KEY);
         sessionStorage.setItem('showVerifyPrompt', '1');
         setTimeout(() => {
-          window.location.replace('/owner/dashboard');
+          window.location.replace('/community/dashboard');
         }, 2000);
       } else { throw new Error(res.data.error || 'Registration failed'); }
     } catch (err) {

@@ -1788,7 +1788,7 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
           const s = selectedSchedule;
           const t = EVENT_TYPES[s.type] || EVENT_TYPES.other;
           const typeLabel = s.type === 'other' ? (s.other_event_type || 'Other') : t.label;
-          const st = scheduleStatus(s);
+
           const dateLabel = new Date(String(s.scheduled_date).slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
           const info = [
             { icon: 'fa-calendar-day', label: 'Date', value: dateLabel, wide: true },
@@ -1807,7 +1807,7 @@ const totalPages = Math.ceil(totalSchedules / itemsPerPage);
                   <div style={{ minWidth: 0 }}>
                     <div className="sx-chips">
                       <span className="sx-chip" style={{ color: t.color, background: `color-mix(in srgb, ${t.color} 12%, #fff)` }}>{typeLabel}</span>
-                      <span className="sx-chip" style={{ color: st.color, background: `color-mix(in srgb, ${st.color} 12%, #fff)` }}><i className={`fas ${st.icon}`} />{st.label}</span>
+
                     </div>
                     <Modal.Title as="h5" className="sx-title">{s.title}</Modal.Title>
                   </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Modal, Form } from 'react-bootstrap';
-import { clinicAPI, handleAPIError } from '../../services/api';
+import api, { clinicAPI, handleAPIError } from '../../services/api';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SPECIALIZATIONS = ['General Veterinary', 'Small Animals', 'Large Animals', 'Exotic Animals', 'Surgery', 'Dermatology', 'Dentistry', 'Cardiology'];
@@ -225,6 +225,7 @@ const ClinicManagement = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -545,6 +546,23 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
       loadData();
     } catch (err) {
       const { message } = handleAPIError(err);
+      setError(message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+    const handleConfirmResetPassword = async () => {
+    if (formLoading || !selectedClinic) return;
+    setFormLoading(true);
+    try {
+      await api.put(`/clinics/reset-password/${selectedClinic.id}`);
+      setShowResetPasswordModal(false);
+      showSuccess(`Password for ${selectedClinic.clinic_name} was reset to clinic123.`, 4000);
+      setSelectedClinic(null);
+    } catch (err) {
+      const { message } = handleAPIError(err);
+      setShowResetPasswordModal(false);
       setError(message);
     } finally {
       setFormLoading(false);
@@ -929,7 +947,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
 
     /* Clinic management extras */
     .mm-backdrop-top { z-index: 1060 !important; }
-    .mm-avatar { width: 54px; height: 54px; border-radius: 15px; flex-shrink: 0; background: linear-gradient(135deg, #ffc107, #ffb000); color: #1f2328; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(255,193,7,0.3); }
+    .mm-avatar { width: 54px; height: 54px; border-radius: 50%; flex-shrink: 0; background: rgba(34,197,94,0.12); color: #15803d; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
     .mm-chip.green { background: rgba(25,135,84,0.12); color: #198754; }
     .mm-note-box { display: flex; gap: 0.7rem; align-items: flex-start; padding: 0.8rem 0.95rem; margin-bottom: 1.25rem; border-radius: 12px; background: rgba(13,202,240,0.07); border: 1px solid rgba(13,202,240,0.3); font-size: 0.86rem; color: #055160; line-height: 1.5; }
     .mm-note-box > i { margin-top: 3px; color: #0aa2c0; }
@@ -1271,6 +1289,9 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                                         <button type="button" role="menuitem" className="ck-menu-item" onClick={() => { setShowDropdown(null); handleEditClinic(clinic); }}>
                                           <i className="fas fa-pen" />Edit clinic
                                         </button>
+                                        <button type="button" role="menuitem" className="ck-menu-item" onClick={() => { setShowDropdown(null); setSelectedClinic(clinic); setShowResetPasswordModal(true); }}>
+                                          <i className="fas fa-key" />Reset password
+                                        </button>
                                         <div className="ck-menu-sep" />
                                         <button type="button" role="menuitem" className="ck-menu-item danger" onClick={() => { setShowDropdown(null); handleDeleteClinic(clinic); }}>
                                           <i className="fas fa-ban" />Deactivate
@@ -1475,10 +1496,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                   <div className="mm-head-main">
                     <div className="mm-avatar">{initials}</div>
                     <div style={{ minWidth: 0 }}>
-                      <div className="mm-chips">
-                        <span className={`mm-chip ${active ? 'green' : 'grey'}`}><i className="fas fa-circle" style={{ fontSize: '0.45rem' }} />{active ? 'Active' : 'Inactive'}</span>
-                        {c.clinic_code && <span className="mm-chip grey mm-mono">{c.clinic_code}</span>}
-                      </div>
+                      
                       <Modal.Title as="h5" className="mm-title">{c.clinic_name}</Modal.Title>
                       <div className="mm-sub">Private clinic</div>
                     </div>
@@ -1538,6 +1556,10 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
           { key: 'restore', show: showRestoreModal, close: () => setShowRestoreModal(false), color: '#198754', icon: 'fa-undo',
             title: 'Restore this clinic?', text: 'The clinic account will be reactivated and can sign in again.',
             label: 'Restore', busy: 'Restoring…', onConfirm: () => handleRestoreClinic(selectedClinic) },
+          { key: 'reset', show: showResetPasswordModal, close: () => setShowResetPasswordModal(false), color: '#0d6efd', icon: 'fa-key',
+            title: 'Reset password?', text: "The clinic's current password will stop working.",
+            note: <>The password will be reset to <strong>clinic123</strong>. Ask the clinic to change it after signing in.</>,
+            label: 'Reset password', busy: 'Resetting…', onConfirm: handleConfirmResetPassword },
         ].map(m => (
           <Modal key={m.key} show={m.show} onHide={() => !formLoading && m.close()} centered dialogClassName="mm-small" className="mm-zoom-modal">
             {selectedClinic && (
@@ -1553,6 +1575,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                       <div className="mm-item-meta">{[selectedClinic.clinic_code, selectedClinic.owner_name, selectedClinic.email].filter(Boolean).join(' · ')}</div>
                     </div>
                   </div>
+                  {m.note && <div className="mm-note" style={{ '--c': m.color }}><i className="fas fa-info-circle" /><span>{m.note}</span></div>}
                 </Modal.Body>
                 <Modal.Footer className="mm-foot even">
                   <button type="button" className="mm-btn ghost" onClick={m.close} disabled={formLoading}>Cancel</button>
