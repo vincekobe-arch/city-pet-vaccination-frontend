@@ -11,171 +11,498 @@ const clinicReportsAPI = {
   delete: (id) => api.delete(`/reports/delete/${id}`),
 };
 
-// ── Leaflet map (read-only + pin mode) ──────────────────────────
-const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
-  const mapRef    = useRef(null);
+// ─── Google Maps (same key as the Map Status page) ───────────────────────────
+const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY;
+
+// Muntinlupa City boundary (lat, lng)
+const MUNTI_BOUNDARY = [
+  [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+  [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+  [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+  [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+  [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+  [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+  [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+  [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+  [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+  [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+  [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+  [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+  [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+  [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+  [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+  [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+  [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+  [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+  [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+  [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+  [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+  [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+  [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
+];
+
+const isInsideMuntinlupa = (lat, lng) => {
+  if (lat < 14.346 || lat > 14.469 || lng < 121.004 || lng > 121.059) return false;
+  let inside = false;
+  for (let i = 0, j = MUNTI_BOUNDARY.length - 1; i < MUNTI_BOUNDARY.length; j = i++) {
+    const [xi, yi] = MUNTI_BOUNDARY[i];
+    const [xj, yj] = MUNTI_BOUNDARY[j];
+    const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+};
+
+// Outside the city: move the pin to the nearest boundary point
+const snapToMuntinlupa = (lat, lng) => {
+  if (isInsideMuntinlupa(lat, lng)) return [lat, lng];
+  let best = MUNTI_BOUNDARY[0], min = Infinity;
+  MUNTI_BOUNDARY.forEach(([pLat, pLng]) => {
+    const d = (lat - pLat) ** 2 + (lng - pLng) ** 2;
+    if (d < min) { min = d; best = [pLat, pLng]; }
+  });
+  return best;
+};
+
+// Rough centre points of Muntinlupa's 9 barangays — used only when Google doesn't name the barangay
+const BRGY_POINTS = {
+  'sucat':         [[14.4614, 121.0466]],
+  'buli':          [[14.4447, 121.0503]],
+  'cupang':        [[14.4316, 121.0475]],
+  // Ayala Alabang is counted as Alabang
+  'alabang':       [[14.4199, 121.0407], [14.4105, 121.0395], [14.4067, 121.0173], [14.4220, 121.0270], [14.3990, 121.0240]],
+  'bayanan':       [[14.4053, 121.0473]],
+  'putatan':       [[14.3960, 121.0367]],
+  'poblacion':     [[14.3826, 121.0450]],
+  'tunasan':       [[14.3687, 121.0369]],
+};
+
+// Picks the barangay for a pin: Google's area names first, nearest barangay centre as a fallback
+const findBarangay = (barangays, areaStr, lat, lng) => {
+  // Ayala Alabang is never picked: anything in Alabang / Ayala Alabang becomes "Alabang"
+  const list = [...barangays]
+    .filter(b => !/ayala\s+alabang/i.test(b.name))
+    .sort((a, b) => b.name.length - a.name.length);
+  const areas = (areaStr || '').toLowerCase().split(' | ')
+    .map(a => a.trim().replace(/ayala\s+alabang/g, 'alabang'))
+    .filter(Boolean);
+  const norm = (t) => t.toLowerCase().replace(/^(brgy\.?|barangay)\s+/, '').trim();
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // 1) Google's most specific area name that IS a barangay name (follows Google's order, not name length)
+  for (const a of areas) {
+    const hit = list.find(b => norm(b.name) === norm(a));
+    if (hit) return hit;
+  }
+  // 2) An area name that contains a barangay name ("Alabang Hills" -> Alabang), most specific area first
+  for (const a of areas) {
+    const hit = list.find(b => new RegExp(`\\b${esc(norm(b.name))}\\b`).test(a));
+    if (hit) return hit;
+  }
+  if (lat == null || lng == null) return null;
+  let best = null, min = Infinity;
+  list.forEach(b => {
+    const pts = BRGY_POINTS[norm(b.name)];
+    (pts || []).forEach(([pLat, pLng]) => {
+      const d = (lat - pLat) ** 2 + (lng - pLng) ** 2;
+      if (d < min) { min = d; best = b; }
+    });
+  });
+  return best;
+};
+
+// Loads the Google Maps script once and shares it with every map on the page
+let googleMapsPromise = null;
+const loadGoogleMaps = () => {
+  if (window.google?.maps?.Map) return Promise.resolve(window.google.maps);
+  if (googleMapsPromise) return googleMapsPromise;
+  googleMapsPromise = new Promise((resolve, reject) => {
+    const done = () => (window.google?.maps?.Map ? resolve(window.google.maps) : reject(new Error('Google Maps did not load')));
+    const fail = () => { googleMapsPromise = null; reject(new Error('Google Maps did not load')); };
+    let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (script) {
+      script.addEventListener('load', done);
+      script.addEventListener('error', fail);
+      return;
+    }
+    script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}`;
+    script.async = true;
+    script.onload = done;
+    script.onerror = fail;
+    document.head.appendChild(script);
+  });
+  return googleMapsPromise;
+};
+
+// Address + barangay names for a pinned point (Google Geocoding)
+const reverseGeocode = (lat, lng, onAddressResolve, onBarangayDetect) => {
+  const gm = window.google?.maps;
+  if (!gm) return;
+  new gm.Geocoder().geocode({ location: { lat, lng } })
+    .then(({ results }) => {
+      if (!results || !results.length) { onBarangayDetect && onBarangayDetect('', lat, lng); return; }
+      const best = results.find(r => !r.types.includes('plus_code')) || results[0];
+      const plusCode = results.find(r => r.plus_code)?.plus_code?.compound_code || null;
+      onAddressResolve && onAddressResolve(best.formatted_address || '', plusCode, lat, lng);
+      // Barangay usually comes back as a sublocality or neighborhood
+      // Barangay-level names first (in Google's order: closest match first), village/neighbourhood names after
+      const BRGY_TYPES = ['sublocality_level_1', 'administrative_area_level_5', 'sublocality'];
+      const OTHER_TYPES = ['sublocality_level_2', 'neighborhood', 'administrative_area_level_4'];
+      const top = results.slice(0, 4);
+      const pick = (types) => top.flatMap(r => r.address_components)
+        .filter(c => c.types.some(t => types.includes(t)))
+        .map(c => c.long_name.toLowerCase());
+      const areaNames = [...pick(BRGY_TYPES), ...pick(OTHER_TYPES)];
+      onBarangayDetect && onBarangayDetect([...new Set(areaNames)].join(' | '), lat, lng);
+    })
+    .catch(() => { onBarangayDetect && onBarangayDetect('', lat, lng); });
+};
+
+const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError, height }) => {
+  const wrapRef   = useRef(null);   // sized box in the page
+  const mapRef    = useRef(null);   // Google map, kept at zoom 1 inside the box
   const mapObj    = useRef(null);
   const markerRef = useRef(null);
-  const [ready, setReady] = useState(false);
+  const lastPinRef = useRef(null);  // last point pinned by clicking, so the view doesn't jump
+  const [ready, setReady] = useState(!!window.google?.maps?.Map);
   const [mapError, setMapError] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // Keep the latest callbacks without re-creating the map
+  const cbRef = useRef({});
+  cbRef.current = { onLocationSelect, onAddressResolve, onBarangayDetect, onError };
+
   useEffect(() => {
-    if (window.L) { setReady(true); return; }
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = () => setReady(true);
-    script.onerror = () => setMapError('Failed to load map.');
-    document.head.appendChild(script);
-  }, []);
+    if (ready) return;
+    let alive = true;
+    loadGoogleMaps()
+      .then(() => alive && setReady(true))
+      .catch(() => alive && setMapError('Failed to load the map. Check your connection and try again.'));
+    return () => { alive = false; };
+  }, [ready]);
+
+  const placeMarker = (pLat, pLng) => {
+    const gm = window.google.maps;
+    if (markerRef.current) markerRef.current.setPosition({ lat: pLat, lng: pLng });
+    else markerRef.current = new gm.Marker({ position: { lat: pLat, lng: pLng }, map: mapObj.current });
+  };
+
+  const pinAt = (pLat, pLng) => {
+    lastPinRef.current = { lat: pLat, lng: pLng };
+    placeMarker(pLat, pLng);
+    const cb = cbRef.current;
+    cb.onLocationSelect && cb.onLocationSelect(pLat, pLng);
+    reverseGeocode(pLat, pLng, cb.onAddressResolve, cb.onBarangayDetect);
+  };
 
   useEffect(() => {
     if (!ready || !mapRef.current || mapObj.current) return;
-    const defLat = lat || 14.4081, defLng = lng || 121.0415;
-    const bounds = window.L.latLngBounds([14.34, 120.97], [14.50, 121.12]);
-    const map = window.L.map(mapRef.current, {
-      minZoom: 12, maxZoom: 22, maxBounds: bounds, maxBoundsViscosity: 0.7
-    }).setView([defLat, defLng], 13);
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 22, maxNativeZoom: 19
-    }).addTo(map);
-    if (lat && lng) markerRef.current = window.L.marker([lat, lng]).addTo(map);
+    const gm = window.google.maps;
+    const map = new gm.Map(mapRef.current, {
+      center: { lat: lat || 14.4081, lng: lng || 121.0415 },
+      zoom: lat && lng ? 16 : 13,
+      minZoom: 12,
+      restriction: { latLngBounds: { north: 14.50, south: 14.34, east: 121.12, west: 120.97 }, strictBounds: false },
+      mapTypeControl: false,
+      cameraControl: false,      // the round move/zoom ("remote") button
+      streetViewControl: false,
+      fullscreenControl: false,
+      clickableIcons: false,
+      gestureHandling: readOnly ? 'cooperative' : 'greedy',
+      // Pointing finger when hovering (click once to pin), closed hand only while holding and dragging
+      draggableCursor: readOnly ? undefined : 'pointer',
+      draggingCursor: 'grabbing',
+    });
+    mapObj.current = map;
 
-const poly = [
-      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-      [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-      [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-      [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-      [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-      [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-      [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-      [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-      [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-      [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-      [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-      [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-      [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-      [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-      [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-      [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-      [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-      [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-      [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-      [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-      [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-      [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-      [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-    ];    const inside = (lt, ln) => { let ins = false; for (let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];if(((yi>ln)!==(yj>ln))&&(lt<(xj-xi)*(ln-yi)/(yj-yi)+xi))ins=!ins;}return ins; };
+    new gm.Polygon({
+      paths: MUNTI_BOUNDARY.map(([pLat, pLng]) => ({ lat: pLat, lng: pLng })),
+      strokeColor: '#ffc107', strokeOpacity: 0.9, strokeWeight: 2.5,
+      fillColor: '#ffc107', fillOpacity: 0.04,
+      clickable: false, map,
+    });
 
-    window.L.polygon(poly, { color:'#dc3545', weight:2, opacity:0.7, fillOpacity:0, dashArray:'6,4' }).addTo(map);
+    if (lat && lng) placeMarker(lat, lng);
 
     if (!readOnly) {
-      map.on('click', (e) => {
-        const { lat: lt, lng: ln } = e.latlng;
-        if (!inside(lt, ln)) return;
-        if (markerRef.current) markerRef.current.setLatLng([lt, ln]);
-        else markerRef.current = window.L.marker([lt, ln]).addTo(map);
-        onLocationSelect && onLocationSelect(lt, ln);
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lt}&lon=${ln}&zoom=17&addressdetails=1`)
-          .then(r => r.json())
-          .then(data => {
-            const display = data.display_name || '';
-            onAddressResolve && onAddressResolve(display);
-            const addrStr = `${data.address?.suburb||''} ${data.address?.village||''} ${data.address?.quarter||''} ${data.address?.neighbourhood||''}`.toLowerCase();
-            onBarangayDetect && onBarangayDetect(addrStr);
-          }).catch(() => {});
+      map.addListener('click', (e) => {
+        const [pLat, pLng] = snapToMuntinlupa(e.latLng.lat(), e.latLng.lng());
+        pinAt(pLat, pLng);
       });
     }
-    mapObj.current = map;
-    setTimeout(() => map.invalidateSize(), 300);
-    return () => { map.remove(); mapObj.current = null; markerRef.current = null; };
-  // eslint-disable-next-line
+
+    return () => {
+      if (markerRef.current) markerRef.current.setMap(null);
+      gm.event.clearInstanceListeners(map);
+      mapObj.current = null;
+      markerRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  // Pin moved from outside (typed address, "clear pin")
   useEffect(() => {
-    if (!mapObj.current || !lat || !lng) return;
-    if (markerRef.current) markerRef.current.setLatLng([lat, lng]);
-    else markerRef.current = window.L.marker([lat, lng]).addTo(mapObj.current);
+    if (!mapObj.current) return;
+    if (lat && lng) {
+      placeMarker(lat, lng);
+      // Only move the view when the pin came from outside (typed address), not from a click on the map
+      const last = lastPinRef.current;
+      if (!last || last.lat !== lat || last.lng !== lng) mapObj.current.panTo({ lat, lng });
+    } else if (markerRef.current) {
+      markerRef.current.setMap(null);
+      markerRef.current = null;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
 
-  if (mapError) return <div style={{ background:'#fff3f3', borderRadius:'8px', padding:'1rem', color:'#dc3545' }}><i className="fas fa-exclamation-triangle me-2"></i>{mapError}</div>;
+  // The page and modals use CSS zoom (0.75 / 0.9). Google Maps reads clicks wrong under zoom,
+  // so the map itself is kept at zoom 1 and sized to fill the box exactly.
+  useEffect(() => {
+    const wrap = wrapRef.current, inner = mapRef.current;
+    if (!wrap || !inner) return;
+    const fit = () => {
+      const r = wrap.getBoundingClientRect();
+      let z = 1;
+      for (let el = wrap; el; el = el.parentElement) z *= parseFloat(getComputedStyle(el).zoom) || 1;
+      inner.style.zoom = Math.abs(z - 1) < 0.01 ? '' : String(1 / z);
+      inner.style.width = `${r.width}px`;
+      inner.style.height = `${r.height}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [isFullscreen]);
+
+  // Short message shown on top of the map (e.g. "you're outside Muntinlupa")
+  const [notice, setNotice] = useState(null);
+  const noticeTimer = useRef(null);
+  const showNotice = (text, kind = 'error') => {
+    // If the page shows its own error (onError), use that; otherwise show it on the map
+    if (kind === 'error' && cbRef.current.onError) { cbRef.current.onError(text); return; }
+    clearTimeout(noticeTimer.current);
+    setNotice({ text, kind });
+    noticeTimer.current = setTimeout(() => setNotice(null), 5000);
+  };
+  useEffect(() => () => clearTimeout(noticeTimer.current), []);
+
+  const [locating, setLocating] = useState(false);
+
+  // ── Search a place: moves, zooms and pins the map ──
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState([]);   // shown when Google finds more than one place
+
+  const goTo = (pLat, pLng) => {
+    if (!mapObj.current) return;
+    mapObj.current.setCenter({ lat: pLat, lng: pLng });
+    mapObj.current.setZoom(17);
+    pinAt(pLat, pLng);
+    setResults([]);
+    setNotice(null);
+  };
+
+  const searchPlace = () => {
+    const q = query.trim();
+    const gm = window.google?.maps;
+    if (!q || !gm || searching) return;
+    setSearching(true);
+    setResults([]);
+    new gm.Geocoder().geocode({
+      address: /muntinlupa/i.test(q) ? q : `${q}, Muntinlupa City, Metro Manila`,
+      componentRestrictions: { country: 'PH' },
+      bounds: { north: 14.47, south: 14.345, east: 121.06, west: 121.0 },
+    })
+      .then(({ results: found }) => {
+        const inside = (found || [])
+          .map(r => ({ label: r.formatted_address, lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }))
+          .filter(r => isInsideMuntinlupa(r.lat, r.lng));
+        if (!inside.length) { showNotice(`No place called "${q}" was found inside Muntinlupa City. Try another name or tap the map.`); return; }
+        if (inside.length === 1) goTo(inside[0].lat, inside[0].lng);
+        else setResults(inside.slice(0, 5));
+      })
+      .catch(() => showNotice(`No place called "${q}" was found. Try another name or tap the map.`))
+      .finally(() => setSearching(false));
+  };
+  const useMyLocation = () => {
+    if (locating) return;
+    if (!navigator.geolocation) { showNotice('Your browser does not support location access.'); return; }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const { latitude, longitude } = pos.coords;
+        if (!isInsideMuntinlupa(latitude, longitude)) {
+          showNotice("You're outside Muntinlupa City. Only locations inside Muntinlupa can be pinned — tap the map to pin the place instead.");
+          return;
+        }
+        if (!mapObj.current) return;
+        mapObj.current.setCenter({ lat: latitude, lng: longitude });
+        mapObj.current.setZoom(17);
+        pinAt(latitude, longitude);
+        setNotice(null);
+      },
+      (err) => {
+        setLocating(false);
+        showNotice(err && err.code === 1
+          ? 'Location access is blocked. Allow it in your browser settings, or tap the map to pin the place.'
+          : "We couldn't get your location. Try again or tap the map to pin the place.");
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
+
+  if (mapError) return (
+    <div style={{ background: '#fff5f5', borderRadius: '8px', padding: '1rem', color: '#dc3545', fontSize: '0.88rem' }}>
+      <i className="fas fa-exclamation-circle me-2" />{mapError}
+    </div>
+  );
 
   return (
-    <div style={{ position: isFullscreen ? 'fixed' : 'relative', inset: isFullscreen ? 0 : 'auto', zIndex: isFullscreen ? 9999 : 'auto', background: isFullscreen ? '#fff' : 'transparent', padding: isFullscreen ? '1rem' : 0, display: 'flex', flexDirection: 'column' }}>
-      {!ready && (
-        <div className="rp-skel" style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'8px', zIndex:1 }}>
-          <span style={{ fontSize:'0.85rem', color:'#9ca3af', fontWeight:600 }}><i className="fas fa-map-marked-alt me-2" />Loading map…</span>
-        </div>
-      )}
-      <button type="button" onClick={() => { setIsFullscreen(p => !p); setTimeout(() => mapObj.current?.invalidateSize(), 300); }}
-        style={{ position:'absolute', top: isFullscreen?'1.75rem':'10px', right: isFullscreen?'1.75rem':'10px', zIndex:1000, background:'#fff', border:'2px solid #dee2e6', borderRadius:'8px', width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}
-        onMouseOver={e => { e.currentTarget.style.borderColor='#dc3545'; e.currentTarget.style.background='#fff3f3'; }}
-        onMouseOut={e => { e.currentTarget.style.borderColor='#dee2e6'; e.currentTarget.style.background='#fff'; }}>
-        <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize:'0.8rem', color:'#555' }}></i>
-      </button>
-      <div ref={mapRef} style={{ height: isFullscreen ? '100%' : (readOnly ? '250px' : '380px'), width:'100%', borderRadius:'8px', border:'2px solid #dee2e6', flex: isFullscreen ? 1 : 'auto' }} />
-      {!readOnly && (
-        <>
-          <button type="button"
-            onClick={() => {
-              if (!navigator.geolocation) return;
-              navigator.geolocation.getCurrentPosition((pos) => {
-                const { latitude, longitude } = pos.coords;
-            const poly = [
-      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-      [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-      [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-      [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-      [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-      [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-      [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-      [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-      [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-      [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-      [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-      [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-      [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-      [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-      [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-      [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-      [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-      [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-      [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-      [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-      [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-      [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-      [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-    ];                const inside = (lt, ln) => { let ins=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];if(((yi>ln)!==(yj>ln))&&(lt<(xj-xi)*(ln-yi)/(yj-yi)+xi))ins=!ins;}return ins; };
-                if (!inside(latitude, longitude)) { onError && onError('Your location is outside Muntinlupa City.'); return; }
-                if (mapObj.current) {
-                  mapObj.current.setView([latitude, longitude], 16);
-                  if (markerRef.current) markerRef.current.setLatLng([latitude, longitude]);
-                  else markerRef.current = window.L.marker([latitude, longitude]).addTo(mapObj.current);
-                  onLocationSelect && onLocationSelect(latitude, longitude);
-                  fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=17&addressdetails=1`)
-                    .then(r => r.json())
-                    .then(data => {
-                      onAddressResolve && onAddressResolve(data.display_name || '');
-                      const addrStr = `${data.address?.suburb||''} ${data.address?.village||''} ${data.address?.quarter||''} ${data.address?.neighbourhood||''}`.toLowerCase();
-                      onBarangayDetect && onBarangayDetect(addrStr);
-                    }).catch(() => {});
-                }
-              }, () => onError && onError('Unable to get your location.'));
-            }}
-            style={{ position:'absolute', bottom:'38px', right:'10px', zIndex:1000, background:'#fff', border:'2px solid #dee2e6', borderRadius:'8px', width:'34px', height:'34px', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}
-            onMouseOver={e => { e.currentTarget.style.borderColor='#dc3545'; e.currentTarget.style.background='#fff3f3'; }}
-            onMouseOut={e => { e.currentTarget.style.borderColor='#dee2e6'; e.currentTarget.style.background='#fff'; }}>
-            <i className="fas fa-location-arrow" style={{ fontSize:'0.8rem', color:'#555' }}></i>
+    <div style={{
+      position: isFullscreen ? 'fixed' : 'relative',
+      inset: isFullscreen ? 0 : 'auto',
+      zIndex: isFullscreen ? 9999 : 'auto',
+      background: isFullscreen ? '#fff' : 'transparent',
+      padding: isFullscreen ? '1rem' : 0,
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      <style>{`
+        @keyframes gmShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+        @keyframes gmNotice { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        .gm-ctrl { position: absolute; z-index: 5; width: 40px; height: 40px; border: none; border-radius: 10px; background: #fff; color: #3c4043;
+          display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 2px 10px rgba(0,0,0,0.08);
+          transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+        .gm-ctrl:hover { background: #f8f9fa; color: #1f2328; box-shadow: 0 2px 6px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.1); }
+        .gm-ctrl:active { background: #f1f3f4; }
+        .gm-ctrl:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+        .gm-ctrl:disabled { cursor: progress; }
+        .gm-ctrl i { font-size: 0.95rem; }
+        .gm-ctrl.locate i { color: #1a73e8; }
+        .gm-notice { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6; width: max-content; max-width: calc(100% - 120px);
+          display: flex; align-items: flex-start; gap: 0.55rem; padding: 0.6rem 0.75rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.45;
+          background: #fff; color: #842029; border: 1px solid rgba(220,53,69,0.3); box-shadow: 0 6px 20px rgba(16,24,40,0.18); animation: gmNotice 0.2s ease-out; }
+        .gm-notice > i { color: #dc3545; margin-top: 2px; }
+        .gm-notice button { border: none; background: transparent; color: #9ca3af; padding: 0 0 0 0.25rem; line-height: 1; }
+        .gm-notice button:hover { color: #1f2328; }
+        .gm-search { position: absolute; top: 10px; left: 10px; right: 62px; z-index: 6; max-width: 420px; }
+        .gm-search-box { display: flex; align-items: center; gap: 0.5rem; height: 40px; padding: 0 0.35rem 0 0.75rem; background: #fff; border-radius: 10px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 2px 10px rgba(0,0,0,0.08); }
+        .gm-search-box:focus-within { box-shadow: 0 0 0 2px #ffc107, 0 2px 10px rgba(0,0,0,0.12); }
+        .gm-search-box > .fa-search { color: #9ca3af; font-size: 0.85rem; }
+        .gm-search-box input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 0.88rem; color: #1f2328; }
+        .gm-search-box input::placeholder { color: #9ca3af; }
+        .gm-search-busy { color: #e0a800; font-size: 0.85rem; }
+        .gm-search-clear { border: none; background: transparent; color: #9ca3af; width: 26px; height: 26px; border-radius: 7px; }
+        .gm-search-clear:hover { background: #f3f4f6; color: #1f2328; }
+        .gm-search-go { border: none; height: 30px; padding: 0 0.8rem; border-radius: 8px; background: #ffc107; color: #1f2328; font-size: 0.8rem; font-weight: 700; }
+        .gm-search-go:hover:not(:disabled) { background: #f0b400; }
+        .gm-search-go:disabled { opacity: 0.5; cursor: not-allowed; }
+        .gm-search-results { margin-top: 6px; background: #fff; border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,0.18); overflow: hidden; }
+        .gm-search-head { padding: 0.5rem 0.8rem 0.3rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+        .gm-search-results button { display: flex; align-items: flex-start; gap: 0.55rem; width: 100%; padding: 0.55rem 0.8rem; border: none; border-top: 1px solid #f3f4f6;
+          background: #fff; text-align: left; font-size: 0.82rem; color: #1f2328; line-height: 1.4; }
+        .gm-search-results button:hover { background: #fffbeb; }
+        .gm-search-results button i { color: #dc3545; margin-top: 3px; }
+        .gm-notice { top: 60px; }
+        @media (max-width: 576px) { .gm-notice { max-width: calc(100% - 24px); top: 60px; } .gm-search-go { display: none; } }
+      `}</style>
+
+      <div ref={wrapRef} style={{
+        position: 'relative',
+        height: isFullscreen ? '100%' : (height || (readOnly ? '250px' : '400px')),
+        width: '100%',
+        aspectRatio: isFullscreen || height ? 'auto' : (readOnly ? 'auto' : '1 / 1'),
+        borderRadius: '8px',
+        overflow: 'hidden',
+        flex: isFullscreen ? 1 : 'auto',
+      }}>
+        <div ref={mapRef} style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }} />
+
+        {!readOnly && ready && (
+          <div className="gm-search">
+            <div className="gm-search-box">
+              <i className="fas fa-search" />
+              <input
+                type="text"
+                value={query}
+                placeholder="Search a place, street or landmark…"
+                aria-label="Search a place on the map"
+                onChange={(e) => { setQuery(e.target.value); if (results.length) setResults([]); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); searchPlace(); }   // don't submit the form
+                  if (e.key === 'Escape') { setResults([]); }
+                }}
+              />
+              {searching
+                ? <i className="fas fa-circle-notch fa-spin gm-search-busy" />
+                : query && (
+                  <button type="button" className="gm-search-clear" onClick={() => { setQuery(''); setResults([]); }} aria-label="Clear search">
+                    <i className="fas fa-times" />
+                  </button>
+                )}
+              <button type="button" className="gm-search-go" onClick={searchPlace} disabled={!query.trim() || searching}>Search</button>
+            </div>
+            {results.length > 0 && (
+              <div className="gm-search-results" role="listbox">
+                <div className="gm-search-head">Choose the place you mean</div>
+                {results.map((r, idx) => (
+                  <button key={idx} type="button" role="option" aria-selected="false" onClick={() => goTo(r.lat, r.lng)}>
+                    <i className="fas fa-map-marker-alt" /><span>{r.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!ready && (
+          <div aria-label="Loading map" style={{
+            position: 'absolute', inset: 0, zIndex: 1,
+            background: 'linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%)',
+            backgroundSize: '800px 100%', animation: 'gmShimmer 1.4s ease-in-out infinite',
+          }} />
+        )}
+
+        {notice && (
+          <div className="gm-notice" role="alert">
+            <i className="fas fa-exclamation-circle" />
+            <span>{notice.text}</span>
+            <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="gm-ctrl"
+          onClick={() => setIsFullscreen(f => !f)}
+          style={{ top: 10, right: 10 }}
+          title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+          aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+        >
+          <i className={`fas ${isFullscreen ? 'fa-compress-alt' : 'fa-expand-alt'}`} />
+        </button>
+
+        {!readOnly && (
+          <button
+            type="button"
+            className="gm-ctrl locate"
+            onClick={useMyLocation}
+            disabled={locating}
+            style={{ bottom: 28, right: 10 }}
+            title="Pin my current location"
+            aria-label="Pin my current location"
+          >
+            <i className={`fas ${locating ? 'fa-circle-notch fa-spin' : 'fa-crosshairs'}`} />
           </button>
-          <small style={{ display:'block', marginTop:'0.4rem', color:'#888', fontSize:'0.78rem' }}>
-            <i className="fas fa-mouse-pointer me-1"></i>Click on the map to pin the exact location
-          </small>
-        </>
+        )}
+      </div>
+
+      {!readOnly && (
+        <small style={{ display: 'block', marginTop: '0.4rem', color: '#888', fontSize: '0.78rem' }}>
+          <i className="fas fa-mouse-pointer me-1" />Click on the map to pin the exact location
+        </small>
       )}
     </div>
   );
@@ -716,7 +1043,7 @@ if (!/^09\d{9}$/.test(editData.phone_number)) { setEditError('Contact number mus
     setSubmitLoading(true);
     setSubmitError('');
 
-    if (!formData.barangay_id)         { setSubmitError('Barangay is required. Pin a location on the map.'); setSubmitLoading(false); return; }
+    if (!formData.barangay_id)         { setSubmitError('Please choose the barangay where the case happened.'); setSubmitLoading(false); return; }
     if (!formData.address.trim())      { setSubmitError('Address is required.');        setSubmitLoading(false); return; }
 if (!formData.phone_number.trim()) { setSubmitError('Contact number is required.'); setSubmitLoading(false); return; }
 if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); setSubmitLoading(false); return; }
@@ -1016,15 +1343,12 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
               <Form.Group className="mb-3">
                 <Form.Label className="rm-label">Pin the exact location <span className="rm-req">*</span></Form.Label>
                 <div className="rm-map">
-                  <LeafletMap
+                  <GoogleMapPicker
                     lat={formLat} lng={formLng}
                     onLocationSelect={(lt, ln) => { setFormLat(lt); setFormLng(ln); }}
                     onAddressResolve={(addr) => setFormData(prev => ({ ...prev, address: addr }))}
-                    onBarangayDetect={(addrStr) => {
-                      const match = barangays.find(b =>
-                        addrStr.includes(b.name.toLowerCase()) ||
-                        b.name.toLowerCase().split(' ').some(w => w.length > 3 && addrStr.includes(w))
-                      );
+                    onBarangayDetect={(areaStr, pLat, pLng) => {
+                      const match = findBarangay(barangays, areaStr, pLat, pLng);
                       if (match) setFormData(prev => ({ ...prev, barangay_id: String(match.id) }));
                     }}
                     onError={msg => setLocationError(msg)}
@@ -1045,9 +1369,20 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
               <Row className="g-3">
                 <Col md={6}>
                   <Form.Label className="rm-label">Barangay <span className="rm-req">*</span></Form.Label>
-                  <div className={`rm-readonly${formData.barangay_id ? '' : ' empty'}`}>
-                    <i className="fas fa-map" />
-                    {formData.barangay_id ? (barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '') : 'Detected from the map pin'}
+                  <Form.Select
+                    className="rm-input"
+                    name="barangay_id"
+                    value={formData.barangay_id}
+                    onChange={handleFormChange}
+                    disabled={submitLoading}
+                  >
+                    <option value="">Pin the map or choose…</option>
+                    {[...barangays].sort((a, b) => a.name.localeCompare(b.name)).map(b => (
+                      <option key={b.id} value={String(b.id)}>{b.name}</option>
+                    ))}
+                  </Form.Select>
+                  <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.3rem' }}>
+                    <i className="fas fa-magic me-1" />Filled in from your pin. Change it if it's wrong.
                   </div>
                 </Col>
                 <Col md={6}>
@@ -1103,7 +1438,7 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
             <button type="button" className="rp-btn primary lg" disabled={submitLoading}
               onClick={() => {
                 if (!formLat || !formLng)          { setSubmitError('Please pin a location on the map.'); return; }
-                if (!formData.barangay_id)         { setSubmitError('Barangay is required. Pin a location inside Muntinlupa.'); return; }
+                if (!formData.barangay_id)         { setSubmitError('Please choose the barangay where the case happened.'); return; }
                 if (!formData.phone_number.trim()) { setSubmitError('Contact number is required.'); return; }
                 if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); return; }
                 if (!formData.address.trim())      { setSubmitError('Address is required.'); return; }
@@ -1189,7 +1524,7 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
                       <div className="rm-section-title"><i className="fas fa-map-marker-alt" />Pinned location</div>
                       {r.latitude && r.longitude ? (
                         <div className="rm-map view">
-                          <LeafletMap lat={parseFloat(r.latitude)} lng={parseFloat(r.longitude)} readOnly={true} />
+                          <GoogleMapPicker lat={parseFloat(r.latitude)} lng={parseFloat(r.longitude)} readOnly={true} />
                         </div>
                       ) : (
                         <div className="rm-empty"><i className="fas fa-map-marker-alt" />No location was pinned for this report.</div>
@@ -1281,7 +1616,7 @@ if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number m
                 <div className="rm-section mb-0">
                   <div className="rm-section-title"><i className="fas fa-map-pin" />Pinned location</div>
                   <div className="rm-map">
-                    <LeafletMap lat={parseFloat(reportToEdit.latitude)} lng={parseFloat(reportToEdit.longitude)} readOnly={true} />
+                    <GoogleMapPicker lat={parseFloat(reportToEdit.latitude)} lng={parseFloat(reportToEdit.longitude)} readOnly={true} />
                   </div>
                   <div className="rm-hint"><i className="fas fa-lock" />The location can't be changed after submission.</div>
                 </div>

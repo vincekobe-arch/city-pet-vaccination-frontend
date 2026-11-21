@@ -95,8 +95,8 @@ const BRGY_POINTS = {
   'sucat':         [[14.4614, 121.0466]],
   'buli':          [[14.4447, 121.0503]],
   'cupang':        [[14.4316, 121.0475]],
-  'alabang':       [[14.4199, 121.0407], [14.4105, 121.0395]],
-  'ayala alabang': [[14.4067, 121.0173], [14.4220, 121.0270], [14.3990, 121.0240]],
+  // Ayala Alabang is counted as Alabang
+  'alabang':       [[14.4199, 121.0407], [14.4105, 121.0395], [14.4067, 121.0173], [14.4220, 121.0270], [14.3990, 121.0240]],
   'bayanan':       [[14.4053, 121.0473]],
   'putatan':       [[14.3960, 121.0367]],
   'poblacion':     [[14.3826, 121.0450]],
@@ -105,8 +105,13 @@ const BRGY_POINTS = {
 
 // Picks the barangay for a pin: Google's area names first, nearest barangay centre as a fallback
 const findBarangay = (barangays, areaStr, lat, lng) => {
-  const list = [...barangays].sort((a, b) => b.name.length - a.name.length); // "Ayala Alabang" before "Alabang"
-  const areas = (areaStr || '').toLowerCase().split(' | ').map(a => a.trim()).filter(Boolean);
+  // Ayala Alabang is never picked: anything in Alabang / Ayala Alabang becomes "Alabang"
+  const list = [...barangays]
+    .filter(b => !/ayala\s+alabang/i.test(b.name))
+    .sort((a, b) => b.name.length - a.name.length);
+  const areas = (areaStr || '').toLowerCase().split(' | ')
+    .map(a => a.trim().replace(/ayala\s+alabang/g, 'alabang'))
+    .filter(Boolean);
   const norm = (t) => t.toLowerCase().replace(/^(brgy\.?|barangay)\s+/, '').trim();
   const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   // 1) Google's most specific area name that IS a barangay name (follows Google's order, not name length)
@@ -179,7 +184,7 @@ const reverseGeocode = (lat, lng, onAddressResolve, onBarangayDetect) => {
     .catch(() => { onBarangayDetect && onBarangayDetect('', lat, lng); });
 };
 
-const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
+const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError, height }) => {
   const wrapRef   = useRef(null);   // sized box in the page
   const mapRef    = useRef(null);   // Google map, kept at zoom 1 inside the box
   const mapObj    = useRef(null);
@@ -299,14 +304,52 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
   const [notice, setNotice] = useState(null);
   const noticeTimer = useRef(null);
   const showNotice = (text, kind = 'error') => {
+    // If the page shows its own error (onError), use that; otherwise show it on the map
+    if (kind === 'error' && cbRef.current.onError) { cbRef.current.onError(text); return; }
     clearTimeout(noticeTimer.current);
     setNotice({ text, kind });
     noticeTimer.current = setTimeout(() => setNotice(null), 5000);
-    if (kind === 'error') cbRef.current.onError && cbRef.current.onError(text);
   };
   useEffect(() => () => clearTimeout(noticeTimer.current), []);
 
   const [locating, setLocating] = useState(false);
+
+  // ── Search a place: moves, zooms and pins the map ──
+  const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState([]);   // shown when Google finds more than one place
+
+  const goTo = (pLat, pLng) => {
+    if (!mapObj.current) return;
+    mapObj.current.setCenter({ lat: pLat, lng: pLng });
+    mapObj.current.setZoom(17);
+    pinAt(pLat, pLng);
+    setResults([]);
+    setNotice(null);
+  };
+
+  const searchPlace = () => {
+    const q = query.trim();
+    const gm = window.google?.maps;
+    if (!q || !gm || searching) return;
+    setSearching(true);
+    setResults([]);
+    new gm.Geocoder().geocode({
+      address: /muntinlupa/i.test(q) ? q : `${q}, Muntinlupa City, Metro Manila`,
+      componentRestrictions: { country: 'PH' },
+      bounds: { north: 14.47, south: 14.345, east: 121.06, west: 121.0 },
+    })
+      .then(({ results: found }) => {
+        const inside = (found || [])
+          .map(r => ({ label: r.formatted_address, lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }))
+          .filter(r => isInsideMuntinlupa(r.lat, r.lng));
+        if (!inside.length) { showNotice(`No place called "${q}" was found inside Muntinlupa City. Try another name or tap the map.`); return; }
+        if (inside.length === 1) goTo(inside[0].lat, inside[0].lng);
+        else setResults(inside.slice(0, 5));
+      })
+      .catch(() => showNotice(`No place called "${q}" was found. Try another name or tap the map.`))
+      .finally(() => setSearching(false));
+  };
   const useMyLocation = () => {
     if (locating) return;
     if (!navigator.geolocation) { showNotice('Your browser does not support location access.'); return; }
@@ -369,19 +412,76 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
         .gm-notice > i { color: #dc3545; margin-top: 2px; }
         .gm-notice button { border: none; background: transparent; color: #9ca3af; padding: 0 0 0 0.25rem; line-height: 1; }
         .gm-notice button:hover { color: #1f2328; }
-        @media (max-width: 576px) { .gm-notice { max-width: calc(100% - 24px); top: 60px; } }
+        .gm-search { position: absolute; top: 10px; left: 10px; right: 62px; z-index: 6; max-width: 420px; }
+        .gm-search-box { display: flex; align-items: center; gap: 0.5rem; height: 40px; padding: 0 0.35rem 0 0.75rem; background: #fff; border-radius: 10px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 2px 10px rgba(0,0,0,0.08); }
+        .gm-search-box:focus-within { box-shadow: 0 0 0 2px #ffc107, 0 2px 10px rgba(0,0,0,0.12); }
+        .gm-search-box > .fa-search { color: #9ca3af; font-size: 0.85rem; }
+        .gm-search-box input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font-size: 0.88rem; color: #1f2328; }
+        .gm-search-box input::placeholder { color: #9ca3af; }
+        .gm-search-busy { color: #e0a800; font-size: 0.85rem; }
+        .gm-search-clear { border: none; background: transparent; color: #9ca3af; width: 26px; height: 26px; border-radius: 7px; }
+        .gm-search-clear:hover { background: #f3f4f6; color: #1f2328; }
+        .gm-search-go { border: none; height: 30px; padding: 0 0.8rem; border-radius: 8px; background: #ffc107; color: #1f2328; font-size: 0.8rem; font-weight: 700; }
+        .gm-search-go:hover:not(:disabled) { background: #f0b400; }
+        .gm-search-go:disabled { opacity: 0.5; cursor: not-allowed; }
+        .gm-search-results { margin-top: 6px; background: #fff; border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,0.18); overflow: hidden; }
+        .gm-search-head { padding: 0.5rem 0.8rem 0.3rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
+        .gm-search-results button { display: flex; align-items: flex-start; gap: 0.55rem; width: 100%; padding: 0.55rem 0.8rem; border: none; border-top: 1px solid #f3f4f6;
+          background: #fff; text-align: left; font-size: 0.82rem; color: #1f2328; line-height: 1.4; }
+        .gm-search-results button:hover { background: #fffbeb; }
+        .gm-search-results button i { color: #dc3545; margin-top: 3px; }
+        .gm-notice { top: 60px; }
+        @media (max-width: 576px) { .gm-notice { max-width: calc(100% - 24px); top: 60px; } .gm-search-go { display: none; } }
       `}</style>
 
       <div ref={wrapRef} style={{
         position: 'relative',
-        height: isFullscreen ? '100%' : (readOnly ? '250px' : '400px'),
+        height: isFullscreen ? '100%' : (height || (readOnly ? '250px' : '400px')),
         width: '100%',
-        aspectRatio: isFullscreen ? 'auto' : (readOnly ? 'auto' : '1 / 1'),
+        aspectRatio: isFullscreen || height ? 'auto' : (readOnly ? 'auto' : '1 / 1'),
         borderRadius: '8px',
         overflow: 'hidden',
         flex: isFullscreen ? 1 : 'auto',
       }}>
         <div ref={mapRef} style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }} />
+
+        {!readOnly && ready && (
+          <div className="gm-search">
+            <div className="gm-search-box">
+              <i className="fas fa-search" />
+              <input
+                type="text"
+                value={query}
+                placeholder="Search a place, street or landmark…"
+                aria-label="Search a place on the map"
+                onChange={(e) => { setQuery(e.target.value); if (results.length) setResults([]); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); searchPlace(); }   // don't submit the form
+                  if (e.key === 'Escape') { setResults([]); }
+                }}
+              />
+              {searching
+                ? <i className="fas fa-circle-notch fa-spin gm-search-busy" />
+                : query && (
+                  <button type="button" className="gm-search-clear" onClick={() => { setQuery(''); setResults([]); }} aria-label="Clear search">
+                    <i className="fas fa-times" />
+                  </button>
+                )}
+              <button type="button" className="gm-search-go" onClick={searchPlace} disabled={!query.trim() || searching}>Search</button>
+            </div>
+            {results.length > 0 && (
+              <div className="gm-search-results" role="listbox">
+                <div className="gm-search-head">Choose the place you mean</div>
+                {results.map((r, idx) => (
+                  <button key={idx} type="button" role="option" aria-selected="false" onClick={() => goTo(r.lat, r.lng)}>
+                    <i className="fas fa-map-marker-alt" /><span>{r.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {!ready && (
           <div aria-label="Loading map" style={{
@@ -1466,7 +1566,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                     disabled={submitLoading}
                   >
                     <option value="">Pin the map or choose…</option>
-                    {[...barangays].sort((a, b) => a.name.localeCompare(b.name)).map(b => (
+                    {barangays.filter(b => !/ayala\s+alabang/i.test(b.name)).sort((a, b) => a.name.localeCompare(b.name)).map(b => (
                       <option key={b.id} value={String(b.id)}>{b.name}</option>
                     ))}
                   </Form.Select>
