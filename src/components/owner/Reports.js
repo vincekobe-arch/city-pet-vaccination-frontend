@@ -90,6 +90,44 @@ const snapToMuntinlupa = (lat, lng) => {
   return best;
 };
 
+// Rough centre points of Muntinlupa's 9 barangays — used only when Google doesn't name the barangay
+const BRGY_POINTS = {
+  'sucat':         [[14.4614, 121.0466]],
+  'buli':          [[14.4447, 121.0503]],
+  'cupang':        [[14.4316, 121.0475]],
+  'alabang':       [[14.4199, 121.0407], [14.4105, 121.0395]],
+  'ayala alabang': [[14.4067, 121.0173], [14.4220, 121.0270], [14.3990, 121.0240]],
+  'bayanan':       [[14.4053, 121.0473]],
+  'putatan':       [[14.3960, 121.0367]],
+  'poblacion':     [[14.3826, 121.0450]],
+  'tunasan':       [[14.3687, 121.0369]],
+};
+
+// Picks the barangay for a pin: Google's area names first, nearest barangay centre as a fallback
+const findBarangay = (barangays, areaStr, lat, lng) => {
+  const list = [...barangays].sort((a, b) => b.name.length - a.name.length); // "Ayala Alabang" before "Alabang"
+  const areas = (areaStr || '').toLowerCase().split(' | ').map(a => a.trim()).filter(Boolean);
+  const norm = (t) => t.toLowerCase().replace(/^(brgy\.?|barangay)\s+/, '').trim();
+  for (const b of list) {
+    const name = norm(b.name);
+    if (areas.some(a => norm(a) === name)) return b;
+  }
+  for (const b of list) {
+    const name = norm(b.name);
+    if (areas.some(a => new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(a))) return b;
+  }
+  if (lat == null || lng == null) return null;
+  let best = null, min = Infinity;
+  list.forEach(b => {
+    const pts = BRGY_POINTS[norm(b.name)];
+    (pts || []).forEach(([pLat, pLng]) => {
+      const d = (lat - pLat) ** 2 + (lng - pLng) ** 2;
+      if (d < min) { min = d; best = b; }
+    });
+  });
+  return best;
+};
+
 // Loads the Google Maps script once and shares it with every map on the page
 let googleMapsPromise = null;
 const loadGoogleMaps = () => {
@@ -120,7 +158,7 @@ const reverseGeocode = (lat, lng, onAddressResolve, onBarangayDetect) => {
   if (!gm) return;
   new gm.Geocoder().geocode({ location: { lat, lng } })
     .then(({ results }) => {
-      if (!results || !results.length) return;
+      if (!results || !results.length) { onBarangayDetect && onBarangayDetect('', lat, lng); return; }
       const best = results.find(r => !r.types.includes('plus_code')) || results[0];
       const plusCode = results.find(r => r.plus_code)?.plus_code?.compound_code || null;
       onAddressResolve && onAddressResolve(best.formatted_address || '', plusCode, lat, lng);
@@ -130,9 +168,9 @@ const reverseGeocode = (lat, lng, onAddressResolve, onBarangayDetect) => {
         .flatMap(r => r.address_components)
         .filter(c => c.types.some(t => AREA.includes(t)))
         .map(c => c.long_name.toLowerCase());
-      onBarangayDetect && onBarangayDetect([...new Set(areaNames)].join(' '));
+      onBarangayDetect && onBarangayDetect([...new Set(areaNames)].join(' | '), lat, lng);
     })
-    .catch(() => {});
+    .catch(() => { onBarangayDetect && onBarangayDetect('', lat, lng); });
 };
 
 const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
@@ -1392,11 +1430,8 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                     lng={formLng}
                     onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
                     onAddressResolve={(address) => { setFormData(prev => ({ ...prev, address })); }}
-                    onBarangayDetect={(addrStr) => {
-                      const match = barangays.find(b =>
-                        addrStr.includes(b.name.toLowerCase()) ||
-                        b.name.toLowerCase().split(' ').some(word => word.length > 3 && addrStr.includes(word))
-                      );
+                    onBarangayDetect={(areaStr, pLat, pLng) => {
+                      const match = findBarangay(barangays, areaStr, pLat, pLng);
                       if (match) setFormData(prev => ({ ...prev, barangay_id: String(match.id) }));
                     }}
                     onError={null}
@@ -1417,9 +1452,20 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
               <Row className="g-3">
                 <Col md={6}>
                   <Form.Label className="rm-label">Barangay <span className="rm-req">*</span></Form.Label>
-                  <div className={`rm-readonly${formData.barangay_id ? '' : ' empty'}`}>
-                    <i className="fas fa-map" />
-                    {formData.barangay_id ? (barangays.find(b => b.id === parseInt(formData.barangay_id))?.name || '') : 'Detected from the map pin'}
+                  <Form.Select
+                    className="rm-input"
+                    name="barangay_id"
+                    value={formData.barangay_id}
+                    onChange={handleFormChange}
+                    disabled={submitLoading}
+                  >
+                    <option value="">Pin the map or choose…</option>
+                    {[...barangays].sort((a, b) => a.name.localeCompare(b.name)).map(b => (
+                      <option key={b.id} value={String(b.id)}>{b.name}</option>
+                    ))}
+                  </Form.Select>
+                  <div className="rm-hint" style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.3rem' }}>
+                    <i className="fas fa-magic me-1" />Filled in from your pin. Change it if it's wrong.
                   </div>
                 </Col>
                 <Col md={6}>
@@ -1475,7 +1521,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
               onClick={() => {
                 if (!formData.report_type)         { setSubmitError('Please select a report type.');    return; }
                 if (!formLat || !formLng)          { setSubmitError('Please pin a location on the map before submitting.'); return; }
-                if (!formData.barangay_id)         { setSubmitError('Please pin a location inside Muntinlupa so the barangay can be detected.'); return; }
+                if (!formData.barangay_id)         { setSubmitError('Please choose the barangay where it happened.'); return; }
                 if (!formData.phone_number.trim()) { setSubmitError('Please enter a contact number.');   return; }
                 if (!/^09\d{9}$/.test(formData.phone_number)) { setSubmitError('Contact number must be 11 digits starting with 09.'); return; }
                 if (!formData.address.trim())      { setSubmitError('Please enter your address.');       return; }
