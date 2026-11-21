@@ -181,6 +181,7 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
       minZoom: 12,
       restriction: { latLngBounds: { north: 14.50, south: 14.34, east: 121.12, west: 120.97 }, strictBounds: false },
       mapTypeControl: false,
+      cameraControl: false,      // the round move/zoom ("remote") button
       streetViewControl: false,
       fullscreenControl: false,
       clickableIcons: false,
@@ -250,22 +251,43 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
     return () => ro.disconnect();
   }, [isFullscreen]);
 
+  // Short message shown on top of the map (e.g. "you're outside Muntinlupa")
+  const [notice, setNotice] = useState(null);
+  const noticeTimer = useRef(null);
+  const showNotice = (text, kind = 'error') => {
+    clearTimeout(noticeTimer.current);
+    setNotice({ text, kind });
+    noticeTimer.current = setTimeout(() => setNotice(null), 5000);
+    if (kind === 'error') cbRef.current.onError && cbRef.current.onError(text);
+  };
+  useEffect(() => () => clearTimeout(noticeTimer.current), []);
+
+  const [locating, setLocating] = useState(false);
   const useMyLocation = () => {
-    const cb = cbRef.current;
-    if (!navigator.geolocation) { cb.onError && cb.onError('Your browser does not support location access.'); return; }
+    if (locating) return;
+    if (!navigator.geolocation) { showNotice('Your browser does not support location access.'); return; }
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setLocating(false);
         const { latitude, longitude } = pos.coords;
         if (!isInsideMuntinlupa(latitude, longitude)) {
-          cb.onError && cb.onError('Your current location is outside Muntinlupa City. Only locations within Muntinlupa can be pinned.');
+          showNotice("You're outside Muntinlupa City. Only locations inside Muntinlupa can be pinned — tap the map to pin the place instead.");
           return;
         }
         if (!mapObj.current) return;
         mapObj.current.setCenter({ lat: latitude, lng: longitude });
         mapObj.current.setZoom(17);
         pinAt(latitude, longitude);
+        setNotice(null);
       },
-      () => cb.onError && cb.onError('Unable to get your location. Please allow location access and try again.')
+      (err) => {
+        setLocating(false);
+        showNotice(err && err.code === 1
+          ? 'Location access is blocked. Allow it in your browser settings, or tap the map to pin the place.'
+          : "We couldn't get your location. Try again or tap the map to pin the place.");
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   };
 
@@ -274,12 +296,6 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
       <i className="fas fa-exclamation-circle me-2" />{mapError}
     </div>
   );
-
-  const ctrlBtn = {
-    position: 'absolute', zIndex: 5, background: '#ffffff', border: '1px solid #e5e7eb',
-    borderRadius: '8px', width: '36px', height: '36px', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', color: '#4b5563',
-  };
 
   return (
     <div style={{
@@ -291,24 +307,26 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
       display: 'flex',
       flexDirection: 'column',
     }}>
-      <style>{`@keyframes gmShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
-      {!ready && (
-        <div aria-label="Loading map" style={{
-          position: 'absolute', inset: 0, zIndex: 1, borderRadius: '8px',
-          background: 'linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%)',
-          backgroundSize: '800px 100%', animation: 'gmShimmer 1.4s ease-in-out infinite',
-        }} />
-      )}
-
-      <button
-        type="button"
-        onClick={() => setIsFullscreen(f => !f)}
-        style={{ ...ctrlBtn, top: isFullscreen ? '1.6rem' : '10px', right: isFullscreen ? '1.6rem' : '10px' }}
-        title={isFullscreen ? 'Exit full screen' : 'Full screen'}
-        aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
-      >
-        <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.8rem' }} />
-      </button>
+      <style>{`
+        @keyframes gmShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+        @keyframes gmNotice { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        .gm-ctrl { position: absolute; z-index: 5; width: 40px; height: 40px; border: none; border-radius: 10px; background: #fff; color: #3c4043;
+          display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.25), 0 2px 10px rgba(0,0,0,0.08);
+          transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease; }
+        .gm-ctrl:hover { background: #f8f9fa; color: #1f2328; box-shadow: 0 2px 6px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.1); }
+        .gm-ctrl:active { background: #f1f3f4; }
+        .gm-ctrl:focus-visible { outline: 2px solid #e0a800; outline-offset: 2px; }
+        .gm-ctrl:disabled { cursor: progress; }
+        .gm-ctrl i { font-size: 0.95rem; }
+        .gm-ctrl.locate i { color: #1a73e8; }
+        .gm-notice { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6; width: max-content; max-width: calc(100% - 120px);
+          display: flex; align-items: flex-start; gap: 0.55rem; padding: 0.6rem 0.75rem; border-radius: 10px; font-size: 0.8rem; line-height: 1.45;
+          background: #fff; color: #842029; border: 1px solid rgba(220,53,69,0.3); box-shadow: 0 6px 20px rgba(16,24,40,0.18); animation: gmNotice 0.2s ease-out; }
+        .gm-notice > i { color: #dc3545; margin-top: 2px; }
+        .gm-notice button { border: none; background: transparent; color: #9ca3af; padding: 0 0 0 0.25rem; line-height: 1; }
+        .gm-notice button:hover { color: #1f2328; }
+        @media (max-width: 576px) { .gm-notice { max-width: calc(100% - 24px); top: 60px; } }
+      `}</style>
 
       <div ref={wrapRef} style={{
         position: 'relative',
@@ -320,23 +338,53 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
         flex: isFullscreen ? 1 : 'auto',
       }}>
         <div ref={mapRef} style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: '100%' }} />
+
+        {!ready && (
+          <div aria-label="Loading map" style={{
+            position: 'absolute', inset: 0, zIndex: 1,
+            background: 'linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%)',
+            backgroundSize: '800px 100%', animation: 'gmShimmer 1.4s ease-in-out infinite',
+          }} />
+        )}
+
+        {notice && (
+          <div className="gm-notice" role="alert">
+            <i className="fas fa-exclamation-circle" />
+            <span>{notice.text}</span>
+            <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss"><i className="fas fa-times" /></button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="gm-ctrl"
+          onClick={() => setIsFullscreen(f => !f)}
+          style={{ top: 10, right: 10 }}
+          title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+          aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
+        >
+          <i className={`fas ${isFullscreen ? 'fa-compress-alt' : 'fa-expand-alt'}`} />
+        </button>
+
+        {!readOnly && (
+          <button
+            type="button"
+            className="gm-ctrl locate"
+            onClick={useMyLocation}
+            disabled={locating}
+            style={{ bottom: 28, right: 10 }}
+            title="Pin my current location"
+            aria-label="Pin my current location"
+          >
+            <i className={`fas ${locating ? 'fa-circle-notch fa-spin' : 'fa-crosshairs'}`} />
+          </button>
+        )}
       </div>
 
       {!readOnly && (
-        <>
-          <button
-            type="button"
-            onClick={useMyLocation}
-            style={{ ...ctrlBtn, bottom: isFullscreen ? '3.2rem' : '38px', right: isFullscreen ? '1.6rem' : '10px' }}
-            title="Use my current location"
-            aria-label="Use my current location"
-          >
-            <i className="fas fa-location-arrow" style={{ fontSize: '0.8rem' }} />
-          </button>
-          <small style={{ display: 'block', marginTop: '0.4rem', color: '#888', fontSize: '0.78rem' }}>
-            <i className="fas fa-mouse-pointer me-1" />Click on the map to pin the exact location
-          </small>
-        </>
+        <small style={{ display: 'block', marginTop: '0.4rem', color: '#888', fontSize: '0.78rem' }}>
+          <i className="fas fa-mouse-pointer me-1" />Click on the map to pin the exact location
+        </small>
       )}
     </div>
   );
