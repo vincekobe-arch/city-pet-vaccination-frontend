@@ -58,6 +58,73 @@ const snapToMuntinlupa = (lat, lng) => {
   return best;
 };
 
+// Muntinlupa's rough box, used to keep search suggestions inside the city
+const MUNTI_BOUNDS = { north: 14.47, south: 14.345, east: 121.06, west: 121.0 };
+
+// Search suggestions while typing: buildings, malls, schools, landmarks and streets.
+// Tries Places API (New), then the older Places API, then the Geocoder (streets/areas only).
+const findPlaces = async (q, sessionRef, map) => {
+  const gm = window.google?.maps;
+  if (!gm) return [];
+  try {
+    const lib = gm.importLibrary ? await gm.importLibrary('places') : gm.places;
+    if (lib?.AutocompleteSuggestion) {
+      if (!sessionRef.current) sessionRef.current = new lib.AutocompleteSessionToken();
+      const { suggestions } = await lib.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: q,
+        sessionToken: sessionRef.current,
+        includedRegionCodes: ['ph'],
+        locationRestriction: MUNTI_BOUNDS,
+      });
+      return (suggestions || []).map(x => x.placePrediction).filter(Boolean).slice(0, 6).map(p => ({
+        main: p.mainText?.text || p.text?.text || '',
+        sub: p.secondaryText?.text || '',
+        resolve: async () => {
+          const place = p.toPlace();
+          await place.fetchFields({ fields: ['location'] });
+          sessionRef.current = null;   // a pick ends the search session
+          return { lat: place.location.lat(), lng: place.location.lng() };
+        },
+      }));
+    }
+  } catch (e) { /* Places API (New) not enabled on the key — try the older one */ }
+  try {
+    if (gm.places?.AutocompleteService) {
+      const preds = await new Promise((res) => new gm.places.AutocompleteService().getPlacePredictions(
+        { input: q, componentRestrictions: { country: 'ph' }, bounds: MUNTI_BOUNDS, strictBounds: true },
+        (p, status) => res(status === 'OK' ? p : (status === 'ZERO_RESULTS' ? [] : null))
+      ));
+      if (preds) {
+        return preds.slice(0, 6).map(p => ({
+          main: p.structured_formatting?.main_text || p.description,
+          sub: p.structured_formatting?.secondary_text || '',
+          resolve: () => new Promise((res, rej) => new gm.places.PlacesService(map).getDetails(
+            { placeId: p.place_id, fields: ['geometry'] },
+            (d, st) => (st === 'OK' && d?.geometry
+              ? res({ lat: d.geometry.location.lat(), lng: d.geometry.location.lng() })
+              : rej(new Error(st)))
+          )),
+        }));
+      }
+    }
+  } catch (e) { /* fall back to the Geocoder */ }
+  try {
+    const { results: found } = await new gm.Geocoder().geocode({
+      address: /muntinlupa/i.test(q) ? q : `${q}, Muntinlupa City, Metro Manila`,
+      componentRestrictions: { country: 'PH' },
+      bounds: MUNTI_BOUNDS,
+    });
+    return (found || [])
+      .map(r => ({ label: r.formatted_address, lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }))
+      .filter(r => isInsideMuntinlupa(r.lat, r.lng))
+      .slice(0, 5)
+      .map(r => {
+        const parts = r.label.split(',');
+        return { main: parts[0], sub: parts.slice(1).join(',').trim(), resolve: async () => ({ lat: r.lat, lng: r.lng }) };
+      });
+  } catch (e) { return []; }
+};
+
 // Loads the Google Maps script once and shares it with every map on the page
 let googleMapsPromise = null;
 const loadGoogleMaps = () => {
@@ -73,7 +140,7 @@ const loadGoogleMaps = () => {
       return;
     }
     script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}&libraries=places`;
     script.async = true;
     script.onload = done;
     script.onerror = fail;
@@ -236,42 +303,74 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
 
   const [locating, setLocating] = useState(false);
 
-  // ── Search a place: moves, zooms and pins the map ──
+  // ── Search: suggestions appear while typing; picking one moves, zooms and pins the map ──
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
-  const [results, setResults] = useState([]);   // shown when Google finds more than one place
+  const [results, setResults] = useState([]);
+  const [searched, setSearched] = useState(false);   // a lookup finished (to show "nothing found")
+  const [active, setActive] = useState(-1);          // highlighted suggestion (arrow keys)
+  const searchTimer = useRef(null);
+  const searchSeq = useRef(0);
+  const sessionRef = useRef(null);
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
+
+  const closeResults = () => { setResults([]); setSearched(false); setActive(-1); };
 
   const goTo = (pLat, pLng) => {
     if (!mapObj.current) return;
     mapObj.current.setCenter({ lat: pLat, lng: pLng });
     mapObj.current.setZoom(17);
     pinAt(pLat, pLng);
-    setResults([]);
+    closeResults();
     setNotice(null);
   };
 
-  const searchPlace = () => {
-    const q = query.trim();
-    const gm = window.google?.maps;
-    if (!q || !gm || searching) return;
+  const onQueryChange = (val) => {
+    setQuery(val);
+    setActive(-1);
+    clearTimeout(searchTimer.current);
+    const q = val.trim();
+    if (q.length < 2) { searchSeq.current++; setSearching(false); closeResults(); return; }
     setSearching(true);
-    setResults([]);
-    new gm.Geocoder().geocode({
-      address: /muntinlupa/i.test(q) ? q : `${q}, Muntinlupa City, Metro Manila`,
-      componentRestrictions: { country: 'PH' },
-      bounds: { north: 14.47, south: 14.345, east: 121.06, west: 121.0 },
-    })
-      .then(({ results: found }) => {
-        const inside = (found || [])
-          .map(r => ({ label: r.formatted_address, lat: r.geometry.location.lat(), lng: r.geometry.location.lng() }))
-          .filter(r => isInsideMuntinlupa(r.lat, r.lng));
-        if (!inside.length) { showNotice(`No place called "${q}" was found inside Muntinlupa City. Try another name or tap the map.`); return; }
-        if (inside.length === 1) goTo(inside[0].lat, inside[0].lng);
-        else setResults(inside.slice(0, 5));
-      })
-      .catch(() => showNotice(`No place called "${q}" was found. Try another name or tap the map.`))
-      .finally(() => setSearching(false));
+    searchTimer.current = setTimeout(async () => {
+      const seq = ++searchSeq.current;
+      const list = await findPlaces(q, sessionRef, mapObj.current);
+      if (seq !== searchSeq.current) return;   // a newer search already started
+      setResults(list);
+      setSearched(true);
+      setSearching(false);
+    }, 300);
   };
+
+  const clearSearch = () => {
+    clearTimeout(searchTimer.current);
+    searchSeq.current++;
+    setQuery('');
+    setSearching(false);
+    closeResults();
+  };
+
+  const pickResult = async (r) => {
+    if (!r) return;
+    clearTimeout(searchTimer.current);
+    searchSeq.current++;
+    setSearching(true);
+    try {
+      const { lat: pLat, lng: pLng } = await r.resolve();
+      if (!isInsideMuntinlupa(pLat, pLng)) {
+        closeResults();
+        showNotice(`"${r.main}" is outside Muntinlupa City. Only places inside Muntinlupa can be pinned.`);
+        return;
+      }
+      setQuery(r.main);
+      goTo(pLat, pLng);
+    } catch (e) {
+      showNotice("We couldn't open that place. Try another one or tap the map.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
   const useMyLocation = () => {
     if (locating) return;
     if (!navigator.geolocation) { showNotice('Your browser does not support location access.'); return; }
@@ -344,17 +443,17 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
         .gm-search-busy { color: #e0a800; font-size: 0.85rem; }
         .gm-search-clear { border: none; background: transparent; color: #9ca3af; width: 26px; height: 26px; border-radius: 7px; }
         .gm-search-clear:hover { background: #f3f4f6; color: #1f2328; }
-        .gm-search-go { border: none; height: 30px; padding: 0 0.8rem; border-radius: 8px; background: #ffc107; color: #1f2328; font-size: 0.8rem; font-weight: 700; }
-        .gm-search-go:hover:not(:disabled) { background: #f0b400; }
-        .gm-search-go:disabled { opacity: 0.5; cursor: not-allowed; }
         .gm-search-results { margin-top: 6px; background: #fff; border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,0.18); overflow: hidden; }
-        .gm-search-head { padding: 0.5rem 0.8rem 0.3rem; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; }
         .gm-search-results button { display: flex; align-items: flex-start; gap: 0.55rem; width: 100%; padding: 0.55rem 0.8rem; border: none; border-top: 1px solid #f3f4f6;
           background: #fff; text-align: left; font-size: 0.82rem; color: #1f2328; line-height: 1.4; }
-        .gm-search-results button:hover { background: #fffbeb; }
+        .gm-search-results button:first-child { border-top: none; }
+        .gm-search-results button:hover, .gm-search-results button.active { background: #fffbeb; }
+        .gm-search-results button b { display: block; font-weight: 600; }
+        .gm-search-results button .gm-sub { display: block !important; color: #6b7280; font-size: 0.74rem; }
+        .gm-search-empty { padding: 0.7rem 0.85rem; font-size: 0.8rem; color: #6b7280; }
         .gm-search-results button i { color: #dc3545; margin-top: 3px; }
         .gm-notice { top: 60px; }
-        @media (max-width: 576px) { .gm-notice { max-width: calc(100% - 24px); top: 60px; } .gm-search-go { display: none; } }
+        @media (max-width: 576px) { .gm-notice { max-width: calc(100% - 24px); top: 60px; } }
       `}</style>
 
       <div ref={wrapRef} style={{
@@ -377,29 +476,43 @@ const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBaran
                 value={query}
                 placeholder="Search a place, street or landmark…"
                 aria-label="Search a place on the map"
-                onChange={(e) => { setQuery(e.target.value); if (results.length) setResults([]); }}
+                onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); searchPlace(); }   // don't submit the form
-                  if (e.key === 'Escape') { setResults([]); }
+                  if (e.key === 'Enter') {   // don't submit the form; pick the highlighted (or first) suggestion
+                    e.preventDefault();
+                    if (results.length) pickResult(results[active >= 0 ? active : 0]);
+                  }
+                  if (e.key === 'ArrowDown' && results.length) { e.preventDefault(); setActive(a => (a + 1) % results.length); }
+                  if (e.key === 'ArrowUp' && results.length) { e.preventDefault(); setActive(a => (a <= 0 ? results.length - 1 : a - 1)); }
+                  if (e.key === 'Escape') closeResults();
                 }}
               />
               {searching
                 ? <i className="fas fa-circle-notch fa-spin gm-search-busy" />
                 : query && (
-                  <button type="button" className="gm-search-clear" onClick={() => { setQuery(''); setResults([]); }} aria-label="Clear search">
+                  <button type="button" className="gm-search-clear" onClick={clearSearch} aria-label="Clear search">
                     <i className="fas fa-times" />
                   </button>
                 )}
-              <button type="button" className="gm-search-go" onClick={searchPlace} disabled={!query.trim() || searching}>Search</button>
             </div>
-            {results.length > 0 && (
+            {(results.length > 0 || (searched && !searching && query.trim().length >= 2)) && (
               <div className="gm-search-results" role="listbox">
-                <div className="gm-search-head">Choose the place you mean</div>
-                {results.map((r, idx) => (
-                  <button key={idx} type="button" role="option" aria-selected="false" onClick={() => goTo(r.lat, r.lng)}>
-                    <i className="fas fa-map-marker-alt" /><span>{r.label}</span>
+                {results.length > 0 ? results.map((r, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    role="option"
+                    aria-selected={idx === active}
+                    className={idx === active ? 'active' : ''}
+                    onMouseEnter={() => setActive(idx)}
+                    onClick={() => pickResult(r)}
+                  >
+                    <i className="fas fa-map-marker-alt" />
+                    <span><b>{r.main}</b>{r.sub && <span className="gm-sub">{r.sub}</span>}</span>
                   </button>
-                ))}
+                )) : (
+                  <div className="gm-search-empty">No places found in Muntinlupa City. Try another name or tap the map.</div>
+                )}
               </div>
             )}
           </div>
