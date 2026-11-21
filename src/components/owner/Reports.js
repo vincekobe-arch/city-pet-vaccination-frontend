@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Alert, Spinner, Modal, Form } from 'react-bootstrap';
+import { Container, Row, Col, Alert, Modal, Form } from 'react-bootstrap';
 import { barangayAPI, handleAPIError } from '../../services/api';
 import api from '../../services/api';
 import { getUser } from '../../utils/auth';
@@ -37,186 +37,222 @@ const REPORT_TYPES = [
 ];
 
 const getReportType = (value) => REPORT_TYPES.find(t => t.value === value) || REPORT_TYPES[3];
-// ─── Load Leaflet from CDN (no npm install needed) ───
-const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
+// ─── Google Maps (same key as the Map Status page) ───────────────────────────
+const GOOGLE_MAPS_KEY = process.env.REACT_APP_GOOGLE_MAPS_KEY;
+
+// Muntinlupa City boundary (lat, lng)
+const MUNTI_BOUNDARY = [
+  [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
+  [14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
+  [14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
+  [14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
+  [14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
+  [14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
+  [14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
+  [14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
+  [14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
+  [14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
+  [14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
+  [14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
+  [14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
+  [14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
+  [14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
+  [14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
+  [14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
+  [14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
+  [14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
+  [14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
+  [14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
+  [14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
+  [14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
+];
+
+const isInsideMuntinlupa = (lat, lng) => {
+  if (lat < 14.346 || lat > 14.469 || lng < 121.004 || lng > 121.059) return false;
+  let inside = false;
+  for (let i = 0, j = MUNTI_BOUNDARY.length - 1; i < MUNTI_BOUNDARY.length; j = i++) {
+    const [xi, yi] = MUNTI_BOUNDARY[i];
+    const [xj, yj] = MUNTI_BOUNDARY[j];
+    const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+};
+
+// Outside the city: move the pin to the nearest boundary point
+const snapToMuntinlupa = (lat, lng) => {
+  if (isInsideMuntinlupa(lat, lng)) return [lat, lng];
+  let best = MUNTI_BOUNDARY[0], min = Infinity;
+  MUNTI_BOUNDARY.forEach(([pLat, pLng]) => {
+    const d = (lat - pLat) ** 2 + (lng - pLng) ** 2;
+    if (d < min) { min = d; best = [pLat, pLng]; }
+  });
+  return best;
+};
+
+// Loads the Google Maps script once and shares it with every map on the page
+let googleMapsPromise = null;
+const loadGoogleMaps = () => {
+  if (window.google?.maps?.Map) return Promise.resolve(window.google.maps);
+  if (googleMapsPromise) return googleMapsPromise;
+  googleMapsPromise = new Promise((resolve, reject) => {
+    const done = () => (window.google?.maps?.Map ? resolve(window.google.maps) : reject(new Error('Google Maps did not load')));
+    const fail = () => { googleMapsPromise = null; reject(new Error('Google Maps did not load')); };
+    let script = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
+    if (script) {
+      script.addEventListener('load', done);
+      script.addEventListener('error', fail);
+      return;
+    }
+    script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_KEY}`;
+    script.async = true;
+    script.onload = done;
+    script.onerror = fail;
+    document.head.appendChild(script);
+  });
+  return googleMapsPromise;
+};
+
+// Address + barangay names for a pinned point (Google Geocoding)
+const reverseGeocode = (lat, lng, onAddressResolve, onBarangayDetect) => {
+  const gm = window.google?.maps;
+  if (!gm) return;
+  new gm.Geocoder().geocode({ location: { lat, lng } })
+    .then(({ results }) => {
+      if (!results || !results.length) return;
+      const best = results.find(r => !r.types.includes('plus_code')) || results[0];
+      const plusCode = results.find(r => r.plus_code)?.plus_code?.compound_code || null;
+      onAddressResolve && onAddressResolve(best.formatted_address || '', plusCode, lat, lng);
+      // Barangay usually comes back as a sublocality or neighborhood
+      const AREA = ['sublocality', 'sublocality_level_1', 'sublocality_level_2', 'neighborhood', 'administrative_area_level_4', 'administrative_area_level_5'];
+      const areaNames = results.slice(0, 4)
+        .flatMap(r => r.address_components)
+        .filter(c => c.types.some(t => AREA.includes(t)))
+        .map(c => c.long_name.toLowerCase());
+      onBarangayDetect && onBarangayDetect([...new Set(areaNames)].join(' '));
+    })
+    .catch(() => {});
+};
+
+const GoogleMapPicker = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDetect, readOnly = false, onError }) => {
   const mapRef    = useRef(null);
   const mapObj    = useRef(null);
   const markerRef = useRef(null);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(!!window.google?.maps?.Map);
   const [mapError, setMapError] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const toggleFullscreen = () => {
-    setIsFullscreen(prev => !prev);
-    setTimeout(() => mapObj.current && mapObj.current.invalidateSize(), 300);
+  // Keep the latest callbacks without re-creating the map
+  const cbRef = useRef({});
+  cbRef.current = { onLocationSelect, onAddressResolve, onBarangayDetect, onError };
+
+  useEffect(() => {
+    if (ready) return;
+    let alive = true;
+    loadGoogleMaps()
+      .then(() => alive && setReady(true))
+      .catch(() => alive && setMapError('Failed to load the map. Check your connection and try again.'));
+    return () => { alive = false; };
+  }, [ready]);
+
+  const placeMarker = (pLat, pLng) => {
+    const gm = window.google.maps;
+    if (markerRef.current) markerRef.current.setPosition({ lat: pLat, lng: pLng });
+    else markerRef.current = new gm.Marker({ position: { lat: pLat, lng: pLng }, map: mapObj.current });
+  };
+
+  const pinAt = (pLat, pLng) => {
+    placeMarker(pLat, pLng);
+    const cb = cbRef.current;
+    cb.onLocationSelect && cb.onLocationSelect(pLat, pLng);
+    reverseGeocode(pLat, pLng, cb.onAddressResolve, cb.onBarangayDetect);
   };
 
   useEffect(() => {
-    if (window.L) { setReady(true); return; }
-    const link  = document.createElement('link');
-    link.rel    = 'stylesheet';
-    link.href   = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    const script    = document.createElement('script');
-    script.src      = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload   = () => setReady(true);
-    script.onerror  = () => setMapError('Failed to load map.');
-    document.head.appendChild(script);
-  }, []);
-
-  useEffect(() => {
     if (!ready || !mapRef.current || mapObj.current) return;
-    const defaultLat = lat || 14.4081;
-    const defaultLng = lng || 121.0415;
-
-    const muntinlupaBounds = window.L.latLngBounds(
-      [14.3400, 120.9700],
-      [14.5000, 121.1200]
-    );
-
-    const map = window.L.map(mapRef.current, {
+    const gm = window.google.maps;
+    const map = new gm.Map(mapRef.current, {
+      center: { lat: lat || 14.4081, lng: lng || 121.0415 },
+      zoom: lat && lng ? 16 : 13,
       minZoom: 12,
-      maxZoom: 22,
-      maxBounds: muntinlupaBounds,
-      maxBoundsViscosity: 0.7
-    }).setView([defaultLat, defaultLng], 13);
+      restriction: { latLngBounds: { north: 14.50, south: 14.34, east: 121.12, west: 120.97 }, strictBounds: false },
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      clickableIcons: false,
+      gestureHandling: readOnly ? 'cooperative' : 'greedy',
+    });
+    mapObj.current = map;
 
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 22,
-      maxNativeZoom: 19
-    }).addTo(map);
+    new gm.Polygon({
+      paths: MUNTI_BOUNDARY.map(([pLat, pLng]) => ({ lat: pLat, lng: pLng })),
+      strokeColor: '#ffc107', strokeOpacity: 0.9, strokeWeight: 2.5,
+      fillColor: '#ffc107', fillOpacity: 0.04,
+      clickable: false, map,
+    });
 
-    if (lat && lng) {
-      markerRef.current = window.L.marker([lat, lng]).addTo(map);
-    }
-
-    const muntinlupaPolygonCoords = [
-      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-    ];
-    const isInsideMuntinlupa = (lat, lng) => {
-      if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
-      let inside = false;
-      for (let i = 0, j = muntinlupaPolygonCoords.length - 1; i < muntinlupaPolygonCoords.length; j = i++) {
-        const xi = muntinlupaPolygonCoords[i][0], yi = muntinlupaPolygonCoords[i][1];
-        const xj = muntinlupaPolygonCoords[j][0], yj = muntinlupaPolygonCoords[j][1];
-        const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
-        if (intersect) inside = !inside;
-      }
-      return inside;
-    };
+    if (lat && lng) placeMarker(lat, lng);
 
     if (!readOnly) {
-      map.on('click', (e) => {
-        const { lat: clickLat, lng: clickLng } = e.latlng;
-        let pinLat = clickLat;
-        let pinLng = clickLng;
-        if (!isInsideMuntinlupa(clickLat, clickLng)) {
-          // Snap to nearest polygon point
-          let minDist = Infinity;
-          muntinlupaPolygonCoords.forEach(([pLat, pLng]) => {
-            const dist = Math.pow(clickLat - pLat, 2) + Math.pow(clickLng - pLng, 2);
-            if (dist < minDist) { minDist = dist; pinLat = pLat; pinLng = pLng; }
-          });
-        }
-        if (markerRef.current) {
-          markerRef.current.setLatLng([pinLat, pinLng]);
-        } else {
-          markerRef.current = window.L.marker([pinLat, pinLng]).addTo(map);
-        }
-        onLocationSelect && onLocationSelect(pinLat, pinLng);
-        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pinLat}&lon=${pinLng}&zoom=17&addressdetails=1`)
-          .then(r => r.json())
-          .then(data => {
-            const plusCode = data.extratags?.['ref:Global'] || data.extratags?.plus_code || null;
-            const display  = plusCode ? `${plusCode} ${data.address?.city || 'Muntinlupa'}, ${data.address?.state || 'Metro Manila'}` : (data.display_name || '');
-            onAddressResolve && onAddressResolve(display, plusCode, pinLat, pinLng);
-            const suburb   = (data.address?.suburb   || '').toLowerCase();
-            const village  = (data.address?.village  || '').toLowerCase();
-            const quarter  = (data.address?.quarter  || '').toLowerCase();
-            const neighbourhood = (data.address?.neighbourhood || '').toLowerCase();
-            const addrStr  = `${suburb} ${village} ${quarter} ${neighbourhood}`;
-            onBarangayDetect && onBarangayDetect(addrStr);
-          })
-          .catch(() => {});
-        
+      map.addListener('click', (e) => {
+        const [pLat, pLng] = snapToMuntinlupa(e.latLng.lat(), e.latLng.lng());
+        pinAt(pLat, pLng);
       });
     }
 
-    const boundary = [
-      [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-    ];
-    window.L.polygon(boundary, {
-      color: '#ffc107', weight: 2.5, opacity: 0.8,
-      fillColor: '#ffc107', fillOpacity: 0, dashArray: '6,4',
-    }).addTo(map);
-
-    mapObj.current = map;
-    setTimeout(() => map.invalidateSize(), 300);
-    return () => { map.remove(); mapObj.current = null; markerRef.current = null; };
-  // eslint-disable-next-line
+    return () => {
+      if (markerRef.current) markerRef.current.setMap(null);
+      gm.event.clearInstanceListeners(map);
+      mapObj.current = null;
+      markerRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
+  // Pin moved from outside (typed address, "clear pin")
   useEffect(() => {
-    if (!mapObj.current || !lat || !lng) return;
-    if (markerRef.current) {
-      markerRef.current.setLatLng([lat, lng]);
-    } else {
-      markerRef.current = window.L.marker([lat, lng]).addTo(mapObj.current);
+    if (!mapObj.current) return;
+    if (lat && lng) {
+      placeMarker(lat, lng);
+      mapObj.current.panTo({ lat, lng });
+    } else if (markerRef.current) {
+      markerRef.current.setMap(null);
+      markerRef.current = null;
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
 
+  const useMyLocation = () => {
+    const cb = cbRef.current;
+    if (!navigator.geolocation) { cb.onError && cb.onError('Your browser does not support location access.'); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        if (!isInsideMuntinlupa(latitude, longitude)) {
+          cb.onError && cb.onError('Your current location is outside Muntinlupa City. Only locations within Muntinlupa can be pinned.');
+          return;
+        }
+        if (!mapObj.current) return;
+        mapObj.current.setCenter({ lat: latitude, lng: longitude });
+        mapObj.current.setZoom(17);
+        pinAt(latitude, longitude);
+      },
+      () => cb.onError && cb.onError('Unable to get your location. Please allow location access and try again.')
+    );
+  };
+
   if (mapError) return (
-    <div style={{ background:'#fff3f3', borderRadius:'8px', padding:'1rem', color:'#dc3545', fontSize:'0.9rem' }}>
-      <i className="fas fa-exclamation-triangle me-2"></i>{mapError}
+    <div style={{ background: '#fff5f5', borderRadius: '8px', padding: '1rem', color: '#dc3545', fontSize: '0.88rem' }}>
+      <i className="fas fa-exclamation-circle me-2" />{mapError}
     </div>
   );
 
-  
+  const ctrlBtn = {
+    position: 'absolute', zIndex: 5, background: '#ffffff', border: '1px solid #e5e7eb',
+    borderRadius: '8px', width: '36px', height: '36px', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)', color: '#4b5563',
+  };
 
   return (
     <div style={{
@@ -228,30 +264,23 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
       display: 'flex',
       flexDirection: 'column',
     }}>
+      <style>{`@keyframes gmShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
       {!ready && (
-        <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f8f9fa', borderRadius:'8px', zIndex:1 }}>
-          <Spinner animation="border" size="sm" style={{ color:'#ffc107' }} />
-          <span className="ms-2" style={{ fontSize:'0.9rem', color:'#666' }}>Loading map...</span>
-        </div>
+        <div aria-label="Loading map" style={{
+          position: 'absolute', inset: 0, zIndex: 1, borderRadius: '8px',
+          background: 'linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%)',
+          backgroundSize: '800px 100%', animation: 'gmShimmer 1.4s ease-in-out infinite',
+        }} />
       )}
 
-      {/* Maximize / Minimize Button */}
       <button
         type="button"
-        onClick={toggleFullscreen}
-        style={{
-          position: 'absolute', top: isFullscreen ? '1.75rem' : '10px', right: isFullscreen ? '1.75rem' : '10px',
-          zIndex: 1000, background: '#ffffff', border: '2px solid #dee2e6',
-          borderRadius: '8px', width: '34px', height: '34px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-          transition: 'all 0.2s',
-        }}
-        onMouseOver={(e) => { e.currentTarget.style.borderColor = '#ffc107'; e.currentTarget.style.background = '#fff9e6'; }}
-        onMouseOut={(e) => { e.currentTarget.style.borderColor = '#dee2e6'; e.currentTarget.style.background = '#ffffff'; }}
-        title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        onClick={() => setIsFullscreen(f => !f)}
+        style={{ ...ctrlBtn, top: isFullscreen ? '1.6rem' : '10px', right: isFullscreen ? '1.6rem' : '10px' }}
+        title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+        aria-label={isFullscreen ? 'Exit full screen' : 'Full screen'}
       >
-        <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.8rem', color: '#555' }}></i>
+        <i className={`fas ${isFullscreen ? 'fa-compress' : 'fa-expand'}`} style={{ fontSize: '0.8rem' }} />
       </button>
 
       <div ref={mapRef} style={{
@@ -259,7 +288,6 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
         width: '100%',
         aspectRatio: isFullscreen ? 'auto' : (readOnly ? 'auto' : '1 / 1'),
         borderRadius: '8px',
-        border: '2px solid #dee2e6',
         flex: isFullscreen ? 1 : 'auto',
       }} />
 
@@ -267,94 +295,15 @@ const LeafletMap = ({ lat, lng, onLocationSelect, onAddressResolve, onBarangayDe
         <>
           <button
             type="button"
-            onClick={() => {
-              if (!navigator.geolocation) return;
-              navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                  const { latitude, longitude } = pos.coords;
-                  const muntinlupaPolygonCoords = [
-                    [14.380313,121.058092],[14.382328,121.054788],[14.384199,121.054552],[14.384323,121.055496],
-[14.385904,121.055142],[14.386914,121.054015],[14.386963,121.0532],[14.388148,121.052942],
-[14.390019,121.052556],[14.390164,121.053114],[14.391713,121.053221],[14.392669,121.052889],
-[14.393433,121.052068],[14.396368,121.051472],[14.399425,121.051301],[14.40065,121.051215],
-[14.402261,121.052181],[14.404149,121.051397],[14.404939,121.051784],[14.405295,121.051719],
-[14.405552,121.051365],[14.407331,121.051258],[14.409898,121.051612],[14.409971,121.052374],
-[14.410335,121.052427],[14.411358,121.052417],[14.41181,121.052502],[14.413089,121.0532],
-[14.413837,121.053307],[14.415685,121.052191],[14.416704,121.052084],[14.41792,121.052792],
-[14.418154,121.052797],[14.418237,121.052674],[14.418263,121.052256],[14.419276,121.052191],
-[14.419632,121.052328],[14.419593,121.052489],[14.424831,121.052706],[14.42535,121.0535],
-[14.426306,121.053672],[14.427841,121.052384],[14.429733,121.051912],[14.430959,121.052127],
-[14.432842,121.052191],[14.433038,121.052095],[14.436177,121.052599],[14.436655,121.052513],
-[14.437153,121.052427],[14.437465,121.051805],[14.437839,121.051826],[14.439959,121.051655],
-[14.441912,121.051998],[14.442823,121.053843],[14.45118,121.054358],[14.453132,121.053071],
-[14.456874,121.055131],[14.457661,121.053886],[14.468591,121.05895],[14.467293,121.047878],
-[14.447434,121.037707],[14.443904,121.041012],[14.440206,121.036892],[14.442535,121.033287],
-[14.440374,121.028159],[14.437195,121.024296],[14.428103,121.02229],[14.423583,121.022387],
-[14.422648,121.022601],[14.42136,121.021936],[14.41897,121.02037],[14.407165,121.012387],
-[14.399018,121.011915],[14.392202,121.009727],[14.38713,121.006594],[14.382058,121.008224],
-[14.378973,121.011314],[14.372579,121.009598],[14.370087,121.00728],[14.364267,121.006594],
-[14.358777,121.007538],[14.35495,121.007366],[14.350629,121.005049],[14.346857,121.011486],
-[14.355202,121.021614],[14.363516,121.028309],[14.365846,121.029639],[14.365721,121.032643],
-[14.36651,121.036162],[14.371751,121.043329],[14.367504,121.048565],[14.380313,121.058092],
-                  ];
-                  const isInsideMuntinlupa = (lat, lng) => {
-                    if (lat < 14.351 || lat > 14.469 || lng < 120.989 || lng > 121.056) return false;
-                    let inside = false;
-                    for (let i = 0, j = muntinlupaPolygonCoords.length - 1; i < muntinlupaPolygonCoords.length; j = i++) {
-                      const xi = muntinlupaPolygonCoords[i][0], yi = muntinlupaPolygonCoords[i][1];
-                      const xj = muntinlupaPolygonCoords[j][0], yj = muntinlupaPolygonCoords[j][1];
-                      const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
-                      if (intersect) inside = !inside;
-                    }
-                    return inside;
-                  };
-                  if (!isInsideMuntinlupa(latitude, longitude)) {
-                    onError && onError('Your current location is outside Muntinlupa City. Only locations within Muntinlupa can be pinned.');
-                    return;
-                  }
-                  if (mapObj.current) {
-                    mapObj.current.setView([latitude, longitude], 16);
-                    if (markerRef.current) {
-                      markerRef.current.setLatLng([latitude, longitude]);
-                    } else {
-                      markerRef.current = window.L.marker([latitude, longitude]).addTo(mapObj.current);
-                    }
-                    onLocationSelect && onLocationSelect(latitude, longitude);
-                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=17&addressdetails=1`)
-                      .then(r => r.json())
-                      .then(data => {
-                        const plusCode = data.extratags?.['ref:Global'] || data.extratags?.plus_code || null;
-                        const display  = plusCode ? `${plusCode} ${data.address?.city || 'Muntinlupa'}, ${data.address?.state || 'Metro Manila'}` : (data.display_name || '');
-                        onAddressResolve && onAddressResolve(display, plusCode);
-                        const suburb   = (data.address?.suburb   || '').toLowerCase();
-                        const village  = (data.address?.village  || '').toLowerCase();
-                        const quarter  = (data.address?.quarter  || '').toLowerCase();
-                        const neighbourhood = (data.address?.neighbourhood || '').toLowerCase();
-                        const addrStr  = `${suburb} ${village} ${quarter} ${neighbourhood}`;
-                        onBarangayDetect && onBarangayDetect(addrStr);
-                      })
-                      .catch(() => {});
-                  }
-                },
-                () => onError && onError('Unable to retrieve your location. Please allow location access and try again.')
-              );
-            }}
-            style={{
-              position: 'absolute', bottom: '38px', right: '10px', zIndex: 1000,
-              background: '#ffffff', border: '2px solid #dee2e6',
-              borderRadius: '8px', width: '34px', height: '34px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              transition: 'all 0.2s',
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.borderColor = '#ffc107'; e.currentTarget.style.background = '#fff9e6'; }}
-            onMouseOut={(e) => { e.currentTarget.style.borderColor = '#dee2e6'; e.currentTarget.style.background = '#ffffff'; }}
+            onClick={useMyLocation}
+            style={{ ...ctrlBtn, bottom: isFullscreen ? '3.2rem' : '38px', right: isFullscreen ? '1.6rem' : '10px' }}
             title="Use my current location"
+            aria-label="Use my current location"
           >
-            <i className="fas fa-location-arrow" style={{ fontSize: '0.8rem', color: '#555' }}></i>
+            <i className="fas fa-location-arrow" style={{ fontSize: '0.8rem' }} />
           </button>
-          <small style={{ display:'block', marginTop:'0.4rem', color:'#888', fontSize:'0.78rem' }}>
-            <i className="fas fa-mouse-pointer me-1"></i>Click on the map to pin the exact location
+          <small style={{ display: 'block', marginTop: '0.4rem', color: '#888', fontSize: '0.78rem' }}>
+            <i className="fas fa-mouse-pointer me-1" />Click on the map to pin the exact location
           </small>
         </>
       )}
@@ -886,14 +835,15 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
     if (name === 'address' && value.trim().length > 5) {
       clearTimeout(window._addrGeoTimer);
       window._addrGeoTimer = setTimeout(() => {
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value + ', Muntinlupa, Metro Manila')}&limit=1&addressdetails=1`)
-          .then(r => r.json())
-          .then(results => {
-            if (results && results.length > 0) {
-              const { lat, lon } = results[0];
-              setFormLat(parseFloat(lat));
-              setFormLng(parseFloat(lon));
-            }
+        const gm = window.google?.maps;
+        if (!gm) return;
+        new gm.Geocoder().geocode({ address: `${value}, Muntinlupa, Metro Manila`, componentRestrictions: { country: 'PH' } })
+          .then(({ results }) => {
+            const loc = results?.[0]?.geometry?.location;
+            if (!loc) return;
+            const [pLat, pLng] = snapToMuntinlupa(loc.lat(), loc.lng());
+            setFormLat(pLat);
+            setFormLng(pLng);
           })
           .catch(() => {});
       }, 800);
@@ -1358,7 +1308,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
               <Form.Group className="mb-3">
                 <Form.Label className="rm-label">Pin the exact location <span className="rm-req">*</span></Form.Label>
                 <div className="rm-map">
-                  <LeafletMap
+                  <GoogleMapPicker
                     lat={formLat}
                     lng={formLng}
                     onLocationSelect={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
@@ -1539,7 +1489,7 @@ const [lightboxZoom, setLightboxZoom] = useState(1);
                       <div className="rm-section-title"><i className="fas fa-map-marker-alt" />Pinned location</div>
                       {r.latitude && r.longitude ? (
                         <div className="rm-map view">
-                          <LeafletMap lat={parseFloat(r.latitude)} lng={parseFloat(r.longitude)} readOnly={true} />
+                          <GoogleMapPicker lat={parseFloat(r.latitude)} lng={parseFloat(r.longitude)} readOnly={true} />
                         </div>
                       ) : (
                         <div className="rm-empty"><i className="fas fa-map-marker-alt" />No location was pinned for this report.</div>
