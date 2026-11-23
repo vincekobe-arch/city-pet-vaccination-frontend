@@ -683,7 +683,7 @@ export default function OwnerMapStatus() {
 
 
             <Panel icon="fa-fire" iconColor="#dc2626" title="Rabies risk forecast" subtitle="Next 30 days · turn on Show heatmap to see it on the map">
-              <ForecastList forecast={forecast} limit={4} />
+              <ForecastList forecast={forecast} rows={4} />
             </Panel>
 
             <Panel icon="fa-clinic-medical" iconColor={CLINIC} title="Vet clinics" subtitle="Select a clinic to see it on the map" bodyStyle={{ padding: '0.2rem 0.75rem 0.75rem' }}

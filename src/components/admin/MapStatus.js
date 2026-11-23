@@ -967,7 +967,7 @@ export default function MapStatus() {
           <Col lg={4} xl={3} className="side-stack order-2 order-lg-1" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             <Panel icon="fa-fire" iconColor="#dc2626" title="Rabies risk forecast" subtitle="Next 30 days · turn on Show heatmap to see it on the map">
-              <ForecastList forecast={forecast} limit={4} />
+              <ForecastList forecast={forecast} rows={4} />
             </Panel>
 
 
