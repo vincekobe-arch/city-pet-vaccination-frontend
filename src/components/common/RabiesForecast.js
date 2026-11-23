@@ -5,6 +5,7 @@
 //   • HeatLegend          – the colour legend shown on the map
 //   • ForecastList        – barangays ranked by forecast risk (read-only)
 import React, { useState, useEffect, useCallback } from 'react';
+import { contours } from 'd3-contour';
 import api from '../../services/api';
 
 /* ------------------------------------------------------------------ */
@@ -68,139 +69,124 @@ const valueNoise = (x, y) => {
 const edgeNoise = (lat, lng) =>
   0.65 * valueNoise(lat * 260, lng * 260) + 0.35 * valueNoise(lat * 700 + 17.3, lng * 700 - 4.1);
 
-// Draws the risk areas ONCE into an image tied to map coordinates (a Google GroundOverlay).
-// Google then moves and scales that image itself while you pan and zoom, so the map stays
-// smooth — nothing is recalculated on every zoom or scroll.
-const METERS_PER_PX = 4;     // image detail: 1 image pixel = 4 m on the ground
-const OUTLINE_PX = 2;        // band outline thickness, in image pixels (≈ 8 m)
+// The risk areas are calculated ONCE and drawn as smooth vector shapes (Google Polygons).
+// Google moves and scales them itself while you pan and zoom, so the map stays smooth and
+// the outlines stay sharp at every zoom level.
+const CELL_M = 15;           // calculation grid: one value every 15 m
 
-const renderRiskImage = (points) => {
+// Rounds off the corners of a ring (Chaikin smoothing), keeping it closed
+const smoothRing = (ring, passes = 2) => {
+  let pts = ring.slice(0, -1);
+  for (let p = 0; p < passes; p++) {
+    const out = [];
+    for (let i = 0; i < pts.length; i++) {
+      const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % pts.length];
+      out.push([0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1], [0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1]);
+    }
+    pts = out;
+  }
+  return pts;
+};
+
+const buildRiskShapes = (points) => {
   const lat0 = points.reduce((s, p) => s + p.lat, 0) / points.length;
   const mLat = 110574, mLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
   const sigmaM = HEAT_RADIUS_M / 2;
   const marginM = sigmaM * 3.2;
 
-  // Area covered by the image: all cases plus a margin
+  // Area covered: all cases plus a margin
   const north = Math.max(...points.map((p) => p.lat)) + marginM / mLat;
+  const west = Math.min(...points.map((p) => p.lng)) - marginM / mLng;
   const south = Math.min(...points.map((p) => p.lat)) - marginM / mLat;
   const east = Math.max(...points.map((p) => p.lng)) + marginM / mLng;
-  const west = Math.min(...points.map((p) => p.lng)) - marginM / mLng;
-  const w = Math.min(4000, Math.ceil(((east - west) * mLng) / METERS_PER_PX));
-  const h = Math.min(4000, Math.ceil(((north - south) * mLat) / METERS_PER_PX));
-  const pxLat = (north - south) / h, pxLng = (east - west) / w;
-  const mPerPxX = ((east - west) * mLng) / w, mPerPxY = ((north - south) * mLat) / h;
+  const n = Math.min(1500, Math.ceil(((east - west) * mLng) / CELL_M));    // columns
+  const m = Math.min(1500, Math.ceil(((north - south) * mLat) / CELL_M));  // rows
+  const cellLng = (east - west) / n, cellLat = (north - south) / m;
+  const cellMx = cellLng * mLng, cellMy = cellLat * mLat;
 
-  // 1) Risk value on a coarse grid: every case adds a soft bump, nearby bumps merge
-  const step = 3;
-  const gw = Math.ceil(w / step) + 2, gh = Math.ceil(h / step) + 2;
-  const grid = new Float32Array(gw * gh);
+  // 1) Risk value per cell: every case adds a soft bump, nearby bumps merge
+  const values = new Float64Array(n * m);
   const k = 1 / (2 * sigmaM * sigmaM);
-  const reachM = sigmaM * 2.6;
+  const reach = sigmaM * 2.6;
   points.forEach((p) => {
     const wgt = Math.min(1.5, Math.max(0, p.weight));
-    if (wgt <= 0) return;
-    const cx = (p.lng - west) / pxLng, cy = (north - p.lat) / pxLat;     // image pixels
-    const rx = reachM / mPerPxX, ry = reachM / mPerPxY;
-    const gx0 = Math.max(0, Math.floor((cx - rx) / step)), gx1 = Math.min(gw - 1, Math.ceil((cx + rx) / step));
-    const gy0 = Math.max(0, Math.floor((cy - ry) / step)), gy1 = Math.min(gh - 1, Math.ceil((cy + ry) / step));
-    for (let gy = gy0; gy <= gy1; gy++) {
-      const dy = (gy * step - cy) * mPerPxY;
-      for (let gx = gx0; gx <= gx1; gx++) {
-        const dx = (gx * step - cx) * mPerPxX;
-        grid[gy * gw + gx] += wgt * Math.exp(-(dx * dx + dy * dy) * k);
+    const cx = (p.lng - west) / cellLng, cy = (north - p.lat) / cellLat;
+    const rx = reach / cellMx, ry = reach / cellMy;
+    const x0 = Math.max(0, Math.floor(cx - rx)), x1 = Math.min(n - 1, Math.ceil(cx + rx));
+    const y0 = Math.max(0, Math.floor(cy - ry)), y1 = Math.min(m - 1, Math.ceil(cy + ry));
+    for (let y = y0; y <= y1; y++) {
+      const dy = (y - cy) * cellMy;
+      for (let x = x0; x <= x1; x++) {
+        const dx = (x - cx) * cellMx;
+        values[y * n + x] += wgt * Math.exp(-(dx * dx + dy * dy) * k);
       }
     }
   });
 
   // 2) Uneven edges: stretch/shrink the value with map-anchored noise
-  for (let gy = 0; gy < gh; gy++) {
-    const lat = north - gy * step * pxLat;
-    for (let gx = 0; gx < gw; gx++) {
-      const idx = gy * gw + gx;
-      if (grid[idx] < 0.02) continue;
-      grid[idx] *= 0.6 + 0.8 * edgeNoise(lat, west + gx * step * pxLng);
+  for (let y = 0; y < m; y++) {
+    const lat = north - y * cellLat;
+    for (let x = 0; x < n; x++) {
+      const idx = y * n + x;
+      if (values[idx] < 0.02) continue;
+      values[idx] *= 0.6 + 0.8 * edgeNoise(lat, west + x * cellLng);
     }
   }
 
-  // 3) Every pixel → colour band
-  const band = new Int8Array(w * h).fill(-1);
-  for (let y = 0; y < h; y++) {
-    const fy = y / step, gy = Math.floor(fy), ty = fy - gy;
-    for (let x = 0; x < w; x++) {
-      const fx = x / step, gx = Math.floor(fx), tx = fx - gx;
-      const i0 = gy * gw + gx;
-      const v = (grid[i0] * (1 - tx) + grid[i0 + 1] * tx) * (1 - ty)
-              + (grid[i0 + gw] * (1 - tx) + grid[i0 + gw + 1] * tx) * ty;
-      let b = -1;
-      for (let n = RISK_BANDS.length - 1; n >= 0; n--) { if (v >= RISK_BANDS[n][0]) { b = n; break; } }
-      band[y * w + x] = b;
-    }
-  }
+  // 3) Contour lines for each band threshold (like isobars on a weather map)
+  const thresholds = RISK_BANDS.map(([t]) => t);
+  const layers = contours().size([n, m]).thresholds(thresholds)(Array.from(values));
+  const toLatLng = ([x, y]) => ({ lat: north - y * cellLat, lng: west + x * cellLng });
+  const rings = layers.map((layer) =>
+    layer.coordinates.flatMap((polygon) => polygon.map((ring) => smoothRing(ring).map(toLatLng))));
 
-  // 4) Paint: band colour, darker outline where a band meets a lower one
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  const img = ctx.createImageData(w, h);
-  const d = img.data;
-  const lowerNear = (x, y, b) => {
-    for (let o = 1; o <= OUTLINE_PX; o++) {
-      if (x - o < 0 || band[y * w + x - o] < b) return true;
-      if (x + o >= w || band[y * w + x + o] < b) return true;
-      if (y - o < 0 || band[(y - o) * w + x] < b) return true;
-      if (y + o >= h || band[(y + o) * w + x] < b) return true;
-    }
-    return false;
-  };
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = y * w + x;
-      const b = band[i];
-      if (b < 0) continue;
-      const [, col, alpha] = RISK_BANDS[b];
-      const o = i * 4;
-      if (lowerNear(x, y, b)) {
-        d[o] = col[0] * 0.55; d[o + 1] = col[1] * 0.55; d[o + 2] = col[2] * 0.55; d[o + 3] = 235;
-      } else {
-        d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = alpha * 255;
-      }
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-  return { url: canvas.toDataURL('image/png'), bounds: { north, south, east, west } };
+  // 4) Each band = its area minus the next band's area (so colours don't stack)
+  return RISK_BANDS.map(([, col, alpha], b) => {
+    const own = rings[b];
+    if (!own.length) return null;
+    const holes = (rings[b + 1] || []).map((r) => r.slice().reverse());
+    return { paths: [...own, ...holes], col, alpha, z: b };
+  }).filter(Boolean);
 };
 
 // Use: const heat = createHeatLayer(window.google.maps); heat.setMap(map);
 //      heat.setPoints([{ lat, lng, weight }]) to show, heat.setPoints([]) to hide.
 export const createHeatLayer = (gm) => {
   let map = null;
-  let overlay = null;
+  let shapes = [];
   let lastPoints = null;
   let job = null;
 
-  const hide = () => { if (overlay) overlay.setMap(null); };
+  const show = (m) => shapes.forEach((s) => s.setMap(m));
 
   return {
     setMap(m) {
       map = m;
-      if (!m) hide();
-      else if (overlay && lastPoints && lastPoints.length) overlay.setMap(m);
+      show(m && lastPoints ? m : null);
     },
     setPoints(points) {
       const pts = (points || []).filter((p) => p.weight > 0.01);
-      if (!pts.length) { hide(); return; }
-      if (overlay && points === lastPoints) { if (map) overlay.setMap(map); return; }   // same data: just show it again
+      if (!pts.length) { show(null); return; }
+      if (shapes.length && points === lastPoints) { show(map); return; }   // same data: just show it again
       lastPoints = points;
       clearTimeout(job);
-      job = setTimeout(() => {           // let the button update first, then draw
-        const { url, bounds } = renderRiskImage(pts);
-        hide();
-        overlay = new gm.GroundOverlay(url, bounds, { clickable: false, opacity: 1 });
-        if (map && lastPoints === points) overlay.setMap(map);
+      job = setTimeout(() => {           // let the button update first, then calculate
+        const bands = buildRiskShapes(pts);
+        show(null);
+        shapes = bands.map(({ paths, col, alpha, z }) => new gm.Polygon({
+          paths,
+          clickable: false,
+          fillColor: `rgb(${col.join(',')})`,
+          fillOpacity: alpha,
+          strokeColor: `rgb(${col.map((v) => Math.round(v * 0.55)).join(',')})`,
+          strokeOpacity: 0.95,
+          strokeWeight: 1.6,
+          zIndex: 1 + z,
+        }));
+        if (map && lastPoints === points) show(map);
       }, 0);
     },
-    draw() { /* nothing to do: Google moves and scales the image itself */ },
+    draw() { /* nothing to do: Google moves and scales the shapes itself */ },
   };
 };
 
