@@ -97,7 +97,7 @@ export const createHeatLayer = (gm) => {
         const px = proj.fromLatLngToDivPixel(new gm.LatLng(p.lat, p.lng));
         const x = px.x - left, y = px.y - top;
         if (x < -r || y < -r || x > w + r || y > h + r) return;
-        const a = Math.min(1, Math.max(0.18, p.weight)) * 0.7;
+        const a = Math.min(1, p.weight) * 0.7;   // old cases fade out completely
         const g = ctx.createRadialGradient(x, y, 0, x, y, r);
         g.addColorStop(0, `rgba(0,0,0,${a})`);
         g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -179,7 +179,7 @@ export const HeatLegend = ({ empty }) => (
     <div className="rf-legend-bar" />
     <div className="rf-legend-scale"><span>Lower</span><span>Higher</span></div>
     <div className="rf-legend-note">
-      {empty ? 'No rabies-related reports in the past year.' : 'Based on rabies and bite reports from the past year. Recent and confirmed cases count more.'}
+      {empty ? 'No rabies-related reports in the last 3 months.' : 'Based on rabies and bite reports from the last 3 months. Recent and confirmed cases count more.'}
     </div>
   </div>
 );
