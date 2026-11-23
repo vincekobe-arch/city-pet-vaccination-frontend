@@ -142,7 +142,9 @@ const Register = () => {
     }
 
     if (name === 'phone') {
-      const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+      let digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.startsWith('63') && digitsOnly.length > 10) digitsOnly = digitsOnly.slice(2); // pasted +63…
+      digitsOnly = digitsOnly.replace(/^0+/, '').slice(0, 10);                                    // drop the leading 0
       setFormData(prev => ({ ...prev, phone: digitsOnly }));
       setFieldErrors(prev => ({ ...prev, phone: digitsOnly && !/^9\d{9}$/.test(digitsOnly) ? 'Invalid input' : '' }));
     }
@@ -631,7 +633,7 @@ const handleOtpPaste = (e) => {
                             <Form.Control type="tel" name="phone" value={formData.phone} onChange={handleChange}
                               onFocus={() => setFocusedField('phone')} onBlur={() => setFocusedField(null)}
                               onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-                              placeholder="9123456789" required disabled={loading} maxLength={10}
+                              placeholder="9123456789" required disabled={loading} maxLength={13}
                               style={{
                                 ...inputStyle('phone'),
                                 borderRadius: '0 14px 14px 0',

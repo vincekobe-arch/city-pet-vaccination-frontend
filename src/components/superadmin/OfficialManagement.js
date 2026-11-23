@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Modal, Form } from 'react-bootstrap';
 import { officialAPI, handleAPIError } from '../../services/api';
 
+// Default admin password: Lastname@MMDDYYYY (same rule as the backend)
+const defaultPassword = (lastName, birthdate) => {
+  const name = (lastName || '').replace(/[ñÑ]/g, 'n').toLowerCase().replace(/[^a-z]/g, '');
+  if (!name || !birthdate) return 'admin123';
+  const [y, m, d] = String(birthdate).slice(0, 10).split('-');
+  return `${name[0].toUpperCase()}${name.slice(1)}@${m}${d}${y}`;
+};
+
 const AnimatedStatValue = ({ value, loading }) => {
   const [displayValue, setDisplayValue] = React.useState(0);
   const hasAnimatedRef = React.useRef(false);
@@ -277,7 +285,7 @@ const itemsPerPage = 10;
         ...formData,
         username: username,
         email: email,
-        password: 'admin123',
+        password: defaultPassword(formData.last_name, formData.birthdate),
         address: '',
         license_number: '',
         specialization: '',
@@ -287,7 +295,7 @@ const itemsPerPage = 10;
       };
 
       await officialAPI.create(submitData);
-      setSuccess(`Barangay official added successfully! Email: ${email}`);
+      setSuccess(`Barangay official added successfully! Email: ${email} · Password: ${defaultPassword(formData.last_name, formData.birthdate)}`);
       setShowAddModal(false);
       resetForm();
       loadData(true);
@@ -381,8 +389,9 @@ const itemsPerPage = 10;
   const handleConfirmResetPassword = async () => {
     setFormLoading(true);
     try {
-      await officialAPI.resetAdminPassword(selectedOfficial.id);
-      setSuccess(`Password of ${selectedOfficial.first_name} reset to admin123 successfully!`);
+      const res = await officialAPI.resetAdminPassword(selectedOfficial.id);
+      const newPw = res?.data?.password || defaultPassword(selectedOfficial.last_name, selectedOfficial.birthdate);
+      setSuccess(`Password of ${selectedOfficial.first_name} reset to ${newPw} successfully!`);
       setShowResetPasswordModal(false);
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
@@ -990,11 +999,14 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
                     <div className="mm-note-box">
                       <i className="fas fa-key" />
                       <div>
-                        <strong>Login is created automatically.</strong> Email <code>lastname.YYYY###@muntinlupa.gov.ph</code>, username <code>lastname.YYYY###</code>, default password <code>admin123</code>.
+                        <strong>Login is created automatically.</strong> Email <code>lastname.YYYY###@muntinlupa.gov.ph</code>, username <code>lastname.YYYY###</code>, default password <code>Lastname@MMDDYYYY</code> (birthdate).
                         {preview && (
                           <div className="mm-cred">
                             <span><i className="fas fa-envelope" /><span className="mm-mono">{preview.email}</span></span>
                             <span><i className="fas fa-at" /><span className="mm-mono">{preview.username}</span></span>
+                            {formData.birthdate && (
+                              <span><i className="fas fa-key" /><span className="mm-mono">{defaultPassword(formData.last_name, formData.birthdate)}</span></span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1150,7 +1162,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
             label: 'Restore', busy: 'Restoring…', onConfirm: handleConfirmRestore },
           { key: 'reset', show: showResetPasswordModal, close: () => setShowResetPasswordModal(false), color: '#0d6efd', icon: 'fa-key',
             title: 'Reset password?', text: 'The admin\'s current password will stop working.',
-            note: <>The password will be reset to <strong>admin123</strong>. Ask the admin to change it after signing in.</>,
+            note: <>The password will be reset to <strong>{selectedOfficial ? defaultPassword(selectedOfficial.last_name, selectedOfficial.birthdate) : 'Lastname@MMDDYYYY'}</strong>. Ask the admin to change it after signing in.</>,
             label: 'Reset password', busy: 'Resetting…', onConfirm: handleConfirmResetPassword },
         ].map(m => (
           <Modal key={m.key} show={m.show} onHide={() => !formLoading && m.close()} centered dialogClassName="mm-small" className="mm-zoom-modal">

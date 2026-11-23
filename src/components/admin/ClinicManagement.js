@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Modal, Form } from 'react-bootstrap';
 import api, { clinicAPI, handleAPIError } from '../../services/api';
 
+// Default clinic password: Clinicname@number from the username (same rule as the backend)
+const clinicDefaultPassword = (username, createdAt) => {
+  const s = String(username || '').toLowerCase();
+  const dot = s.indexOf('.');
+  let name = (dot < 0 ? s : s.slice(0, dot)).replace(/[^a-z]/g, '');
+  if (name.length < 2) name = 'clinic';
+  let num = dot < 0 ? '' : s.slice(dot + 1).replace(/\D/g, '');
+  if (!num) num = String(createdAt ? new Date(String(createdAt).replace(' ', 'T')).getFullYear() : new Date().getFullYear());
+  return name[0].toUpperCase() + name.slice(1) + '@' + num;
+};
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SPECIALIZATIONS = ['General Veterinary', 'Small Animals', 'Large Animals', 'Exotic Animals', 'Surgery', 'Dermatology', 'Dentistry', 'Cardiology'];
 
@@ -820,13 +831,13 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     try {
       const submitData = {
         ...formData,
-        password: formData.password || 'clinic123',
+        password: clinicDefaultPassword(formData.username),
         latitude:  formLat  || null,
         longitude: formLng || null,
       };
       const response = await clinicAPI.create(submitData);
       if (response.data && response.data.success) {
-        showSuccess(`Clinic "${formData.clinic_name}" added successfully! Username: ${formData.username} | Default password: clinic123`, 6000);
+        showSuccess(`Clinic "${formData.clinic_name}" added successfully! Username: ${formData.username} | Default password: ${response.data.password || clinicDefaultPassword(formData.username)}`, 6000);
         resetForm();
         loadData();
       } else {
@@ -914,9 +925,10 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     if (formLoading || !selectedClinic) return;
     setFormLoading(true);
     try {
-      await api.put(`/clinics/reset-password/${selectedClinic.id}`);
+      const res = await api.put(`/clinics/reset-password/${selectedClinic.id}`);
       setShowResetPasswordModal(false);
-      showSuccess(`Password for ${selectedClinic.clinic_name} was reset to clinic123.`, 4000);
+      const newPw = res?.data?.password || clinicDefaultPassword(selectedClinic.username, selectedClinic.created_at);
+      showSuccess(`Password for ${selectedClinic.clinic_name} was reset to ${newPw}.`, 6000);
       setSelectedClinic(null);
     } catch (err) {
       const { message } = handleAPIError(err);
@@ -1729,7 +1741,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                     <div className="mm-note-box">
                       <i className="fas fa-key" />
                       <div>
-                        <strong>Login is created automatically.</strong> The username fills in from the clinic name (you can edit it). Default password: <code>clinic123</code>
+                        <strong>Login is created automatically.</strong> The username fills in from the clinic name (you can edit it). Default password: <code>{formData.username ? clinicDefaultPassword(formData.username) : 'Clinicname@number'}</code>
                       </div>
                     </div>
                   )}
@@ -1916,7 +1928,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
             label: 'Restore', busy: 'Restoring…', onConfirm: () => handleRestoreClinic(selectedClinic) },
           { key: 'reset', show: showResetPasswordModal, close: () => setShowResetPasswordModal(false), color: '#0d6efd', icon: 'fa-key',
             title: 'Reset password?', text: "The clinic's current password will stop working.",
-            note: <>The password will be reset to <strong>clinic123</strong>. Ask the clinic to change it after signing in.</>,
+            note: <>The password will be reset to <strong>{selectedClinic ? clinicDefaultPassword(selectedClinic.username, selectedClinic.created_at) : 'Clinicname@number'}</strong>. Ask the clinic to change it after signing in.</>,
             label: 'Reset password', busy: 'Resetting…', onConfirm: handleConfirmResetPassword },
         ].map(m => (
           <Modal key={m.key} show={m.show} onHide={() => !formLoading && m.close()} centered dialogClassName="mm-small" className="mm-zoom-modal">
