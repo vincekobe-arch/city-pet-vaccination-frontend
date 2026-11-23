@@ -10,6 +10,17 @@ const defaultPassword = (lastName, birthdate) => {
   return `${name[0].toUpperCase()}${name.slice(1)}@${m}${d}${y}`;
 };
 
+// Phone helpers — the form keeps the 10 digits after +63 (e.g. 9123456789)
+const phoneLocal = (p) => {
+  let d = String(p || '').replace(/\D/g, '');
+  if (d.startsWith('63') && d.length > 10) d = d.slice(2);
+  return d.replace(/^0+/, '').slice(0, 10);
+};
+const formatPhone = (p) => {
+  const d = phoneLocal(p);
+  return d.length === 10 ? `+63 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : (p || '');
+};
+
 const AnimatedStatValue = ({ value, loading }) => {
   const [displayValue, setDisplayValue] = React.useState(0);
   const hasAnimatedRef = React.useRef(false);
@@ -147,12 +158,12 @@ const itemsPerPage = 10;
     const { name, value } = e.target;
 
     if (name === 'phone') {
-      const numericOnly = value.replace(/\D/g, '').slice(0, 11);
-      setFormData(prev => ({ ...prev, phone: numericOnly }));
+      const digits = phoneLocal(value);
+      setFormData(prev => ({ ...prev, phone: digits }));
       setFieldErrors(prev => ({
         ...prev,
-        phone: numericOnly && !/^09\d{9}$/.test(numericOnly)
-          ? 'Phone must be 11 digits starting with 09'
+        phone: digits && !/^9\d{9}$/.test(digits)
+          ? 'Enter 10 digits starting with 9'
           : ''
       }));
       if (formError) setFormError('');
@@ -252,7 +263,7 @@ const itemsPerPage = 10;
       last_name: official.last_name,
       birthdate: official.birthdate || '',
       gender: official.gender || '',
-      phone: official.phone || '',
+      phone: phoneLocal(official.phone),
       office_role: isCustomRole ? 'Other' : (official.office_role || ''),
       office_role_custom: isCustomRole ? official.office_role : ''
     });
@@ -291,7 +302,8 @@ const itemsPerPage = 10;
         specialization: '',
         is_primary_contact: false,
         office_role: formData.office_role === 'Other' ? (formData.office_role_custom || 'Other') : formData.office_role,
-        assigned_barangay_id: null
+        assigned_barangay_id: null,
+        phone: formData.phone ? `+63${formData.phone}` : '',
       };
 
       await officialAPI.create(submitData);
@@ -323,7 +335,7 @@ const itemsPerPage = 10;
         last_name: formData.last_name,
         birthdate: formData.birthdate,
         gender: formData.gender,
-        phone: formData.phone,
+        phone: formData.phone ? `+63${formData.phone}` : '',
         office_role: formData.office_role === 'Other' ? (formData.office_role_custom || 'Other') : formData.office_role
       };
       
@@ -681,6 +693,13 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
     .mm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
     .mm-input.good { border-color: #10b981 !important; }
     .mm-input.bad { border-color: #ef4444 !important; }
+        .mm-phone { display: flex; }
+    .mm-phone-prefix { display: flex; align-items: center; padding: 0 0.8rem; border: 1.5px solid #e5e7eb; border-right: none;
+      border-radius: 10px 0 0 10px; background: #f3f4f6; color: #1f2328; font-weight: 600; font-size: 0.92rem; transition: border-color 0.15s ease; }
+    .mm-phone .mm-input { border-radius: 0 10px 10px 0 !important; }
+    .mm-phone:focus-within .mm-phone-prefix { border-color: #ffc107; }
+    .mm-phone.good .mm-phone-prefix { border-color: #10b981; }
+    .mm-phone.bad .mm-phone-prefix { border-color: #ef4444; }
     .mm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
     .mm-hint.bad { color: #dc3545; }
     .mm-alert.page { margin-bottom: 1.25rem; align-items: center; }
@@ -863,7 +882,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
                         </td>
                         <td className="m-hide">
                           <div className="ad-ellipsis" title={official.email}><i className="fas fa-envelope ad-ic" />{official.email || '—'}</div>
-                          <div className="ad-muted"><i className="fas fa-phone ad-ic" />{official.phone || '—'}</div>
+                          <div className="ad-muted"><i className="fas fa-phone ad-ic" />{official.phone ? formatPhone(official.phone) : '—'}</div>
                         </td>
                         <td>
                           {official.office_role ? <span className="ad-role" title={official.office_role}>{official.office_role}</span> : <span className="ad-muted">—</span>}
@@ -960,8 +979,8 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
           { mode: 'edit', show: showEditModal, close: () => setShowEditModal(false), submit: handleSubmitEdit },
         ].map(({ mode, show, close, submit }) => {
           const isAdd = mode === 'add';
-          const phoneBad = formData.phone && !/^09\d{9}$/.test(formData.phone);
-          const phoneOk = formData.phone && /^09\d{9}$/.test(formData.phone);
+          const phoneBad = formData.phone && !/^9\d{9}$/.test(formData.phone);
+          const phoneOk = formData.phone && /^9\d{9}$/.test(formData.phone);
           const invalid = formLoading || !formData.first_name.trim() || !formData.last_name.trim() || !formData.birthdate ||
             !formData.gender || !formData.office_role || (formData.office_role === 'Other' && !formData.office_role_custom?.trim()) ||
             phoneBad || Object.values(fieldErrors).some(e => !!e);
@@ -1035,10 +1054,13 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
                       </Col>
                       <Col md={4}>
                         <Form.Label className="mm-label">Phone number</Form.Label>
-                        <Form.Control className={`mm-input${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`} type="tel" inputMode="numeric" maxLength={11} name="phone" value={formData.phone || ''}
-                          onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-                          onChange={handleFormChange} disabled={formLoading} placeholder="09XXXXXXXXX" />
-                        {phoneBad && <div className="mm-hint bad"><i className="fas fa-times-circle" />{fieldErrors.phone || 'Phone must be 11 digits starting with 09'}</div>}
+                        <div className={`mm-phone${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`}>
+                          <span className="mm-phone-prefix">+63</span>
+                          <Form.Control className={`mm-input${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`} type="tel" inputMode="numeric" maxLength={13} name="phone" value={formData.phone || ''}
+                            onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }}
+                            onChange={handleFormChange} disabled={formLoading} placeholder="9123456789" />
+                        </div>
+                        {phoneBad && <div className="mm-hint bad"><i className="fas fa-times-circle" />{fieldErrors.phone || 'Enter 10 digits starting with 9'}</div>}
                       </Col>
                     </Row>
                   </div>
@@ -1088,7 +1110,7 @@ const paginatedOfficials = filteredOfficials.slice(startIdx, endIdx);
             const age = o.birthdate ? Math.floor((Date.now() - new Date(o.birthdate).getTime()) / 31557600000) : null;
             const info = [
               { icon: 'fa-at', label: 'Username', value: o.username ? <span className="mm-mono">{o.username}</span> : '—' },
-              { icon: 'fa-phone-alt', label: 'Phone', value: o.phone || <span className="mm-none">Not provided</span> },
+              { icon: 'fa-phone-alt', label: 'Phone', value: o.phone ? formatPhone(o.phone) : <span className="mm-none">Not provided</span> },
               { icon: 'fa-envelope', label: 'Email', value: o.email || '—', wide: true },
               { icon: 'fa-birthday-cake', label: 'Birthdate', value: o.birthdate ? new Date(o.birthdate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : <span className="mm-none">Not provided</span> },
               { icon: 'fa-venus-mars', label: 'Gender', value: o.gender || <span className="mm-none">Not specified</span> },

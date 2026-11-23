@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Card, Modal, Form } from 'react-bootstrap';
 import api, { clinicAPI, handleAPIError } from '../../services/api';
 
+// Phone helpers — the form keeps the 10 digits after +63 (e.g. 9123456789)
+const phoneLocal = (p) => {
+  let d = String(p || '').replace(/\D/g, '');
+  if (d.startsWith('63') && d.length > 10) d = d.slice(2);
+  return d.replace(/^0+/, '').slice(0, 10);
+};
+const formatPhone = (p) => {
+  const d = phoneLocal(p);
+  return d.length === 10 ? `+63 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : (p || '');
+};
+
 // Default clinic password: Clinicname@number from the username (same rule as the backend)
 const clinicDefaultPassword = (username, createdAt) => {
   const s = String(username || '').toLowerCase();
@@ -711,8 +722,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     const { name, value } = e.target;
     // Phone: numbers only
     if (name === 'phone') {
-      const numericOnly = value.replace(/\D/g, '').slice(0, 11);
-      setFormData(prev => ({ ...prev, phone: numericOnly }));
+      setFormData(prev => ({ ...prev, phone: phoneLocal(value) }));
       if (formError) setFormError('');
       return;
     }
@@ -767,7 +777,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     if (!emailRegex.test(formData.email)) { setFormError('Please enter a valid email address (e.g. clinic@example.com)'); return false; }
     if (formData.phone && formData.phone.trim()) {
       const phoneClean = formData.phone.trim();
-      if (!/^\d{11}$/.test(phoneClean)) { setFormError('Phone number must be exactly 11 digits (numbers only)'); return false; }
+      if (!/^9\d{9}$/.test(phoneClean)) { setFormError('Phone number must be 10 digits after +63 (e.g. 9123456789)'); return false; }
     }
     if (!formData.username.trim()) { setFormError('Username is required'); return false; }
     return true;
@@ -782,7 +792,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     }
     if (formData.phone && formData.phone.trim()) {
       const phoneClean = formData.phone.trim();
-      if (!/^\d{11}$/.test(phoneClean)) { setFormError('Phone number must be exactly 11 digits (numbers only)'); return false; }
+      if (!/^9\d{9}$/.test(phoneClean)) { setFormError('Phone number must be 10 digits after +63 (e.g. 9123456789)'); return false; }
     }
     return true;
   };
@@ -798,7 +808,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
       clinic_name: clinic.clinic_name || '',
       owner_name: clinic.owner_name || '',
       address: clinic.address || '',
-      phone: clinic.phone || '',
+      phone: phoneLocal(clinic.phone),
       email: clinic.email || '',
       license_number: clinic.license_number || '',
       specialization: clinic.specialization || '',
@@ -834,6 +844,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
         password: clinicDefaultPassword(formData.username),
         latitude:  formLat  || null,
         longitude: formLng || null,
+        phone: formData.phone ? `+63${formData.phone}` : '',
       };
       const response = await clinicAPI.create(submitData);
       if (response.data && response.data.success) {
@@ -867,7 +878,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
         address: formData.address,
         latitude:  formLat  || null,
         longitude: formLng || null,
-        phone: formData.phone,
+        phone: formData.phone ? `+63${formData.phone}` : '',
         email: formData.email,
         license_number: formData.license_number,
         specialization: formData.specialization
@@ -1271,6 +1282,13 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
     .mm-input:focus { border-color: #ffc107 !important; box-shadow: 0 0 0 3px rgba(255,193,7,0.18) !important; }
     .mm-input.good { border-color: #10b981 !important; }
     .mm-input.bad { border-color: #ef4444 !important; }
+        .mm-phone { display: flex; }
+    .mm-phone-prefix { display: flex; align-items: center; padding: 0 0.8rem; border: 1.5px solid #e5e7eb; border-right: none;
+      border-radius: 10px 0 0 10px; background: #f3f4f6; color: #1f2328; font-weight: 600; font-size: 0.92rem; transition: border-color 0.15s ease; }
+    .mm-phone .mm-input { border-radius: 0 10px 10px 0 !important; }
+    .mm-phone:focus-within .mm-phone-prefix { border-color: #ffc107; }
+    .mm-phone.good .mm-phone-prefix { border-color: #10b981; }
+    .mm-phone.bad .mm-phone-prefix { border-color: #ef4444; }
     .mm-hint { font-size: 0.78rem; color: #6b7280; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
     .mm-hint.bad { color: #dc3545; }
     .mm-readonly { display: flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0.6rem 0.8rem; border-radius: 10px; border: 1.5px dashed #e5e7eb; background: #f8f9fa; font-size: 0.92rem; font-weight: 600; color: #1f2328; }
@@ -1624,7 +1642,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                           </td>
                           <td>
                             <div className="ck-ellipsis" style={{ fontSize: '0.84rem' }} title={clinic.email}><i className="fas fa-envelope ck-ic" />{clinic.email || '—'}</div>
-                            {clinic.phone && <div className="ck-muted"><i className="fas fa-phone-alt ck-ic" />{clinic.phone}</div>}
+                            {clinic.phone && <div className="ck-muted"><i className="fas fa-phone-alt ck-ic" />{formatPhone(clinic.phone)}</div>}
                           </td>
                           <td className="mobile-hide">
                             {clinic.specialization
@@ -1717,8 +1735,8 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
           const isAdd = mode === 'add';
           const emailBad = formData.email && !EMAIL_RE.test(formData.email);
           const emailOk  = formData.email && EMAIL_RE.test(formData.email);
-          const phoneBad = formData.phone && !/^\d{11}$/.test(formData.phone);
-          const phoneOk  = formData.phone && /^\d{11}$/.test(formData.phone);
+          const phoneBad = formData.phone && !/^9\d{9}$/.test(formData.phone);
+          const phoneOk  = formData.phone && /^9\d{9}$/.test(formData.phone);
           const invalid = formLoading || !formData.clinic_name.trim() || !formData.owner_name.trim() || emailBad || phoneBad ||
             (isAdd && (!formData.email.trim() || !formData.username.trim()));
           return (
@@ -1787,10 +1805,13 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
                       </Col>
                       <Col md={6}>
                         <Form.Label className="mm-label">Phone number</Form.Label>
-                        <Form.Control className={`mm-input${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`} type="tel" inputMode="numeric" maxLength={11} name="phone" value={formData.phone}
-                          onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key)) e.preventDefault(); }}
-                          onChange={handleFormChange} disabled={formLoading} placeholder="09XXXXXXXXX" />
-                        {phoneBad && <div className="mm-hint bad"><i className="fas fa-times-circle" />Must be exactly 11 digits</div>}
+                        <div className={`mm-phone${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`}>
+                          <span className="mm-phone-prefix">+63</span>
+                          <Form.Control className={`mm-input${phoneBad ? ' bad' : phoneOk ? ' good' : ''}`} type="tel" inputMode="numeric" maxLength={13} name="phone" value={formData.phone}
+                            onKeyDown={(e) => { if (!/[0-9]/.test(e.key) && !['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault(); }}
+                            onChange={handleFormChange} disabled={formLoading} placeholder="9123456789" />
+                        </div>
+                        {phoneBad && <div className="mm-hint bad"><i className="fas fa-times-circle" />Enter 10 digits starting with 9</div>}
                       </Col>
                     </Row>
                   </div>
@@ -1855,7 +1876,7 @@ const [showRestoreModal, setShowRestoreModal] = useState(false);
               { icon: 'fa-user-md', label: 'Owner', value: c.owner_name || '—' },
               { icon: 'fa-at', label: 'Username', value: <span className="mm-mono">{c.username || '—'}</span> },
               { icon: 'fa-envelope', label: 'Email', value: c.email || '—' },
-              { icon: 'fa-phone-alt', label: 'Phone', value: c.phone || 'Not provided' },
+              { icon: 'fa-phone-alt', label: 'Phone', value: c.phone ? formatPhone(c.phone) : 'Not provided' },
               { icon: 'fa-home', label: 'Address', value: c.address || 'Not provided', wide: true },
               { icon: 'fa-id-badge', label: 'License', value: c.license_number || 'Not provided' },
               { icon: 'fa-stethoscope', label: 'Specialization', value: c.specialization || 'General / None' },
