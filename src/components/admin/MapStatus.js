@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { reportsAPI, clinicAPI, handleAPIError } from '../../services/api';
-import { createHeatLayer, useRabiesForecast, HeatLegend, ForecastList, ForecastStyles, focusBarangayOnMap } from '../common/RabiesForecast';
+import { createHeatLayer, useRabiesForecast, HeatLegend, ForecastList, ForecastStyles } from '../common/RabiesForecast';
 
 /* ------------------------------------------------------------------ */
 /* Config                                                             */
@@ -295,8 +295,7 @@ export default function MapStatus() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPrinting,   setIsPrinting]   = useState(false);
   const [updatedAt,    setUpdatedAt]    = useState(null);
-  const [mapMode,      setMapMode]      = useState('zones');   // 'zones' | 'heat'
-  const [riskBrgy,     setRiskBrgy]     = useState(null);
+  const [showHeat,     setShowHeat]     = useState(false);   // rabies risk heatmap on/off
   const forecast = useRabiesForecast();
 
   const navigate = useNavigate();
@@ -628,7 +627,7 @@ export default function MapStatus() {
 
       infoWindowRef.current = new google.maps.InfoWindow();
 
-      // Rabies risk heatmap (drawn only in "Risk heatmap" view)
+      // Rabies risk heatmap (shown with the "Show heatmap" button)
       heatRef.current = createHeatLayer(google.maps);
       heatRef.current.setMap(map);
       map.addListener('idle', () => heatRef.current && heatRef.current.draw());
@@ -670,7 +669,7 @@ export default function MapStatus() {
       if (!covered) circleOwners.push({ lat, lng, status: report.status });
     });
 
-    (mapMode === 'heat' ? [] : circleOwners).forEach(owner => {
+    (showHeat ? [] : circleOwners).forEach(owner => {
       const isPos = owner.status === 'positive_rabies';
       const color = isPos ? STATUS_CONFIG.positive_rabies.color : STATUS_CONFIG.suspected_rabies.color;
       const center = { lat: owner.lat, lng: owner.lng };
@@ -753,20 +752,13 @@ export default function MapStatus() {
       });
       markersRef.current.push(marker);
     });
-  }, [filtered, mapReady, mapMode]);
+  }, [filtered, mapReady, showHeat]);
 
   /* ------------------------ Risk heatmap -------------------------- */
   useEffect(() => {
     if (!mapReady || !heatRef.current) return;
-    heatRef.current.setPoints(mapMode === 'heat' ? (forecast.data?.points || []) : []);
-  }, [mapReady, mapMode, forecast.data]);
-
-  const selectRiskBarangay = (b) => {
-    setRiskBrgy(b.id);
-    setMapMode('heat');
-    focusBarangayOnMap(mapInstanceRef.current, b, forecast.data?.points);
-    if (window.innerWidth < 992 && mapRef.current) mapRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
+    heatRef.current.setPoints(showHeat ? (forecast.data?.points || []) : []);
+  }, [mapReady, showHeat, forecast.data]);
 
   /* ----------------------- Clinic markers ------------------------- */
   useEffect(() => {
@@ -879,13 +871,16 @@ export default function MapStatus() {
         .type-select { appearance: none; border: none; background: transparent; color: #ffffff; font-size: 0.78rem; font-weight: 600; padding: 0.55rem 2rem 0.55rem 0.85rem; cursor: pointer; outline: none; }
         .type-select option { color: #1f2328; }
         .map-btn:hover { background: rgba(13,20,36,0.95) !important; }
-        .mode-seg { display: flex; padding: 4px; gap: 2px; }
-        .mode-btn { border: none; background: transparent; color: #cfd6e4; font-size: 0.78rem; font-weight: 600; padding: 0.42rem 0.75rem; border-radius: 9px; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; white-space: nowrap; transition: background 0.2s ease, color 0.2s ease; }
-        .mode-btn:hover { color: #ffffff; }
-        .mode-btn.active { background: #ffffff; color: #1f2328; }
-        .mode-btn.active .fa-fire { color: #dc2626; }
-        .mode-btn:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
-        @media (max-width: 768px) { .mode-btn .lbl { display: none; } }
+        .heat-toggle { display: flex; align-items: center; gap: 0.5rem; border: none; color: #ffffff; font-size: 0.78rem; font-weight: 600; padding: 0.5rem 0.7rem 0.5rem 0.85rem; cursor: pointer; white-space: nowrap; }
+        .heat-toggle .fa-fire { color: #cfd6e4; transition: color 0.2s ease; }
+        .heat-toggle.on .fa-fire { color: #f97316; }
+        .heat-toggle .sw { width: 30px; height: 18px; border-radius: 999px; background: rgba(255,255,255,0.25); position: relative; transition: background 0.2s ease; flex-shrink: 0; }
+        .heat-toggle .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #ffffff; transition: transform 0.2s ease; }
+        .heat-toggle.on .sw { background: #f97316; }
+        .heat-toggle.on .sw::after { transform: translateX(12px); }
+        .heat-toggle:hover { background: rgba(13,20,36,0.95); }
+        .heat-toggle:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
+        @media (max-width: 768px) { .heat-toggle .lbl { display: none; } }
         .map-filter:focus-visible, .map-btn:focus-visible, .type-select:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
 
         .radar { position: relative; width: 120px; height: 120px; border-radius: 50%; border: 1px solid rgba(255,193,7,0.25); background: radial-gradient(circle, rgba(255,193,7,0.06) 0 30%, transparent 31%), radial-gradient(circle, transparent 0 60%, rgba(255,193,7,0.08) 61% 62%, transparent 63%); }
@@ -971,8 +966,8 @@ export default function MapStatus() {
           {/* Side panels */}
           <Col lg={4} xl={3} className="side-stack order-2 order-lg-1" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            <Panel icon="fa-fire" iconColor="#dc2626" title="Rabies risk forecast" subtitle="Next 30 days · select a barangay to see it on the map">
-              <ForecastList forecast={forecast} selected={riskBrgy} onSelect={selectRiskBarangay} />
+            <Panel icon="fa-fire" iconColor="#dc2626" title="Rabies risk forecast" subtitle="Next 30 days · turn on Show heatmap to see it on the map">
+              <ForecastList forecast={forecast} limit={4} />
             </Panel>
 
 
@@ -986,49 +981,7 @@ export default function MapStatus() {
                   ))}
             </Panel>
 
-            <Panel icon="fa-layer-group" iconColor="#6f7cf0" title="By report type">
-              {loading
-                ? [0, 1, 2, 3].map(i => <div key={i} className="map-skel" style={{ opacity: 1 - i * 0.12 }} />)
-                : Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
-                    <BarRow key={key} label={cfg.label} value={stats[`type_${key}`]} total={stats.total} color={cfg.color}
-                      dot={<span style={{ width: '22px', height: '22px', borderRadius: '6px', background: `${cfg.color}1a`, color: cfg.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><i className={`fas ${cfg.icon}`} style={{ fontSize: '0.65rem' }} /></span>} />
-                  ))}
-            </Panel>
 
-            <Panel icon="fa-map-pin" iconColor="#198754" title="Map legend">
-              <div className="stagger">
-                {[
-                  { color: STATUS_CONFIG.positive_rabies.color,  label: 'Positive rabies',  shape: 'pin', symbol: '!' },
-                  { color: STATUS_CONFIG.suspected_rabies.color, label: 'Suspected rabies', shape: 'pin', symbol: '?', dark: true },
-                  { color: STATUS_CONFIG.pending.color,          label: 'Pending report',   shape: 'pin' },
-                  { color: TYPE_CONFIG.animal_bite.color,        label: 'Animal bite',      shape: 'pin' },
-                  { color: TYPE_CONFIG.animal_rescue.color,      label: 'Animal rescue',    shape: 'pin' },
-                  { color: TYPE_CONFIG.others.color,             label: 'Others',           shape: 'pin' },
-                  { color: CITYVET,                              label: 'City Veterinary Office', shape: 'clinic' },
-                  { color: CLINIC,                               label: 'Private clinic',   shape: 'clinic' },
-                ].map(l => (
-                  <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', padding: '0.35rem 0' }}>
-                    {l.shape === 'pin' ? (
-                      <svg width="18" height="24" viewBox="0 0 32 42" aria-hidden="true">
-                        <path d="M16 1C8 1 2 7 2 15c0 10 14 25 14 25s14-15 14-25C30 7 24 1 16 1z" fill={l.color} stroke="#fff" strokeWidth="2" />
-                        {l.symbol
-                          ? <text x="16" y="21" textAnchor="middle" fontFamily="Arial" fontWeight="bold" fontSize="15" fill={l.dark ? '#1f2328' : '#fff'}>{l.symbol}</text>
-                          : <circle cx="16" cy="15" r="5" fill="#fff" />}
-                      </svg>
-                    ) : (
-                      <span style={{ width: '18px', height: '18px', borderRadius: '5px', background: l.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <i className="fas fa-plus" style={{ fontSize: '0.55rem', color: l.color === CITYVET ? '#1f2328' : '#fff' }} />
-                      </span>
-                    )}
-                    <span style={{ fontSize: '0.84rem', fontWeight: 500, color: t.text }}>{l.label}</span>
-                  </div>
-                ))}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', padding: '0.35rem 0' }}>
-                  <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${STATUS_CONFIG.positive_rabies.color}`, background: `${STATUS_CONFIG.positive_rabies.color}1f` }} />
-                  <span style={{ fontSize: '0.84rem', fontWeight: 500, color: t.text }}>1 km danger / alert zone</span>
-                </div>
-              </div>
-            </Panel>
           </Col>
 
           {/* Map */}
@@ -1056,14 +1009,10 @@ export default function MapStatus() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'auto' }}>
-                  <div className="glass mode-seg" role="group" aria-label="Map view">
-                    <button type="button" className={`mode-btn ${mapMode === 'zones' ? 'active' : ''}`} onClick={() => setMapMode('zones')} aria-pressed={mapMode === 'zones'} title="1 km danger and alert zones">
-                      <i className="fas fa-bullseye" /><span className="lbl">Zones</span>
-                    </button>
-                    <button type="button" className={`mode-btn ${mapMode === 'heat' ? 'active' : ''}`} onClick={() => setMapMode('heat')} aria-pressed={mapMode === 'heat'} title="Where rabies cases are likely in the next 30 days">
-                      <i className="fas fa-fire" /><span className="lbl">Risk heatmap</span>
-                    </button>
-                  </div>
+                  <button type="button" className={`glass heat-toggle ${showHeat ? 'on' : ''}`} onClick={() => setShowHeat(v => !v)} aria-pressed={showHeat}
+                    title="Where rabies cases are likely in the next 30 days">
+                    <i className="fas fa-fire" /><span className="lbl">Show heatmap</span><span className="sw" aria-hidden="true" />
+                  </button>
                   <span className="glass d-none d-sm-inline-flex" style={{ alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', padding: '0.55rem 0.85rem' }}>
                     <span className="pulse-dot" style={{ '--c': 'rgba(255,193,7,0.7)', background: '#ffc107' }} />
                     {loading ? 'Loading…' : `${filtered.length} active ${filtered.length === 1 ? 'report' : 'reports'}`}
@@ -1083,7 +1032,7 @@ export default function MapStatus() {
               )}
 
               <div ref={mapRef} style={{ position: 'absolute', inset: 0 }} />
-              {mapMode === 'heat' && !forecast.loading && <HeatLegend empty={!forecast.data?.points?.length} />}
+              {showHeat && !forecast.loading && <HeatLegend empty={!forecast.data?.points?.length} />}
 
               {/* Map controls */}
               <div style={{ position: 'absolute', right: 12, bottom: 24, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px' }}>

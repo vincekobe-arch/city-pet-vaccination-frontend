@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Alert } from 'react-bootstrap';
 import { reportsAPI, clinicAPI, handleAPIError } from '../../services/api';
-import { createHeatLayer, useRabiesForecast, HeatLegend, ForecastList, ForecastStyles, focusBarangayOnMap } from '../common/RabiesForecast';
+import { createHeatLayer, useRabiesForecast, HeatLegend, ForecastList, ForecastStyles } from '../common/RabiesForecast';
 
 const INFO_WINDOW_CSS = `
   .gm-style .gm-style-iw-c {
@@ -163,8 +163,7 @@ export default function OwnerMapStatus() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [updatedAt,    setUpdatedAt]    = useState(null);
-  const [mapMode,      setMapMode]      = useState('zones');   // 'zones' | 'heat'
-  const [riskBrgy,     setRiskBrgy]     = useState(null);
+  const [showHeat,     setShowHeat]     = useState(false);   // rabies risk heatmap on/off
   const forecast = useRabiesForecast();
   const [clinicQuery,  setClinicQuery]  = useState('');
   const [activeClinic, setActiveClinic] = useState(null);
@@ -278,7 +277,7 @@ export default function OwnerMapStatus() {
 
       infoWindowRef.current = new google.maps.InfoWindow();
 
-      // Rabies risk heatmap (drawn only in "Risk heatmap" view)
+      // Rabies risk heatmap (shown with the "Show heatmap" button)
       heatRef.current = createHeatLayer(google.maps);
       heatRef.current.setMap(map);
       map.addListener('idle', () => heatRef.current && heatRef.current.draw());
@@ -319,7 +318,7 @@ export default function OwnerMapStatus() {
       if (!covered) circleOwners.push({ lat, lng, status: report.status });
     });
 
-    (mapMode === 'heat' ? [] : circleOwners).forEach(owner => {
+    (showHeat ? [] : circleOwners).forEach(owner => {
       const isPos = owner.status === 'positive_rabies';
       const color = isPos ? POSITIVE : SUSPECTED;
       const center = { lat: owner.lat, lng: owner.lng };
@@ -400,20 +399,13 @@ export default function OwnerMapStatus() {
       });
       markersRef.current.push(marker);
     });
-  }, [reports, filterStatus, mapReady, mapMode]);
+  }, [reports, filterStatus, mapReady, showHeat]);
 
   /* ------------------------ Risk heatmap -------------------------- */
   useEffect(() => {
     if (!mapReady || !heatRef.current) return;
-    heatRef.current.setPoints(mapMode === 'heat' ? (forecast.data?.points || []) : []);
-  }, [mapReady, mapMode, forecast.data]);
-
-  const selectRiskBarangay = (b) => {
-    setRiskBrgy(b.id);
-    setMapMode('heat');
-    focusBarangayOnMap(mapInstanceRef.current, b, forecast.data?.points);
-    if (window.innerWidth < 992 && mapRef.current) mapRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
+    heatRef.current.setPoints(showHeat ? (forecast.data?.points || []) : []);
+  }, [mapReady, showHeat, forecast.data]);
 
   // Clinic markers
   useEffect(() => {
@@ -564,13 +556,16 @@ export default function OwnerMapStatus() {
         .clinic-row.active { background: ${CLINIC}0f !important; box-shadow: inset 3px 0 0 ${CLINIC}; }
         .map-btn:hover { background: rgba(13,20,36,0.95) !important; }
         .glass { background: rgba(13,20,36,0.78); backdrop-filter: blur(8px); box-shadow: 0 6px 20px rgba(0,0,0,0.25); border-radius: 12px; }
-        .mode-seg { display: flex; padding: 4px; gap: 2px; }
-        .mode-btn { border: none; background: transparent; color: #cfd6e4; font-size: 0.78rem; font-weight: 600; padding: 0.42rem 0.75rem; border-radius: 9px; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; white-space: nowrap; transition: background 0.2s ease, color 0.2s ease; }
-        .mode-btn:hover { color: #ffffff; }
-        .mode-btn.active { background: #ffffff; color: #1f2328; }
-        .mode-btn.active .fa-fire { color: #dc2626; }
-        .mode-btn:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
-        @media (max-width: 768px) { .mode-btn .lbl { display: none; } }
+        .heat-toggle { display: flex; align-items: center; gap: 0.5rem; border: none; color: #ffffff; font-size: 0.78rem; font-weight: 600; padding: 0.5rem 0.7rem 0.5rem 0.85rem; cursor: pointer; white-space: nowrap; }
+        .heat-toggle .fa-fire { color: #cfd6e4; transition: color 0.2s ease; }
+        .heat-toggle.on .fa-fire { color: #f97316; }
+        .heat-toggle .sw { width: 30px; height: 18px; border-radius: 999px; background: rgba(255,255,255,0.25); position: relative; transition: background 0.2s ease; flex-shrink: 0; }
+        .heat-toggle .sw::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #ffffff; transition: transform 0.2s ease; }
+        .heat-toggle.on .sw { background: #f97316; }
+        .heat-toggle.on .sw::after { transform: translateX(12px); }
+        .heat-toggle:hover { background: rgba(13,20,36,0.95); }
+        .heat-toggle:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
+        @media (max-width: 768px) { .heat-toggle .lbl { display: none; } }
         .clinic-row { transition: background 0.15s ease; }
         .clinic-row:hover { background: ${t.subtle}; }
         .map-filter:focus-visible, .map-btn:focus-visible, .clinic-row:focus-visible { outline: 2px solid #ffc107; outline-offset: 2px; }
@@ -644,14 +639,10 @@ export default function OwnerMapStatus() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', pointerEvents: 'auto' }}>
-                  <div className="glass mode-seg" role="group" aria-label="Map view">
-                    <button type="button" className={`mode-btn ${mapMode === 'zones' ? 'active' : ''}`} onClick={() => setMapMode('zones')} aria-pressed={mapMode === 'zones'} title="1 km danger and alert zones">
-                      <i className="fas fa-bullseye" /><span className="lbl">Zones</span>
-                    </button>
-                    <button type="button" className={`mode-btn ${mapMode === 'heat' ? 'active' : ''}`} onClick={() => setMapMode('heat')} aria-pressed={mapMode === 'heat'} title="Where rabies cases are likely in the next 30 days">
-                      <i className="fas fa-fire" /><span className="lbl">Risk heatmap</span>
-                    </button>
-                  </div>
+                  <button type="button" className={`glass heat-toggle ${showHeat ? 'on' : ''}`} onClick={() => setShowHeat(v => !v)} aria-pressed={showHeat}
+                    title="Where rabies cases are likely in the next 30 days">
+                    <i className="fas fa-fire" /><span className="lbl">Show heatmap</span><span className="sw" aria-hidden="true" />
+                  </button>
                   <span className="d-none d-sm-inline-flex" style={{ alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', background: 'rgba(13,20,36,0.78)', backdropFilter: 'blur(8px)', padding: '0.5rem 0.8rem', borderRadius: '10px', boxShadow: '0 6px 20px rgba(0,0,0,0.25)' }}>
                     <span className="pulse-dot" style={{ '--c': filteredCount ? 'rgba(220,53,69,0.7)' : 'rgba(25,135,84,0.7)', background: filteredCount ? POSITIVE : '#22a855' }} />
                     {loading ? 'Loading…' : `${filteredCount} active ${filteredCount === 1 ? 'case' : 'cases'}`}
@@ -671,7 +662,7 @@ export default function OwnerMapStatus() {
               )}
 
               <div ref={mapRef} style={{ position: 'absolute', inset: 0 }} />
-              {mapMode === 'heat' && !forecast.loading && <HeatLegend empty={!forecast.data?.points?.length} />}
+              {showHeat && !forecast.loading && <HeatLegend empty={!forecast.data?.points?.length} />}
 
               {/* Map controls */}
               <div style={{ position: 'absolute', right: 12, bottom: 24, zIndex: 10, display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -690,27 +681,9 @@ export default function OwnerMapStatus() {
           {/* Side panels */}
           <Col lg={4} className="side-stack order-2 order-lg-1" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            <Panel icon="fa-info-circle" iconColor="#ffc107" title="Reading the map">
-              <div className="stagger">
-              {[
-                { swatch: <div style={{ width: '28px', height: '14px', borderRadius: '4px', border: `2px solid ${POSITIVE}`, background: `${POSITIVE}1f` }} />, label: '1 km danger zone', desc: 'A positive rabies case was confirmed here. Keep pets indoors.' },
-                { swatch: <div style={{ width: '28px', height: '14px', borderRadius: '4px', border: `2px solid ${SUSPECTED}`, background: `${SUSPECTED}1f` }} />, label: '1 km alert zone', desc: 'A suspected case is being checked. Watch your pets closely.' },
-                { swatch: <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: CITYVET, margin: '0 4px' }} />, label: 'City Veterinary Office', desc: 'Free government vaccination and checkups.' },
-                { swatch: <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: CLINIC, margin: '0 4px' }} />, label: 'Private clinic', desc: 'Registered veterinary clinics in the city.' },
-              ].map(item => (
-                <div key={item.label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.55rem 0', borderBottom: `1px solid ${t.border}` }}>
-                  <div style={{ width: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>{item.swatch}</div>
-                  <div>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 600, color: t.text }}>{item.label}</div>
-                    <div style={{ fontSize: '0.78rem', color: t.muted, lineHeight: 1.45 }}>{item.desc}</div>
-                  </div>
-                </div>
-              ))}
-              </div>
-            </Panel>
 
-            <Panel icon="fa-fire" iconColor="#dc2626" title="Rabies risk forecast" subtitle="Next 30 days · select a barangay to see it on the map">
-              <ForecastList forecast={forecast} selected={riskBrgy} onSelect={selectRiskBarangay} />
+            <Panel icon="fa-fire" iconColor="#dc2626" title="Rabies risk forecast" subtitle="Next 30 days · turn on Show heatmap to see it on the map">
+              <ForecastList forecast={forecast} limit={4} />
             </Panel>
 
             <Panel icon="fa-clinic-medical" iconColor={CLINIC} title="Vet clinics" subtitle="Select a clinic to see it on the map" bodyStyle={{ padding: '0.2rem 0.75rem 0.75rem' }}
