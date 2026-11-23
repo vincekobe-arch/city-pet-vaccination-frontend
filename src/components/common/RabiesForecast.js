@@ -5,7 +5,6 @@
 //   • HeatLegend          – the colour legend shown on the map
 //   • ForecastList        – barangays ranked by forecast risk (read-only)
 import React, { useState, useEffect, useCallback } from 'react';
-import { contours } from 'd3-contour';
 import api from '../../services/api';
 
 /* ------------------------------------------------------------------ */
@@ -88,6 +87,141 @@ const smoothRing = (ring, passes = 2) => {
   return pts;
 };
 
+// Contour lines (marching squares). Adapted from d3-contour (ISC license, © Mike Bostock),
+// kept here so no extra package is needed. Returns closed rings in grid coordinates.
+const MS_CASES = [
+  [],
+  [[[1.0, 1.5], [0.5, 1.0]]],
+  [[[1.5, 1.0], [1.0, 1.5]]],
+  [[[1.5, 1.0], [0.5, 1.0]]],
+  [[[1.0, 0.5], [1.5, 1.0]]],
+  [[[1.0, 1.5], [0.5, 1.0]], [[1.0, 0.5], [1.5, 1.0]]],
+  [[[1.0, 0.5], [1.0, 1.5]]],
+  [[[1.0, 0.5], [0.5, 1.0]]],
+  [[[0.5, 1.0], [1.0, 0.5]]],
+  [[[1.0, 1.5], [1.0, 0.5]]],
+  [[[0.5, 1.0], [1.0, 0.5]], [[1.5, 1.0], [1.0, 1.5]]],
+  [[[1.5, 1.0], [1.0, 0.5]]],
+  [[[0.5, 1.0], [1.5, 1.0]]],
+  [[[1.0, 1.5], [1.5, 1.0]]],
+  [[[0.5, 1.0], [1.0, 1.5]]],
+  [],
+];
+
+const isoRings = (values, dx, dy, value) => {
+  const rings = [];
+  const byStart = new Map();
+  const byEnd = new Map();
+  const above = (v) => (v >= value ? 1 : 0);
+  const key = (p) => (p[0] * 2) + (p[1] * (dx + 1) * 4);
+  let x;
+  let y;
+
+  const stitch = (line) => {
+    const start = [line[0][0] + x, line[0][1] + y];
+    const end = [line[1][0] + x, line[1][1] + y];
+    const sKey = key(start);
+    const eKey = key(end);
+    const f = byEnd.get(sKey);
+    if (f) {
+      const g = byStart.get(eKey);
+      if (g) {
+        byEnd.delete(f.end);
+        byStart.delete(g.start);
+        if (f === g) {
+          f.ring.push(end);
+          rings.push(f.ring);
+        } else {
+          const merged = { start: f.start, end: g.end, ring: f.ring.concat(g.ring) };
+          byStart.set(merged.start, merged);
+          byEnd.set(merged.end, merged);
+        }
+      } else {
+        byEnd.delete(f.end);
+        f.ring.push(end);
+        f.end = eKey;
+        byEnd.set(eKey, f);
+      }
+      return;
+    }
+    const f2 = byStart.get(eKey);
+    if (f2) {
+      const g2 = byEnd.get(sKey);
+      if (g2) {
+        byStart.delete(f2.start);
+        byEnd.delete(g2.end);
+        if (f2 === g2) {
+          f2.ring.push(end);
+          rings.push(f2.ring);
+        } else {
+          const merged = { start: g2.start, end: f2.end, ring: g2.ring.concat(f2.ring) };
+          byStart.set(merged.start, merged);
+          byEnd.set(merged.end, merged);
+        }
+      } else {
+        byStart.delete(f2.start);
+        f2.ring.unshift(start);
+        f2.start = sKey;
+        byStart.set(sKey, f2);
+      }
+      return;
+    }
+    const frag = { start: sKey, end: eKey, ring: [start, end] };
+    byStart.set(sKey, frag);
+    byEnd.set(eKey, frag);
+  };
+  const run = (c) => MS_CASES[c].forEach(stitch);
+
+  // First row
+  x = -1; y = -1;
+  let t0; let t1; let t2; let t3;
+  t1 = above(values[0]);
+  run(t1 << 1);
+  while (++x < dx - 1) {
+    t0 = t1; t1 = above(values[x + 1]);
+    run(t0 | (t1 << 1));
+  }
+  run(t1);
+
+  // Middle rows
+  while (++y < dy - 1) {
+    x = -1;
+    t1 = above(values[(y * dx) + dx]);
+    t2 = above(values[y * dx]);
+    run((t1 << 1) | (t2 << 2));
+    while (++x < dx - 1) {
+      t0 = t1; t1 = above(values[(y * dx) + dx + x + 1]);
+      t3 = t2; t2 = above(values[(y * dx) + x + 1]);
+      run(t0 | (t1 << 1) | (t2 << 2) | (t3 << 3));
+    }
+    run(t1 | (t2 << 3));
+  }
+
+  // Last row
+  x = -1;
+  t2 = above(values[y * dx]);
+  run(t2 << 2);
+  while (++x < dx - 1) {
+    t3 = t2; t2 = above(values[(y * dx) + x + 1]);
+    run((t2 << 2) | (t3 << 3));
+  }
+  run(t2 << 3);
+
+  // Move each corner point onto the exact threshold crossing (smooth lines)
+  const lerp = (p, v0, v1) => {
+    const d = (value - v0) / (v1 - v0);
+    return Number.isFinite(d) ? p + d - 0.5 : p;
+  };
+  rings.forEach((ring) => ring.forEach((pt) => {
+    const px = pt[0], py = pt[1];
+    const xt = px | 0, yt = py | 0;
+    const v1 = values[(yt * dx) + xt];
+    if (px > 0 && px < dx && xt === px) pt[0] = lerp(px, values[(yt * dx) + xt - 1], v1);
+    if (py > 0 && py < dy && yt === py) pt[1] = lerp(py, values[((yt - 1) * dx) + xt], v1);
+  }));
+  return rings;
+};
+
 const buildRiskShapes = (points) => {
   const lat0 = points.reduce((s, p) => s + p.lat, 0) / points.length;
   const mLat = 110574, mLng = 111320 * Math.cos((lat0 * Math.PI) / 180);
@@ -134,11 +268,9 @@ const buildRiskShapes = (points) => {
   }
 
   // 3) Contour lines for each band threshold (like isobars on a weather map)
-  const thresholds = RISK_BANDS.map(([t]) => t);
-  const layers = contours().size([n, m]).thresholds(thresholds)(Array.from(values));
-  const toLatLng = ([x, y]) => ({ lat: north - y * cellLat, lng: west + x * cellLng });
-  const rings = layers.map((layer) =>
-    layer.coordinates.flatMap((polygon) => polygon.map((ring) => smoothRing(ring).map(toLatLng))));
+  const toLatLng = ([x, y]) => ({ lat: north - (y * cellLat), lng: west + (x * cellLng) });
+  const rings = RISK_BANDS.map(([t]) =>
+    isoRings(values, n, m, t).map((ring) => smoothRing(ring).map(toLatLng)));
 
   // 4) Each band = its area minus the next band's area (so colours don't stack)
   return RISK_BANDS.map(([, col, alpha], b) => {
