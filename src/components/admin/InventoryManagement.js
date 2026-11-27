@@ -1288,12 +1288,6 @@ const handleDeleteClick = (item) => {
                   <span>{addForm.unit}</span>
                 </div>
               </Col>
-              <Col xs={12}>
-                <Form.Label className="rm-label">Notes <span className="rm-opt">optional</span></Form.Label>
-                <Form.Control className="rm-input" as="textarea" rows={2} value={addForm.notes}
-                  onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
-                  placeholder="Brand, supplier, storage notes…" style={{ resize: 'none' }} disabled={addLoading} />
-              </Col>
             </Row>
           </div>
         </Modal.Body>
@@ -1363,12 +1357,6 @@ const handleDeleteClick = (item) => {
                       <Form.Control className="rm-input" type="date" value={restockExpDate} onChange={e => setRestockExpDate(e.target.value)} disabled={restockLoading} />
                     </Col>
                   )}
-                  <Col xs={12}>
-                    <Form.Label className="rm-label">Notes <span className="rm-opt">optional</span></Form.Label>
-                    <Form.Control className="rm-input" as="textarea" rows={2} value={restockNotes}
-                      onChange={e => setRestockNotes(e.target.value)}
-                      placeholder="Supplier, delivery details…" style={{ resize: 'none' }} disabled={restockLoading} />
-                  </Col>
                 </Row>
               </Modal.Body>
               <Modal.Footer className="rm-foot">
@@ -1384,7 +1372,7 @@ const handleDeleteClick = (item) => {
       </Modal>
 
       {/* ======================== BATCHES MODAL ======================== */}
-      <Modal show={showBatchModal} onHide={() => { if (!editBatchSaving) { setShowBatchModal(false); setEditingBatch(null); } }} dialogClassName="rm-modal lg" className="iv-zoom-modal" scrollable>
+      <Modal show={showBatchModal} onHide={() => { if (!editBatchSaving) { setShowBatchModal(false); setEditingBatch(null); } }} centered dialogClassName="rm-modal lg" className="iv-zoom-modal" scrollable>
         {(() => {
           const cfg = TYPE_CONFIG[batchItem?.item_type] || TYPE_CONFIG.equipment;
           const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -1440,10 +1428,9 @@ const handleDeleteClick = (item) => {
                   <table className="ib-table">
                     <thead>
                       <tr>
-                        <th style={{ width: '24%' }}>Batch no.</th>
-                        <th style={{ width: '16%' }}>Quantity</th>
-                        <th style={{ width: '20%' }}>Expires</th>
-                        <th>Notes</th>
+                        <th style={{ width: '34%' }}>Batch no.</th>
+                        <th style={{ width: '24%' }}>Quantity</th>
+                        <th>Expires</th>
                         <th style={{ width: 96 }} aria-label="Actions" />
                       </tr>
                     </thead>
@@ -1477,12 +1464,6 @@ const handleDeleteClick = (item) => {
                                   ? <span className="iv-pill" style={{ color: '#dc3545', background: 'rgba(220,53,69,0.1)' }}><i className="fas fa-exclamation-triangle" />{fmt(batch.expiration_date)}</span>
                                   : <span>{fmt(batch.expiration_date)}</span>
                               ) : <span className="iv-muted">—</span>}
-                            </td>
-                            <td data-label="Notes">
-                              {isEditing ? (
-                                <Form.Control size="sm" className="rm-input sm" value={editingBatch.notes || ''} placeholder="Notes"
-                                  onChange={e => setEditingBatch(b => ({ ...b, notes: e.target.value }))} />
-                              ) : <span className="iv-muted ib-notes" title={batch.notes || ''}>{batch.notes || '—'}</span>}
                             </td>
                             <td className="ib-actions">
                               {isEditing ? (
@@ -1522,24 +1503,26 @@ const handleDeleteClick = (item) => {
       </Modal>
 
       {/* ======================== VIEW DETAILS MODAL ======================== */}
-      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} dialogClassName="rm-modal" className="iv-zoom-modal" scrollable>
+      <Modal show={showViewModal} onHide={() => setShowViewModal(false)} centered dialogClassName="rm-modal" className="iv-zoom-modal" scrollable>
         {viewItem && (() => {
           const cfg = TYPE_CONFIG[viewItem.item_type] || TYPE_CONFIG.equipment;
-
+          const status = getStockStatus(viewItem);
           const stock = parseInt(viewItem.current_stock) || 0;
           const min = parseInt(viewItem.minimum_stock) || 0;
           const level = stock === 0 ? 'out' : stock < 10 ? 'low' : 'ok';
           const barPct = Math.min(100, (stock / Math.max(min * 2, 20)) * 100);
           const speciesCfg = viewItem.species ? (SPECIES_COLORS[viewItem.species] || null) : null;
           const expired = expiredBatchMap[viewItem.id] || 0;
-
+          const statusColor = level === 'low' ? '#b88a00' : status.color;
           return (
             <>
               <Modal.Header closeButton className="rm-head" style={{ '--c': cfg.color }}>
                 <div className="rm-head-main">
                   <div className="rm-head-ic" style={{ background: cfg.bg, color: cfg.color }}><i className={`fas ${cfg.icon}`} /></div>
                   <div style={{ minWidth: 0 }}>
-
+                    <div className="rm-chips">
+                      <span className="iv-pill" style={{ color: statusColor, background: status.bg }}><i className={`fas ${status.icon}`} />{status.label}</span>
+                    </div>
                     <Modal.Title as="h5" className="rm-title">{viewItem.item_name}</Modal.Title>
                     <div className="rm-head-sub">
                       <span style={{ color: cfg.color, fontWeight: 700 }}>{cfg.label}</span>
@@ -1611,8 +1594,6 @@ const handleDeleteClick = (item) => {
                   );
                 })()}
 
-                <div className="rm-section-title mt-4"><i className="fas fa-sticky-note" />Notes</div>
-                <p className={`rm-desc${viewItem.notes ? '' : ' muted'}`}>{viewItem.notes || 'No notes added.'}</p>
               </Modal.Body>
               <Modal.Footer className="rm-foot">
                 <button type="button" className="iv-btn info-outline lg me-auto" onClick={() => { setShowViewModal(false); handleOpenBatches(viewItem); }}>
@@ -1673,11 +1654,6 @@ const handleDeleteClick = (item) => {
                         onChange={e => setEditItemForm(f => ({ ...f, minimum_stock: e.target.value }))} />
                       <span>{editItemForm.unit}</span>
                     </div>
-                  </Col>
-                  <Col xs={12}>
-                    <Form.Label className="rm-label">Notes <span className="rm-opt">optional</span></Form.Label>
-                    <Form.Control className="rm-input" as="textarea" rows={2} value={editItemForm.notes} disabled={editItemLoading}
-                      onChange={e => setEditItemForm(f => ({ ...f, notes: e.target.value }))} style={{ resize: 'none' }} />
                   </Col>
                 </Row>
               </Modal.Body>
