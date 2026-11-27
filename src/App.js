@@ -169,7 +169,8 @@ function MainContent({ user, handleLogin, darkMode }) {
         {/* Super Admin */}
         <Route path="/super-admin/dashboard" element={user?.role === 'super_admin' ? <SuperAdminDashboard /> : <Navigate to="/login" replace />} />
         <Route path="/super-admin/barangays" element={user?.role === 'super_admin' ? <BarangayManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/super-admin/officials" element={user?.role === 'super_admin' ? <OfficialManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/super-admin/admins" element={user?.role === 'super_admin' ? <OfficialManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/super-admin/officials" element={<Navigate to="/super-admin/admins" replace />} />
         <Route path="/super-admin/pets" element={user?.role === 'super_admin' ? <SuperAdminPetManagement /> : <Navigate to="/login" replace />} />
         <Route path="/super-admin/community" element={user?.role === 'super_admin' ? <SuperAdminOwnerManagement /> : <Navigate to="/login" replace />} />
         <Route path="/super-admin/owners" element={<Navigate to="/super-admin/community" replace />} />

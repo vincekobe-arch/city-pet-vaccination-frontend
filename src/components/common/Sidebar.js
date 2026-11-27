@@ -339,7 +339,7 @@ const streamRef = useRef(null);
     if (location.pathname === '/admin/pets' || location.pathname === '/admin/vet-cards') {
       setPetsDropdownOpen(true);
       }
-      if (location.pathname === '/super-admin/officials' || location.pathname === '/super-admin/community') {
+      if (location.pathname === '/super-admin/admins' || location.pathname === '/super-admin/community') {
         setUsersDropdownOpen(true);
       }
   }, [location.pathname]);
@@ -516,7 +516,7 @@ const streamRef = useRef(null);
           { label: 'Dashboard', icon: 'fa-home', to: '/super-admin/dashboard' },
           
           { label: 'Users', icon: 'fa-user-friends', dropdown: true, dropdownKey: 'users', children: [
-            { label: 'Admins', icon: 'fa-user-tie', to: '/super-admin/officials' },
+            { label: 'Admins', icon: 'fa-user-tie', to: '/super-admin/admins' },
             { label: 'Community', icon: 'fa-users', to: '/super-admin/community' },
           ]},
           { label: 'Pets', icon: 'fa-paw', to: '/super-admin/pets' },

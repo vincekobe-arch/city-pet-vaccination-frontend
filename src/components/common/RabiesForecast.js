@@ -383,7 +383,7 @@ export const HeatLegend = ({ empty }) => (
     </div>
     <div className="rf-legend-scale"><span>Low</span><span>Moderate</span><span>High</span></div>
     <div className="rf-legend-note">
-      {empty ? 'No rabies-related reports in the last 3 months.' : 'Based on rabies and bite reports from the last 3 months. Recent and confirmed cases count more.'}
+      {empty ? 'No positive rabies cases in the last 3 months.' : 'Based on positive rabies cases from the last 3 months. Recent cases count more.'}
     </div>
   </div>
 );
@@ -425,8 +425,8 @@ export const ForecastList = ({ forecast, rows }) => {
         })}
       </div>
       <div className="rf-how">
-        Forecast for the next 30 days. Each report is weighted by how serious it is (positive &gt; suspected &gt; case report &gt; bite)
-        and how recent it is, then the last 90 days are compared with the 90 days before to find the trend.
+        Forecast for the next 30 days. Only positive rabies cases are counted, weighted by how recent they are,
+        then the last 90 days are compared with the 90 days before to find the trend.
       </div>
     </>
   );
