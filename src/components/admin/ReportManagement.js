@@ -1750,11 +1750,13 @@ const matchArchive = true;
                     <i className="fas fa-arrow-right" />
                     <span className="mm-chip" style={{ color: ns.color, background: `color-mix(in srgb, ${ns.color} 12%, #fff)` }}>{ns.label}</span>
                   </div>
-                  <Form.Group className="text-start">
-                    <Form.Label className="mm-label">Admin notes <span className="mm-opt">optional</span></Form.Label>
-                    <Form.Control className="mm-input" as="textarea" rows={3} value={adminNotes}
-                      onChange={e => setAdminNotes(e.target.value)} placeholder="Add any notes about this status change…" />
-                  </Form.Group>
+                  {!['suspected_rabies', 'positive_rabies'].includes(actionTarget.next) && (
+                    <Form.Group className="text-start">
+                      <Form.Label className="mm-label">Admin notes <span className="mm-opt">optional</span></Form.Label>
+                      <Form.Control className="mm-input" as="textarea" rows={3} value={adminNotes}
+                        onChange={e => setAdminNotes(e.target.value)} placeholder="Add any notes about this status change…" />
+                    </Form.Group>
+                  )}
                 </Modal.Body>
                 <Modal.Footer className="mm-foot even">
                   <button type="button" className="mm-btn ghost" onClick={() => { setShowUpdateModal(false); setActionTarget(null); }} disabled={updateLoading}>Cancel</button>

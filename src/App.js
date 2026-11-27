@@ -62,6 +62,7 @@ import PublicPetProfile from './components/common/PublicPetProfile';
 import { getToken, getUser, removeAuth } from './utils/auth';
 import SessionInvalidatedModal from './components/common/SessionInvalidatedModal';
 import NotFound from './components/common/NotFound';
+import Forbidden from './components/common/Forbidden';
 import IdleTimeoutManager from './components/common/IdleTimeoutManager';
 
 // Scroll to Top Component
@@ -139,6 +140,13 @@ function AppLayout({ user, onLogout, darkMode, setDarkMode, handleLogin }) {
     </div>
   );
 }
+// Route guard: not logged in → 404, logged in with another role → 403
+const guard = (user, roles, element) => {
+  if (!user) return <NotFound />;
+  const allowed = Array.isArray(roles) ? roles : [roles];
+  return allowed.includes(user.role) ? element : <Forbidden />;
+};
+
 // Pages that use full-width layout (no sidebar)
 const FULL_PAGE_PATHS = ['/login', '/register', '/vet-card-view/', '/edit-profile', '/pet/'];
 
@@ -167,51 +175,51 @@ function MainContent({ user, handleLogin, darkMode }) {
         <Route path="/register" element={user ? <Navigate to={getDashboardRoute(user.role)} replace /> : <Register />} />
 
         {/* Super Admin */}
-        <Route path="/super-admin/dashboard" element={user?.role === 'super_admin' ? <SuperAdminDashboard /> : <Navigate to="/login" replace />} />
-        <Route path="/super-admin/barangays" element={user?.role === 'super_admin' ? <BarangayManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/super-admin/admins" element={user?.role === 'super_admin' ? <OfficialManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/super-admin/dashboard" element={guard(user, 'super_admin', <SuperAdminDashboard />)} />
+        <Route path="/super-admin/barangays" element={guard(user, 'super_admin', <BarangayManagement />)} />
+        <Route path="/super-admin/admins" element={guard(user, 'super_admin', <OfficialManagement />)} />
         <Route path="/super-admin/officials" element={<Navigate to="/super-admin/admins" replace />} />
-        <Route path="/super-admin/pets" element={user?.role === 'super_admin' ? <SuperAdminPetManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/super-admin/community" element={user?.role === 'super_admin' ? <SuperAdminOwnerManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/super-admin/pets" element={guard(user, 'super_admin', <SuperAdminPetManagement />)} />
+        <Route path="/super-admin/community" element={guard(user, 'super_admin', <SuperAdminOwnerManagement />)} />
         <Route path="/super-admin/owners" element={<Navigate to="/super-admin/community" replace />} />
-        <Route path="/super-admin/activity-logs" element={user?.role === 'super_admin' ? <ActivityLogs /> : <Navigate to="/login" replace />} />
-        <Route path="/super-admin/clinics" element={user?.role === 'super_admin' ? <ClinicManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/super-admin/activity-logs" element={guard(user, 'super_admin', <ActivityLogs />)} />
+        <Route path="/super-admin/clinics" element={guard(user, 'super_admin', <ClinicManagement />)} />
 
         {/* Barangay Official */}
-        <Route path="/admin/dashboard" element={user?.role === 'barangay_official' ? <AdminDashboard darkMode={darkMode} /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/pets" element={user?.role === 'barangay_official' ? <PetManagement darkMode={darkMode} /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/community" element={user?.role === 'barangay_official' ? <AdminOwnerManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/admin/dashboard" element={guard(user, 'barangay_official', <AdminDashboard darkMode={darkMode} />)} />
+        <Route path="/admin/pets" element={guard(user, 'barangay_official', <PetManagement darkMode={darkMode} />)} />
+        <Route path="/admin/community" element={guard(user, 'barangay_official', <AdminOwnerManagement />)} />
         <Route path="/admin/owners" element={<Navigate to="/admin/community" replace />} />
-        <Route path="/admin/vaccinations" element={user?.role === 'barangay_official' ? <RecordManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/schedules" element={user?.role === 'barangay_official' ? <Scheduling /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/vet-cards" element={user?.role === 'barangay_official' ? <VetCardManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/reports" element={user?.role === 'barangay_official' ? <ReportManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/map-status" element={user?.role === 'barangay_official' ? <MapStatus /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/inventory" element={user?.role === 'barangay_official' ? <InventoryManagement /> : <Navigate to="/login" replace />} />
-        <Route path="/admin/clinics" element={user?.role === 'barangay_official' ? <ClinicManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/admin/vaccinations" element={guard(user, 'barangay_official', <RecordManagement />)} />
+        <Route path="/admin/schedules" element={guard(user, 'barangay_official', <Scheduling />)} />
+        <Route path="/admin/vet-cards" element={guard(user, 'barangay_official', <VetCardManagement />)} />
+        <Route path="/admin/reports" element={guard(user, 'barangay_official', <ReportManagement />)} />
+        <Route path="/admin/map-status" element={guard(user, 'barangay_official', <MapStatus />)} />
+        <Route path="/admin/inventory" element={guard(user, 'barangay_official', <InventoryManagement />)} />
+        <Route path="/admin/clinics" element={guard(user, 'barangay_official', <ClinicManagement />)} />
 
         {/* Pet Owner */}
-        <Route path="/community/dashboard" element={user?.role === 'pet_owner' ? <OwnerDashboard /> : <Navigate to="/login" replace />} />
-        <Route path="/community/pet-status" element={user?.role === 'pet_owner' ? <PetStatus /> : <Navigate to="/login" replace />} />
-        <Route path="/community/schedule" element={user?.role === 'pet_owner' ? <OwnerSchedule /> : <Navigate to="/login" replace />} />
-        <Route path="/community/vet-card" element={user?.role === 'pet_owner' ? <VetCard /> : <Navigate to="/login" replace />} />
-        <Route path="/community/reports" element={user?.role === 'pet_owner' ? <Reports /> : <Navigate to="/login" replace />} />
-        <Route path="/community/map-status" element={user?.role === 'pet_owner' ? <OwnerMapStatus /> : <Navigate to="/login" replace />} />               
+        <Route path="/community/dashboard" element={guard(user, 'pet_owner', <OwnerDashboard />)} />
+        <Route path="/community/pet-status" element={guard(user, 'pet_owner', <PetStatus />)} />
+        <Route path="/community/schedule" element={guard(user, 'pet_owner', <OwnerSchedule />)} />
+        <Route path="/community/vet-card" element={guard(user, 'pet_owner', <VetCard />)} />
+        <Route path="/community/reports" element={guard(user, 'pet_owner', <Reports />)} />
+        <Route path="/community/map-status" element={guard(user, 'pet_owner', <OwnerMapStatus />)} />               
         
         {/* Clinic */}
-        <Route path="/clinic/dashboard" element={user?.role === 'private_clinic' ? <ClinicDashboard /> : <Navigate to="/login" replace />} />
-        <Route path="/clinic/records" element={<ClinicRecordManagement />} />
-        <Route path="/clinic/reports" element={user?.role === 'private_clinic' ? <ClinicReports /> : <Navigate to="/login" replace />} />
-        <Route path="/clinic/inventory" element={user?.role === 'private_clinic' ? <ClinicInventoryManagement /> : <Navigate to="/login" replace />} />
+        <Route path="/clinic/dashboard" element={guard(user, 'private_clinic', <ClinicDashboard />)} />
+        <Route path="/clinic/records" element={guard(user, 'private_clinic', <ClinicRecordManagement />)} />
+        <Route path="/clinic/reports" element={guard(user, 'private_clinic', <ClinicReports />)} />
+        <Route path="/clinic/inventory" element={guard(user, 'private_clinic', <ClinicInventoryManagement />)} />
 
         {/* Vet Card View (opens in a new tab from Vet Cards / My Pets) */}
-        <Route path="/vet-card-view/:petId" element={user ? <VetCardView /> : <Navigate to="/login" replace />} />
+        <Route path="/vet-card-view/:petId" element={user ? <VetCardView /> : <NotFound />} />
 
         {/* Public pet page (opened by scanning a pet QR code — no login) */}
         <Route path="/pet/:code" element={<PublicPetProfile />} />
 
         {/* Edit Profile */}
-        <Route path="/edit-profile" element={user ? <EditProfile darkMode={darkMode} /> : <Navigate to="/login" replace />} />
+        <Route path="/edit-profile" element={user ? <EditProfile darkMode={darkMode} /> : <NotFound />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
@@ -256,7 +264,13 @@ function App() {
     setTimeout(() => { setUser(userData); setIsLoggingIn(false); }, 1500);
   };
 
-  const handleLogout = () => { removeAuth(); setUser(null); };
+  const handleLogout = () => {
+    removeAuth();
+    // Go to the login page so a logged-out user doesn't land on a 404
+    window.history.replaceState(null, '', '/login');
+    setUser(null);
+    setTimeKey(k => k + 1);
+  };
 
 
   useEffect(() => {

@@ -6,6 +6,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { todayPH, freshTodayPH } from '../../utils/serverTime';
 
+// Sterilization checks
+// - a real sterilization record exists → can't add another
+// - owner only marked the pet as neutered when registering → ask before recording
+const hasSterilizationRecord = (pet) => Number(pet?.sterilization_count) > 0;
+const ownerMarkedSterilized = (pet) =>
+  !!pet && !hasSterilizationRecord(pet) && (pet.sterilized === true || String(pet.sterilized) === '1');
+
   const RecordManagement = () => {
     const [vaccinations, setVaccinations] = useState([]);
   const [dewormings, setDewormings] = useState([]);
@@ -857,10 +864,10 @@ const loadInventoryVaccines = async () => {
         
         if (matchingPet) {
     // Check if pet is already sterilized for sterilization records
-    if (formData.record_type === 'sterilization' && matchingPet.sterilized == 1) {
+    if (formData.record_type === 'sterilization' && hasSterilizationRecord(matchingPet)) {
       setError(
         <div>
-          <strong>Pet already sterilized</strong>
+          <strong>Sterilization already recorded</strong>
           <br />
           <small>
             This pet was sterilized on {new Date(matchingPet.sterilization_date).toLocaleDateString()}
@@ -1157,6 +1164,12 @@ setError('');
     // Ensure procedure_type has the correct database value
     const selectedPet = getSelectedPet();
     const procedureType = selectedPet ? (selectedPet.gender === 'female' ? 'spay' : 'neuter') : '';
+
+    if (hasSterilizationRecord(selectedPet)) {
+      setError('This pet already has a sterilization record.');
+      setFormLoading(false);
+      return;
+    }
     
     if (!procedureType) {
       setError('Please select a valid pet first.');
@@ -3071,6 +3084,16 @@ const getSelectedPet = () => {
                   </div>
                 </div>
 
+                {modalMode !== 'edit' && formData.record_type === 'sterilization' && ownerMarkedSterilized(pet) && (
+                  <div className="rx-note mb-3" style={{ '--c': '#dc3545', marginTop: 0 }}>
+                    <i className="fas fa-exclamation-triangle" />
+                    <span>
+                      <strong>Registered as already {pet.gender === 'female' ? 'spayed' : 'neutered'}.</strong>{' '}
+                      The owner marked {pet.name} as already {pet.gender === 'female' ? 'spayed' : 'neutered'} when registering.
+                      Are you sure the pet is not already {pet.gender === 'female' ? 'spayed' : 'neutered'}? Saving will still add this sterilization record.
+                    </span>
+                  </div>
+                )}
                 {n >= 2 && (
                   <div className="rx-note mb-3" style={{ '--c': '#b07d05', marginTop: 0 }}>
                     <i className="fas fa-exclamation-triangle" />
@@ -3101,7 +3124,7 @@ const getSelectedPet = () => {
                   onClick={() => { setShowConfirmRecordModal(false); handleSubmit({ preventDefault: () => {} }); }}>
                   {formLoading
                     ? <><i className="fas fa-circle-notch fa-spin" />Saving…</>
-                    : <><i className="fas fa-save" />{n > 1 ? `Save as ${ordinal(n)} session` : 'Save record'}</>}
+                    : <><i className="fas fa-save" />{modalMode !== 'edit' && formData.record_type === 'sterilization' && ownerMarkedSterilized(pet) ? 'Yes, record anyway' : n > 1 ? `Save as ${ordinal(n)} session` : 'Save record'}</>}
                 </button>
               </Modal.Footer>
             </>

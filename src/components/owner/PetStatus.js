@@ -295,7 +295,8 @@ const cropAnimRef = useRef(null);
 
   const checkPetHasRecords = (pet) => {
   const hasVaccinations = pet.vaccination_count && pet.vaccination_count > 0;
-  const hasSterilization = pet.sterilized === 1 || pet.sterilized === true;
+  // Only a sterilization RECORD counts (not the owner's "already neutered" switch)
+  const hasSterilization = Number(pet.sterilization_count) > 0;
   const hasMicrochip = pet.microchip_number && pet.microchip_number !== null && pet.microchip_number !== '';
   return hasVaccinations || hasSterilization || hasMicrochip;
 };
@@ -1020,7 +1021,7 @@ useEffect(() => {
     birth_date: pet.birth_date && pet.birth_date !== '0000-00-00' ? pet.birth_date : '',
     weight: pet.weight || '',
     special_notes: pet.special_notes || '',
-    sterilized: pet.sterilized || false,
+    sterilized: pet.sterilized === true || String(pet.sterilized) === '1',
     sterilized_by: pet.sterilized_by || '',
     sterilization_date: pet.sterilization_date || ''
   };
@@ -1171,6 +1172,11 @@ useEffect(() => {
   };
 
   const hasEditChanges = JSON.stringify(editFormData) !== JSON.stringify(originalEditData);
+  // Pets with health records: name is locked; the neutered switch is locked only when a sterilization record exists
+  const editLocks = {
+    name: !!selectedPet && !!checkPetHasRecords(selectedPet),
+    sterilized: !!selectedPet && Number(selectedPet.sterilization_count) > 0,
+  };
 
 const handleRegisterPet = async (e) => {
     e.preventDefault();
@@ -1442,12 +1448,10 @@ const handleRegisterPet = async (e) => {
                                     <i className="fas fa-id-card" />View vet card
                                   </button>
                                 )}
-                                {!hasRecords && (
-                                  <button type="button" role="menuitem" className="pt-menu-item"
-                                    onClick={() => { setShowDropdown(null); handleEditPet(pet); }}>
-                                    <i className="fas fa-pen" />Edit info
-                                  </button>
-                                )}
+                                <button type="button" role="menuitem" className="pt-menu-item"
+                                  onClick={() => { setShowDropdown(null); handleEditPet(pet); }}>
+                                  <i className="fas fa-pen" />Edit info
+                                </button>
                                 <div className="pt-menu-sep" />
                                 <button type="button" role="menuitem" className="pt-menu-item warn"
                                   onClick={() => { setShowDropdown(null); handleArchivePet(pet); }}>
@@ -1461,7 +1465,7 @@ const handleRegisterPet = async (e) => {
                                 ) : (
                                   <div className="pt-menu-note">
                                     <i className="fas fa-lock" />
-                                    This pet has health records, so it can't be edited or removed.
+                                    This pet has health records, so it can't be removed and only some details can be edited.
                                   </div>
                                 )}
                               </div>
@@ -1984,7 +1988,10 @@ const handleRegisterPet = async (e) => {
                 <Col md={6}>
                   <Form.Label className="pm-label">Pet name <span className="pm-req">*</span></Form.Label>
                   <Form.Control className="pm-input" type="text" name="name" value={editFormData.name}
-                    onChange={handleEditFormChange} required disabled={updateLoading} />
+                    onChange={handleEditFormChange} required disabled={updateLoading || editLocks.name} />
+                  {editLocks.name && (
+                    <div className="pm-hint"><i className="fas fa-lock" />Can't be changed once the pet has health records.</div>
+                  )}
                 </Col>
                 <Col md={6}>
                   <Form.Label className="pm-label">Breed</Form.Label>
@@ -2015,22 +2022,26 @@ const handleRegisterPet = async (e) => {
               <label className={`pm-toggle${editFormData.sterilized ? ' on' : ''}`} htmlFor="sterilized-check-edit">
                 <div>
                   <div className="pm-toggle-title">{getSterilizationLabel(selectedPet?.gender)}</div>
-                  <div className="pm-toggle-sub">Turn on if your pet is already {getSterilizationLabel(selectedPet?.gender).toLowerCase()}.</div>
+                  <div className="pm-toggle-sub">
+                    {editLocks.sterilized
+                      ? <><i className="fas fa-lock me-1" />Recorded by the vet or clinic, so this can't be changed.</>
+                      : <>Turn on if your pet is already {getSterilizationLabel(selectedPet?.gender).toLowerCase()}.</>}
+                  </div>
                 </div>
                 <Form.Check type="switch" id="sterilized-check-edit" name="sterilized" checked={editFormData.sterilized || false}
-                  onChange={handleEditFormChange} disabled={updateLoading} className="pm-switch" />
+                  onChange={handleEditFormChange} disabled={updateLoading || editLocks.sterilized} className="pm-switch" />
               </label>
               {editFormData.sterilized && (
                 <Row className="g-3 mt-0">
                   <Col md={6}>
                     <Form.Label className="pm-label">{getSterilizedByLabel(selectedPet?.gender)}</Form.Label>
                     <Form.Control className="pm-input" type="text" name="sterilized_by" value={editFormData.sterilized_by}
-                      onChange={handleEditFormChange} placeholder="Dr. Juan Dela Cruz" disabled={updateLoading} />
+                      onChange={handleEditFormChange} placeholder="Dr. Juan Dela Cruz" disabled={updateLoading || editLocks.sterilized} />
                   </Col>
                   <Col md={6}>
                     <Form.Label className="pm-label">Sterilization date</Form.Label>
                     <Form.Control className="pm-input" type="date" name="sterilization_date" value={editFormData.sterilization_date}
-                      onChange={handleEditFormChange} max={new Date().toISOString().split('T')[0]} disabled={updateLoading} />
+                      onChange={handleEditFormChange} max={new Date().toISOString().split('T')[0]} disabled={updateLoading || editLocks.sterilized} />
                   </Col>
                 </Row>
               )}
